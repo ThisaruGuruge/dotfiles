@@ -1,4 +1,4 @@
-compress_files () {
+compress () {
     tar -czvf "$1.tar.gz" $1
 }
 
