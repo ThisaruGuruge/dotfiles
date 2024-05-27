@@ -83,6 +83,9 @@ eval "$(zoxide init --cmd cd zsh)"
 
 # source the personal configs
 source /Users/thisaru/.aliases.sh
+source /Users/thisaru/.functions.sh
+source /Users/thisaru/.paths.sh
+source /Users/thisaru/.env
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
 export PATH="/Users/thisaru/.rd/bin:$PATH"
