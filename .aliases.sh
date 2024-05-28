@@ -84,6 +84,7 @@ alias gcp='git cherry-pick'
 alias ga='git add'
 alias gaa='git add --all'
 alias gd='git diff'
+alias grh='git reset'
 alias gitm='git commit -m '
 alias git_clean_all='git clean -df; git checkout -- .'
 
