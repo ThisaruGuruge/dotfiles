@@ -9,6 +9,7 @@ alias rm="rm -r"
 alias qfind="find . -name "
 
 alias ag='ag --silent --hidden'
+alias todo='todo.sh'
 
 alias ls='ls --color'
 alias ls_x='ls -lXB'         #  Sort by extension.
@@ -29,7 +30,7 @@ alias switchJava='f(){ export JAVA_HOME=`/usr/libexec/java_home -v $1` };f'
 alias dock_add_space="defaults write com.apple.dock persistent-apps -array-add '{"tile-type"="spacer-tile";}'; killall Dock"
 
 # Add sudo as an alias so we can use aliases with sudo :D
-# alias sudo='sudo '
+alias sudo='sudo '
 
 # Bash Customization
 alias my_soc="source ~/.zshrc"
@@ -47,8 +48,6 @@ alias ....="cd ../../../"
 alias .....="cd ../../../../"
 alias ......="cd ../../../../../"
 alias remove_empty_dirs="find . -type d | tail -r | xargs rmdir 2>/dev/null"
-alias graphql_repo="cd /Users/thisaru/Projects/Ballerina/module-ballerina-graphql"
-alias ballerina_repos="cd /Users/thisaru/Projects/Ballerina"
 
 # Editors
 alias v="vim"
@@ -56,9 +55,6 @@ alias v="vim"
 # Devlopment
 alias editHosts='sudo vim /etc/hosts'
 alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"
-
-# Build
-alias clean_npm='git clean -fxd'
 
 # Gradle
 alias gw='gw --max-workers=6'
@@ -75,12 +71,21 @@ alias p3='python3'
 
 # GIT
 alias gits='git status'
-alias git_pom='git push origin master'
-alias gita='git add '
-alias gitd='git diff'
+alias gl='git pull'
+alias glo='git pull origin'
+alias glt='git pull thisaru'
+alias gp='git push'
+alias gpo='git push origin'
+alias gpt='git push thisaru'
+alias gb='git branch'
+alias gbd='git branch -d'
+alias gco='git checkout'
+alias gcp='git cherry-pick'
+alias ga='git add'
+alias gaa='git add --all'
+alias gd='git diff'
 alias gitm='git commit -m '
 alias git_clean_all='git clean -df; git checkout -- .'
-alias gacp='python3 /Users/thisaru/Projects/Scripts/git/commit_and_push_all.py '
 
 # Ballerina
 alias b='bal'
