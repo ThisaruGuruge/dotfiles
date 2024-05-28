@@ -7,8 +7,9 @@
 3. Install [iTerm2](https://iterm2.com/).
 4. Install [zsh](https://www.zsh.org/).
 5. Install [nerd fonts](https://github.com/ryanoasis/nerd-fonts).
-6. Install [zinit](https://github.com/zdharma-continuum/zinit).
-7. Install [fzf](https://github.com/Aloxaf/fzf-tab).
+6. Install [Power Level 10k](https://github.com/romkatv/powerlevel10k)
+7. Install [zinit](https://github.com/zdharma-continuum/zinit).
+8. Install [fzf](https://github.com/Aloxaf/fzf-tab).
 
 ## Installation
 
