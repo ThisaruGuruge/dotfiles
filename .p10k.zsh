@@ -400,13 +400,18 @@
 
     local res
 
+    # Use blue color for branch name if there are untracked files.
+    (( VCS_STATUS_NUM_UNTRACKED )) && res+="${conflicted}"
+    # Use yellow color for branch name if there are unstaged changes.
+    (( VCS_STATUS_NUM_UNSTAGED )) && res+="${modified}"
+
     if [[ -n $VCS_STATUS_LOCAL_BRANCH ]]; then
       local branch=${(V)VCS_STATUS_LOCAL_BRANCH}
       # If local branch name is at most 32 characters long, show it in full.
       # Otherwise show the first 12 … the last 12.
       # Tip: To always show local branch name in full without truncation, delete the next line.
       (( $#branch > 32 )) && branch[13,-13]="…"  # <-- this line
-      res+="${clean}${(g::)POWERLEVEL9K_VCS_BRANCH_ICON}${branch//\%/%%}"
+      res+="${(g::)POWERLEVEL9K_VCS_BRANCH_ICON}${branch//\%/%%}"
     fi
 
     if [[ -n $VCS_STATUS_TAG
@@ -445,7 +450,7 @@
       (( VCS_STATUS_COMMITS_AHEAD  )) && res+="${clean}⇡${VCS_STATUS_COMMITS_AHEAD}"
     elif [[ -n $VCS_STATUS_REMOTE_BRANCH ]]; then
       # Tip: Uncomment the next line to display '=' if up to date with the remote.
-      # res+=" ${clean}="
+      res+=" ${clean}="
     fi
 
     # ⇠42 if behind the push remote.
