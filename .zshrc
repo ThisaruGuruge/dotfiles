@@ -1,10 +1,3 @@
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
-
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Set the directory we want to store zinit and plugins
@@ -16,11 +9,13 @@ if [ ! -d "$ZINIT_HOME" ]; then
    git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
 fi
 
+# Initialize oh-my-posh except for Apple Terminal
+if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
+  eval "$(oh-my-posh init zsh --config $HOME/.config/ohmyposh/zen.json)"
+fi
+
 # Source/Load zinit
 source "${ZINIT_HOME}/zinit.zsh"
-
-# Add in Powerlevel10k
-zinit ice depth=1; zinit light romkatv/powerlevel10k
 
 # ZSH Plugins
 zinit light zsh-users/zsh-syntax-highlighting
@@ -49,9 +44,6 @@ export NVM_DIR="$HOME/.nvm"
 
 zinit cdreplay -q
 
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-
 # keybindings
 bindkey '^[[A' history-search-backward
 bindkey '^[[B' history-search-forward
@@ -76,6 +68,10 @@ zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
 zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 
+# Bash style jumps
+autoload -U select-word-style
+select-word-style bash
+
 # Shell integrations
 eval "$(fzf --zsh)"
 eval "$(zoxide init --cmd cd zsh)"
@@ -84,7 +80,11 @@ eval "$(zoxide init --cmd cd zsh)"
 source /Users/thisaru/.aliases.sh
 source /Users/thisaru/.functions.sh
 source /Users/thisaru/.paths.sh
+# source /Users/thisaru/.variables.sh
 source /Users/thisaru/.env
+
+# Homebrew settings
+HOMEBREW_AUTO_UPDATE_SECS=86400
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
 export PATH="/Users/thisaru/.rd/bin:$PATH"
