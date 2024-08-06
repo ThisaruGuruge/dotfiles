@@ -10,35 +10,35 @@
             "type": "prompt",
             "segments": [
                 {
+                    "type": "path",
+                    "style": "powerline",
+                    "template": " {{ .Parent }}<b>{{ .Folder }}</b> ",
                     "background": "p:background",
                     "foreground": "p:blue",
-                    "style": "powerline",
                     "powerline_symbol": "",
-                    "type": "path",
-                    "template": "{{ .Parent }}<u><b>{{ .Folder }}</b></u>",
                     "properties": {
                         "folder_separator_icon": "  ",
                         "style": "full",
+                        "home_icon": "",
+                        "folder_icon": "",
                         "mapped_locations": {
-                            "/Users/thisaru/Projects/": "<b></b>",
-                            "/Users/thisaru": "<b></b>",
                             "/": "<b></b>"
                         }
                     }
                 },
                 {
+                    "type": "git",
+                    "style": "powerline",
+                    "template": "{{ .UpstreamIcon }}{{ .HEAD }} {{if .BranchStatus }}{{ .BranchStatus }}{{ end }}{{ if .Working.Changed }}  {{ .Working.String }}{{ end }}{{ if and (.Working.Changed) (.Staging.Changed) }}|{{ end }}{{ if .Staging.Changed }}  {{ .Staging.String }}{{ end }}{{ if gt .StashCount 0 }}  {{ .StashCount }}{{ end }}",
                     "background": "p:background",
                     "foreground": "p:green",
                     "powerline_symbol": "",
-                    "style": "powerline",
-                    "type": "git",
                     "foreground_templates": [
                         "{{ if or (.Working.Changed) (.Staging.Changed) }}p:yellow{{ end }}",
                         "{{ if and (gt .Ahead 0) (gt .Behind 0) }}p:yellow{{ end }}",
                         "{{ if gt .Ahead 0 }}p:orange{{ end }}",
                         "{{ if gt .Behind 0 }}p:blue{{ end }}"
                     ],
-                    "template": "{{ .UpstreamIcon }}{{ .HEAD }}{{if .BranchStatus }}{{ .BranchStatus }}{{ end }}{{ if .Working.Changed }}  {{ .Working.String }}{{ end }}{{ if and (.Working.Changed) (.Staging.Changed) }} |{{ end }}{{ if .Staging.Changed }}  {{ .Staging.String }}{{ end }}{{ if gt .StashCount 0 }}  {{ .StashCount }}{{ end }}",
                     "properties": {
                         "fetch_status": true,
                         "fetch_upstream_icon": true,
@@ -50,12 +50,12 @@
         },
         {
             "alignment": "right",
-            "filler": "",
+            "filler": "",
             "type": "prompt",
             "segments": [
                 {
                     "type": "time",
-                    "style": "plain",
+                    "style": "powerline",
                     "foreground": "#007ACC",
                     "properties": {
                         "time_format": "3:04:05 PM"
@@ -70,8 +70,8 @@
             "segments": [
                 {
                     "type": "text",
-                    "template": "<d>❯</d>",
                     "style": "powerline",
+                    "template": "❯",
                     "background": "transparent",
                     "foreground_templates": [
                         "{{ if gt .Code 0 }}p:red{{ end }}",
@@ -88,10 +88,10 @@
     },
     "palette": {
         "background": "#3b3b39",
-        "blue": "#3483eb",
+        "blue": "#3a8cf7",
         "green": "#08c70e",
         "orange": "#de5f0b",
-        "red": "#f12f2f",
+        "red": "#fe2222",
         "yellow": "#d5d907"
     }
 }
