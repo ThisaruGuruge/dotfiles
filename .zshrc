@@ -53,13 +53,14 @@ HISTSIZE=5000
 HISTFILE=~/.zsh_history
 SAVEHIST=$HISTSIZE
 HISTDUP=erase
-setopt appendhistory
-setopt sharehistory
-setopt hist_ignore_space
-setopt hist_ignore_all_dups
-setopt hist_save_no_dups
-setopt hist_ignore_dups
-setopt hist_find_no_dups
+setopt appendhistory # Append history to the history file
+setopt sharehistory # Share history between all sessions
+setopt hist_ignore_space # Ignore leading spaces when saving history
+setopt hist_ignore_all_dups # Delete old recorded entry if new entry is a duplicate
+setopt hist_save_no_dups # Do not save duplicates in history
+setopt hist_ignore_dups # Do not save duplicates in history
+setopt hist_find_no_dups # Do not display duplicates in history search
+setopt correct # Enable auto correction
 
 # Completion styling
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'

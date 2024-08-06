@@ -87,6 +87,7 @@ alias gitd='git diff'
 alias grh='git reset'
 alias gra='git remote add'
 alias gitm='git commit -m '
+alias gitcan="git commit --amend --no-edit"
 alias git_clean_all='git clean -df; git checkout -- .'
 alias gc='git clone'
 alias gf='git fetch'
