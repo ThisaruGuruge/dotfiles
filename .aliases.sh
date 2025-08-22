@@ -24,7 +24,8 @@ alias hideFiles='defaults write com.apple.finder AppleShowAllFiles NO; killall F
 
 
 # Switch Java
-alias switchJava='f(){ export JAVA_HOME=`/usr/libexec/java_home -v $1` };f'
+alias use_java_17="sdk default java 17.0.11-tem"
+alias use_java_21="sdk default java 21.0.5-tem"
 
 # Mac manipulation
 alias dock_add_space="defaults write com.apple.dock persistent-apps -array-add '{"tile-type"="spacer-tile";}'; killall Dock"
@@ -84,13 +85,15 @@ alias gcp='git cherry-pick'
 alias ga='git add'
 alias gaa='git add --all'
 alias gitd='git diff'
-alias grh='git reset'
 alias gra='git remote add'
 alias gitm='git commit -m '
 alias gitcan="git commit --amend --no-edit"
 alias git_clean_all='git clean -df; git checkout -- .'
 alias gc='git clone'
 alias gf='git fetch'
+alias grh='git reset'
+alias gr_soft='git reset --soft'
+alias gr_hard='git reset --hard'
 
 # Ballerina
 alias b='bal'
