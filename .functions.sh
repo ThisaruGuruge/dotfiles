@@ -28,27 +28,75 @@ checkPort() {
 }
 
 kill_by_port() {
-    re='^[0-9]{4}$'
-    if ! [ $1 -lt 65534 ] && [ $1 -gt 1000 ]
-    then
-        echo "Invalid input: $1. Enter a valid port number. (Numbers less than 1000 are considered invalid)"
-    else
-        apps="$(lsof -i:$1)"
-        if [ -z $apps  ]
-        then
-            echo "No apps using the port $1"
-        else
-            echo "Apps found: "
-            echo "$apps"
-            #read "resonse?Do you want to kill these ? (y/N): "
-            #if [[ $response =~ '^[yY]$' ]]
-            #then
-            kill -9 $(lsof -t -i:$1)
-            echo "Killed Apps"
-            #else
-            #    echo "Quit"
-            #fi
+    local dry_run=false
+    local port_arg=""
+    
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -d|--dry-run)
+                dry_run=true
+                shift
+                ;;
+            -h|--help)
+                echo "Usage: kill_by_port [OPTIONS] PORT"
+                echo "Kill processes running on the specified port"
+                echo ""
+                echo "Options:"
+                echo "  -d, --dry-run    List processes without killing them"
+                echo "  -h, --help       Show this help message"
+                echo ""
+                echo "Examples:"
+                echo "  kill_by_port 3000        # Kill processes on port 3000"
+                echo "  kill_by_port -d 3000     # List processes on port 3000 (dry run)"
+                return 0
+                ;;
+            -*)
+                echo "Unknown option: $1"
+                echo "Use -h or --help for usage information"
+                return 1
+                ;;
+            *)
+                port_arg="$1"
+                shift
+                ;;
+        esac
+    done
+    
+    # Check if port argument was provided
+    if [ -z "$port_arg" ]; then
+        echo "Error: Port number is required"
+        echo "Use -h or --help for usage information"
+        return 1
     fi
+    
+    re='^[0-9]{4}$'
+    if ! [ $port_arg -lt 65534 ] && [ $port_arg -gt 1000 ]
+    then
+        echo "Invalid input: $port_arg. Enter a valid port number. (Numbers less than 1000 are considered invalid)"
+    else
+        apps="$(lsof -i:$port_arg)"
+        if [ -z "$apps" ]
+        then
+            echo "No apps using the port $port_arg"
+        else
+            echo "Apps found on port $port_arg:"
+            echo "$apps"
+            
+            if [ "$dry_run" = true ]; then
+                echo "
+[DRY RUN] The above processes would be killed with: kill -9 $(lsof -t -i:$port_arg)"
+            else
+                #read "resonse?Do you want to kill these ? (y/N): "
+                #if [[ $response =~ '^[yY]$' ]]
+                #then
+                kill -9 $(lsof -t -i:$port_arg)
+                echo "Killed Apps"
+                #else
+                #    echo "Quit"
+                #fi
+            fi
+        fi
     fi
 }
 

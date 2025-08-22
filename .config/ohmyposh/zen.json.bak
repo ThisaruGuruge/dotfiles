@@ -1,0 +1,97 @@
+{
+    "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
+    "console_title_template": "{{ .Folder }}",
+    "final_space": true,
+    "version": 2,
+    "blocks": [
+        {
+            "alignment": "left",
+            "newline": true,
+            "type": "prompt",
+            "segments": [
+                {
+                    "type": "path",
+                    "style": "powerline",
+                    "template": " {{ .Parent }}<b>{{ .Folder }}</b> ",
+                    "background": "p:background",
+                    "foreground": "p:blue",
+                    "powerline_symbol": "",
+                    "properties": {
+                        "folder_separator_icon": "  ",
+                        "style": "full",
+                        "home_icon": "",
+                        "folder_icon": "",
+                        "mapped_locations": {
+                            "/": "<b></b>"
+                        }
+                    }
+                },
+                {
+                    "type": "git",
+                    "style": "powerline",
+                    "template": "{{ .UpstreamIcon }}{{ .HEAD }} {{if .BranchStatus }}{{ .BranchStatus }}{{ end }}{{ if .Working.Changed }}  {{ .Working.String }}{{ end }}{{ if and (.Working.Changed) (.Staging.Changed) }}|{{ end }}{{ if .Staging.Changed }}  {{ .Staging.String }}{{ end }}{{ if gt .StashCount 0 }}  {{ .StashCount }}{{ end }}",
+                    "background": "p:background",
+                    "foreground": "p:green",
+                    "powerline_symbol": "",
+                    "foreground_templates": [
+                        "{{ if or (.Working.Changed) (.Staging.Changed) }}p:yellow{{ end }}",
+                        "{{ if and (gt .Ahead 0) (gt .Behind 0) }}p:yellow{{ end }}",
+                        "{{ if gt .Ahead 0 }}p:orange{{ end }}",
+                        "{{ if gt .Behind 0 }}p:blue{{ end }}"
+                    ],
+                    "properties": {
+                        "fetch_status": true,
+                        "fetch_upstream_icon": true,
+                        "branch_icon": " ",
+                        "branch_upstream_icon": " "
+                    }
+                }
+            ]
+        },
+        {
+            "alignment": "right",
+            "filler": "",
+            "type": "prompt",
+            "segments": [
+                {
+                    "type": "time",
+                    "style": "powerline",
+                    "foreground": "#007ACC",
+                    "properties": {
+                        "time_format": "3:04:05 PM"
+                    }
+                }
+            ]
+        },
+        {
+            "alignment": "left",
+            "newline": true,
+            "type": "prompt",
+            "segments": [
+                {
+                    "type": "text",
+                    "style": "powerline",
+                    "template": "❯",
+                    "background": "transparent",
+                    "foreground_templates": [
+                        "{{ if gt .Code 0 }}p:red{{ end }}",
+                        "{{ if eq .Code 0 }}p:green{{ end }}"
+                    ]
+                }
+            ]
+        }
+    ],
+    "transient_prompt": {
+        "background": "transparent",
+        "foreground": "p:blue",
+        "template": "❯ "
+    },
+    "palette": {
+        "background": "#3b3b39",
+        "blue": "#3a8cf7",
+        "green": "#08c70e",
+        "orange": "#de5f0b",
+        "red": "#fe2222",
+        "yellow": "#d5d907"
+    }
+}
