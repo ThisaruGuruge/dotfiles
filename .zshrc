@@ -103,4 +103,4 @@ eval "$(pyenv init -)"
 export PATH="/Users/thisaru/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
-. "$HOME/.local/bin/env"
+source "$HOME/.local/bin/env"
