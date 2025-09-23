@@ -30,7 +30,7 @@ checkPort() {
 kill_by_port() {
     local dry_run=false
     local port_arg=""
-    
+
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -62,14 +62,14 @@ kill_by_port() {
                 ;;
         esac
     done
-    
+
     # Check if port argument was provided
     if [ -z "$port_arg" ]; then
         echo "Error: Port number is required"
         echo "Use -h or --help for usage information"
         return 1
     fi
-    
+
     re='^[0-9]{4}$'
     if ! [ $port_arg -lt 65534 ] && [ $port_arg -gt 1000 ]
     then
@@ -82,7 +82,7 @@ kill_by_port() {
         else
             echo "Apps found on port $port_arg:"
             echo "$apps"
-            
+
             if [ "$dry_run" = true ]; then
                 echo "
 [DRY RUN] The above processes would be killed with: kill -9 $(lsof -t -i:$port_arg)"
@@ -127,4 +127,22 @@ function takeurl() {
     thedir="$(tar tf "$data" | head -n 1)"
     rm "$data"
     cd "$thedir"
+}
+
+git_ignore_local() {
+  if [ -z "$1" ]; then
+    echo "Usage: git_ignore_local <file>"
+    return 1
+  fi
+
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+
+  if [ -z "$repo_root" ]; then
+    echo "Not inside a Git repository."
+    return 1
+  fi
+
+  echo "$1" >> "$repo_root/.git/info/exclude"
+  echo "Added '$1' to $repo_root/.git/info/exclude"
 }
