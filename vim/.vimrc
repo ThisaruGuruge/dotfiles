@@ -16,13 +16,12 @@ autocmd BufRead,BufWritePre *.sh normal gg=G
 
 set statusline=
 set statusline+=\ %f
-set statusline+=\ Line: 
+set statusline+=\ Line:
 set statusline+=\ %l
-set statusline+=\ Char: 
+set statusline+=\ Char:
 set statusline+=\ %c
 
 set backspace=indent,eol,start
 set noshowmode
 set noshowcmd
 set shortmess+=F
-syntax on

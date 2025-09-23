@@ -1,0 +1,125 @@
+# Global direnv configuration
+# This file provides global functions and settings for direnv
+
+# Load a specific version of a language using version managers
+use_nvm() {
+    local node_version=${1:-default}
+
+    if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
+        source "$HOME/.nvm/nvm.sh"
+        nvm use $node_version
+    fi
+}
+
+use_pyenv() {
+    local python_version=${1:-system}
+
+    if command -v pyenv >/dev/null 2>&1; then
+        pyenv shell $python_version
+    fi
+}
+
+use_rbenv() {
+    local ruby_version=${1:-system}
+
+    if command -v rbenv >/dev/null 2>&1; then
+        rbenv shell $ruby_version
+    fi
+}
+
+use_java() {
+    local java_version=${1}
+
+    if [[ -n "$java_version" ]] && command -v sdk >/dev/null 2>&1; then
+        sdk use java $java_version
+    fi
+}
+
+# Load environment from .env file
+dotenv() {
+    local env_file=${1:-.env}
+
+    if [[ -f "$env_file" ]]; then
+        echo "Loading environment from $env_file"
+        source_env "$env_file"
+    fi
+}
+
+# Layout functions for common project types
+layout_node() {
+    local node_version=${1:-lts}
+    use_nvm $node_version
+
+    # Add node_modules/.bin to PATH
+    PATH_add node_modules/.bin
+}
+
+layout_python() {
+    local python_version=${1:-3.11}
+    use_pyenv $python_version
+
+    # Create virtual environment if it doesn't exist
+    if [[ ! -d .venv ]]; then
+        python -m venv .venv
+    fi
+
+    # Activate virtual environment
+    source .venv/bin/activate
+}
+
+layout_go() {
+    # Set GOPATH to current directory
+    export GOPATH=$PWD
+    PATH_add bin
+}
+
+layout_java() {
+    local java_version=${1:-21.0.5-tem}
+    use_java $java_version
+
+    # Add common Java paths
+    if [[ -d "target" ]]; then
+        PATH_add target/classes
+    fi
+}
+
+# Docker compose helper
+use_docker_compose() {
+    if [[ -f "docker-compose.yml" ]] || [[ -f "docker-compose.yaml" ]]; then
+        echo "Docker Compose project detected"
+        alias dcup="docker-compose up"
+        alias dcdown="docker-compose down"
+        alias dcbuild="docker-compose build"
+        alias dclogs="docker-compose logs"
+    fi
+}
+
+# Kubernetes context helper
+use_kubectl_context() {
+    local context=${1}
+
+    if [[ -n "$context" ]] && command -v kubectl >/dev/null 2>&1; then
+        kubectl config use-context $context
+        echo "Switched to Kubernetes context: $context"
+    fi
+}
+
+# Load common project dependencies
+use_project_env() {
+    # Load .env file if present
+    dotenv
+
+    # Detect and setup project type
+    if [[ -f "package.json" ]]; then
+        layout_node
+    elif [[ -f "requirements.txt" ]] || [[ -f "pyproject.toml" ]]; then
+        layout_python
+    elif [[ -f "go.mod" ]]; then
+        layout_go
+    elif [[ -f "pom.xml" ]] || [[ -f "build.gradle" ]]; then
+        layout_java
+    fi
+
+    # Setup Docker Compose if present
+    use_docker_compose
+}

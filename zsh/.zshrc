@@ -26,16 +26,59 @@ zinit light Aloxaf/fzf-tab
 # Add in snippets
 zinit snippet OMZP::gradle
 zinit snippet OMZP::sudo
-zinit snippet OMZP::command-not-found
+# Homebrew command-not-found integration (updated)
+if ! command -v brew >/dev/null; then return; fi
 
-# command not found config
-HB_CNF_HANDLER="$(brew --repository)/Library/Taps/homebrew/homebrew-command-not-found/handler.sh"
-if [ -f "$HB_CNF_HANDLER" ]; then
-source "$HB_CNF_HANDLER";
+homebrew_command_not_found_handle() {
+  local cmd="$1"
+
+  if [[ -n "${ZSH_VERSION}" ]]
+  then
+    autoload is-at-least
+  fi
+
+  # do not run when inside Midnight Commander or within a Pipe, except if CI
+  if test -z "${HOMEBREW_COMMAND_NOT_FOUND_CI}" && test -n "${MC_SID}" -o ! -t 1
+  then
+    [[ -n "${ZSH_VERSION}" ]] && is-at-least "5.2" "${ZSH_VERSION}" &&
+      echo "zsh: command not found: ${cmd}" >&2
+    return 127
+  fi
+
+  if [[ "${cmd}" != "-h" ]] && [[ "${cmd}" != "--help" ]] && [[ "${cmd}" != "--usage" ]] && [[ "${cmd}" != "-?" ]]
+  then
+    local txt
+    txt="$(brew which-formula --skip-update --explain "${cmd}" 2>/dev/null)"
+  fi
+
+  if [[ -z "${txt}" ]]
+  then
+    [[ -n "${ZSH_VERSION}" ]] && is-at-least "5.2" "${ZSH_VERSION}" &&
+      echo "zsh: command not found: ${cmd}" >&2
+  else
+    echo "${txt}"
+  fi
+
+  return 127
+}
+
+if [[ -n "${ZSH_VERSION}" ]]
+then
+  command_not_found_handler() {
+    homebrew_command_not_found_handle "$*"
+    return $?
+  }
 fi
 
-# Load completions
-autoload -Uz compinit && compinit
+# Add Homebrew completions to fpath and exclude broken paths
+if type brew &>/dev/null; then
+  FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
+  # Remove problematic old Intel Homebrew path
+  FPATH="${FPATH//\/usr\/local\/share\/zsh\/site-functions:/}"
+fi
+
+# Load completions with error suppression for missing files
+autoload -Uz compinit && compinit -i
 
 # NVM configuration
 export NVM_DIR="$HOME/.nvm"
@@ -77,12 +120,17 @@ select-word-style bash
 eval "$(fzf --zsh)"
 eval "$(zoxide init --cmd cd zsh)"
 
+# direnv integration (load project-specific environments)
+if command -v direnv >/dev/null 2>&1; then
+    eval "$(direnv hook zsh)"
+fi
+
 # source the personal configs
-source /Users/thisaru/.aliases.sh
-source /Users/thisaru/.functions.sh
-source /Users/thisaru/.paths.sh
-# source /Users/thisaru/.variables.sh
-source /Users/thisaru/.env
+source "$HOME/.aliases.sh"
+source "$HOME/.functions.sh"
+source "$HOME/.paths.sh"
+# source "$HOME/.variables.sh"  # File doesn't exist
+source "$HOME/.env"
 
 # Docker settings
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
@@ -94,7 +142,10 @@ export PATH="/usr/local/opt/ruby/bin:/usr/local/lib/ruby/gems/3.0.0/bin:$PATH"
 
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="$HOME/.sdkman"
-[[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
+    # Load SDKMAN quietly to avoid function errors during startup
+    source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
+fi
 export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv init -)"

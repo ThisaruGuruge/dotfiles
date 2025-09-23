@@ -1,0 +1,17 @@
+# Personal Git Configuration Template
+# Copy this file to ~/.gitconfig.local and update with your information
+# This file should NOT be tracked in version control
+
+[user]
+    name = YOUR_FULL_NAME
+    email = YOUR_EMAIL@example.com
+    # Uncomment and configure if you use GPG signing
+    # signingkey = YOUR_GPG_KEY_ID
+
+[github]
+    user = YOUR_GITHUB_USERNAME
+
+[gitlab]
+    user = YOUR_GITLAB_USERNAME
+
+# Add any other personal Git configuration here
