@@ -236,3 +236,7 @@ alias br='bal run'
 alias bv='bal -v'
 alias bt='bal test'
 alias bro='bal run --offline'
+
+# Ballerina-specific search aliases
+alias grepbal='rg --type ballerina'
+alias searchbal='rg --type bal'

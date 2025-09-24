@@ -361,6 +361,7 @@ alias_help() {
             echo ""
             echo "Advanced ripgrep usage:"
             echo "  rg 'pattern' --type js    # Search only JavaScript files"
+            echo "  rg 'pattern' --type bal   # Search only Ballerina files"
             echo "  rg 'error' -A 3 -B 3      # Show 3 lines context"
             echo "  rg 'function' -c          # Count matches"
             ;;
