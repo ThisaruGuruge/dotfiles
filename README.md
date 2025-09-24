@@ -97,7 +97,7 @@ If you prefer to install manually or need to customize the process:
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install GNU Stow and core dependencies
-brew install stow oh-my-posh fzf zoxide tree bat exa ripgrep fd
+brew install stow oh-my-posh fzf zoxide tree bat eza ripgrep fd git-delta lazygit tmux htop direnv atuin gh
 
 # Install development tools (optional)
 brew install pyenv rbenv nvm
@@ -113,6 +113,21 @@ brew install --cask font-fira-code-nerd-font
 # Install SDKMAN (Java ecosystem)
 curl -s "https://get.sdkman.io" | bash
 source "$HOME/.sdkman/bin/sdkman-init.sh"
+```
+
+### Option 3: Using Brewfile
+
+The fastest way to install all dependencies:
+
+```bash
+# Clone the repository first
+git clone https://github.com/ThisaruGuruge/dotfiles.git ~/.dotfiles
+cd ~/.dotfiles
+
+# Install all dependencies with Homebrew Bundle
+brew bundle --file=Brewfile
+
+# Follow steps 2-3 from Option 2 for Zinit and dotfiles setup
 ```
 
 #### Step 2: Install Zinit
@@ -255,6 +270,17 @@ stow config   # Application configs
    sdk install java 21.0.5-tem
    ```
 
+5. **Atuin Shell History** (first run setup):
+   ```bash
+   # Import your existing shell history
+   atuin import auto
+
+   # Optional: Set up sync across machines
+   # atuin register
+   # atuin login
+   # atuin sync
+   ```
+
 ### Optional: Install Additional Tools
 
 ```bash
@@ -316,6 +342,8 @@ grep "TODO"                               # Fast search with ripgrep (much faste
 rg "function" --type js                   # Search in JavaScript files only
 rg "pattern" -A 3 -B 3                   # Show 3 lines before and after matches
 ```
+
+> ⚠️ **Note**: `grep` is aliased to `ripgrep` for better performance, but it's not fully POSIX-compatible. For scripts requiring traditional grep behavior, use `\grep` or `/usr/bin/grep`.
 
 **`lazygit` - Interactive Git Interface**:
 ```bash
@@ -447,25 +475,45 @@ oh-my-posh --version
 
 # Reinstall if needed
 brew uninstall oh-my-posh
-brew install jandedobbeleer/oh-my-posh/oh-my-posh
+brew install oh-my-posh
 ```
 
-### Testing Your Setup
+### Verify Setup
 
-Run these commands to verify everything works:
+Run this verification checklist to ensure everything is working:
 
 ```bash
-# Test shell functionality
-zsh -n ~/.zshrc                          # Check syntax
-source ~/.functions.sh                   # Load functions
+# ✅ Shell configuration syntax check
+zsh -n ~/.zshrc                          # Should pass without errors
 
-# Test custom functions
+# ✅ fzf key bindings
+# Press Ctrl+R - should show fzf fuzzy search (Note: may conflict with Warp's native history)
+
+# ✅ tmux functionality
+tmux                                      # Start tmux session
+# Press Ctrl+a | - should split horizontally
+# Press Ctrl+a d - should detach session
+
+# ✅ Modern CLI tools versions
+eza --version                            # Enhanced ls
+rg --version                             # ripgrep
+atuin --version                          # Shell history
+
+# ✅ Custom functions
 kill_by_port --help                      # Should show help
 take test-dir && pwd                     # Should create and enter directory
 
-# Test development tools
-which python3 node npm git               # Should find all tools
+# ✅ Atuin keybinding
+# Press Ctrl+Alt+R - should show Atuin fuzzy history search
 ```
+
+**Verification Checklist:**
+- [ ] `zsh -n ~/.zshrc` passes without errors
+- [ ] fzf fuzzy search works (Ctrl+R, but may conflict with Warp)
+- [ ] `tmux` starts and Ctrl+a | splits panes
+- [ ] `eza --version`, `rg --version`, `atuin --version` all work
+- [ ] Ctrl+Alt+R triggers Atuin history search
+- [ ] Custom functions like `take` and `kill_by_port --help` work
 
 ## 🔄 Updating
 

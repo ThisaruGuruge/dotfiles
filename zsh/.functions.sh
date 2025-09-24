@@ -289,7 +289,7 @@ show_tools() {
     if command -v atuin &> /dev/null; then
         echo "📚 atuin (enhanced shell history):"
         echo "  hs                 - Interactive history search"
-        echo "  Ctrl+Space         - Quick history search (keybinding)"
+        echo "  Option+H           - Quick history search (keybinding)"
         echo "  hstats             - Show command statistics"
         echo ""
     fi
@@ -489,7 +489,7 @@ alias_help() {
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Interactive History:"
             echo "  hs          atuin search (interactive fuzzy search)"
-            echo "  Ctrl+Space  atuin search (keybinding for quick access)"
+            echo "  Ctrl+Alt+R  atuin search (keybinding for quick access)"
             echo "  Ctrl+R      uses your terminal's native history (e.g., Warp's)"
             echo ""
             echo "Statistics & Sync:"
@@ -505,7 +505,7 @@ alias_help() {
             echo "  • Context-aware suggestions"
             echo "  • Works alongside terminal's native history"
             echo ""
-            echo "💡 Pro tip: Use Ctrl+Space for quick Atuin search, Ctrl+R for Warp history!"
+            echo "💡 Pro tip: Use Ctrl+Alt+R for quick Atuin search, Ctrl+R for Warp history!"
             ;;
 
         *)
