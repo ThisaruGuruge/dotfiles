@@ -5,6 +5,16 @@
 
 set -e  # Exit on any error
 
+# Ensure script is run from ~/.dotfiles directory
+basename_dir="$(basename "$PWD")"
+if [[ ! "$basename_dir" == "dotfiles" && ! "$basename_dir" == ".dotfiles" ]]; then
+    echo "❌ This script must be run from ~/.dotfiles directory"
+    echo "Please run:"
+    echo "  cd ~/.dotfiles"
+    echo "  ./init.sh"
+    exit 1
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -25,25 +35,25 @@ DOTFILES_DIR="$HOME/.dotfiles"
 
 # Logging functions
 log_success() {
-    echo -e "  ${GREEN}${CHECK} $1${NC}"
+    echo -e "  ${GREEN}${CHECK}  $1${NC}"
 }
 
 log_warning() {
-    echo -e "  ${YELLOW}${WARNING} $1${NC}"
+    echo -e "  ${YELLOW}${WARNING}  $1${NC}"
 }
 
 log_info() {
-    echo -e "  ${CYAN}${INFO} $1${NC}"
+    echo -e "  ${CYAN}${INFO}  $1${NC}"
 }
 
 log_error() {
-    echo -e "  ${RED}${CROSS} $1${NC}"
+    echo -e "  ${RED}${CROSS}  $1${NC}"
 }
 
 log_step() {
     echo ""
     echo -e "${PURPLE}═══════════════════════════════════════════${NC}"
-    echo -e " ${BLUE}${ARROW} $1${NC}"
+    echo -e " ${BLUE}${ARROW}  $1${NC}"
     echo -e "${PURPLE}═══════════════════════════════════════════${NC}"
     echo ""
 }
@@ -167,7 +177,7 @@ install_stow() {
 install_core_dependencies() {
     log_step "Installing Core Dependencies"
 
-    local packages=("oh-my-posh" "fzf" "zoxide" "tree" "bat" "eza" "ripgrep" "fd" "git-delta" "lazygit" "tmux" "htop" "direnv" "atuin")
+    local packages=("oh-my-posh" "fzf" "zoxide" "tree" "bat" "eza" "ripgrep" "fd" "git-delta" "lazygit" "tmux" "htop" "direnv" "atuin" "gh" "stow")
     local missing_packages=()
 
     # Check which packages are missing

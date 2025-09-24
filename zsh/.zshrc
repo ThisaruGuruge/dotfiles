@@ -130,8 +130,8 @@ fi
 if command -v atuin >/dev/null 2>&1; then
     eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
 
-    # Bind Ctrl+Space to Atuin search (Mac-friendly alternative to Ctrl+R)
-    bindkey '^@' _atuin_search_widget
+    # Bind Ctrl+Alt+R to Atuin search (avoid Warp conflicts)
+    bindkey '^[^R' _atuin_search_widget
 fi
 
 # source the personal configs
