@@ -135,6 +135,9 @@ source "$HOME/.env"
 # Docker settings
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
 
+# Ripgrep configuration
+export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
+
 # Homebrew settings
 HOMEBREW_AUTO_UPDATE_SECS=86400
 eval "$(rbenv init - zsh)"
