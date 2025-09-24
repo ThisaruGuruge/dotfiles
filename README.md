@@ -9,7 +9,7 @@ A comprehensive development environment setup for macOS featuring Zsh, Oh My Pos
 - **Terminal Compatibility**: Works with any modern terminal (Warp, iTerm2, Terminal.app, etc.)
 - **Enhanced Navigation**: Fast directory jumping with `zoxide` and fuzzy finding with `fzf`
 - **Development Tools**: Pre-configured support for Python, Ruby, Node.js, Java, and Docker
-- **Modern CLI Tools**: Enhanced with eza (ls), bat (cat), delta (git diff), lazygit (git UI)
+- **Modern CLI Tools**: Enhanced with eza (ls), bat (cat), delta (git diff), lazygit (git UI), atuin (shell history)
 - **Terminal Multiplexer**: Tmux configuration with modern keybindings and themes
 - **Project Environment Management**: Direnv for automatic project-specific environment loading
 - **Productivity Shortcuts**: 150+ aliases and custom functions for common development tasks
@@ -73,7 +73,7 @@ The `init.sh` script will:
 - ✅ Install Xcode Command Line Tools (if needed)
 - ✅ Install Homebrew (if needed)
 - ✅ Install GNU Stow (dotfiles manager)
-- ✅ Install modern CLI tools (eza, bat, delta, lazygit, tmux, direnv)
+- ✅ Install modern CLI tools (eza, bat, delta, lazygit, tmux, direnv, atuin)
 - ✅ Offer to install development tools (Python, Ruby, Node.js managers)
 - ✅ Install SDKMAN (Java, Gradle, Maven, Kotlin manager)
 - ✅ Offer terminal app installation (Warp or iTerm2)
