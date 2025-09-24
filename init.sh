@@ -24,35 +24,58 @@ WARNING="⚠️"
 DOTFILES_DIR="$HOME/.dotfiles"
 
 # Logging functions
-log_info() {
-    echo -e "${CYAN}${INFO} $1${NC}"
-}
-
 log_success() {
-    echo -e "${GREEN}${CHECK} $1${NC}"
+    echo -e "  ${GREEN}${CHECK} $1${NC}"
 }
 
 log_warning() {
-    echo -e "${YELLOW}${WARNING} $1${NC}"
+    echo -e "  ${YELLOW}${WARNING} $1${NC}"
+}
+
+log_info() {
+    echo -e "  ${CYAN}${INFO} $1${NC}"
 }
 
 log_error() {
-    echo -e "${RED}${CROSS} $1${NC}"
+    echo -e "  ${RED}${CROSS} $1${NC}"
 }
 
 log_step() {
-    echo -e "\n${BLUE}${ARROW} $1${NC}"
+    echo ""
+    echo -e "${PURPLE}═══════════════════════════════════════════${NC}"
+    echo -e " ${BLUE}${ARROW} $1${NC}"
+    echo -e "${PURPLE}═══════════════════════════════════════════${NC}"
+    echo ""
 }
 
-# User confirmation function
+# Enhanced user confirmation function with single key press
 confirm() {
     while true; do
-        read -p "$(echo -e "${YELLOW}$1 (y/N): ${NC}")" yn
-        case $yn in
-            [Yy]* ) return 0;;
-            [Nn]* ) return 1;;
-            "" ) return 1;;
-            * ) echo "Please answer yes (y) or no (n).";;
+        echo ""
+        echo -en "  ${YELLOW}$1 (y/n/q): ${NC}"
+        read -n 1 -s key  # Read single character without echo
+        echo  # Print newline after keypress
+
+        case "$key" in
+            [Yy])
+                echo -e "  ${GREEN}→ Yes${NC}"
+                echo ""
+                return 0
+                ;;
+            [Nn])
+                echo -e "  ${RED}→ No${NC}"
+                echo ""
+                return 1
+                ;;
+            [Qq])
+                echo -e "  ${YELLOW}→ Quit${NC}"
+                echo ""
+                log_info "Installation cancelled by user"
+                exit 0
+                ;;
+            *)
+                echo -e "  ${YELLOW}${WARNING} Please press 'y' for yes, 'n' for no, or 'q' to quit.${NC}"
+                ;;
         esac
     done
 }
@@ -144,7 +167,7 @@ install_stow() {
 install_core_dependencies() {
     log_step "Installing Core Dependencies"
 
-    local packages=("oh-my-posh" "fzf" "zoxide" "tree" "bat" "eza" "ripgrep" "fd" "git-delta" "lazygit" "tmux" "htop" "direnv")
+    local packages=("oh-my-posh" "fzf" "zoxide" "tree" "bat" "eza" "ripgrep" "fd" "git-delta" "lazygit" "tmux" "htop" "direnv" "atuin")
     local missing_packages=()
 
     # Check which packages are missing
@@ -525,16 +548,24 @@ print_final_instructions() {
     echo -e "• Check the README.md file"
     echo -e "• Open an issue on GitHub"
 
-    echo -e "\n${GREEN}Enjoy your enhanced development environment! 🚀${NC}"
+    echo ""
+    echo -e "${GREEN}╔══════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║          🎉 Installation Complete! 🎉     ║${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${GREEN}Enjoy your enhanced development environment! 🚀${NC}"
+    echo ""
 }
 
 # Main execution
 main() {
     clear
+    echo ""
     echo -e "${PURPLE}╔══════════════════════════════════════════╗${NC}"
     echo -e "${PURPLE}║        Thisaru's Dotfiles Installer      ║${NC}"
     echo -e "${PURPLE}║    Enhanced Development Environment      ║${NC}"
-    echo -e "${PURPLE}╚══════════════════════════════════════════╝${NC}\n"
+    echo -e "${PURPLE}╚══════════════════════════════════════════╝${NC}"
+    echo ""
 
     # Verify we're in the right directory
     if [ ! -f "$(pwd)/init.sh" ] || [ ! -f "$(pwd)/zsh/.zshrc" ]; then
@@ -548,6 +579,7 @@ main() {
 
     log_info "Starting installation from: $DOTFILES_DIR"
     log_info "This script will set up your complete development environment"
+    echo -e "${CYAN}${INFO} During installation, press 'y' for yes, 'n' for no, or 'q' to quit (no Enter needed)${NC}"
 
     if ! confirm "Continue with installation?"; then
         log_info "Installation cancelled"

@@ -240,3 +240,16 @@ alias bro='bal run --offline'
 # Ballerina-specific search aliases
 alias grepbal='rg --type ballerina'
 alias searchbal='rg --type bal'
+
+# Atuin shell history aliases - Enhanced command history with sync and search
+# Examples:
+#   hs              # Interactive history search
+#   hstats          # Show command statistics
+#   hsync           # Sync history to atuin server (if configured)
+if command -v atuin >/dev/null 2>&1; then
+    alias hs='atuin search'
+    alias hstats='atuin stats'
+    alias hsync='atuin sync'
+    alias hup='atuin up'
+    alias hdown='atuin down'
+fi

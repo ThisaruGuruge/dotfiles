@@ -125,6 +125,15 @@ if command -v direnv >/dev/null 2>&1; then
     eval "$(direnv hook zsh)"
 fi
 
+# atuin integration (enhanced shell history with sync and search)
+# Note: Disabled Ctrl+R override to avoid conflicts with Warp's native history
+if command -v atuin >/dev/null 2>&1; then
+    eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
+
+    # Bind Ctrl+Space to Atuin search (Mac-friendly alternative to Ctrl+R)
+    bindkey '^@' _atuin_search_widget
+fi
+
 # source the personal configs
 source "$HOME/.aliases.sh"
 source "$HOME/.functions.sh"

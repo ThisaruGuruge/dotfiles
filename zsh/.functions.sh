@@ -286,6 +286,14 @@ show_tools() {
         echo ""
     fi
 
+    if command -v atuin &> /dev/null; then
+        echo "📚 atuin (enhanced shell history):"
+        echo "  hs                 - Interactive history search"
+        echo "  Ctrl+Space         - Quick history search (keybinding)"
+        echo "  hstats             - Show command statistics"
+        echo ""
+    fi
+
     echo "💡 Pro tip: Type 'alias' to see all available shortcuts!"
 }
 
@@ -475,6 +483,31 @@ alias_help() {
             echo "          Example: ping google.com"
             ;;
 
+        # Atuin Shell History
+        "atuin"|"hs"|"hstats"|"hsync")
+            echo "📚 Atuin Aliases - Enhanced Shell History"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Interactive History:"
+            echo "  hs          atuin search (interactive fuzzy search)"
+            echo "  Ctrl+Space  atuin search (keybinding for quick access)"
+            echo "  Ctrl+R      uses your terminal's native history (e.g., Warp's)"
+            echo ""
+            echo "Statistics & Sync:"
+            echo "  hstats  atuin stats (show command statistics)"
+            echo "  hsync   atuin sync (sync to server if configured)"
+            echo "  hup     atuin up (navigate history up)"
+            echo "  hdown   atuin down (navigate history down)"
+            echo ""
+            echo "💡 Features:"
+            echo "  • Fuzzy search through entire command history"
+            echo "  • Statistics on command usage and patterns"
+            echo "  • Optional sync across multiple machines"
+            echo "  • Context-aware suggestions"
+            echo "  • Works alongside terminal's native history"
+            echo ""
+            echo "💡 Pro tip: Use Ctrl+Space for quick Atuin search, Ctrl+R for Warp history!"
+            ;;
+
         *)
             echo "❓ Alias '$alias_name' not found in documentation."
             echo ""
@@ -485,6 +518,7 @@ alias_help() {
             echo "  Docker: docker, dps, dex, dlog"
             echo "  Tmux: tmux, t, ta, tl"
             echo "  Network: myip, localip, ping"
+            echo "  History: atuin, hs, hstats, hsync"
             echo ""
             echo "Try: alias_docs for interactive browsing"
             ;;
