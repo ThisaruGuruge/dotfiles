@@ -8,9 +8,9 @@ set -e  # Exit on any error
 # Ensure script is run from ~/.dotfiles directory
 basename_dir="$(basename "$PWD")"
 if [[ ! "$basename_dir" == "dotfiles" && ! "$basename_dir" == ".dotfiles" ]]; then
-    echo "❌ This script must be run from ~/.dotfiles directory"
+    echo "❌ This script must be run from your dotfiles directory"
     echo "Please run:"
-    echo "  cd ~/.dotfiles"
+    echo "  cd ~/dotfiles  # or ~/.dotfiles"
     echo "  ./init.sh"
     exit 1
 fi
@@ -31,7 +31,7 @@ ARROW="➜"
 INFO="ℹ️"
 WARNING="⚠️"
 
-DOTFILES_DIR="$HOME/.dotfiles"
+DOTFILES_DIR="$(pwd)"
 
 # Logging functions
 log_success() {
@@ -177,7 +177,7 @@ install_stow() {
 install_core_dependencies() {
     log_step "Installing Core Dependencies"
 
-    local packages=("oh-my-posh" "fzf" "zoxide" "tree" "bat" "eza" "ripgrep" "fd" "git-delta" "lazygit" "tmux" "htop" "direnv" "atuin" "gh" "stow")
+    local packages=("oh-my-posh" "fzf" "zoxide" "tree" "bat" "eza" "ripgrep" "fd" "git-delta" "lazygit" "tmux" "htop" "direnv" "atuin" "gh" "stow" "sops" "age")
     local missing_packages=()
 
     # Check which packages are missing
@@ -269,45 +269,115 @@ install_sdkman() {
 }
 
 # Install terminal applications
+# Enhanced tool installation with individual confirmation and legacy detection
 install_terminal_apps() {
-    log_step "Installing Terminal Applications (Optional)"
+    log_step "Installing Terminal Applications & Development Tools (Optional)"
 
-    # Check for terminal apps
-    local warp_installed=false
-    local iterm_installed=false
+    # Define tools with their detection and installation info
+    # Using arrays instead of associative arrays for better compatibility
+    local tools_list=(
+        "cursor|Code Editor|/Applications/Cursor.app|--cask cursor|Legacy: installer download"
+        "visual-studio-code|Code Editor|/Applications/Visual Studio Code.app|--cask visual-studio-code|Legacy: installer download"
+        "warp|Terminal|/Applications/Warp.app|--cask warp|Legacy: none"
+        "iterm2|Terminal|/Applications/iTerm.app|--cask iterm2|Legacy: none"
+        "github-cli|Development|gh command|gh|Legacy: none"
+        "postgresql|Database|postgres command|postgresql@16|Legacy: installer or postgres.app"
+        "redis|Database|redis-server command|redis|Legacy: manual install"
+        "aws-vault|AWS Tool|aws-vault command|aws-vault|Legacy: manual install"
+    )
 
-    if [ -d "/Applications/Warp.app" ]; then
-        warp_installed=true
-        log_success "Warp already installed"
-    fi
+    # Check each tool individually (compatible approach)
+    echo ""
+    echo "📋 Tool Installation Status:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-    if [ -d "/Applications/iTerm.app" ]; then
-        iterm_installed=true
-        log_success "iTerm2 already installed"
-    fi
+    local -a to_install
+    local tool_info
 
-    if ! $warp_installed && ! $iterm_installed; then
-        log_info "No modern terminal detected"
-        echo "  1) Warp (Recommended - Modern terminal with AI features)"
-        echo "  2) iTerm2 (Feature-rich terminal)"
-        echo "  3) Skip (use Terminal.app)"
+    for tool_info in "${tools_list[@]}"; do
+        IFS='|' read -r tool category app_path install_cmd legacy_info <<< "$tool_info"
+        local installed=false
 
-        read -p "Choose terminal to install (1/2/3): " choice
-        case $choice in
-            1)
-                log_info "Installing Warp..."
-                brew install --cask warp
-                log_success "Warp installed"
-                ;;
-            2)
-                log_info "Installing iTerm2..."
-                brew install --cask iterm2
-                log_success "iTerm2 installed"
+        # Check if tool is installed
+        case "$tool" in
+            "cursor"|"visual-studio-code"|"warp"|"iterm2")
+                if [ -d "$app_path" ]; then
+                    installed=true
+                # Check for legacy installations
+                elif [ "$tool" = "visual-studio-code" ] && command -v code >/dev/null 2>&1; then
+                    installed=true
+                    legacy_info="Legacy: command 'code' found"
+                fi
                 ;;
             *)
-                log_info "Skipping terminal installation"
+                local cmd_name
+                case "$tool" in
+                    "github-cli") cmd_name="gh" ;;
+                    "postgresql") cmd_name="postgres" ;;
+                    "redis") cmd_name="redis-server" ;;
+                    "aws-vault") cmd_name="aws-vault" ;;
+                esac
+                if command -v "$cmd_name" >/dev/null 2>&1; then
+                    installed=true
+                    # Check if it's a legacy installation (not via Homebrew)
+                    if ! brew list "$install_cmd" >/dev/null 2>&1; then
+                        legacy_info="Legacy: $cmd_name command found (non-Homebrew)"
+                    fi
+                fi
                 ;;
         esac
+
+        # Display status and ask for installation
+        if [ "$installed" = "true" ]; then
+            log_success "$tool already installed ($legacy_info)"
+        else
+            log_info "$tool not found - $category tool"
+            if confirm "Install $tool?"; then
+                to_install+=("$tool|$install_cmd")
+            else
+                log_info "Skipped $tool installation"
+            fi
+        fi
+    done
+
+    # Install selected tools
+    if [ ${#to_install[@]} -gt 0 ]; then
+        log_info "Installing selected tools..."
+
+        for tool_install in "${to_install[@]}"; do
+            IFS='|' read -r tool install_cmd <<< "$tool_install"
+            log_info "Installing $tool..."
+
+            # Special handling for Docker Desktop detection
+            if [ "$tool" = "docker" ]; then
+                # Enhanced Docker vs Rancher Desktop detection
+                local has_docker_desktop=false
+                local has_rancher_desktop=false
+
+                # Check for Docker Desktop
+                if [ -d "/Applications/Docker.app" ]; then
+                    has_docker_desktop=true
+                fi
+
+                # Check for Rancher Desktop
+                if [ -d "/Applications/Rancher Desktop.app" ]; then
+                    has_rancher_desktop=true
+                fi
+
+                if [ "$has_rancher_desktop" = "true" ] && [ "$has_docker_desktop" = "false" ]; then
+                    log_success "Rancher Desktop detected (provides Docker functionality)"
+                    continue
+                fi
+            fi
+
+            if brew install $install_cmd; then
+                log_success "$tool installed successfully"
+            else
+                log_warning "Failed to install $tool - you may need to install it manually"
+            fi
+        done
+    else
+        log_success "All desired tools are already installed or skipped"
     fi
 }
 
@@ -444,6 +514,153 @@ backup_existing_files() {
     fi
 }
 
+# Setup encrypted secret management with SOPS and age
+setup_secret_management() {
+    log_step "Setting up Encrypted Secret Management"
+
+    # Check if SOPS is installed
+    if ! command -v sops >/dev/null 2>&1; then
+        log_error "SOPS is not installed. Please install it with: brew install sops"
+        return 1
+    fi
+
+    # Setup age encryption
+    local age_dir="$HOME/.config/sops/age"
+    local age_key_file="$age_dir/keys.txt"
+    local sops_config="$HOME/.sops.yaml"
+
+    # Create age directory if it doesn't exist
+    if [ ! -d "$age_dir" ]; then
+        log_info "Creating age directory..."
+        mkdir -p "$age_dir"
+    fi
+
+    # Generate age key if it doesn't exist
+    if [ ! -f "$age_key_file" ]; then
+        if command -v age-keygen >/dev/null 2>&1; then
+            log_info "Generating age encryption key..."
+            age-keygen -o "$age_key_file"
+            chmod 600 "$age_key_file"
+            log_success "Age encryption key generated"
+        else
+            log_error "age-keygen not found. Please install age: brew install age"
+            return 1
+        fi
+    else
+        log_success "Age encryption key already exists"
+    fi
+
+    # Get the public key for SOPS config
+    local public_key=$(grep "^# public key:" "$age_key_file" | cut -d' ' -f4)
+    if [ -z "$public_key" ]; then
+        log_error "Could not extract public key from age key file"
+        return 1
+    fi
+
+    # Create .sops.yaml configuration
+    if [ ! -f "$sops_config" ]; then
+        log_info "Creating sops configuration..."
+        cat > "$sops_config" << EOF
+creation_rules:
+  - path_regex: \.env$
+    age: $public_key
+  - path_regex: \.env\.sops$
+    age: $public_key
+  - path_regex: \.secrets\.sops\.ya?ml$
+    age: $public_key
+EOF
+        log_success "Created .sops.yaml configuration"
+    else
+        log_success "sops configuration already exists"
+    fi
+
+    # Handle .env file (single file approach)
+    local env_file="$HOME/.env"
+
+    if [ -f "$env_file" ]; then
+        # Check if file is already encrypted
+        if head -1 "$env_file" | grep -q "^#ENC\["; then
+            log_success ".env file is already encrypted"
+        else
+            log_info "Found plaintext .env file"
+
+            # Check if the file uses export format
+            if grep -q "^export " "$env_file"; then
+                log_info "Your .env file uses shell 'export KEY=value' format - perfect for sourcing!"
+            fi
+
+            if confirm "Encrypt .env file in-place with sops?"; then
+                log_info "Creating backup and encrypting .env file..."
+
+                # Create backup for safety
+                cp "$env_file" "$env_file.backup"
+                log_info "Created backup: $env_file.backup"
+
+                # Encrypt in-place
+                if sops --config "$HOME/.sops.yaml" --encrypt --in-place "$env_file"; then
+                    # Verify encryption worked
+                    if head -1 "$env_file" | grep -q "^#ENC\["; then
+                        log_success "Successfully encrypted .env file in-place"
+                        log_info "Backup saved as $env_file.backup"
+                    else
+                        log_error "Encryption failed - restoring from backup"
+                        cp "$env_file.backup" "$env_file"
+                        return 1
+                    fi
+                else
+                    log_error "Failed to encrypt .env file - restoring from backup"
+                    cp "$env_file.backup" "$env_file"
+                    return 1
+                fi
+            fi
+        fi
+    else
+        if confirm "Create new .env file from template?"; then
+            log_info "Creating .env file from template..."
+            cp "$DOTFILES_DIR/zsh/.env.example" "$env_file"
+
+            log_info "Opening .env file for editing..."
+            if command -v code >/dev/null 2>&1; then
+                code "$env_file"
+            elif command -v vim >/dev/null 2>&1; then
+                vim "$env_file"
+            else
+                nano "$env_file"
+            fi
+
+            if confirm "Encrypt the .env file now?"; then
+                log_info "Encrypting .env file..."
+                if sops --config "$HOME/.sops.yaml" --encrypt --in-place "$env_file"; then
+                    if head -1 "$env_file" | grep -q "^#ENC\["; then
+                        log_success "Successfully encrypted new .env file"
+                    else
+                        log_error "Encryption failed"
+                        return 1
+                    fi
+                else
+                    log_error "Failed to encrypt .env file"
+                    return 1
+                fi
+            fi
+        fi
+    fi
+
+    log_success "Secret management setup complete"
+    log_info "Note: Your .zshrc is configured to automatically handle encrypted .env files"
+
+    # Add .env to .gitignore if not already there
+    local gitignore_file="$DOTFILES_DIR/.gitignore"
+    if [ -f "$gitignore_file" ] && ! grep -q "\.env$" "$gitignore_file"; then
+        echo ".env" >> "$gitignore_file"
+        log_success "Added .env to .gitignore"
+    fi
+
+    log_info "Secret Management Commands:"
+    log_info "  • Edit secrets: edit_secrets"
+    log_info "  • View secrets: sops -d ~/.env"
+    log_info "  • Direct edit: sops ~/.env"
+}
+
 # Use stow to create symlinks
 stow_packages() {
     log_step "Using Stow to manage dotfiles"
@@ -455,15 +672,21 @@ stow_packages() {
         if [ -d "$DOTFILES_DIR/$package" ]; then
             log_info "Stowing $package package..."
 
-            # Use stow to create symlinks
-            if stow -t "$HOME" "$package" 2>/dev/null; then
+            # Use stow to create symlinks (exclude .env files for zsh package)
+            local stow_args=(-t "$HOME" "$package")
+            if [ "$package" = "zsh" ]; then
+                # Exclude .env files from stowing since they're managed by secret management
+                stow_args+=(--ignore='.env$' --ignore='.env.example$')
+            fi
+
+            if stow "${stow_args[@]}" 2>/dev/null; then
                 log_success "Stowed $package package"
                 stowed_packages+=("$package")
             else
                 log_warning "Failed to stow $package (may have conflicts)"
 
                 # Try to restow (useful if already stowed)
-                if stow -R -t "$HOME" "$package" 2>/dev/null; then
+                if stow -R "${stow_args[@]}" 2>/dev/null; then
                     log_success "Re-stowed $package package"
                     stowed_packages+=("$package")
                 else
@@ -580,12 +803,9 @@ main() {
     # Verify we're in the right directory
     if [ ! -f "$(pwd)/init.sh" ] || [ ! -f "$(pwd)/zsh/.zshrc" ]; then
         log_error "Please run this script from the dotfiles directory"
-        log_info "Usage: cd ~/.dotfiles && ./init.sh"
+        log_info "Usage: cd ~/dotfiles && ./init.sh  # or ~/.dotfiles"
         exit 1
     fi
-
-    # Update DOTFILES_DIR to current directory
-    DOTFILES_DIR="$(pwd)"
 
     log_info "Starting installation from: $DOTFILES_DIR"
     log_info "This script will set up your complete development environment"
@@ -607,6 +827,7 @@ main() {
     install_fonts
     install_zinit
     setup_environment
+    setup_secret_management
     backup_existing_files
     stow_packages
     setup_git_config
