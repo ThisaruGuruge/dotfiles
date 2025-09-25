@@ -1,7 +1,10 @@
 # Edit secrets in .env file (handles both encrypted and plaintext)
 edit_secrets() {
     local env_file="$HOME/.env"
-    local temp_file=$(mktemp)
+    local temp_file=$(mktemp -t temp_env).env
+
+    # Set SOPS environment variable
+    export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 
     # Check if SOPS is available
     if ! command -v sops >/dev/null 2>&1; then
@@ -20,7 +23,7 @@ edit_secrets() {
         # Check if encrypted
         if head -1 "$env_file" | grep -q "^#ENC\["; then
             echo "🔓 Decrypting .env file for editing..."
-            if sops -d "$env_file" > "$temp_file" 2>/dev/null; then
+            if sops -d "$env_file" > "$temp_file"; then
                 echo "✅ File decrypted successfully"
             else
                 echo "❌ Failed to decrypt .env file"
@@ -70,7 +73,7 @@ EOF
 
     # Encrypt and save to .env
     echo "🔒 Encrypting and saving to .env..."
-    if sops --config "$HOME/.sops.yaml" --encrypt --in-place "$temp_file" 2>/dev/null; then
+    if sops --config "$HOME/.sops.yaml" --encrypt --in-place "$temp_file"; then
         mv "$temp_file" "$env_file"
         # Verify encryption worked
         if head -1 "$env_file" | grep -q "^#ENC\["; then

@@ -17,14 +17,27 @@ fi
 # Source/Load zinit
 source "${ZINIT_HOME}/zinit.zsh"
 
-# ZSH Plugins
-zinit light zsh-users/zsh-syntax-highlighting
+# ZSH Plugins - Essential plugins load immediately, others use turbo mode
+
+# Load completions immediately (needed for tab completion)
 zinit light zsh-users/zsh-completions
-zinit light zsh-users/zsh-autosuggestions
+
+# Load fzf-tab immediately (needed for enhanced tab completion)
 zinit light Aloxaf/fzf-tab
 
-# Add in snippets
+# Load syntax highlighting with turbo mode (visual, can be delayed)
+zinit ice wait"1" lucid
+zinit light zsh-users/zsh-syntax-highlighting
+
+# Load autosuggestions with turbo mode (helpful but not critical)
+zinit ice wait"1" lucid
+zinit light zsh-users/zsh-autosuggestions
+
+# Add in snippets with turbo mode (utility functions, can be delayed)
+zinit ice wait"2" lucid
 zinit snippet OMZP::gradle
+
+zinit ice wait"2" lucid
 zinit snippet OMZP::sudo
 # Homebrew command-not-found integration (updated)
 if ! command -v brew >/dev/null; then return; fi
@@ -116,22 +129,72 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 autoload -U select-word-style
 select-word-style bash
 
-# Shell integrations
-eval "$(fzf --zsh)"
-eval "$(zoxide init --cmd cd zsh)"
+# Shell integrations with lazy loading for performance
 
-# direnv integration (load project-specific environments)
-if command -v direnv >/dev/null 2>&1; then
-    eval "$(direnv hook zsh)"
+# Lazy load fzf - initialize only when first used
+if command -v fzf >/dev/null 2>&1; then
+    _fzf_lazy_load() {
+        eval "$(fzf --zsh)"
+        unset -f _fzf_lazy_load
+        # Re-run the command that triggered loading
+        if [[ $# -gt 0 ]]; then
+            "$@"
+        fi
+    }
+    # Override fzf command and key bindings until loaded
+    fzf() { _fzf_lazy_load fzf "$@"; }
+    # Key bindings will be set up when fzf is first used
+else
+    # Provide fallback if fzf not available
+    fzf() { echo "fzf not installed"; return 1; }
 fi
 
-# atuin integration (enhanced shell history with sync and search)
-# Note: Disabled Ctrl+R override to avoid conflicts with Warp's native history
-if command -v atuin >/dev/null 2>&1; then
-    eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
+# Lazy load zoxide - initialize only when cd is used
+if command -v zoxide >/dev/null 2>&1; then
+    _zoxide_lazy_load() {
+        eval "$(zoxide init --cmd cd zsh)"
+        unset -f _zoxide_lazy_load cd
+        # Re-run the cd command that triggered loading
+        cd "$@"
+    }
+    cd() { _zoxide_lazy_load "$@"; }
+else
+    # Keep builtin cd if zoxide not available
+    cd() { builtin cd "$@"; }
+fi
 
-    # Bind Ctrl+Alt+R to Atuin search (avoid Warp conflicts)
-    bindkey '^[^R' _atuin_search_widget
+# Lazy load direnv - initialize only when entering directory with .envrc
+if command -v direnv >/dev/null 2>&1; then
+    _direnv_lazy_load() {
+        eval "$(direnv hook zsh)"
+        unset -f _direnv_lazy_load
+        # Re-trigger the hook
+        _direnv_hook
+    }
+    # Set up a minimal hook that loads direnv when needed
+    chpwd_functions+=(_direnv_check)
+    _direnv_check() {
+        if [[ -f .envrc ]]; then
+            _direnv_lazy_load
+        fi
+    }
+fi
+
+# Lazy load atuin - initialize only when history search is used
+if command -v atuin >/dev/null 2>&1; then
+    _atuin_lazy_load() {
+        eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
+        unset -f _atuin_lazy_load
+        # Bind Ctrl+Alt+R to Atuin search (avoid Warp conflicts)
+        bindkey '^[^R' _atuin_search_widget
+        # Re-run atuin command if called directly
+        if [[ $# -gt 0 ]]; then
+            atuin "$@"
+        fi
+    }
+    atuin() { _atuin_lazy_load atuin "$@"; }
+    # Set up lazy loading for the keybinding
+    bindkey '^[^R' '_atuin_lazy_load'
 fi
 
 # source the personal configs
@@ -170,8 +233,39 @@ export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
 
 # Homebrew settings
 HOMEBREW_AUTO_UPDATE_SECS=86400
-eval "$(rbenv init - zsh)"
-export PATH="/usr/local/opt/ruby/bin:/usr/local/lib/ruby/gems/3.0.0/bin:$PATH"
+
+# Lazy load rbenv - initialize only when ruby command is used
+if command -v rbenv >/dev/null 2>&1; then
+    _rbenv_lazy_load() {
+        eval "$(rbenv init - zsh)"
+        unset -f _rbenv_lazy_load ruby gem bundle
+        # Re-run the command that triggered loading
+        if [[ $# -gt 0 ]]; then
+            "$@"
+        fi
+    }
+    ruby() { _rbenv_lazy_load ruby "$@"; }
+    gem() { _rbenv_lazy_load gem "$@"; }
+    bundle() { _rbenv_lazy_load bundle "$@"; }
+fi
+
+# Lazy load pyenv - initialize only when python command is used
+export PYENV_ROOT="$HOME/.pyenv"
+[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+if command -v pyenv >/dev/null 2>&1; then
+    _pyenv_lazy_load() {
+        eval "$(pyenv init -)"
+        unset -f _pyenv_lazy_load python python3 pip pip3
+        # Re-run the command that triggered loading
+        if [[ $# -gt 0 ]]; then
+            "$@"
+        fi
+    }
+    python() { _pyenv_lazy_load python "$@"; }
+    python3() { _pyenv_lazy_load python3 "$@"; }
+    pip() { _pyenv_lazy_load pip "$@"; }
+    pip3() { _pyenv_lazy_load pip3 "$@"; }
+fi
 
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="$HOME/.sdkman"
@@ -179,12 +273,10 @@ if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
     # Load SDKMAN quietly to avoid function errors during startup
     source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
 fi
-export PYENV_ROOT="$HOME/.pyenv"
-[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
 export PATH="/Users/thisaru/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
-source "$HOME/.local/bin/env"
+# Source local environment if it exists
+[ -f "$HOME/.local/bin/env" ] && source "$HOME/.local/bin/env"
