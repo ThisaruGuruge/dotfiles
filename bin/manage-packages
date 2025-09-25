@@ -1,0 +1,281 @@
+#!/usr/bin/env python3
+
+"""
+Package Management Tool for Dotfiles
+Easily enable/disable packages and regenerate Brewfile
+"""
+
+import json
+import sys
+import subprocess
+from pathlib import Path
+from typing import Dict, List, Tuple
+
+def load_config(config_path: Path) -> Dict:
+    """Load the packages.json configuration"""
+    try:
+        with open(config_path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"❌ Error: Configuration file not found at {config_path}")
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"❌ Error: Invalid JSON in configuration file: {e}")
+        sys.exit(1)
+
+def save_config(config: Dict, config_path: Path) -> None:
+    """Save the configuration back to JSON file"""
+    try:
+        with open(config_path, 'w') as f:
+            json.dump(config, f, indent=2)
+        print("✅ Configuration saved successfully!")
+    except Exception as e:
+        print(f"❌ Error saving configuration: {e}")
+        sys.exit(1)
+
+def list_packages(config: Dict) -> None:
+    """List all packages with their status"""
+    print("📦 Package Configuration Status")
+    print("=" * 50)
+
+    categories = config.get('categories', {})
+
+    for category_name, category_data in categories.items():
+        category_desc = category_data.get('description', category_name.title())
+        category_enabled = category_data.get('enabled', False)
+
+        print(f"\n🏷️  {category_name.upper()}: {category_desc}")
+        print(f"   Category Status: {'✅ ENABLED' if category_enabled else '❌ DISABLED'}")
+
+        packages = category_data.get('packages', {})
+        if packages:
+            print("   Packages:")
+            for pkg_name, pkg_data in packages.items():
+                enabled = pkg_data.get('enabled', False)
+                pkg_type = pkg_data.get('type', 'unknown')
+                description = pkg_data.get('description', '')
+                status_icon = "✅" if enabled else "❌"
+                print(f"     {status_icon} {pkg_name} ({pkg_type}) - {description}")
+        else:
+            print("     No packages defined")
+
+def list_categories(config: Dict) -> None:
+    """List all categories"""
+    print("📂 Available Categories")
+    print("=" * 30)
+
+    categories = config.get('categories', {})
+    for category_name, category_data in categories.items():
+        category_desc = category_data.get('description', category_name.title())
+        category_enabled = category_data.get('enabled', False)
+        package_count = len(category_data.get('packages', {}))
+        status_icon = "✅" if category_enabled else "❌"
+
+        print(f"{status_icon} {category_name}: {category_desc} ({package_count} packages)")
+
+def find_package(config: Dict, package_name: str) -> Tuple[str, str]:
+    """Find which category a package belongs to"""
+    categories = config.get('categories', {})
+
+    for category_name, category_data in categories.items():
+        packages = category_data.get('packages', {})
+        if package_name in packages:
+            return category_name, package_name
+
+    return None, None
+
+def enable_disable_package(config: Dict, package_name: str, enable: bool) -> bool:
+    """Enable or disable a specific package"""
+    category_name, found_package = find_package(config, package_name)
+
+    if not category_name:
+        print(f"❌ Package '{package_name}' not found")
+        return False
+
+    # Update package status
+    config['categories'][category_name]['packages'][package_name]['enabled'] = enable
+
+    action = "enabled" if enable else "disabled"
+    print(f"✅ Package '{package_name}' {action} in category '{category_name}'")
+    return True
+
+def enable_disable_category(config: Dict, category_name: str, enable: bool) -> bool:
+    """Enable or disable an entire category"""
+    categories = config.get('categories', {})
+
+    if category_name not in categories:
+        print(f"❌ Category '{category_name}' not found")
+        print(f"Available categories: {', '.join(categories.keys())}")
+        return False
+
+    # Update category status
+    config['categories'][category_name]['enabled'] = enable
+
+    # Optionally update all packages in the category
+    packages = config['categories'][category_name].get('packages', {})
+    for package_name in packages:
+        config['categories'][category_name]['packages'][package_name]['enabled'] = enable
+
+    action = "enabled" if enable else "disabled"
+    print(f"✅ Category '{category_name}' and all its packages {action}")
+    print(f"   Affected packages: {', '.join(packages.keys())}")
+    return True
+
+def regenerate_brewfile(dotfiles_dir: Path) -> None:
+    """Regenerate the Brewfile using the generator script"""
+    generator_script = dotfiles_dir / 'bin' / 'generate-brewfile'
+
+    if not generator_script.exists():
+        print(f"❌ Generator script not found at {generator_script}")
+        return
+
+    try:
+        print("🔄 Regenerating Brewfile...")
+        result = subprocess.run([str(generator_script)],
+                              capture_output=True, text=True, cwd=dotfiles_dir)
+
+        if result.returncode == 0:
+            print("✅ Brewfile regenerated successfully!")
+        else:
+            print(f"❌ Error regenerating Brewfile: {result.stderr}")
+    except Exception as e:
+        print(f"❌ Error running generator script: {e}")
+
+def interactive_menu(config: Dict, config_path: Path, dotfiles_dir: Path) -> None:
+    """Interactive menu for package management"""
+    while True:
+        print("\n" + "="*50)
+        print("📦 Dotfiles Package Manager")
+        print("="*50)
+        print("1. List all packages")
+        print("2. List categories")
+        print("3. Enable package")
+        print("4. Disable package")
+        print("5. Enable category")
+        print("6. Disable category")
+        print("7. Regenerate Brewfile")
+        print("8. Save and exit")
+        print("9. Exit without saving")
+
+        try:
+            choice = input("\n👉 Select an option (1-9): ").strip()
+        except KeyboardInterrupt:
+            print("\n\n👋 Goodbye!")
+            sys.exit(0)
+
+        if choice == '1':
+            list_packages(config)
+
+        elif choice == '2':
+            list_categories(config)
+
+        elif choice == '3':
+            package_name = input("📦 Enter package name to enable: ").strip()
+            if enable_disable_package(config, package_name, True):
+                regenerate_brewfile(dotfiles_dir)
+
+        elif choice == '4':
+            package_name = input("📦 Enter package name to disable: ").strip()
+            if enable_disable_package(config, package_name, False):
+                regenerate_brewfile(dotfiles_dir)
+
+        elif choice == '5':
+            category_name = input("📂 Enter category name to enable: ").strip()
+            if enable_disable_category(config, category_name, True):
+                regenerate_brewfile(dotfiles_dir)
+
+        elif choice == '6':
+            category_name = input("📂 Enter category name to disable: ").strip()
+            if enable_disable_category(config, category_name, False):
+                regenerate_brewfile(dotfiles_dir)
+
+        elif choice == '7':
+            regenerate_brewfile(dotfiles_dir)
+
+        elif choice == '8':
+            save_config(config, config_path)
+            regenerate_brewfile(dotfiles_dir)
+            print("👋 Configuration saved and Brewfile updated!")
+            break
+
+        elif choice == '9':
+            print("👋 Exiting without saving changes...")
+            break
+
+        else:
+            print("❌ Invalid option. Please select 1-9.")
+
+def main():
+    # Parse command line arguments
+    args = sys.argv[1:]
+
+    # Get paths
+    script_dir = Path(__file__).parent
+    dotfiles_dir = script_dir.parent
+    config_path = dotfiles_dir / 'packages.json'
+
+    # Load configuration
+    config = load_config(config_path)
+
+    if not args:
+        # Interactive mode
+        interactive_menu(config, config_path, dotfiles_dir)
+        return
+
+    # Command line mode
+    command = args[0].lower()
+
+    if command == 'list':
+        list_packages(config)
+
+    elif command == 'categories':
+        list_categories(config)
+
+    elif command == 'enable':
+        if len(args) < 2:
+            print("❌ Usage: manage-packages enable <package-name>")
+            sys.exit(1)
+
+        package_name = args[1]
+        if enable_disable_package(config, package_name, True):
+            save_config(config, config_path)
+            regenerate_brewfile(dotfiles_dir)
+
+    elif command == 'disable':
+        if len(args) < 2:
+            print("❌ Usage: manage-packages disable <package-name>")
+            sys.exit(1)
+
+        package_name = args[1]
+        if enable_disable_package(config, package_name, False):
+            save_config(config, config_path)
+            regenerate_brewfile(dotfiles_dir)
+
+    elif command == 'enable-category':
+        if len(args) < 2:
+            print("❌ Usage: manage-packages enable-category <category-name>")
+            sys.exit(1)
+
+        category_name = args[1]
+        if enable_disable_category(config, category_name, True):
+            save_config(config, config_path)
+            regenerate_brewfile(dotfiles_dir)
+
+    elif command == 'disable-category':
+        if len(args) < 2:
+            print("❌ Usage: manage-packages disable-category <category-name>")
+            sys.exit(1)
+
+        category_name = args[1]
+        if enable_disable_category(config, category_name, False):
+            save_config(config, config_path)
+            regenerate_brewfile(dotfiles_dir)
+
+    else:
+        print("❌ Unknown command. Available commands:")
+        print("   list, categories, enable, disable, enable-category, disable-category")
+        print("   Or run without arguments for interactive mode")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

@@ -538,31 +538,62 @@ kill_by_port() {
         return 1
     fi
 
-    if ! [[ "$port_arg" =~ ^[0-9]+$ ]] || [ "$port_arg" -lt 1000 ] || [ "$port_arg" -gt 65534 ]; then
-        echo "Invalid input: $port_arg. Enter a valid port number. (Numbers must be between 1000-65534)"
+    # Validate port number
+    if ! [[ "$port_arg" =~ ^[0-9]+$ ]]; then
+        echo "Error: '$port_arg' is not a valid number"
+        echo "Port must be a numeric value (e.g., 3000, 8080)"
         return 1
-    else
-        apps="$(lsof -i:$port_arg)"
-        if [ -z "$apps" ]
-        then
-            echo "No apps using the port $port_arg"
-        else
-            echo "Apps found on port $port_arg:"
-            echo "$apps"
+    fi
 
-            if [ "$dry_run" = true ]; then
-                echo "
-[DRY RUN] The above processes would be killed with: kill -9 $(lsof -t -i:$port_arg)"
+    if [ "$port_arg" -lt 1 ] || [ "$port_arg" -gt 65535 ]; then
+        echo "Error: Port $port_arg is out of valid range"
+        echo "Port must be between 1 and 65535 (recommended: 1024-65535)"
+        return 1
+    fi
+
+    # Check if lsof is available
+    if ! command -v lsof >/dev/null 2>&1; then
+        echo "Error: lsof is not installed or not in PATH"
+        echo "Install with: brew install lsof"
+        return 1
+    fi
+
+    # Find processes on the port
+    local apps
+    apps="$(lsof -i:$port_arg 2>/dev/null)"
+
+    if [ -z "$apps" ]; then
+        echo "No processes found using port $port_arg"
+        return 0
+    fi
+
+    echo "Processes found on port $port_arg:"
+    echo "$apps"
+    echo ""
+
+    if [ "$dry_run" = true ]; then
+        local pids
+        pids="$(lsof -t -i:$port_arg 2>/dev/null)"
+        echo "[DRY RUN] Would kill processes with PIDs: $pids"
+        echo "Command that would be executed: kill -9 $pids"
+    else
+        local pids
+        pids="$(lsof -t -i:$port_arg 2>/dev/null)"
+
+        if [ -n "$pids" ]; then
+            if kill -9 $pids 2>/dev/null; then
+                echo "Successfully killed processes: $pids"
             else
-                #read "resonse?Do you want to kill these ? (y/N): "
-                #if [[ $response =~ '^[yY]$' ]]
-                #then
-                kill -9 $(lsof -t -i:$port_arg)
-                echo "Killed Apps"
-                #else
-                #    echo "Quit"
-                #fi
+                echo "Error: Failed to kill some processes"
+                echo "This may happen if:"
+                echo "  • Processes are owned by another user (try with sudo)"
+                echo "  • Processes have already terminated"
+                echo "  • System protection prevented termination"
+                return 1
             fi
+        else
+            echo "Warning: No PIDs found to kill"
+            return 1
         fi
     fi
 }
@@ -607,6 +638,18 @@ function takegit() {
     local repo_url="$1"
     local repo_name
 
+    # Validate input
+    if [ -z "$repo_url" ]; then
+        echo "Error: Repository URL is required"
+        return 1
+    fi
+
+    # Check if git is available
+    if ! command -v git >/dev/null 2>&1; then
+        echo "Error: git is not installed or not in PATH"
+        return 1
+    fi
+
     # Extract repository name from various URL formats
     if [[ $repo_url =~ .*/([^/]+)\.git/?$ ]]; then
         repo_name="${match[1]}"
@@ -616,12 +659,24 @@ function takegit() {
         repo_name="$(basename "$repo_url" .git)"
     fi
 
+    # Check if directory already exists
+    if [ -d "$repo_name" ]; then
+        echo "Error: Directory '$repo_name' already exists"
+        echo "Consider: rm -rf '$repo_name' or choose a different location"
+        return 1
+    fi
+
     echo "Cloning $repo_url into $repo_name..."
-    if git clone "$repo_url" "$repo_name"; then
+    if git clone "$repo_url" "$repo_name" 2>/dev/null; then
         cd "$repo_name"
         echo "Successfully cloned and entered $repo_name"
     else
         echo "Failed to clone repository: $repo_url"
+        echo "Possible causes:"
+        echo "  • Repository doesn't exist or is private"
+        echo "  • Network connectivity issues"
+        echo "  • Invalid URL format"
+        echo "  • Insufficient permissions"
         return 1
     fi
 }
@@ -630,12 +685,42 @@ function takeurl() {
     local url="$1"
     local temp_file temp_dir extracted_dir
 
+    # Validate input
+    if [ -z "$url" ]; then
+        echo "Error: URL is required"
+        return 1
+    fi
+
+    # Check if curl is available
+    if ! command -v curl >/dev/null 2>&1; then
+        echo "Error: curl is not installed or not in PATH"
+        return 1
+    fi
+
+    # Check if tar is available
+    if ! command -v tar >/dev/null 2>&1; then
+        echo "Error: tar is not installed or not in PATH"
+        return 1
+    fi
+
     temp_file="$(mktemp)"
     temp_dir="$(mktemp -d)"
 
     echo "Downloading $url..."
-    if ! curl -L "$url" -o "$temp_file"; then
+    if ! curl -L "$url" -o "$temp_file" 2>/dev/null; then
         echo "Failed to download $url"
+        echo "Possible causes:"
+        echo "  • URL is invalid or file doesn't exist"
+        echo "  • Network connectivity issues"
+        echo "  • Server is unreachable"
+        rm -f "$temp_file"
+        rmdir "$temp_dir" 2>/dev/null
+        return 1
+    fi
+
+    # Verify file was downloaded and has content
+    if [ ! -s "$temp_file" ]; then
+        echo "Error: Downloaded file is empty"
         rm -f "$temp_file"
         rmdir "$temp_dir" 2>/dev/null
         return 1
@@ -647,19 +732,44 @@ function takeurl() {
     # Determine extraction method based on file type
     case "$url" in
         *.tar.gz|*.tgz)
-            tar -xzf "$temp_file"
+            if ! tar -xzf "$temp_file" 2>/dev/null; then
+                echo "Error: Failed to extract tar.gz archive"
+                cd - > /dev/null
+                rm -f "$temp_file"
+                rmdir "$temp_dir" 2>/dev/null
+                return 1
+            fi
             ;;
         *.tar.bz2|*.tbz2)
-            tar -xjf "$temp_file"
+            if ! tar -xjf "$temp_file" 2>/dev/null; then
+                echo "Error: Failed to extract tar.bz2 archive"
+                cd - > /dev/null
+                rm -f "$temp_file"
+                rmdir "$temp_dir" 2>/dev/null
+                return 1
+            fi
             ;;
         *.tar.xz)
-            tar -xJf "$temp_file"
+            if ! tar -xJf "$temp_file" 2>/dev/null; then
+                echo "Error: Failed to extract tar.xz archive"
+                cd - > /dev/null
+                rm -f "$temp_file"
+                rmdir "$temp_dir" 2>/dev/null
+                return 1
+            fi
             ;;
         *.tar)
-            tar -xf "$temp_file"
+            if ! tar -xf "$temp_file" 2>/dev/null; then
+                echo "Error: Failed to extract tar archive"
+                cd - > /dev/null
+                rm -f "$temp_file"
+                rmdir "$temp_dir" 2>/dev/null
+                return 1
+            fi
             ;;
         *)
-            echo "Unsupported archive format"
+            echo "Error: Unsupported archive format"
+            echo "Supported formats: .tar.gz, .tgz, .tar.bz2, .tbz2, .tar.xz, .tar"
             cd - > /dev/null
             rm -f "$temp_file"
             rmdir "$temp_dir" 2>/dev/null
@@ -674,7 +784,8 @@ function takeurl() {
         cd "$extracted_dir"
         echo "Extracted and entered $(basename "$extracted_dir")"
     else
-        echo "No directory found in archive, staying in temp directory"
+        echo "Warning: No directory found in archive, staying in temp directory"
+        echo "Current location: $(pwd)"
     fi
 
     rm -f "$temp_file"
@@ -1068,6 +1179,75 @@ alias_categories() {
     echo ""
     echo "🔧 DEVELOPMENT:"
     echo "   take, kill_by_port, show_tools - Dev utilities"
+    echo "   profile_startup - Test shell startup performance"
+    echo "   manage_packages - Configure package installation"
     echo ""
     echo "For detailed help: alias_help <alias_name>"
+}
+
+# Profile shell startup performance
+profile_startup() {
+    # Check if we have the profiler script
+    local dotfiles_dir=""
+    if [ -d "${HOME}/dotfiles" ]; then
+        dotfiles_dir="${HOME}/dotfiles"
+    elif [ -d "${HOME}/.dotfiles" ]; then
+        dotfiles_dir="${HOME}/.dotfiles"
+    fi
+
+    if [ -n "$dotfiles_dir" ] && [ -f "$dotfiles_dir/bin/profile-startup" ]; then
+        "$dotfiles_dir/bin/profile-startup"
+    else
+        echo "🚀 Quick Shell Startup Performance Test"
+        echo "======================================"
+        echo ""
+        echo "Testing shell startup time (3 runs)..."
+
+        local times=()
+        for i in {1..3}; do
+            echo -n "Test $i/3: "
+            local time_output=$(time zsh -i -c exit 2>&1)
+            local total_time=$(echo "$time_output" | grep -o '[0-9.]*s.*total' | grep -o '^[0-9.]*')
+            times+=("$total_time")
+            echo "${total_time}s"
+        done
+
+        echo ""
+        echo "Results: ${times[*]}"
+        echo ""
+        echo "Performance targets:"
+        echo "• < 0.2s: Excellent (instant)"
+        echo "• < 0.4s: Good (very responsive)"
+        echo "• < 0.8s: Acceptable (responsive)"
+        echo "• > 1.5s: Slow (needs optimization)"
+        echo ""
+        echo "For detailed analysis, use the full profiler:"
+        echo "  $dotfiles_dir/bin/profile-startup"
+    fi
+}
+
+# Manage dotfiles packages (enable/disable packages and regenerate Brewfile)
+manage_packages() {
+    # Check if we have the package manager script
+    local dotfiles_dir=""
+    if [ -d "${HOME}/dotfiles" ]; then
+        dotfiles_dir="${HOME}/dotfiles"
+    elif [ -d "${HOME}/.dotfiles" ]; then
+        dotfiles_dir="${HOME}/.dotfiles"
+    fi
+
+    if [ -n "$dotfiles_dir" ] && [ -f "$dotfiles_dir/bin/manage-packages" ]; then
+        "$dotfiles_dir/bin/manage-packages" "$@"
+    else
+        echo "❌ Package manager not found"
+        echo "Expected location: $dotfiles_dir/bin/manage-packages"
+        echo ""
+        echo "📦 Package management allows you to:"
+        echo "• Enable/disable individual packages"
+        echo "• Enable/disable entire categories"
+        echo "• Automatically regenerate Brewfile"
+        echo "• Maintain consistency between init.sh and Brewfile"
+        echo ""
+        echo "Make sure you're in your dotfiles directory and the script exists."
+    fi
 }
