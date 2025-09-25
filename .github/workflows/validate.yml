@@ -1,0 +1,136 @@
+name: Validate Dotfiles
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install shellcheck
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y shellcheck
+
+    - name: Install shfmt
+      run: |
+        curl -L -o shfmt https://github.com/mvdan/sh/releases/latest/download/shfmt_v3.7.0_linux_amd64
+        chmod +x shfmt
+        sudo mv shfmt /usr/local/bin/
+
+    - name: Validate shell scripts with shellcheck
+      run: |
+        echo "Checking shell scripts..."
+        find . -name "*.sh" -not -path "./.git/*" | xargs shellcheck -e SC1091,SC2039
+
+        echo "Checking .zshrc files..."
+        find . -name ".zshrc" -not -path "./.git/*" | xargs shellcheck -s bash -e SC1091,SC2039
+
+        echo "Checking other shell config files..."
+        find . -name ".aliases.sh" -o -name ".functions.sh" -o -name ".paths.sh" | xargs shellcheck -e SC1091,SC2039
+
+    - name: Check shell script formatting
+      run: |
+        echo "Checking shell script formatting..."
+        find . -name "*.sh" -not -path "./.git/*" | xargs shfmt -d -i 4 -ci
+
+        echo "Checking zsh config formatting..."
+        find . -name ".zshrc" -o -name ".aliases.sh" -o -name ".functions.sh" -o -name ".paths.sh" | xargs shfmt -d -i 4 -ci
+
+    - name: Validate JSON files
+      run: |
+        echo "Checking JSON syntax..."
+        find . -name "*.json" -not -path "./.git/*" | while read -r file; do
+          echo "Validating $file"
+          python3 -m json.tool "$file" > /dev/null
+        done
+
+    - name: Test init script syntax
+      run: |
+        echo "Testing init.sh syntax..."
+        bash -n init.sh
+
+    - name: Check for common issues
+      run: |
+        echo "Checking for common issues..."
+
+        echo "Checking for hardcoded paths..."
+        if grep -r "/Users/" --include="*.sh" --include=".zshrc" --include=".functions.sh" --include=".aliases.sh" --include=".paths.sh" . | grep -v ".git" | grep -v "RANCHER"; then
+          echo "❌ Found hardcoded paths!"
+          exit 1
+        else
+          echo "✅ No hardcoded paths found"
+        fi
+
+        echo "Checking for secrets in files..."
+        if grep -ri "password\|secret\|token\|key.*=" --include="*.sh" --include=".zshrc" --include="*.md" . | grep -v ".git" | grep -v "example" | grep -v "template" | grep -v "your_" | grep -v "github_token_here"; then
+          echo "❌ Potential secrets found!"
+          exit 1
+        else
+          echo "✅ No secrets found in files"
+        fi
+
+        echo "Checking for TODO/FIXME comments..."
+        if grep -r "TODO\|FIXME" --include="*.sh" --include=".zshrc" --include="*.md" . | grep -v ".git"; then
+          echo "ℹ️ Found TODO/FIXME comments (informational only)"
+        fi
+
+  macos-test:
+    runs-on: macos-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Test basic installation components
+      run: |
+        echo "Testing if required commands are available on macOS..."
+
+        # Check if essential commands exist
+        command -v zsh || echo "zsh not found (expected on base macOS)"
+        command -v git || echo "git not found (expected on base macOS)"
+
+        # Test Homebrew installation detection
+        if command -v brew >/dev/null 2>&1; then
+          echo "✅ Homebrew is installed"
+        else
+          echo "ℹ️ Homebrew not installed (expected in CI)"
+        fi
+
+        # Test zsh syntax
+        echo "Testing zsh configuration syntax..."
+        zsh -n zsh/.zshrc
+
+        # Test functions syntax
+        echo "Testing functions syntax..."
+        bash -n zsh/.functions.sh
+
+        # Test aliases syntax
+        echo "Testing aliases syntax..."
+        bash -n zsh/.aliases.sh
+
+        # Test paths syntax
+        echo "Testing paths syntax..."
+        bash -n zsh/.paths.sh
+
+    - name: Test installation script safety
+      run: |
+        echo "Testing init.sh safety checks..."
+
+        # Test script can detect it's not in dotfiles directory
+        mkdir -p test-dir
+        cp init.sh test-dir/
+        cd test-dir
+
+        if ./init.sh --dry-run 2>&1 | grep -q "must be run from your dotfiles directory"; then
+          echo "✅ Directory detection works"
+        else
+          echo "❌ Directory detection failed"
+          exit 1
+        fi

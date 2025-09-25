@@ -137,6 +137,69 @@ brew bundle --file=Brewfile
 # Follow steps 2-3 from Option 2 for Zinit and dotfiles setup
 ```
 
+## 📦 Package Management System
+
+This dotfiles repository includes a **centralized package management system** that ensures consistency between the installation script (`init.sh`) and the `Brewfile`.
+
+### Features
+
+- **Single Source of Truth**: All packages defined in `packages.json`
+- **Easy Enable/Disable**: Toggle individual packages or entire categories
+- **Automatic Brewfile Generation**: Brewfile is generated from configuration
+- **Interactive Management**: User-friendly interface for package configuration
+- **Perfect Consistency**: init.sh and Brewfile always stay in sync
+
+### Managing Packages
+
+```bash
+# Interactive package management
+manage_packages
+
+# Command line usage
+manage_packages list                    # List all packages
+manage_packages categories              # List all categories
+manage_packages enable cursor           # Enable a specific package
+manage_packages disable htop            # Disable a specific package
+manage_packages enable-category editors # Enable entire category
+```
+
+### Package Categories
+
+The system organizes packages into logical categories:
+
+- **core**: Essential tools (always enabled)
+- **security**: Secret management tools (always enabled)
+- **development**: Language version managers (optional)
+- **database**: Database servers and tools (optional)
+- **editors**: Code editors and IDEs (optional)
+- **terminals**: Modern terminal applications (optional)
+- **containers**: Docker and container tools (optional)
+- **productivity**: Productivity and utility apps (optional)
+
+### Customizing Your Installation
+
+1. **Enable Optional Categories**:
+   ```bash
+   manage_packages enable-category development
+   manage_packages enable-category editors
+   ```
+
+2. **Enable Individual Packages**:
+   ```bash
+   manage_packages enable visual-studio-code
+   manage_packages enable docker
+   ```
+
+3. **Regenerate Brewfile**:
+   ```bash
+   ./bin/generate-brewfile
+   ```
+
+4. **Install New Packages**:
+   ```bash
+   brew bundle --file=Brewfile
+   ```
+
 #### Step 2: Install Zinit
 
 ```bash
@@ -194,6 +257,7 @@ After installation, try these essential commands:
 help                                       # Show comprehensive alias documentation
 docs                                       # Interactive menu to browse all aliases
 show_tools                                 # Show all modern CLI tools with examples
+profile_startup                            # Test shell startup performance
 
 # 📁 FILE OPERATIONS - Modern Tools
 ls                                         # Enhanced listing with icons and git status
@@ -215,6 +279,11 @@ help tmux                                  # Show all tmux shortcuts and keybind
 # 🔧 DEVELOPMENT WORKFLOW - Productivity Tools
 take my-project                            # Create directory and enter it
 kill_by_port 3000                         # Kill processes on port 3000
+
+# 📦 PACKAGE MANAGEMENT - Configure Your Setup
+manage_packages                            # Interactive package configuration
+manage_packages categories                 # List all available categories
+manage_packages enable docker              # Enable specific packages
 
 # 🔍 DISCOVERY - Find What You Need
 alias_search docker                       # Find all Docker-related aliases
@@ -618,6 +687,34 @@ age --version                            # Should show age version
 - [ ] Ctrl+Alt+R triggers Atuin history search
 - [ ] Custom functions like `take` and `kill_by_port --help` work
 
+## ⚡ Performance
+
+This dotfiles setup is optimized for fast shell startup and responsive daily use:
+
+### Performance Targets
+- **Excellent**: < 0.2s startup (instant feel)
+- **Good**: < 0.4s startup (very responsive)
+- **Acceptable**: < 0.8s startup (responsive)
+- **Slow**: > 1.5s startup (needs optimization)
+
+### Performance Features
+- **Lazy Loading**: Heavy components (fzf, atuin, direnv, pyenv, rbenv, SDKMAN) load only when needed
+- **Turbo Mode**: Non-essential Zinit plugins load with delay
+- **Efficient Initialization**: Optimized oh-my-posh and plugin loading
+- **PATH Deduplication**: Prevents PATH pollution and slow lookups
+
+### Monitor Performance
+```bash
+# Quick performance test
+profile_startup
+
+# Detailed profiling with full script
+./bin/profile-startup
+
+# Manual timing
+time zsh -i -c exit
+```
+
 ## 🔄 Updating
 
 To update the dotfiles:
@@ -641,6 +738,17 @@ Found an issue or have a suggestion? Feel free to:
 1. Open an issue on GitHub
 2. Fork the repository and submit a pull request
 3. Suggest improvements to the setup
+
+### Quality Assurance
+
+This repository includes automated validation:
+- **Shellcheck**: Validates all shell scripts for common issues
+- **Formatting**: Ensures consistent code formatting with shfmt
+- **Syntax Testing**: Validates JSON and shell configuration syntax
+- **Security Checks**: Scans for hardcoded paths and potential secrets
+- **Cross-platform Testing**: Tests compatibility on macOS and Linux
+
+All pull requests are automatically validated through GitHub Actions.
 
 ## 📄 License
 

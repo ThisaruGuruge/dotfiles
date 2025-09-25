@@ -1,0 +1,160 @@
+#!/bin/bash
+
+# Shell Startup Performance Profiler
+# Tests and reports on shell startup performance
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Performance thresholds (in seconds)
+EXCELLENT_THRESHOLD=0.2
+GOOD_THRESHOLD=0.4
+ACCEPTABLE_THRESHOLD=0.8
+SLOW_THRESHOLD=1.5
+
+echo -e "${BLUE}Shell Startup Performance Profiler${NC}"
+echo "======================================"
+echo ""
+
+# Function to format time output
+format_time() {
+    local time_str="$1"
+    # Extract the total time (last number before 'total')
+    local total_time=$(echo "$time_str" | grep -o '[0-9.]*s.*total' | grep -o '^[0-9.]*')
+    echo "$total_time"
+}
+
+# Function to get performance status
+get_status() {
+    local time="$1"
+    if (( $(echo "$time < $EXCELLENT_THRESHOLD" | bc -l) )); then
+        echo -e "${GREEN}EXCELLENT${NC}"
+    elif (( $(echo "$time < $GOOD_THRESHOLD" | bc -l) )); then
+        echo -e "${GREEN}GOOD${NC}"
+    elif (( $(echo "$time < $ACCEPTABLE_THRESHOLD" | bc -l) )); then
+        echo -e "${YELLOW}ACCEPTABLE${NC}"
+    elif (( $(echo "$time < $SLOW_THRESHOLD" | bc -l) )); then
+        echo -e "${YELLOW}SLOW${NC}"
+    else
+        echo -e "${RED}VERY SLOW${NC}"
+    fi
+}
+
+# Test current shell startup time
+echo "Testing shell startup performance..."
+echo "Running 3 tests to get average..."
+echo ""
+
+times=()
+for i in {1..3}; do
+    echo -n "Test $i/3: "
+    time_output=$(time zsh -i -c exit 2>&1)
+    formatted_time=$(format_time "$time_output")
+    times+=("$formatted_time")
+    echo "${formatted_time}s"
+done
+
+# Calculate average
+total=0
+for time in "${times[@]}"; do
+    total=$(echo "$total + $time" | bc -l)
+done
+average=$(echo "scale=3; $total / ${#times[@]}" | bc -l)
+
+echo ""
+echo "Results:"
+echo "-------"
+echo "Individual times: ${times[*]}"
+echo "Average startup time: ${average}s"
+echo "Performance status: $(get_status "$average")"
+
+# Performance analysis
+echo ""
+echo "Performance Analysis:"
+echo "-------------------"
+if (( $(echo "$average < $GOOD_THRESHOLD" | bc -l) )); then
+    echo -e "${GREEN}✅ Excellent performance! Your shell starts quickly.${NC}"
+elif (( $(echo "$average < $ACCEPTABLE_THRESHOLD" | bc -l) )); then
+    echo -e "${YELLOW}⚡ Good performance, but could be improved.${NC}"
+    echo "   Consider optimizing plugin loading or lazy loading more components."
+elif (( $(echo "$average < $SLOW_THRESHOLD" | bc -l) )); then
+    echo -e "${YELLOW}⚠️  Slow startup detected.${NC}"
+    echo "   Your shell may benefit from lazy loading optimizations."
+    echo "   Consider profiling individual components."
+else
+    echo -e "${RED}🐌 Very slow startup detected!${NC}"
+    echo "   This significantly impacts daily workflow."
+    echo "   Immediate optimization recommended."
+fi
+
+# Provide recommendations
+echo ""
+echo "Performance Targets:"
+echo "------------------"
+echo -e "• ${GREEN}Excellent${NC}: < ${EXCELLENT_THRESHOLD}s (instant feel)"
+echo -e "• ${GREEN}Good${NC}: < ${GOOD_THRESHOLD}s (very responsive)"
+echo -e "• ${YELLOW}Acceptable${NC}: < ${ACCEPTABLE_THRESHOLD}s (responsive)"
+echo -e "• ${YELLOW}Slow${NC}: < ${SLOW_THRESHOLD}s (noticeable delay)"
+echo -e "• ${RED}Very Slow${NC}: > ${SLOW_THRESHOLD}s (productivity impact)"
+
+# Additional diagnostic info
+echo ""
+echo "Diagnostic Information:"
+echo "---------------------"
+echo "Shell: $(zsh --version)"
+echo "Terminal: ${TERM_PROGRAM:-Unknown}"
+echo "OH MY POSH: $(command -v oh-my-posh >/dev/null && oh-my-posh --version || echo 'Not installed')"
+echo "Zinit: $([ -d ~/.local/share/zinit ] && echo 'Installed' || echo 'Not found')"
+
+# Check for common performance issues
+echo ""
+echo "Quick Diagnostics:"
+echo "----------------"
+
+# Check if commonly slow components are present
+if grep -q "oh-my-posh" ~/.zshrc 2>/dev/null; then
+    echo "• OH MY POSH: Detected (can impact startup time)"
+else
+    echo "• OH MY POSH: Not detected"
+fi
+
+if [ -d ~/.local/share/zinit ]; then
+    plugin_count=$(find ~/.local/share/zinit -name "*.plugin.zsh" 2>/dev/null | wc -l)
+    echo "• Zinit plugins: ~${plugin_count} detected"
+    if [ "$plugin_count" -gt 10 ]; then
+        echo "  ⚠️  High plugin count may impact startup"
+    fi
+else
+    echo "• Zinit: Not detected"
+fi
+
+if [ -d ~/.sdkman ]; then
+    echo "• SDKMAN: Detected (check if lazy loaded)"
+else
+    echo "• SDKMAN: Not detected"
+fi
+
+if [ -f ~/.zshrc ] && grep -q "eval.*pyenv" ~/.zshrc 2>/dev/null; then
+    echo "• Pyenv: Detected (check if lazy loaded)"
+fi
+
+if [ -f ~/.zshrc ] && grep -q "eval.*rbenv" ~/.zshrc 2>/dev/null; then
+    echo "• Rbenv: Detected (check if lazy loaded)"
+fi
+
+echo ""
+echo "For detailed profiling, consider using:"
+echo "  zsh -i -c 'zprof'"
+echo ""
+echo "To optimize further:"
+echo "  1. Enable lazy loading for heavy components"
+echo "  2. Reduce the number of plugins"
+echo "  3. Use turbo mode for non-essential plugins"
+echo "  4. Profile individual components"
+echo ""

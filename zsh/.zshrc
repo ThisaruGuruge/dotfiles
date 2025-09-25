@@ -11,7 +11,8 @@ fi
 
 # Initialize oh-my-posh except for Apple Terminal
 if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
-  eval "$(oh-my-posh init zsh --config $HOME/.config/ohmyposh/zen.json)"
+  # Use faster oh-my-posh initialization
+  eval "$(oh-my-posh init zsh --config $HOME/.config/ohmyposh/zen.json --print)"
 fi
 
 # Source/Load zinit
@@ -134,16 +135,24 @@ select-word-style bash
 # Lazy load fzf - initialize only when first used
 if command -v fzf >/dev/null 2>&1; then
     _fzf_lazy_load() {
+        # Load fzf more efficiently
         eval "$(fzf --zsh)"
-        unset -f _fzf_lazy_load
+        unset -f _fzf_lazy_load fzf
+        # Re-bind Ctrl-R and Ctrl-T immediately after loading
+        bindkey '^R' fzf-history-widget
+        bindkey '^T' fzf-file-widget
+        bindkey '\ec' fzf-cd-widget
         # Re-run the command that triggered loading
         if [[ $# -gt 0 ]]; then
             "$@"
         fi
     }
-    # Override fzf command and key bindings until loaded
-    fzf() { _fzf_lazy_load fzf "$@"; }
-    # Key bindings will be set up when fzf is first used
+    # Create lightweight placeholder functions
+    fzf() { _fzf_lazy_load; fzf "$@"; }
+    # Set up key bindings that trigger lazy loading
+    bindkey '^R' '_fzf_lazy_load'
+    bindkey '^T' '_fzf_lazy_load'
+    bindkey '\ec' '_fzf_lazy_load'
 else
     # Provide fallback if fzf not available
     fzf() { echo "fzf not installed"; return 1; }
@@ -201,7 +210,6 @@ fi
 source "$HOME/.aliases.sh"
 source "$HOME/.functions.sh"
 source "$HOME/.paths.sh"
-# source "$HOME/.variables.sh"  # File doesn't exist
 # Configure SOPS age key location
 export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 
@@ -267,16 +275,24 @@ if command -v pyenv >/dev/null 2>&1; then
     pip3() { _pyenv_lazy_load pip3 "$@"; }
 fi
 
-#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+# SDKMAN lazy loading - only load when Java commands are used
 export SDKMAN_DIR="$HOME/.sdkman"
 if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
-    # Load SDKMAN quietly to avoid function errors during startup
-    source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
+    # Lazy load SDKMAN - initialize only when sdk command is used
+    _sdkman_lazy_load() {
+        source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
+        unset -f _sdkman_lazy_load sdk
+        # Re-run the command that triggered loading
+        if [[ $# -gt 0 ]]; then
+            sdk "$@"
+        fi
+    }
+    sdk() { _sdkman_lazy_load sdk "$@"; }
 fi
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-export PATH="/Users/thisaru/.rd/bin:$PATH"
+export PATH="$HOME/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
 # Source local environment if it exists
-[ -f "$HOME/.local/bin/env" ] && source "$HOME/.local/bin/env"
+[ -f "$HOME/.local/bin/env" ] && source "$HOME/.local/bin/env" || true
