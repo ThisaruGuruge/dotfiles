@@ -139,7 +139,28 @@ source "$HOME/.aliases.sh"
 source "$HOME/.functions.sh"
 source "$HOME/.paths.sh"
 # source "$HOME/.variables.sh"  # File doesn't exist
-source "$HOME/.env"
+# Configure SOPS age key location
+export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+
+# Load environment variables (supports both encrypted and plaintext .env)
+if [ -f "$HOME/.env" ]; then
+    # Check if file is encrypted (starts with #ENC)
+    if head -1 "$HOME/.env" | grep -q "^#ENC\["; then
+        # Encrypted - decrypt and source
+        if command -v sops >/dev/null 2>&1; then
+            if sops_output=$(sops -d "$HOME/.env" 2>/dev/null); then
+                eval "$sops_output"
+            else
+                echo "Warning: Failed to decrypt $HOME/.env - check your SOPS/age configuration" >&2
+            fi
+        else
+            echo "Warning: SOPS not available - cannot decrypt $HOME/.env" >&2
+        fi
+    else
+        # Plaintext - source directly
+        source "$HOME/.env"
+    fi
+fi
 
 # Docker settings
 export DOCKER_DEFAULT_PLATFORM=linux/amd64

@@ -15,6 +15,8 @@ A comprehensive development environment setup for macOS featuring Zsh, Oh My Pos
 - **Productivity Shortcuts**: 150+ aliases and custom functions for common development tasks
 - **Universal Archive Handler**: `take` command that handles git repos, archives, and directory creation
 - **Smart Port Management**: Easy process killing by port with the `kill_by_port` function
+- **Encrypted Secret Management**: SOPS + age encryption for environment variables with seamless editing
+- **Enhanced Tool Installation**: Individual confirmation with legacy installation detection
 - **Comprehensive Git Setup**: Modern Git configuration with delta integration and useful aliases
 
 ## 📋 Prerequisites
@@ -61,8 +63,9 @@ The easiest way to set up everything:
 
 ```bash
 # Clone the repository
-git clone https://github.com/ThisaruGuruge/dotfiles.git ~/.dotfiles
-cd ~/.dotfiles
+git clone https://github.com/ThisaruGuruge/dotfiles.git ~/dotfiles
+# OR: git clone https://github.com/ThisaruGuruge/dotfiles.git ~/.dotfiles
+cd ~/dotfiles
 
 # Run the installation script
 ./init.sh
@@ -74,12 +77,15 @@ The `init.sh` script will:
 - ✅ Install Homebrew (if needed)
 - ✅ Install GNU Stow (dotfiles manager)
 - ✅ Install modern CLI tools (eza, bat, delta, lazygit, tmux, direnv, atuin)
+- ✅ Install secret management tools (sops, age)
+- ✅ Set up encrypted environment variables with SOPS + age
 - ✅ Offer to install development tools (Python, Ruby, Node.js managers)
+- ✅ Enhanced tool installation (Cursor, VS Code, GitHub CLI, PostgreSQL, Redis, AWS Vault)
 - ✅ Install SDKMAN (Java, Gradle, Maven, Kotlin manager)
 - ✅ Offer terminal app installation (Warp or iTerm2)
 - ✅ Install and configure Nerd Fonts
 - ✅ Set up Zinit plugin manager
-- ✅ Create environment file from template
+- ✅ Create environment file from template with encryption
 - ✅ Set up Git personal configuration securely
 - ✅ Backup existing dotfiles automatically
 - ✅ Use Stow to manage symlinks cleanly
@@ -97,7 +103,7 @@ If you prefer to install manually or need to customize the process:
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install GNU Stow and core dependencies
-brew install stow oh-my-posh fzf zoxide tree bat eza ripgrep fd git-delta lazygit tmux htop direnv atuin gh
+brew install stow oh-my-posh fzf zoxide tree bat eza ripgrep fd git-delta lazygit tmux htop direnv atuin gh sops age
 
 # Install development tools (optional)
 brew install pyenv rbenv nvm
@@ -121,8 +127,9 @@ The fastest way to install all dependencies:
 
 ```bash
 # Clone the repository first
-git clone https://github.com/ThisaruGuruge/dotfiles.git ~/.dotfiles
-cd ~/.dotfiles
+git clone https://github.com/ThisaruGuruge/dotfiles.git ~/dotfiles
+# OR: git clone https://github.com/ThisaruGuruge/dotfiles.git ~/.dotfiles
+cd ~/dotfiles
 
 # Install all dependencies with Homebrew Bundle
 brew bundle --file=Brewfile
@@ -140,8 +147,9 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/ThisaruGuruge/dotfiles.git ~/.dotfiles
-   cd ~/.dotfiles
+   git clone https://github.com/ThisaruGuruge/dotfiles.git ~/dotfiles
+   # OR: git clone https://github.com/ThisaruGuruge/dotfiles.git ~/.dotfiles
+   cd ~/dotfiles
    ```
 
 2. **Setup environment variables**:
@@ -403,11 +411,93 @@ alias_search git                          # Find all aliases containing "git"
 show_tools                                 # Show all modern CLI tools and examples
 ```
 
+**Secret Management**:
+```bash
+edit_secrets                               # Edit encrypted environment variables seamlessly
+sops -d ~/.env                            # View decrypted secrets
+sops ~/.env                               # Direct SOPS editing
+```
+
 **Other Utilities**:
 - `extract archive.tar.gz` - Universal archive extractor
 - `compress <folder>` - Create tar.gz archive
 - `checkPort <port>` - See what's running on a port
 - `git_ignore_local <file>` - Add to local git ignore
+
+## 🔐 Secret Management
+
+This dotfiles setup includes a comprehensive secret management system using **SOPS** (Secrets OPerationS) with **age** encryption.
+
+### How It Works
+
+- **Single `.env` file**: All environment variables are stored in `~/.env`
+- **Automatic encryption**: The file is encrypted in-place using SOPS + age
+- **Seamless integration**: Your shell automatically decrypts and loads variables on startup
+- **Safe editing**: Use `edit_secrets` command to edit encrypted secrets safely
+
+### Key Features
+
+✅ **In-place encryption**: No separate `.env.sops` file to manage
+✅ **Automatic detection**: Shell detects encrypted vs plaintext automatically
+✅ **Safe backups**: Timestamped backups created before any changes
+✅ **Format preservation**: Maintains `export KEY="value"` format for shell compatibility
+✅ **Git ignored**: Environment files are automatically excluded from version control
+
+### Usage
+
+```bash
+# Edit your encrypted secrets (recommended)
+edit_secrets                               # Opens decrypted content in your editor
+                                          # Automatically re-encrypts when you save
+
+# View secrets without editing
+sops -d ~/.env                            # Show decrypted content
+
+# Direct SOPS editing (advanced)
+sops ~/.env                               # Edit with SOPS directly
+
+# Check if secrets are encrypted
+head -1 ~/.env                            # Should show "#ENC[..." if encrypted
+```
+
+### Setup Process
+
+The `./init.sh` script automatically:
+
+1. 🔑 **Generates age encryption key** (stored in `~/.config/sops/age/keys.txt`)
+2. ⚙️ **Creates SOPS configuration** (`~/.sops.yaml`)
+3. 📁 **Handles existing `.env`**: Encrypts in-place with backup
+4. 🆕 **Creates new `.env`**: From template if none exists
+5. 🔧 **Configures shell**: Automatic decryption on terminal startup
+
+### Security Benefits
+
+- **🔒 Encrypted at rest**: Secrets are never stored in plaintext on disk
+- **🚫 Git safe**: `.env` files are in `.gitignore` - no risk of committing secrets
+- **🔑 Key isolation**: Encryption keys stored separately from encrypted data
+- **📦 Backup safety**: Automatic backups before any encryption changes
+- **🛡️ Age encryption**: Modern, secure encryption standard
+
+### File Format
+
+Your `.env` file uses standard shell export format:
+
+```bash
+# Environment Variables (encrypted with SOPS)
+export GITHUB_TOKEN="ghp_your_github_personal_access_token"
+export DATABASE_URL="postgresql://user:pass@localhost/db"
+export API_KEY="your_api_key_here"
+export AWS_ACCESS_KEY_ID="your_aws_access_key"
+export AWS_SECRET_ACCESS_KEY="your_aws_secret_key"
+```
+
+After encryption, the same file will look like:
+```bash
+#ENC[AES256_GCM,data:encrypted_data_here,iv:...,tag:...,type:comment]
+#
+export GITHUB_TOKEN=ENC[AES256_GCM,data:more_encrypted_data...]
+# ... more encrypted content
+```
 
 ## ⚙️ Customization
 
@@ -436,11 +526,17 @@ The Oh My Posh theme is located at `~/.config/ohmyposh/zen.json`. You can:
 
 ### Environment Variables
 
-Add custom environment variables to `~/.env`:
+Add custom environment variables to your encrypted `~/.env` file:
 ```bash
+# Use the secure edit_secrets command
+edit_secrets
+
+# Then add your variables in the editor:
 export MY_CUSTOM_VAR='value'
 export PATH="$PATH:/my/custom/path"
 ```
+
+The variables will be automatically encrypted when you save and exit the editor.
 
 ## 🔧 Troubleshooting
 
@@ -457,8 +553,8 @@ which oh-my-posh fzf zoxide
 
 **Permission denied errors**:
 ```bash
-chmod +x ~/.dotfiles/.functions.sh
-chmod +x ~/.dotfiles/.aliases.sh
+chmod +x ~/dotfiles/.functions.sh
+chmod +x ~/dotfiles/.aliases.sh
 ```
 
 **Zinit not loading**:
@@ -502,6 +598,11 @@ atuin --version                          # Shell history
 # ✅ Custom functions
 kill_by_port --help                      # Should show help
 take test-dir && pwd                     # Should create and enter directory
+edit_secrets                             # Should open encrypted secrets for editing
+
+# ✅ Secret management
+sops --version                           # Should show SOPS version
+age --version                            # Should show age version
 
 # ✅ Atuin keybinding
 # Press Ctrl+Alt+R - should show Atuin fuzzy history search
@@ -512,6 +613,8 @@ take test-dir && pwd                     # Should create and enter directory
 - [ ] fzf fuzzy search works (Ctrl+R, but may conflict with Warp)
 - [ ] `tmux` starts and Ctrl+a | splits panes
 - [ ] `eza --version`, `rg --version`, `atuin --version` all work
+- [ ] `sops --version` and `age --version` work (secret management)
+- [ ] `edit_secrets` command opens encrypted environment file
 - [ ] Ctrl+Alt+R triggers Atuin history search
 - [ ] Custom functions like `take` and `kill_by_port --help` work
 
@@ -520,7 +623,7 @@ take test-dir && pwd                     # Should create and enter directory
 To update the dotfiles:
 
 ```bash
-cd ~/.dotfiles
+cd ~/dotfiles
 git pull origin main
 source ~/.zshrc  # Reload configuration
 ```
