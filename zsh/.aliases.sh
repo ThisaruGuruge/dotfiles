@@ -32,7 +32,7 @@ alias ls_t='eza -l --sort=modified --icons --git'
 alias ls_old='eza -l --sort=oldest --icons --git'
 
 # Fallback to traditional ls if eza not available
-if ! command -v eza &> /dev/null; then
+if ! command -v eza &>/dev/null; then
     alias ls='ls --color=auto'
     alias ll='ls -lah'
     alias la='ls -la'
@@ -40,7 +40,6 @@ fi
 
 alias showFiles='defaults write com.apple.finder AppleShowAllFiles YES; killall Finder /System/Library/CoreServices/Finder.app'
 alias hideFiles='defaults write com.apple.finder AppleShowAllFiles NO; killall Finder /System/Library/CoreServices/Finder.app'
-
 
 # Switch Java
 alias use_java_17="sdk default java 17.0.11-tem"
@@ -139,12 +138,12 @@ alias less='bat'
 alias grep='rg'
 
 # Fallback to traditional tools if modern ones not available
-if ! command -v bat &> /dev/null; then
+if ! command -v bat &>/dev/null; then
     alias cat='cat'
     alias less='less'
 fi
 
-if ! command -v rg &> /dev/null; then
+if ! command -v rg &>/dev/null; then
     alias grep='grep --color=auto'
 fi
 

@@ -26,7 +26,7 @@ edit_secrets() {
         # Check if encrypted
         if head -1 "$env_file" | grep -q "^#ENC\\["; then
             echo "🔓 Decrypting .env file for editing..."
-            if sops -d "$env_file" > "$temp_file"; then
+            if sops -d "$env_file" >"$temp_file"; then
                 echo "✅ File decrypted successfully"
             else
                 echo "❌ Failed to decrypt .env file"
@@ -40,7 +40,7 @@ edit_secrets() {
     else
         # Create new template
         echo "📝 Creating new .env file template..."
-        cat > "$temp_file" << 'EOF'
+        cat >"$temp_file" <<'EOF'
 # Environment Variables
 # Format: export KEY="value"
 # This file will be encrypted after editing
@@ -231,7 +231,7 @@ edit_dotfiles() {
 
         # Test syntax for shell files
         case "$file_to_edit" in
-            *.sh|*/.zshrc)
+            *.sh | */.zshrc)
                 echo "🔍 Testing syntax..."
                 if bash -n "$file_to_edit" 2>/dev/null; then
                     echo "✅ Syntax check passed"
@@ -254,7 +254,7 @@ edit_dotfiles() {
         echo ""
         echo "💡 Next steps:"
         case "$file_to_edit" in
-            */.zshrc|*/.aliases.sh|*/.functions.sh|*/.paths.sh)
+            */.zshrc | */.aliases.sh | */.functions.sh | */.paths.sh)
                 echo "   • Restart terminal or run: source ~/.zshrc"
                 ;;
             */zen.json)
@@ -294,7 +294,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
         fi
     else
         echo "📝 No changes made"
-        rm "$backup_file"  # Remove unnecessary backup
+        rm "$backup_file" # Remove unnecessary backup
     fi
 
     echo "🎉 Edit complete!"
@@ -465,25 +465,25 @@ update_dotfiles() {
     echo "   💾 Backup: $backup_branch"
 }
 
-compress () {
+compress() {
     tar -czvf "$1.tar.gz" "$1"
 }
 
-extract () {
-    if [ -f "$1" ] ; then
+extract() {
+    if [ -f "$1" ]; then
         case $1 in
-            *.tar.bz2)   tar xjf "$1"     ;;
-            *.tar.gz)    tar xzf "$1"     ;;
-            *.bz2)       bunzip2 "$1"     ;;
-            *.rar)       unrar e "$1"     ;;
-            *.gz)        gunzip "$1"      ;;
-            *.tar)       tar xf "$1"      ;;
-            *.tbz2)      tar xjf "$1"     ;;
-            *.tgz)       tar xzf "$1"     ;;
-            *.zip)       unzip "$1"       ;;
-            *.Z)         uncompress "$1"  ;;
-            *.7z)        7z x "$1"        ;;
-            *)     echo "'$1' cannot be extracted via extract()" ;;
+            *.tar.bz2) tar xjf "$1" ;;
+            *.tar.gz) tar xzf "$1" ;;
+            *.bz2) bunzip2 "$1" ;;
+            *.rar) unrar e "$1" ;;
+            *.gz) gunzip "$1" ;;
+            *.tar) tar xf "$1" ;;
+            *.tbz2) tar xjf "$1" ;;
+            *.tgz) tar xzf "$1" ;;
+            *.zip) unzip "$1" ;;
+            *.Z) uncompress "$1" ;;
+            *.7z) 7z x "$1" ;;
+            *) echo "'$1' cannot be extracted via extract()" ;;
         esac
     else
         echo "'$1' is not a valid file"
@@ -501,11 +501,11 @@ kill_by_port() {
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -d|--dry-run)
+            -d | --dry-run)
                 dry_run=true
                 shift
                 ;;
-            -h|--help)
+            -h | --help)
                 echo "Usage: kill_by_port [OPTIONS] PORT"
                 echo "Kill processes running on the specified port"
                 echo ""
@@ -621,7 +621,7 @@ function takedir() {
         return 1
     fi
 
-    local target_dir="${*: -1}"  # Last argument - directory to cd into after creation
+    local target_dir="${*: -1}" # Last argument - directory to cd into after creation
 
     echo "Creating directory: $*"
     if mkdir -p "$@"; then
@@ -730,19 +730,19 @@ function takeurl() {
 
     # Determine extraction method based on file type
     case "$url" in
-        *.tar.gz|*.tgz)
+        *.tar.gz | *.tgz)
             if ! tar -xzf "$temp_file" 2>/dev/null; then
                 echo "Error: Failed to extract tar.gz archive"
-                cd - > /dev/null || return
+                cd - >/dev/null || return
                 rm -f "$temp_file"
                 rmdir "$temp_dir" 2>/dev/null
                 return 1
             fi
             ;;
-        *.tar.bz2|*.tbz2)
+        *.tar.bz2 | *.tbz2)
             if ! tar -xjf "$temp_file" 2>/dev/null; then
                 echo "Error: Failed to extract tar.bz2 archive"
-                cd - > /dev/null || return
+                cd - >/dev/null || return
                 rm -f "$temp_file"
                 rmdir "$temp_dir" 2>/dev/null
                 return 1
@@ -751,7 +751,7 @@ function takeurl() {
         *.tar.xz)
             if ! tar -xJf "$temp_file" 2>/dev/null; then
                 echo "Error: Failed to extract tar.xz archive"
-                cd - > /dev/null || return
+                cd - >/dev/null || return
                 rm -f "$temp_file"
                 rmdir "$temp_dir" 2>/dev/null
                 return 1
@@ -760,7 +760,7 @@ function takeurl() {
         *.tar)
             if ! tar -xf "$temp_file" 2>/dev/null; then
                 echo "Error: Failed to extract tar archive"
-                cd - > /dev/null || return
+                cd - >/dev/null || return
                 rm -f "$temp_file"
                 rmdir "$temp_dir" 2>/dev/null
                 return 1
@@ -769,7 +769,7 @@ function takeurl() {
         *)
             echo "Error: Unsupported archive format"
             echo "Supported formats: .tar.gz, .tgz, .tar.bz2, .tbz2, .tar.xz, .tar"
-            cd - > /dev/null || return
+            cd - >/dev/null || return
             rm -f "$temp_file"
             rmdir "$temp_dir" 2>/dev/null
             return 1
@@ -791,21 +791,21 @@ function takeurl() {
 }
 
 git_ignore_local() {
-  if [ -z "$1" ]; then
-    echo "Usage: git_ignore_local <file>"
-    return 1
-  fi
+    if [ -z "$1" ]; then
+        echo "Usage: git_ignore_local <file>"
+        return 1
+    fi
 
-  local repo_root
-  repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
 
-  if [ -z "$repo_root" ]; then
-    echo "Not inside a Git repository."
-    return 1
-  fi
+    if [ -z "$repo_root" ]; then
+        echo "Not inside a Git repository."
+        return 1
+    fi
 
-  echo "$1" >> "$repo_root/.git/info/exclude"
-  echo "Added '$1' to $repo_root/.git/info/exclude"
+    echo "$1" >>"$repo_root/.git/info/exclude"
+    echo "Added '$1' to $repo_root/.git/info/exclude"
 }
 
 # Show available modern tools and their usage
@@ -813,7 +813,7 @@ show_tools() {
     echo "🚀 Modern CLI Tools Available:"
     echo ""
 
-    if command -v eza &> /dev/null; then
+    if command -v eza &>/dev/null; then
         echo "📁 eza (modern ls):"
         echo "  ls      - Basic listing with icons and git status"
         echo "  ll      - Detailed listing with headers"
@@ -821,28 +821,28 @@ show_tools() {
         echo ""
     fi
 
-    if command -v bat &> /dev/null; then
+    if command -v bat &>/dev/null; then
         echo "📄 bat (enhanced cat):"
         echo "  cat file.js    - View with syntax highlighting"
         echo "  less README.md - Page through with highlighting"
         echo ""
     fi
 
-    if command -v rg &> /dev/null; then
+    if command -v rg &>/dev/null; then
         echo "🔍 ripgrep (fast grep):"
         echo "  grep 'pattern'     - Search with ripgrep"
         echo "  rg 'TODO' --type js - Search in JS files only"
         echo ""
     fi
 
-    if command -v lazygit &> /dev/null; then
+    if command -v lazygit &>/dev/null; then
         echo "🌿 lazygit (git TUI):"
         echo "  lg         - Open interactive git interface"
         echo "  glog       - Beautiful git log with graph"
         echo ""
     fi
 
-    if command -v tmux &> /dev/null; then
+    if command -v tmux &>/dev/null; then
         echo "📺 tmux (terminal multiplexer):"
         echo "  t          - Start new session"
         echo "  ta         - Attach to last session"
@@ -850,21 +850,21 @@ show_tools() {
         echo ""
     fi
 
-    if command -v fd &> /dev/null; then
+    if command -v fd &>/dev/null; then
         echo "🔎 fd (fast find):"
         echo "  find . -name '*.js' - Search for JavaScript files"
         echo "  fd -e js            - Same as above, shorter syntax"
         echo ""
     fi
 
-    if command -v delta &> /dev/null; then
+    if command -v delta &>/dev/null; then
         echo "📊 delta (enhanced git diff):"
         echo "  git diff           - Shows beautiful side-by-side diffs"
         echo "  git log -p         - Log with enhanced diff display"
         echo ""
     fi
 
-    if command -v atuin &> /dev/null; then
+    if command -v atuin &>/dev/null; then
         echo "📚 atuin (enhanced shell history):"
         echo "  hs                 - Interactive history search"
         echo "  Option+H           - Quick history search (keybinding)"
@@ -909,7 +909,7 @@ alias_help() {
     # Define comprehensive alias documentation
     case "$alias_name" in
         # File Operations
-        "ls"|"ll"|"la"|"lt")
+        "ls" | "ll" | "la" | "lt")
             echo "📁 File Listing Aliases (eza-powered)"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "ls     Enhanced listing with icons and git status"
@@ -926,7 +926,7 @@ alias_help() {
             echo "       Example: lt # shows directory structure"
             ;;
 
-        "cat"|"less"|"bat")
+        "cat" | "less" | "bat")
             echo "📄 File Viewing Aliases (bat-powered)"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "cat    Syntax-highlighted file viewer"
@@ -938,7 +938,7 @@ alias_help() {
             echo "       Keys: q (quit), / (search), n (next match)"
             ;;
 
-        "grep"|"rg")
+        "grep" | "rg")
             echo "🔍 Search Aliases (ripgrep-powered)"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "grep   Fast text search with ripgrep"
@@ -953,7 +953,7 @@ alias_help() {
             ;;
 
         # Git Operations
-        "git"|"gits"|"gl"|"gp"|"gco"|"gb"|"ga"|"gaa"|"lg"|"glog")
+        "git" | "gits" | "gl" | "gp" | "gco" | "gb" | "ga" | "gaa" | "lg" | "glog")
             echo "🌿 Git Aliases - Enhanced Git Workflow"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Basic Git:"
@@ -978,7 +978,7 @@ alias_help() {
             ;;
 
         # Gradle Operations
-        "gradle"|"gw"|"gwb"|"gwc"|"gwt"|"gwcb")
+        "gradle" | "gw" | "gwb" | "gwc" | "gwt" | "gwcb")
             echo "🏗️ Gradle Wrapper Aliases - Project Build Tool"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Core Build Tasks:"
@@ -1003,7 +1003,7 @@ alias_help() {
             ;;
 
         # Docker Operations
-        "docker"|"dps"|"dpsa"|"dex"|"dlog")
+        "docker" | "dps" | "dpsa" | "dex" | "dlog")
             echo "🐳 Docker Aliases - Container Management"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Container Status:"
@@ -1026,7 +1026,7 @@ alias_help() {
             ;;
 
         # Tmux Operations
-        "tmux"|"t"|"ta"|"tat"|"tl"|"tn")
+        "tmux" | "t" | "ta" | "tat" | "tl" | "tn")
             echo "📺 Tmux Aliases - Terminal Multiplexer"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Session Management:"
@@ -1048,7 +1048,7 @@ alias_help() {
             ;;
 
         # Network Operations
-        "myip"|"localip"|"ping")
+        "myip" | "localip" | "ping")
             echo "🌐 Network Aliases - Network Utilities"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "myip      Get your public IP address"
@@ -1062,7 +1062,7 @@ alias_help() {
             ;;
 
         # Atuin Shell History
-        "atuin"|"hs"|"hstats"|"hsync")
+        "atuin" | "hs" | "hstats" | "hsync")
             echo "📚 Atuin Aliases - Enhanced Shell History"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Interactive History:"
