@@ -276,11 +276,16 @@ edit_dotfiles() {
                 echo "Enter commit message:"
                 read -r -p "> " commit_msg
                 if [ -n "$commit_msg" ]; then
-                    git -C "$dotfiles_dir" commit -m "$commit_msg
+                    # Check if AI attribution should be added (can be disabled with DOTFILES_NO_AI_ATTRIBUTION=1)
+                    if [ "${DOTFILES_NO_AI_ATTRIBUTION}" = "1" ]; then
+                        git -C "$dotfiles_dir" commit -m "$commit_msg"
+                    else
+                        git -C "$dotfiles_dir" commit -m "$commit_msg
 
 🤖 Generated with edit_dotfiles command
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
+                    fi
                     echo "✅ Changes committed to git"
                 else
                     echo "❌ Empty commit message - changes staged but not committed"
