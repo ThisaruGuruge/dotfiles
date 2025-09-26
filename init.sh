@@ -63,7 +63,7 @@ confirm() {
     while true; do
         echo ""
         echo -en "  ${YELLOW}$1 (y/n/q): ${NC}"
-        read -n 1 -s key  # Read single character without echo
+        read -r -n 1 -s key  # Read single character without echo
         echo  # Print newline after keypress
 
         case "$key" in
@@ -370,7 +370,7 @@ install_terminal_apps() {
                 fi
             fi
 
-            if brew install $install_cmd; then
+            if brew install "$install_cmd"; then
                 log_success "$tool installed successfully"
             else
                 log_warning "Failed to install $tool - you may need to install it manually"
@@ -492,7 +492,8 @@ backup_existing_files() {
     log_step "Backing up existing dotfiles"
 
     local files=(".zshrc" ".vimrc" ".aliases.sh" ".functions.sh" ".paths.sh")
-    local backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+    local backup_dir
+    backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
     local backed_up=false
 
     for file in "${files[@]}"; do
@@ -551,7 +552,8 @@ setup_secret_management() {
     fi
 
     # Get the public key for SOPS config
-    local public_key=$(grep "^# public key:" "$age_key_file" | cut -d' ' -f4)
+    local public_key
+    public_key=$(grep "^# public key:" "$age_key_file" | cut -d' ' -f4)
     if [ -z "$public_key" ]; then
         log_error "Could not extract public key from age key file"
         return 1
