@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Common Commands
 
 alias c="clear"
@@ -45,7 +47,7 @@ alias use_java_17="sdk default java 17.0.11-tem"
 alias use_java_21="sdk default java 21.0.5-tem"
 
 # Mac manipulation
-alias dock_add_space="defaults write com.apple.dock persistent-apps -array-add '{"tile-type"="spacer-tile";}'; killall Dock"
+alias dock_add_space='defaults write com.apple.dock persistent-apps -array-add "{\"tile-type\"=\"spacer-tile\";}"; killall Dock'
 
 # Add sudo as an alias so we can use aliases with sudo :D
 alias sudo='sudo '

@@ -1,7 +1,10 @@
+#!/bin/bash
+
 # Edit secrets in .env file (handles both encrypted and plaintext)
 edit_secrets() {
     local env_file="$HOME/.env"
-    local temp_file=$(mktemp -t temp_env).env
+    local temp_file
+    temp_file="$(mktemp -t temp_env).env"
 
     # Set SOPS environment variable
     export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
@@ -21,7 +24,7 @@ edit_secrets() {
     # Handle existing .env file
     if [ -f "$env_file" ]; then
         # Check if encrypted
-        if head -1 "$env_file" | grep -q "^#ENC\["; then
+        if head -1 "$env_file" | grep -q "^#ENC\\["; then
             echo "🔓 Decrypting .env file for editing..."
             if sops -d "$env_file" > "$temp_file"; then
                 echo "✅ File decrypted successfully"
@@ -55,14 +58,16 @@ EOF
     [ -f "$env_file" ] && cp "$env_file" "$env_file.backup.$(date +%Y%m%d_%H%M%S)"
 
     # Get file hash before editing
-    local before_hash=$(shasum -a 256 "$temp_file" | cut -d' ' -f1)
+    local before_hash
+    before_hash=$(shasum -a 256 "$temp_file" | cut -d' ' -f1)
 
     # Open in editor
     echo "🖊️  Opening editor..."
     ${EDITOR:-vim} "$temp_file"
 
     # Get file hash after editing
-    local after_hash=$(shasum -a 256 "$temp_file" | cut -d' ' -f1)
+    local after_hash
+    after_hash=$(shasum -a 256 "$temp_file" | cut -d' ' -f1)
 
     # Check if file was modified
     if [ "$before_hash" = "$after_hash" ]; then
@@ -76,7 +81,7 @@ EOF
     if sops --config "$HOME/.sops.yaml" --encrypt --in-place "$temp_file"; then
         mv "$temp_file" "$env_file"
         # Verify encryption worked
-        if head -1 "$env_file" | grep -q "^#ENC\["; then
+        if head -1 "$env_file" | grep -q "^#ENC\\["; then
             echo "✅ Secrets encrypted and saved to $env_file"
             echo "💡 Restart your terminal or run 'source ~/.zshrc' to load updated secrets"
         else
@@ -133,7 +138,7 @@ edit_dotfiles() {
     echo ""
 
     local choice
-    read -p "Choose file to edit (0-11): " choice
+    read -r -p "Choose file to edit (0-11): " choice
 
     local file_to_edit=""
     local description=""
@@ -185,7 +190,7 @@ edit_dotfiles() {
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             find "$dotfiles_dir" -type f \( -name ".*" -o -name "*.sh" -o -name "*.json" -o -name "Brewfile" -o -name "README.md" \) ! -path "*/.git/*" | sed "s|$dotfiles_dir/||" | sort
             echo ""
-            read -p "Enter file path to edit (relative to $dotfiles_dir): " relative_path
+            read -r -p "Enter file path to edit (relative to $dotfiles_dir): " relative_path
             if [ -n "$relative_path" ]; then
                 file_to_edit="$dotfiles_dir/$relative_path"
                 description="Custom File: $relative_path"
@@ -211,7 +216,8 @@ edit_dotfiles() {
     fi
 
     # Create backup
-    local backup_file="$file_to_edit.backup.$(date +%Y%m%d_%H%M%S)"
+    local backup_file
+    backup_file="$file_to_edit.backup.$(date +%Y%m%d_%H%M%S)"
     cp "$file_to_edit" "$backup_file"
     echo "💾 Created backup: ${backup_file##*/}"
 
@@ -268,7 +274,7 @@ edit_dotfiles() {
             if confirm "Commit changes to git?"; then
                 git -C "$dotfiles_dir" add "$file_to_edit"
                 echo "Enter commit message:"
-                read -p "> " commit_msg
+                read -r -p "> " commit_msg
                 if [ -n "$commit_msg" ]; then
                     git -C "$dotfiles_dir" commit -m "$commit_msg
 
@@ -320,8 +326,10 @@ update_dotfiles() {
 
     # Show current status
     echo "📍 Current status:"
-    local current_branch=$(git -C "$dotfiles_dir" branch --show-current 2>/dev/null || echo "unknown")
-    local current_commit=$(git -C "$dotfiles_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    local current_branch
+    local current_commit
+    current_branch=$(git -C "$dotfiles_dir" branch --show-current 2>/dev/null || echo "unknown")
+    current_commit=$(git -C "$dotfiles_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
     echo "   Branch: $current_branch"
     echo "   Commit: $current_commit"
     echo ""
@@ -351,7 +359,8 @@ update_dotfiles() {
     fi
 
     # Check if updates are available
-    local commits_behind=$(git -C "$dotfiles_dir" rev-list HEAD..origin/"$current_branch" --count 2>/dev/null || echo "0")
+    local commits_behind
+    commits_behind=$(git -C "$dotfiles_dir" rev-list HEAD..origin/"$current_branch" --count 2>/dev/null || echo "0")
 
     if [ "$commits_behind" = "0" ]; then
         echo "✅ Already up to date!"
@@ -371,7 +380,8 @@ update_dotfiles() {
     fi
 
     # Create backup of current state
-    local backup_branch="backup-$(date +%Y%m%d_%H%M%S)"
+    local backup_branch
+    backup_branch="backup-$(date +%Y%m%d_%H%M%S)"
     git -C "$dotfiles_dir" branch "$backup_branch"
     echo "💾 Created backup branch: $backup_branch"
 
@@ -393,26 +403,10 @@ update_dotfiles() {
     git -C "$dotfiles_dir" log "$current_commit"..HEAD --oneline --decorate
 
     # Check if critical files changed
-    local changed_files=$(git -C "$dotfiles_dir" diff --name-only "$current_commit"..HEAD)
-    local needs_reload=false
-    local needs_reinstall=false
-
+    local changed_files
+    changed_files=$(git -C "$dotfiles_dir" diff --name-only "$current_commit"..HEAD)
     echo ""
     echo "🔍 Analyzing changes..."
-
-    echo "$changed_files" | while read -r file; do
-        case "$file" in
-            zsh/.zshrc|zsh/.aliases.sh|zsh/.functions.sh|zsh/.paths.sh)
-                needs_reload=true
-                ;;
-            Brewfile|init.sh)
-                needs_reinstall=true
-                ;;
-            config/ohmyposh/*)
-                needs_reload=true
-                ;;
-        esac
-    done
 
     # Provide next steps
     echo ""
@@ -467,23 +461,23 @@ update_dotfiles() {
 }
 
 compress () {
-    tar -czvf "$1.tar.gz" $1
+    tar -czvf "$1.tar.gz" "$1"
 }
 
 extract () {
-    if [ -f $1 ] ; then
+    if [ -f "$1" ] ; then
         case $1 in
-            *.tar.bz2)   tar xjf $1     ;;
-            *.tar.gz)    tar xzf $1     ;;
-            *.bz2)       bunzip2 $1     ;;
-            *.rar)       unrar e $1     ;;
-            *.gz)        gunzip $1      ;;
-            *.tar)       tar xf $1      ;;
-            *.tbz2)      tar xjf $1     ;;
-            *.tgz)       tar xzf $1     ;;
-            *.zip)       unzip $1       ;;
-            *.Z)         uncompress $1  ;;
-            *.7z)        7z x $1        ;;
+            *.tar.bz2)   tar xjf "$1"     ;;
+            *.tar.gz)    tar xzf "$1"     ;;
+            *.bz2)       bunzip2 "$1"     ;;
+            *.rar)       unrar e "$1"     ;;
+            *.gz)        gunzip "$1"      ;;
+            *.tar)       tar xf "$1"      ;;
+            *.tbz2)      tar xjf "$1"     ;;
+            *.tgz)       tar xzf "$1"     ;;
+            *.zip)       unzip "$1"       ;;
+            *.Z)         uncompress "$1"  ;;
+            *.7z)        7z x "$1"        ;;
             *)     echo "'$1' cannot be extracted via extract()" ;;
         esac
     else
@@ -492,7 +486,7 @@ extract () {
 }
 
 checkPort() {
-    lsof -i:$1
+    lsof -i:"$1"
 }
 
 kill_by_port() {
@@ -560,7 +554,7 @@ kill_by_port() {
 
     # Find processes on the port
     local apps
-    apps="$(lsof -i:$port_arg 2>/dev/null)"
+    apps="$(lsof -i:"$port_arg" 2>/dev/null)"
 
     if [ -z "$apps" ]; then
         echo "No processes found using port $port_arg"
@@ -573,15 +567,15 @@ kill_by_port() {
 
     if [ "$dry_run" = true ]; then
         local pids
-        pids="$(lsof -t -i:$port_arg 2>/dev/null)"
+        pids="$(lsof -t -i:"$port_arg" 2>/dev/null)"
         echo "[DRY RUN] Would kill processes with PIDs: $pids"
-        echo "Command that would be executed: kill -9 $pids"
+        echo "Command that would be executed: kill -9 \"$pids\""
     else
         local pids
-        pids="$(lsof -t -i:$port_arg 2>/dev/null)"
+        pids="$(lsof -t -i:"$port_arg" 2>/dev/null)"
 
         if [ -n "$pids" ]; then
-            if kill -9 $pids 2>/dev/null; then
+            if kill -9 "$pids" 2>/dev/null; then
                 echo "Successfully killed processes: $pids"
             else
                 echo "Error: Failed to kill some processes"
@@ -622,11 +616,11 @@ function takedir() {
         return 1
     fi
 
-    local target_dir="${@: -1}"  # Last argument is the final directory
+    local target_dir="${*: -1}"  # Last argument is the final directory
 
     echo "Creating directory: $*"
     if mkdir -p "$@"; then
-        cd "$target_dir"
+        cd "$target_dir" || return
         echo "Created and entered $(pwd)"
     else
         echo "Failed to create directory: $*"
@@ -652,9 +646,9 @@ function takegit() {
 
     # Extract repository name from various URL formats
     if [[ $repo_url =~ .*/([^/]+)\.git/?$ ]]; then
-        repo_name="${match[1]}"
+        repo_name="${BASH_REMATCH[1]}"
     elif [[ $repo_url =~ .*/([^/]+)/?$ ]]; then
-        repo_name="${match[1]}"
+        repo_name="${BASH_REMATCH[1]}"
     else
         repo_name="$(basename "$repo_url" .git)"
     fi
@@ -668,7 +662,7 @@ function takegit() {
 
     echo "Cloning $repo_url into $repo_name..."
     if git clone "$repo_url" "$repo_name" 2>/dev/null; then
-        cd "$repo_name"
+        cd "$repo_name" || return
         echo "Successfully cloned and entered $repo_name"
     else
         echo "Failed to clone repository: $repo_url"
@@ -727,14 +721,14 @@ function takeurl() {
     fi
 
     echo "Extracting archive..."
-    cd "$temp_dir"
+    cd "$temp_dir" || return
 
     # Determine extraction method based on file type
     case "$url" in
         *.tar.gz|*.tgz)
             if ! tar -xzf "$temp_file" 2>/dev/null; then
                 echo "Error: Failed to extract tar.gz archive"
-                cd - > /dev/null
+                cd - > /dev/null || return
                 rm -f "$temp_file"
                 rmdir "$temp_dir" 2>/dev/null
                 return 1
@@ -743,7 +737,7 @@ function takeurl() {
         *.tar.bz2|*.tbz2)
             if ! tar -xjf "$temp_file" 2>/dev/null; then
                 echo "Error: Failed to extract tar.bz2 archive"
-                cd - > /dev/null
+                cd - > /dev/null || return
                 rm -f "$temp_file"
                 rmdir "$temp_dir" 2>/dev/null
                 return 1
@@ -752,7 +746,7 @@ function takeurl() {
         *.tar.xz)
             if ! tar -xJf "$temp_file" 2>/dev/null; then
                 echo "Error: Failed to extract tar.xz archive"
-                cd - > /dev/null
+                cd - > /dev/null || return
                 rm -f "$temp_file"
                 rmdir "$temp_dir" 2>/dev/null
                 return 1
@@ -761,7 +755,7 @@ function takeurl() {
         *.tar)
             if ! tar -xf "$temp_file" 2>/dev/null; then
                 echo "Error: Failed to extract tar archive"
-                cd - > /dev/null
+                cd - > /dev/null || return
                 rm -f "$temp_file"
                 rmdir "$temp_dir" 2>/dev/null
                 return 1
@@ -770,7 +764,7 @@ function takeurl() {
         *)
             echo "Error: Unsupported archive format"
             echo "Supported formats: .tar.gz, .tgz, .tar.bz2, .tbz2, .tar.xz, .tar"
-            cd - > /dev/null
+            cd - > /dev/null || return
             rm -f "$temp_file"
             rmdir "$temp_dir" 2>/dev/null
             return 1
@@ -781,7 +775,7 @@ function takeurl() {
     extracted_dir="$(find . -maxdepth 1 -type d ! -name '.' | head -n 1)"
 
     if [ -n "$extracted_dir" ]; then
-        cd "$extracted_dir"
+        cd "$extracted_dir" || return
         echo "Extracted and entered $(basename "$extracted_dir")"
     else
         echo "Warning: No directory found in archive, staying in temp directory"
@@ -1119,7 +1113,7 @@ alias_docs() {
     echo "7) 📋 Show All Aliases"
     echo ""
     printf "Enter choice (1-7): "
-    read choice
+    read -r choice
 
     case "$choice" in
         1) alias_help ls ;;
@@ -1206,8 +1200,10 @@ profile_startup() {
         local times=()
         for i in {1..3}; do
             echo -n "Test $i/3: "
-            local time_output=$(time zsh -i -c exit 2>&1)
-            local total_time=$(echo "$time_output" | grep -o '[0-9.]*s.*total' | grep -o '^[0-9.]*')
+            local time_output
+            local total_time
+            time_output=$(time zsh -i -c exit 2>&1)
+            total_time=$(echo "$time_output" | grep -o '[0-9.]*s.*total' | grep -o '^[0-9.]*')
             times+=("$total_time")
             echo "${total_time}s"
         done

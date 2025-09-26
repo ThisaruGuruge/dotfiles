@@ -1,3 +1,5 @@
+#!/bin/zsh
+
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Set the directory we want to store zinit and plugins
@@ -5,14 +7,14 @@ ZINIT_HOME="${HOME}/.local/share/zinit/zinit.git"
 
 # Download Zinit, if it's not there yet
 if [ ! -d "$ZINIT_HOME" ]; then
-   mkdir -p "$(dirname $ZINIT_HOME)"
+   mkdir -p "$(dirname "$ZINIT_HOME")"
    git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
 fi
 
 # Initialize oh-my-posh except for Apple Terminal
 if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
   # Use faster oh-my-posh initialization
-  eval "$(oh-my-posh init zsh --config $HOME/.config/ohmyposh/zen.json --print)"
+  eval "$(oh-my-posh init zsh --config "$HOME"/.config/ohmyposh/zen.json --print)"
 fi
 
 # Source/Load zinit
@@ -108,8 +110,8 @@ bindkey '^[[B' history-search-forward
 # History
 HISTSIZE=5000
 HISTFILE=~/.zsh_history
-SAVEHIST=$HISTSIZE
-HISTDUP=erase
+export SAVEHIST=$HISTSIZE
+export HISTDUP=erase
 setopt appendhistory # Append history to the history file
 setopt sharehistory # Share history between all sessions
 setopt hist_ignore_space # Ignore leading spaces when saving history
@@ -121,10 +123,10 @@ setopt correct # Enable auto correction
 
 # Completion styling
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
-zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' list-colors "${LS_COLORS}"
 zstyle ':completion:*' menu no
-zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
-zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
+zstyle ':fzf-tab:complete:cd:*' fzf-preview "ls --color \$realpath"
+zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview "ls --color \$realpath"
 
 # Bash style jumps
 autoload -U select-word-style
@@ -142,13 +144,9 @@ if command -v fzf >/dev/null 2>&1; then
         bindkey '^R' fzf-history-widget
         bindkey '^T' fzf-file-widget
         bindkey '\ec' fzf-cd-widget
-        # Re-run the command that triggered loading
-        if [[ $# -gt 0 ]]; then
-            "$@"
-        fi
     }
     # Create lightweight placeholder functions
-    fzf() { _fzf_lazy_load; fzf "$@"; }
+    fzf() { _fzf_lazy_load "$@"; fzf "$@"; }
     # Set up key bindings that trigger lazy loading
     bindkey '^R' '_fzf_lazy_load'
     bindkey '^T' '_fzf_lazy_load'
@@ -158,18 +156,12 @@ else
     fzf() { echo "fzf not installed"; return 1; }
 fi
 
-# Lazy load zoxide - initialize only when cd is used
+# Initialize zoxide immediately (lazy loading caused issues)
 if command -v zoxide >/dev/null 2>&1; then
-    _zoxide_lazy_load() {
-        eval "$(zoxide init --cmd cd zsh)"
-        unset -f _zoxide_lazy_load cd
-        # Re-run the cd command that triggered loading
-        cd "$@"
-    }
-    cd() { _zoxide_lazy_load "$@"; }
+    eval "$(zoxide init --cmd cd zsh)"
 else
     # Keep builtin cd if zoxide not available
-    cd() { builtin cd "$@"; }
+    cd() { builtin cd "$@" || return; }
 fi
 
 # Lazy load direnv - initialize only when entering directory with .envrc
@@ -240,7 +232,7 @@ export DOCKER_DEFAULT_PLATFORM=linux/amd64
 export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
 
 # Homebrew settings
-HOMEBREW_AUTO_UPDATE_SECS=86400
+export HOMEBREW_AUTO_UPDATE_SECS=86400
 
 # Lazy load rbenv - initialize only when ruby command is used
 if command -v rbenv >/dev/null 2>&1; then
@@ -275,19 +267,10 @@ if command -v pyenv >/dev/null 2>&1; then
     pip3() { _pyenv_lazy_load pip3 "$@"; }
 fi
 
-# SDKMAN lazy loading - only load when Java commands are used
+# SDKMAN initialization (lazy loading caused issues)
 export SDKMAN_DIR="$HOME/.sdkman"
 if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
-    # Lazy load SDKMAN - initialize only when sdk command is used
-    _sdkman_lazy_load() {
-        source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
-        unset -f _sdkman_lazy_load sdk
-        # Re-run the command that triggered loading
-        if [[ $# -gt 0 ]]; then
-            sdk "$@"
-        fi
-    }
-    sdk() { _sdkman_lazy_load sdk "$@"; }
+    source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
 fi
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
@@ -296,3 +279,21 @@ export PATH="$HOME/.rd/bin:$PATH"
 
 # Source local environment if it exists
 [ -f "$HOME/.local/bin/env" ] && source "$HOME/.local/bin/env" || true
+
+# Google Cloud SDK - check multiple possible installation locations
+if [ -f "$HOME/Downloads/google-cloud-sdk/path.zsh.inc" ]; then
+    source "$HOME/Downloads/google-cloud-sdk/path.zsh.inc"
+elif [ -f "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ]; then
+    source "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
+elif [ -f "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ]; then
+    source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
+fi
+
+# Google Cloud SDK completions
+if [ -f "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc" ]; then
+    source "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc"
+elif [ -f "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc" ]; then
+    source "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
+elif [ -f "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc" ]; then
+    source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
+fi
