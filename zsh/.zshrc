@@ -14,7 +14,7 @@ fi
 # Initialize oh-my-posh except for Apple Terminal
 if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
   # Use faster oh-my-posh initialization
-  eval "$(oh-my-posh init zsh --config "$HOME"/.config/ohmyposh/zen.json --print)"
+  eval "$(oh-my-posh init zsh --config "$HOME"/.config/ohmyposh/zen.json)"
 fi
 
 # Source/Load zinit
@@ -139,7 +139,7 @@ if command -v fzf >/dev/null 2>&1; then
     _fzf_lazy_load() {
         # Load fzf more efficiently
         eval "$(fzf --zsh)"
-        unset -f _fzf_lazy_load fzf
+        unset -f _fzf_lazy_load
         # Re-bind Ctrl-R and Ctrl-T immediately after loading
         bindkey '^R' fzf-history-widget
         bindkey '^T' fzf-file-widget
