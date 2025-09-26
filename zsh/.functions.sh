@@ -581,7 +581,7 @@ kill_by_port() {
 
         if [ -n "$pids_string" ]; then
             # Convert space-separated PIDs to array for safe handling
-            read -r -a pids_array <<< "$pids_string"
+            read -r -a pids_array <<<"$pids_string"
             if kill -9 "${pids_array[@]}" 2>/dev/null; then
                 echo "Successfully killed processes: $pids_string"
             else
