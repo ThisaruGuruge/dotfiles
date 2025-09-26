@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 # Edit secrets in .env file (handles both encrypted and plaintext)
 edit_secrets() {
@@ -644,10 +644,8 @@ function takegit() {
 
     # Extract repository name from various URL formats
     if [[ $repo_url =~ .*/([^/]+)\.git/?$ ]]; then
-        # shellcheck disable=SC2154
         repo_name="${match[1]}"
     elif [[ $repo_url =~ .*/([^/]+)/?$ ]]; then
-        # shellcheck disable=SC2154
         repo_name="${match[1]}"
     else
         repo_name="$(basename "$repo_url" .git)"

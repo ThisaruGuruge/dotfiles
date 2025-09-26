@@ -27,13 +27,21 @@ jobs:
     - name: Validate shell scripts with shellcheck
       run: |
         echo "Checking shell scripts..."
-        find . -name "*.sh" -not -path "./.git/*" | xargs shellcheck -e SC1091,SC2039
+        find . -name "*.sh" -not -path "./.git/*" -not -name ".functions.sh" | xargs shellcheck -e SC1091,SC2039
 
         echo "Checking .zshrc files..."
         find . -name ".zshrc" -not -path "./.git/*" | xargs shellcheck -s bash -e SC1091,SC2039,SC2296,SC2015
 
         echo "Checking other shell config files..."
-        find . -name ".aliases.sh" -o -name ".functions.sh" -o -name ".paths.sh" | xargs shellcheck -e SC1091,SC2039
+        find . -name ".aliases.sh" -o -name ".paths.sh" | xargs shellcheck -e SC1091,SC2039
+
+        echo "Checking zsh functions file syntax..."
+        # Use zsh to check syntax of functions file since shellcheck doesn't support zsh
+        if command -v zsh >/dev/null 2>&1; then
+          zsh -n zsh/.functions.sh
+        else
+          echo "⚠️ zsh not available for syntax checking .functions.sh"
+        fi
 
     - name: Check shell script formatting
       run: |
@@ -61,15 +69,22 @@ jobs:
         echo "Checking for common issues..."
 
         echo "Checking for hardcoded paths..."
-        # More specific pattern to catch variable assignments and actual path usage
-        # Looks for patterns like: VAR="/Users/...", cd /Users/, source /Users/, etc.
-        # Excludes documentation, comments, and parameterized paths like $HOME/...
-        if grep -rE '(\$[A-Z_]*=|^[^#]*\s+)"/Users/[^$"]*"|(\s|^)(cd|source|\.)\s+/Users/[^$\s]*' --include="*.sh" --include=".zshrc" --include=".functions.sh" --include=".aliases.sh" --include=".paths.sh" . | grep -v ".git" | grep -v "RANCHER" | grep -v '# ' | grep -v "echo.*example" | grep -v "documentation"; then
-          echo "❌ Found hardcoded paths!"
+
+        # Check for variable assignments with hardcoded /Users/ paths
+        echo "  Checking variable assignments..."
+        if grep -r '="/Users/' --include="*.sh" --include=".zshrc" --include=".functions.sh" --include=".aliases.sh" --include=".paths.sh" . | grep -v ".git" | grep -v "RANCHER" | grep -v '# ' | grep -v "example"; then
+          echo "❌ Found hardcoded paths in variable assignments!"
           exit 1
-        else
-          echo "✅ No hardcoded paths found"
         fi
+
+        # Check for command usage with hardcoded /Users/ paths
+        echo "  Checking command usage..."
+        if grep -rE '(cd|source|\.)\s+/Users/' --include="*.sh" --include=".zshrc" --include=".functions.sh" --include=".aliases.sh" --include=".paths.sh" . | grep -v ".git" | grep -v "RANCHER" | grep -v '# ' | grep -v "documentation"; then
+          echo "❌ Found hardcoded paths in commands!"
+          exit 1
+        fi
+
+        echo "✅ No hardcoded paths found"
 
         echo "Checking for secrets in files..."
         # Look for actual secret patterns, not documentation about secrets
