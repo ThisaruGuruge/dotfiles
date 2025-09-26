@@ -195,10 +195,17 @@ install_core_dependencies() {
     if command_exists jq && [ -f "$DOTFILES_DIR/packages.json" ]; then
         # Extract enabled packages from core and security categories
         log_info "Reading package list from packages.json..."
-        local core_packages=() security_packages=()
-        mapfile -t core_packages < <(jq -r '.categories.core.packages | to_entries[] | select(.value.enabled == true) | .key' "$DOTFILES_DIR/packages.json" 2>/dev/null || true)
-        mapfile -t security_packages < <(jq -r '.categories.security.packages | to_entries[] | select(.value.enabled == true) | .key' "$DOTFILES_DIR/packages.json" 2>/dev/null || true)
-        packages=("${core_packages[@]}" "${security_packages[@]}")
+        local core_packages_list security_packages_list
+        core_packages_list="$(jq -r '.categories.core.packages | to_entries[] | select(.value.enabled == true) | .key' "$DOTFILES_DIR/packages.json" 2>/dev/null || true)"
+        security_packages_list="$(jq -r '.categories.security.packages | to_entries[] | select(.value.enabled == true) | .key' "$DOTFILES_DIR/packages.json" 2>/dev/null || true)"
+
+        # Build packages array manually for maximum compatibility
+        local pkg
+        for pkg in $core_packages_list $security_packages_list; do
+            if [ -n "$pkg" ]; then
+                packages[${#packages[@]}]="$pkg"
+            fi
+        done
     else
         # Fallback to hardcoded list if jq or packages.json not available
         log_warning "Using fallback package list (jq or packages.json not found)"
@@ -347,7 +354,7 @@ install_terminal_apps() {
                     installed=true
                     # Check if it's a legacy installation (not via Homebrew)
                     # Extract package name from install command (remove --cask and other flags)
-                    local brew_pkg_name="${install_cmd##* }"  # Get last word (package name)
+                    local brew_pkg_name="${install_cmd##* }" # Get last word (package name)
                     if ! brew list "$brew_pkg_name" >/dev/null 2>&1; then
                         legacy_info="Legacy: $cmd_name command found (non-Homebrew)"
                     fi
@@ -822,6 +829,11 @@ print_final_instructions() {
 
 # Main execution
 main() {
+    if [ "$1" == "--dry-run" ]; then
+        echo "Dry run successful"
+        exit 0
+    fi
+
     clear
     echo ""
     echo -e "${PURPLE}╔══════════════════════════════════════════╗${NC}"

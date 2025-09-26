@@ -276,16 +276,7 @@ edit_dotfiles() {
                 echo "Enter commit message:"
                 read -r -p "> " commit_msg
                 if [ -n "$commit_msg" ]; then
-                    # Check if AI attribution should be added (can be disabled with DOTFILES_NO_AI_ATTRIBUTION=1)
-                    if [ "${DOTFILES_NO_AI_ATTRIBUTION}" = "1" ]; then
-                        git -C "$dotfiles_dir" commit -m "$commit_msg"
-                    else
-                        git -C "$dotfiles_dir" commit -m "$commit_msg
-
-🤖 Generated with edit_dotfiles command
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
-                    fi
+                    git -C "$dotfiles_dir" commit -m "$commit_msg"
                     echo "✅ Changes committed to git"
                 else
                     echo "❌ Empty commit message - changes staged but not committed"
@@ -581,8 +572,8 @@ kill_by_port() {
 
         if [ -n "$pids_string" ]; then
             # Convert space-separated PIDs to array for safe handling
-            read -r -a pids_array <<<"$pids_string"
-            if kill -9 "${pids_array[@]}" 2>/dev/null; then
+            # shellcheck disable=SC2086
+            if kill -9 $pids_string 2>/dev/null; then
                 echo "Successfully killed processes: $pids_string"
             else
                 echo "Error: Failed to kill some processes"
@@ -653,9 +644,11 @@ function takegit() {
 
     # Extract repository name from various URL formats
     if [[ $repo_url =~ .*/([^/]+)\.git/?$ ]]; then
-        repo_name="${BASH_REMATCH[1]}"
+        # shellcheck disable=SC2154
+        repo_name="${match[1]}"
     elif [[ $repo_url =~ .*/([^/]+)/?$ ]]; then
-        repo_name="${BASH_REMATCH[1]}"
+        # shellcheck disable=SC2154
+        repo_name="${match[1]}"
     else
         repo_name="$(basename "$repo_url" .git)"
     fi
