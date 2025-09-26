@@ -621,7 +621,7 @@ function takedir() {
         return 1
     fi
 
-    local target_dir="${*: -1}"  # Last argument is the final directory
+    local target_dir="${*: -1}"  # Last argument - directory to cd into after creation
 
     echo "Creating directory: $*"
     if mkdir -p "$@"; then
