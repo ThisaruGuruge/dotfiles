@@ -320,7 +320,7 @@
       "enabled": true,
       "description": "Java, Gradle, Maven, Kotlin version manager",
       "prompt_message": "Install SDKMAN? (Java, Gradle, Maven, Kotlin version manager)",
-      "install_command": "curl -s \"https://get.sdkman.io\" | bash",
+      "install_command": "curl -fsSL \"https://get.sdkman.io\" -o /tmp/sdkman-install.sh && bash /tmp/sdkman-install.sh && rm /tmp/sdkman-install.sh",
       "post_install": [
         "source \"$HOME/.sdkman/bin/sdkman-init.sh\"",
         "sdk install java 21.0.5-tem"

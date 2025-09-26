@@ -193,15 +193,14 @@ install_core_dependencies() {
     # Read packages from packages.json if available, fallback to hardcoded list
     local packages=()
     if command_exists jq && [ -f "$DOTFILES_DIR/packages.json" ]; then
-        # Extract enabled packages from core and security categories
+        # Extract enabled packages from core and security categories in single jq call
         log_info "Reading package list from packages.json..."
-        local core_packages_list security_packages_list
-        core_packages_list="$(jq -r '.categories.core.packages | to_entries[] | select(.value.enabled == true) | .key' "$DOTFILES_DIR/packages.json" 2>/dev/null || true)"
-        security_packages_list="$(jq -r '.categories.security.packages | to_entries[] | select(.value.enabled == true) | .key' "$DOTFILES_DIR/packages.json" 2>/dev/null || true)"
+        local enabled_packages_list
+        enabled_packages_list="$(jq -r '.categories.core.packages, .categories.security.packages | to_entries[] | select(.value.enabled == true) | .key' "$DOTFILES_DIR/packages.json" 2>/dev/null || true)"
 
         # Build packages array manually for maximum compatibility
         local pkg
-        for pkg in $core_packages_list $security_packages_list; do
+        for pkg in $enabled_packages_list; do
             if [ -n "$pkg" ]; then
                 packages[${#packages[@]}]="$pkg"
             fi
