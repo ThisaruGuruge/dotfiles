@@ -1,15 +1,58 @@
-# HOME variables
-export MAVEN_HOME=/usr/local/apache-maven-3.5.3
-export TOMCAT_HOME=/usr/local/apache-tomcat-9.0.8
-export MYSQL_HOME=/usr/local/opt/mysql@5.7
-export ANT_HOME=/usr/local/apache-ant-1.10.3
-export DOCKER_DEFAULT_PLATFORM=linux/amd64
-export JMETER=/Users/thisaru/Downloads/apache-jmeter-5.6.3
+#!/bin/bash
 
-# Set Path
-export PATH=$JAVA_HOME/bin:$PATH
-export PATH=$MAVEN_HOME/bin:$PATH
-export PATH=$ANT_HOME/bin:$PATH
-export PATH=$TOMCAT_HOME/bin:$PATH
-export PATH=$MYSQL_HOME/bin:$PATH
-export PATH=$JMETER/bin:$PATH
+# Docker platform (keep for compatibility)
+export DOCKER_DEFAULT_PLATFORM=linux/amd64
+
+# Add JAVA_HOME to PATH if set (managed by SDKMAN)
+[ -n "$JAVA_HOME" ] && export PATH=$JAVA_HOME/bin:$PATH
+
+# Legacy tool paths - only add to PATH if directories exist
+# Note: Consider using SDKMAN for Java ecosystem tools instead
+if [ -d "/usr/local/apache-maven-3.5.3" ]; then
+    export MAVEN_HOME=/usr/local/apache-maven-3.5.3
+    export PATH=$MAVEN_HOME/bin:$PATH
+fi
+
+if [ -d "/usr/local/apache-tomcat-9.0.8" ]; then
+    export TOMCAT_HOME=/usr/local/apache-tomcat-9.0.8
+    export PATH=$TOMCAT_HOME/bin:$PATH
+fi
+
+if [ -d "/usr/local/opt/mysql@5.7" ]; then
+    export MYSQL_HOME=/usr/local/opt/mysql@5.7
+    export PATH=$MYSQL_HOME/bin:$PATH
+fi
+
+if [ -d "/usr/local/apache-ant-1.10.3" ]; then
+    export ANT_HOME=/usr/local/apache-ant-1.10.3
+    export PATH=$ANT_HOME/bin:$PATH
+fi
+
+# JMeter - check common installation locations
+# Use find to avoid glob expansion errors
+if jmeter_path=$(find "$HOME/Downloads" "$HOME/tools" "/opt" "/usr/local" -maxdepth 1 -name "apache-jmeter-*" -type d 2>/dev/null | head -n 1); then
+    if [ -n "$jmeter_path" ]; then
+        export JMETER="$jmeter_path"
+        export PATH="$JMETER/bin:$PATH"
+    fi
+fi
+
+# PATH deduplication function to remove duplicate entries
+path_dedupe() {
+    if [ -n "$PATH" ]; then
+        local old_path="$PATH:"
+        local new_path=""
+        while [ -n "$old_path" ]; do
+            local x="${old_path%%:*}"
+            case ":$new_path:" in
+                *:"$x":*) ;;
+                *) new_path="$new_path:$x" ;;
+            esac
+            old_path="${old_path#*:}"
+        done
+        PATH="${new_path#:}"
+    fi
+}
+
+# Apply deduplication
+path_dedupe

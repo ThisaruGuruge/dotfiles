@@ -1,3 +1,5 @@
+#!/bin/zsh
+
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Set the directory we want to store zinit and plugins
@@ -5,26 +7,40 @@ ZINIT_HOME="${HOME}/.local/share/zinit/zinit.git"
 
 # Download Zinit, if it's not there yet
 if [ ! -d "$ZINIT_HOME" ]; then
-   mkdir -p "$(dirname $ZINIT_HOME)"
+   mkdir -p "$(dirname "$ZINIT_HOME")"
    git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
 fi
 
 # Initialize oh-my-posh except for Apple Terminal
 if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
-  eval "$(oh-my-posh init zsh --config $HOME/.config/ohmyposh/zen.json)"
+  # Use faster oh-my-posh initialization
+  eval "$(oh-my-posh init zsh --config "$HOME"/.config/ohmyposh/zen.json)"
 fi
 
 # Source/Load zinit
 source "${ZINIT_HOME}/zinit.zsh"
 
-# ZSH Plugins
-zinit light zsh-users/zsh-syntax-highlighting
+# ZSH Plugins - Essential plugins load immediately, others use turbo mode
+
+# Load completions immediately (needed for tab completion)
 zinit light zsh-users/zsh-completions
-zinit light zsh-users/zsh-autosuggestions
+
+# Load fzf-tab immediately (needed for enhanced tab completion)
 zinit light Aloxaf/fzf-tab
 
-# Add in snippets
+# Load syntax highlighting with turbo mode (visual, can be delayed)
+zinit ice wait"1" lucid
+zinit light zsh-users/zsh-syntax-highlighting
+
+# Load autosuggestions with turbo mode (helpful but not critical)
+zinit ice wait"1" lucid
+zinit light zsh-users/zsh-autosuggestions
+
+# Add in snippets with turbo mode (utility functions, can be delayed)
+zinit ice wait"2" lucid
 zinit snippet OMZP::gradle
+
+zinit ice wait"2" lucid
 zinit snippet OMZP::sudo
 # Homebrew command-not-found integration (updated)
 if ! command -v brew >/dev/null; then return; fi
@@ -94,8 +110,8 @@ bindkey '^[[B' history-search-forward
 # History
 HISTSIZE=5000
 HISTFILE=~/.zsh_history
-SAVEHIST=$HISTSIZE
-HISTDUP=erase
+export SAVEHIST=$HISTSIZE
+export HISTDUP=erase
 setopt appendhistory # Append history to the history file
 setopt sharehistory # Share history between all sessions
 setopt hist_ignore_space # Ignore leading spaces when saving history
@@ -109,37 +125,105 @@ setopt correct # Enable auto correction
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*' menu no
-zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
-zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
+zstyle ':fzf-tab:complete:cd:*' fzf-preview "ls --color \$realpath"
+zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview "ls --color \$realpath"
 
 # Bash style jumps
 autoload -U select-word-style
 select-word-style bash
 
-# Shell integrations
-eval "$(fzf --zsh)"
-eval "$(zoxide init --cmd cd zsh)"
+# Shell integrations with lazy loading for performance
 
-# direnv integration (load project-specific environments)
-if command -v direnv >/dev/null 2>&1; then
-    eval "$(direnv hook zsh)"
+# Lazy load fzf - initialize only when first used
+if command -v fzf >/dev/null 2>&1; then
+    _fzf_lazy_load() {
+        # Load fzf more efficiently
+        eval "$(fzf --zsh)"
+        unset -f _fzf_lazy_load
+        # Re-bind Ctrl-R and Ctrl-T immediately after loading
+        bindkey '^R' fzf-history-widget
+        bindkey '^T' fzf-file-widget
+        bindkey '\ec' fzf-cd-widget
+    }
+    # Create lightweight placeholder functions
+    fzf() { _fzf_lazy_load "$@"; fzf "$@"; }
+    # Set up key bindings that trigger lazy loading
+    bindkey '^R' '_fzf_lazy_load'
+    bindkey '^T' '_fzf_lazy_load'
+    bindkey '\ec' '_fzf_lazy_load'
+else
+    # Provide fallback if fzf not available
+    fzf() { echo "fzf not installed"; return 1; }
 fi
 
-# atuin integration (enhanced shell history with sync and search)
-# Note: Disabled Ctrl+R override to avoid conflicts with Warp's native history
-if command -v atuin >/dev/null 2>&1; then
-    eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
+# Initialize zoxide immediately (lazy loading caused issues)
+if command -v zoxide >/dev/null 2>&1; then
+    eval "$(zoxide init --cmd cd zsh)"
+else
+    # Keep builtin cd if zoxide not available
+    cd() { builtin cd "$@" || return; }
+fi
 
-    # Bind Ctrl+Alt+R to Atuin search (avoid Warp conflicts)
-    bindkey '^[^R' _atuin_search_widget
+# Lazy load direnv - initialize only when entering directory with .envrc
+if command -v direnv >/dev/null 2>&1; then
+    _direnv_lazy_load() {
+        eval "$(direnv hook zsh)"
+        unset -f _direnv_lazy_load
+        # Re-trigger the hook
+        _direnv_hook
+    }
+    # Set up a minimal hook that loads direnv when needed
+    chpwd_functions+=(_direnv_check)
+    _direnv_check() {
+        if [[ -f .envrc ]]; then
+            _direnv_lazy_load
+        fi
+    }
+fi
+
+# Lazy load atuin - initialize only when history search is used
+if command -v atuin >/dev/null 2>&1; then
+    _atuin_lazy_load() {
+        eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
+        unset -f _atuin_lazy_load
+        # Bind Ctrl+Alt+R to Atuin search (avoid Warp conflicts)
+        bindkey '^[^R' _atuin_search_widget
+        # Re-run atuin command if called directly
+        if [[ $# -gt 0 ]]; then
+            atuin "$@"
+        fi
+    }
+    atuin() { _atuin_lazy_load atuin "$@"; }
+    # Set up lazy loading for the keybinding
+    bindkey '^[^R' '_atuin_lazy_load'
 fi
 
 # source the personal configs
 source "$HOME/.aliases.sh"
 source "$HOME/.functions.sh"
 source "$HOME/.paths.sh"
-# source "$HOME/.variables.sh"  # File doesn't exist
-source "$HOME/.env"
+# Configure SOPS age key location
+export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+
+# Load environment variables (supports both encrypted and plaintext .env)
+if [ -f "$HOME/.env" ]; then
+    # Check if file is encrypted (starts with #ENC)
+    if head -1 "$HOME/.env" | grep -q "^#ENC\["; then
+        # Encrypted - decrypt and source
+        if command -v sops >/dev/null 2>&1; then
+            if sops_output=$(sops -d "$HOME/.env" 2>/dev/null); then
+                eval "$sops_output"
+            else
+                echo "Warning: Failed to decrypt $HOME/.env - check your SOPS/age configuration" >&2
+            fi
+        else
+            echo "Warning: SOPS not available - cannot decrypt $HOME/.env" >&2
+        fi
+    else
+        # Plaintext - source directly
+        source "$HOME/.env"
+    fi
+fi
 
 # Docker settings
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
@@ -148,22 +232,68 @@ export DOCKER_DEFAULT_PLATFORM=linux/amd64
 export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
 
 # Homebrew settings
-HOMEBREW_AUTO_UPDATE_SECS=86400
-eval "$(rbenv init - zsh)"
-export PATH="/usr/local/opt/ruby/bin:/usr/local/lib/ruby/gems/3.0.0/bin:$PATH"
+export HOMEBREW_AUTO_UPDATE_SECS=86400
 
-#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
-export SDKMAN_DIR="$HOME/.sdkman"
-if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
-    # Load SDKMAN quietly to avoid function errors during startup
-    source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
+# Lazy load rbenv - initialize only when ruby command is used
+if command -v rbenv >/dev/null 2>&1; then
+    _rbenv_lazy_load() {
+        eval "$(rbenv init - zsh)"
+        unset -f _rbenv_lazy_load ruby gem bundle
+        # Re-run the command that triggered loading
+        if [[ $# -gt 0 ]]; then
+            "$@"
+        fi
+    }
+    ruby() { _rbenv_lazy_load ruby "$@"; }
+    gem() { _rbenv_lazy_load gem "$@"; }
+    bundle() { _rbenv_lazy_load bundle "$@"; }
 fi
+
+# Lazy load pyenv - initialize only when python command is used
 export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
+if command -v pyenv >/dev/null 2>&1; then
+    _pyenv_lazy_load() {
+        eval "$(pyenv init -)"
+        unset -f _pyenv_lazy_load python python3 pip pip3
+        # Re-run the command that triggered loading
+        if [[ $# -gt 0 ]]; then
+            "$@"
+        fi
+    }
+    python() { _pyenv_lazy_load python "$@"; }
+    python3() { _pyenv_lazy_load python3 "$@"; }
+    pip() { _pyenv_lazy_load pip "$@"; }
+    pip3() { _pyenv_lazy_load pip3 "$@"; }
+fi
+
+# SDKMAN initialization (lazy loading caused issues)
+export SDKMAN_DIR="$HOME/.sdkman"
+if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
+    source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
+fi
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-export PATH="/Users/thisaru/.rd/bin:$PATH"
+export PATH="${HOME}/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
-source "$HOME/.local/bin/env"
+# Source local environment if it exists
+[ -f "$HOME/.local/bin/env" ] && source "$HOME/.local/bin/env" || true
+
+# Google Cloud SDK - check multiple possible installation locations
+if [ -f "$HOME/Downloads/google-cloud-sdk/path.zsh.inc" ]; then
+    source "$HOME/Downloads/google-cloud-sdk/path.zsh.inc"
+elif [ -f "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ]; then
+    source "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
+elif [ -f "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ]; then
+    source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
+fi
+
+# Google Cloud SDK completions
+if [ -f "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc" ]; then
+    source "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc"
+elif [ -f "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc" ]; then
+    source "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
+elif [ -f "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc" ]; then
+    source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
+fi

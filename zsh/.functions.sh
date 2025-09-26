@@ -1,22 +1,480 @@
-compress () {
-    tar -czvf "$1.tar.gz" $1
+#!/bin/zsh
+
+# Edit secrets in .env file (handles both encrypted and plaintext)
+edit_secrets() {
+    local env_file="$HOME/.env"
+    local temp_file
+    temp_file="$(mktemp -t temp_env).env"
+
+    # Set SOPS environment variable
+    export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+
+    # Check if SOPS is available
+    if ! command -v sops >/dev/null 2>&1; then
+        echo "❌ SOPS is not installed. Install it with: brew install sops"
+        return 1
+    fi
+
+    # Check if age key exists
+    if [ ! -f "$HOME/.config/sops/age/keys.txt" ]; then
+        echo "❌ Age encryption key not found. Run ./init.sh to set up secret management first."
+        return 1
+    fi
+
+    # Handle existing .env file
+    if [ -f "$env_file" ]; then
+        # Check if encrypted
+        if head -1 "$env_file" | grep -q "^#ENC\\["; then
+            echo "🔓 Decrypting .env file for editing..."
+            if sops -d "$env_file" >"$temp_file"; then
+                echo "✅ File decrypted successfully"
+            else
+                echo "❌ Failed to decrypt .env file"
+                rm "$temp_file"
+                return 1
+            fi
+        else
+            echo "📄 Loading plaintext .env file for editing..."
+            cp "$env_file" "$temp_file"
+        fi
+    else
+        # Create new template
+        echo "📝 Creating new .env file template..."
+        cat >"$temp_file" <<'EOF'
+# Environment Variables
+# Format: export KEY="value"
+# This file will be encrypted after editing
+
+export GITHUB_TOKEN="your_github_token_here"
+export DATABASE_URL="your_database_url_here"
+export API_KEY="your_api_key_here"
+export AWS_ACCESS_KEY_ID="your_aws_access_key"
+export AWS_SECRET_ACCESS_KEY="your_aws_secret_key"
+
+EOF
+    fi
+
+    # Create backup of original
+    [ -f "$env_file" ] && cp "$env_file" "$env_file.backup.$(date +%Y%m%d_%H%M%S)"
+
+    # Get file hash before editing
+    local before_hash
+    before_hash=$(shasum -a 256 "$temp_file" | cut -d' ' -f1)
+
+    # Open in editor
+    echo "🖊️  Opening editor..."
+    ${EDITOR:-vim} "$temp_file"
+
+    # Get file hash after editing
+    local after_hash
+    after_hash=$(shasum -a 256 "$temp_file" | cut -d' ' -f1)
+
+    # Check if file was modified
+    if [ "$before_hash" = "$after_hash" ]; then
+        echo "📝 No changes made, skipping encryption"
+        rm "$temp_file"
+        return 0
+    fi
+
+    # Encrypt and save to .env
+    echo "🔒 Encrypting and saving to .env..."
+    if sops --config "$HOME/.sops.yaml" --encrypt --in-place "$temp_file"; then
+        mv "$temp_file" "$env_file"
+        # Verify encryption worked
+        if head -1 "$env_file" | grep -q "^#ENC\\["; then
+            echo "✅ Secrets encrypted and saved to $env_file"
+            echo "💡 Restart your terminal or run 'source ~/.zshrc' to load updated secrets"
+        else
+            echo "❌ Encryption failed - file may be corrupted"
+            return 1
+        fi
+    else
+        echo "❌ Failed to encrypt .env file"
+        rm "$temp_file"
+        return 1
+    fi
+
+    echo "🎉 Edit complete! Your encrypted secrets are saved in $env_file"
 }
 
-extract () {
-    if [ -f $1 ] ; then
+# Edit dotfiles configuration with easy access to all config files
+edit_dotfiles() {
+    # Try to detect dotfiles directory - prefer dotfiles over .dotfiles
+    local dotfiles_dir=""
+    if [ -d "${HOME}/dotfiles" ]; then
+        dotfiles_dir="${HOME}/dotfiles"
+    elif [ -d "${HOME}/.dotfiles" ]; then
+        dotfiles_dir="${HOME}/.dotfiles"
+    fi
+
+    if [ -z "$dotfiles_dir" ]; then
+        echo "❌ Dotfiles directory not found"
+        echo "   Clone the repository first:"
+        echo "   • git clone <repo-url> ~/dotfiles"
+        echo "   • OR: git clone <repo-url> ~/.dotfiles"
+        return 1
+    fi
+
+    echo "📝 Using dotfiles directory: $dotfiles_dir"
+
+    echo "📝 Dotfiles Configuration Editor"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "Select what to edit:"
+    echo ""
+    echo "  1) Shell Configuration (.zshrc)"
+    echo "  2) Aliases (.aliases.sh)"
+    echo "  3) Functions (.functions.sh)"
+    echo "  4) Paths (.paths.sh)"
+    echo "  5) Git Config (.gitconfig)"
+    echo "  6) Vim Config (.vimrc)"
+    echo "  7) Oh My Posh Theme (zen.json)"
+    echo "  8) Environment Template (.env.example)"
+    echo "  9) Brewfile (package list)"
+    echo " 10) Init Script (init.sh)"
+    echo " 11) Browse all files"
+    echo ""
+    echo "  0) Exit"
+    echo ""
+
+    local choice
+    read -r -p "Choose file to edit (0-11): " choice
+
+    local file_to_edit=""
+    local description=""
+
+    case "$choice" in
+        1)
+            file_to_edit="$dotfiles_dir/zsh/.zshrc"
+            description="Shell Configuration"
+            ;;
+        2)
+            file_to_edit="$dotfiles_dir/zsh/.aliases.sh"
+            description="Command Aliases"
+            ;;
+        3)
+            file_to_edit="$dotfiles_dir/zsh/.functions.sh"
+            description="Custom Functions"
+            ;;
+        4)
+            file_to_edit="$dotfiles_dir/zsh/.paths.sh"
+            description="PATH Configuration"
+            ;;
+        5)
+            file_to_edit="$dotfiles_dir/git/.gitconfig"
+            description="Git Configuration"
+            ;;
+        6)
+            file_to_edit="$dotfiles_dir/vim/.vimrc"
+            description="Vim Configuration"
+            ;;
+        7)
+            file_to_edit="$dotfiles_dir/config/ohmyposh/zen.json"
+            description="Oh My Posh Theme"
+            ;;
+        8)
+            file_to_edit="$dotfiles_dir/zsh/.env.example"
+            description="Environment Template"
+            ;;
+        9)
+            file_to_edit="$dotfiles_dir/Brewfile"
+            description="Homebrew Package List"
+            ;;
+        10)
+            file_to_edit="$dotfiles_dir/init.sh"
+            description="Installation Script"
+            ;;
+        11)
+            echo ""
+            echo "📁 Available dotfiles:"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            find "$dotfiles_dir" -type f \( -name ".*" -o -name "*.sh" -o -name "*.json" -o -name "Brewfile" -o -name "README.md" \) ! -path "*/.git/*" | sed "s|$dotfiles_dir/||" | sort
+            echo ""
+            read -r -p "Enter file path to edit (relative to $dotfiles_dir): " relative_path
+            if [ -n "$relative_path" ]; then
+                file_to_edit="$dotfiles_dir/$relative_path"
+                description="Custom File: $relative_path"
+            else
+                echo "❌ No file specified"
+                return 1
+            fi
+            ;;
+        0)
+            echo "👋 Goodbye!"
+            return 0
+            ;;
+        *)
+            echo "❌ Invalid choice: $choice"
+            return 1
+            ;;
+    esac
+
+    # Verify file exists
+    if [ ! -f "$file_to_edit" ]; then
+        echo "❌ File not found: $file_to_edit"
+        return 1
+    fi
+
+    # Create backup
+    local backup_file
+    backup_file="$file_to_edit.backup.$(date +%Y%m%d_%H%M%S)"
+    cp "$file_to_edit" "$backup_file"
+    echo "💾 Created backup: ${backup_file##*/}"
+
+    # Edit the file
+    echo "🖊️  Opening $description for editing..."
+    ${EDITOR:-vim} "$file_to_edit"
+
+    # Check if file was modified
+    if ! cmp -s "$file_to_edit" "$backup_file"; then
+        echo "✅ File modified successfully"
+
+        # Test syntax for shell files
+        case "$file_to_edit" in
+            *.sh | */.zshrc)
+                echo "🔍 Testing syntax..."
+                if bash -n "$file_to_edit" 2>/dev/null; then
+                    echo "✅ Syntax check passed"
+                else
+                    echo "⚠️  Syntax check failed - please review your changes"
+                fi
+                ;;
+            *.json)
+                echo "🔍 Testing JSON syntax..."
+                if command -v jq >/dev/null 2>&1 && jq empty "$file_to_edit" 2>/dev/null; then
+                    echo "✅ JSON syntax check passed"
+                elif python3 -m json.tool "$file_to_edit" >/dev/null 2>&1; then
+                    echo "✅ JSON syntax check passed"
+                else
+                    echo "⚠️  JSON syntax check failed - please review your changes"
+                fi
+                ;;
+        esac
+
+        echo ""
+        echo "💡 Next steps:"
+        case "$file_to_edit" in
+            */.zshrc | */.aliases.sh | */.functions.sh | */.paths.sh)
+                echo "   • Restart terminal or run: source ~/.zshrc"
+                ;;
+            */zen.json)
+                echo "   • Restart terminal to see prompt changes"
+                ;;
+            */Brewfile)
+                echo "   • Run: brew bundle --file=$dotfiles_dir/Brewfile"
+                ;;
+            */init.sh)
+                echo "   • Test with: bash -n $dotfiles_dir/init.sh"
+                ;;
+        esac
+
+        # Option to commit changes
+        if git -C "$dotfiles_dir" rev-parse --git-dir >/dev/null 2>&1; then
+            echo ""
+            if confirm "Commit changes to git?"; then
+                git -C "$dotfiles_dir" add "$file_to_edit"
+                echo "Enter commit message:"
+                read -r -p "> " commit_msg
+                if [ -n "$commit_msg" ]; then
+                    git -C "$dotfiles_dir" commit -m "$commit_msg"
+                    echo "✅ Changes committed to git"
+                else
+                    echo "❌ Empty commit message - changes staged but not committed"
+                fi
+            fi
+        fi
+    else
+        echo "📝 No changes made"
+        rm "$backup_file" # Remove unnecessary backup
+    fi
+
+    echo "🎉 Edit complete!"
+}
+
+# Update dotfiles repository and apply changes
+update_dotfiles() {
+    # Try to detect dotfiles directory - prefer dotfiles over .dotfiles
+    local dotfiles_dir=""
+    if [ -d "${HOME}/dotfiles" ]; then
+        dotfiles_dir="${HOME}/dotfiles"
+    elif [ -d "${HOME}/.dotfiles" ]; then
+        dotfiles_dir="${HOME}/.dotfiles"
+    fi
+
+    if [ -z "$dotfiles_dir" ]; then
+        echo "❌ Dotfiles directory not found"
+        echo "   Clone the repository first:"
+        echo "   • git clone <repo-url> ~/dotfiles"
+        echo "   • OR: git clone <repo-url> ~/.dotfiles"
+        return 1
+    fi
+
+    echo "🔄 Using dotfiles directory: $dotfiles_dir"
+
+    if ! git -C "$dotfiles_dir" rev-parse --git-dir >/dev/null 2>&1; then
+        echo "❌ Dotfiles directory is not a git repository"
+        return 1
+    fi
+
+    echo "🔄 Updating Dotfiles Repository"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+
+    # Show current status
+    echo "📍 Current status:"
+    local current_branch
+    local current_commit
+    current_branch=$(git -C "$dotfiles_dir" branch --show-current 2>/dev/null || echo "unknown")
+    current_commit=$(git -C "$dotfiles_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    echo "   Branch: $current_branch"
+    echo "   Commit: $current_commit"
+    echo ""
+
+    # Check for uncommitted changes
+    if ! git -C "$dotfiles_dir" diff-index --quiet HEAD --; then
+        echo "⚠️  You have uncommitted changes:"
+        git -C "$dotfiles_dir" status --porcelain
+        echo ""
+
+        if confirm "Stash uncommitted changes before updating?"; then
+            git -C "$dotfiles_dir" stash push -m "Auto-stash before dotfiles update $(date)"
+            echo "✅ Changes stashed"
+        else
+            echo "❌ Update cancelled - commit or stash your changes first"
+            return 1
+        fi
+    fi
+
+    # Fetch latest changes
+    echo "🌐 Fetching latest changes..."
+    if git -C "$dotfiles_dir" fetch origin; then
+        echo "✅ Fetch completed"
+    else
+        echo "❌ Failed to fetch from remote"
+        return 1
+    fi
+
+    # Check if updates are available
+    local commits_behind
+    commits_behind=$(git -C "$dotfiles_dir" rev-list HEAD..origin/"$current_branch" --count 2>/dev/null || echo "0")
+
+    if [ "$commits_behind" = "0" ]; then
+        echo "✅ Already up to date!"
+        return 0
+    fi
+
+    # Show what will be updated
+    echo ""
+    echo "📋 Updates available ($commits_behind commits behind):"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    git -C "$dotfiles_dir" log HEAD..origin/"$current_branch" --oneline --decorate
+
+    echo ""
+    if ! confirm "Apply these updates?"; then
+        echo "❌ Update cancelled"
+        return 0
+    fi
+
+    # Create backup of current state
+    local backup_branch
+    backup_branch="backup-$(date +%Y%m%d_%H%M%S)"
+    git -C "$dotfiles_dir" branch "$backup_branch"
+    echo "💾 Created backup branch: $backup_branch"
+
+    # Pull updates
+    echo ""
+    echo "⬇️  Pulling updates..."
+    if git -C "$dotfiles_dir" pull origin "$current_branch"; then
+        echo "✅ Updates applied successfully"
+    else
+        echo "❌ Update failed - you may need to resolve conflicts"
+        echo "💡 Your backup is available at branch: $backup_branch"
+        return 1
+    fi
+
+    # Show what changed
+    echo ""
+    echo "📝 Changes applied:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    git -C "$dotfiles_dir" log "$current_commit"..HEAD --oneline --decorate
+
+    # Check if critical files changed
+    local changed_files
+    changed_files=$(git -C "$dotfiles_dir" diff --name-only "$current_commit"..HEAD)
+    echo ""
+    echo "🔍 Analyzing changes..."
+
+    # Provide next steps
+    echo ""
+    echo "💡 Next steps:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    if echo "$changed_files" | grep -q -E "\.(zshrc|aliases\.sh|functions\.sh|paths\.sh)$"; then
+        echo "   🔄 Shell configuration updated"
+        if confirm "Reload shell configuration now?"; then
+            echo "🔄 Reloading shell configuration..."
+            source "$HOME/.zshrc"
+            echo "✅ Shell configuration reloaded"
+        else
+            echo "   💡 Run: source ~/.zshrc (or restart terminal)"
+        fi
+    fi
+
+    if echo "$changed_files" | grep -q "Brewfile"; then
+        echo "   📦 Package list updated"
+        if confirm "Update installed packages with brew bundle?"; then
+            echo "📦 Updating packages..."
+            brew bundle --file="$dotfiles_dir/Brewfile"
+            echo "✅ Packages updated"
+        else
+            echo "   💡 Run: brew bundle --file=$dotfiles_dir/Brewfile"
+        fi
+    fi
+
+    if echo "$changed_files" | grep -q "config/ohmyposh"; then
+        echo "   🎨 Prompt theme updated"
+        echo "   💡 Restart terminal to see prompt changes"
+    fi
+
+    if echo "$changed_files" | grep -q "init.sh"; then
+        echo "   🛠️ Installation script updated"
+        echo "   💡 Re-run ./init.sh if you need new features"
+    fi
+
+    # Cleanup old backup branches (keep last 5)
+    echo ""
+    echo "🧹 Cleaning up old backups..."
+    git -C "$dotfiles_dir" for-each-ref --format='%(refname:short)' refs/heads/backup-* | sort -r | tail -n +6 | while read -r branch; do
+        git -C "$dotfiles_dir" branch -D "$branch"
+        echo "   🗑️ Removed old backup: $branch"
+    done
+
+    echo ""
+    echo "🎉 Dotfiles update complete!"
+    echo "   📂 Repository: $dotfiles_dir"
+    echo "   🏷️  Current: $(git -C "$dotfiles_dir" rev-parse --short HEAD)"
+    echo "   💾 Backup: $backup_branch"
+}
+
+compress() {
+    tar -czvf "$1.tar.gz" "$1"
+}
+
+extract() {
+    if [ -f "$1" ]; then
         case $1 in
-            *.tar.bz2)   tar xjf $1     ;;
-            *.tar.gz)    tar xzf $1     ;;
-            *.bz2)       bunzip2 $1     ;;
-            *.rar)       unrar e $1     ;;
-            *.gz)        gunzip $1      ;;
-            *.tar)       tar xf $1      ;;
-            *.tbz2)      tar xjf $1     ;;
-            *.tgz)       tar xzf $1     ;;
-            *.zip)       unzip $1       ;;
-            *.Z)         uncompress $1  ;;
-            *.7z)        7z x $1        ;;
-            *)     echo "'$1' cannot be extracted via extract()" ;;
+            *.tar.bz2) tar xjf "$1" ;;
+            *.tar.gz) tar xzf "$1" ;;
+            *.bz2) bunzip2 "$1" ;;
+            *.rar) unrar e "$1" ;;
+            *.gz) gunzip "$1" ;;
+            *.tar) tar xf "$1" ;;
+            *.tbz2) tar xjf "$1" ;;
+            *.tgz) tar xzf "$1" ;;
+            *.zip) unzip "$1" ;;
+            *.Z) uncompress "$1" ;;
+            *.7z) 7z x "$1" ;;
+            *) echo "'$1' cannot be extracted via extract()" ;;
         esac
     else
         echo "'$1' is not a valid file"
@@ -24,7 +482,7 @@ extract () {
 }
 
 checkPort() {
-    lsof -i:$1
+    lsof -i:"$1"
 }
 
 kill_by_port() {
@@ -34,11 +492,11 @@ kill_by_port() {
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
-            -d|--dry-run)
+            -d | --dry-run)
                 dry_run=true
                 shift
                 ;;
-            -h|--help)
+            -h | --help)
                 echo "Usage: kill_by_port [OPTIONS] PORT"
                 echo "Kill processes running on the specified port"
                 echo ""
@@ -70,31 +528,64 @@ kill_by_port() {
         return 1
     fi
 
-    if ! [[ "$port_arg" =~ ^[0-9]+$ ]] || [ "$port_arg" -lt 1000 ] || [ "$port_arg" -gt 65534 ]; then
-        echo "Invalid input: $port_arg. Enter a valid port number. (Numbers must be between 1000-65534)"
+    # Validate port number
+    if ! [[ "$port_arg" =~ ^[0-9]+$ ]]; then
+        echo "Error: '$port_arg' is not a valid number"
+        echo "Port must be a numeric value (e.g., 3000, 8080)"
         return 1
-    else
-        apps="$(lsof -i:$port_arg)"
-        if [ -z "$apps" ]
-        then
-            echo "No apps using the port $port_arg"
-        else
-            echo "Apps found on port $port_arg:"
-            echo "$apps"
+    fi
 
-            if [ "$dry_run" = true ]; then
-                echo "
-[DRY RUN] The above processes would be killed with: kill -9 $(lsof -t -i:$port_arg)"
+    if [ "$port_arg" -lt 1 ] || [ "$port_arg" -gt 65535 ]; then
+        echo "Error: Port $port_arg is out of valid range"
+        echo "Port must be between 1 and 65535 (recommended: 1024-65535)"
+        return 1
+    fi
+
+    # Check if lsof is available
+    if ! command -v lsof >/dev/null 2>&1; then
+        echo "Error: lsof is not installed or not in PATH"
+        echo "Install with: brew install lsof"
+        return 1
+    fi
+
+    # Find processes on the port
+    local apps
+    apps="$(lsof -i:"$port_arg" 2>/dev/null)"
+
+    if [ -z "$apps" ]; then
+        echo "No processes found using port $port_arg"
+        return 0
+    fi
+
+    echo "Processes found on port $port_arg:"
+    echo "$apps"
+    echo ""
+
+    if [ "$dry_run" = true ]; then
+        local pids_string
+        pids_string="$(lsof -t -i:"$port_arg" 2>/dev/null)"
+        echo "[DRY RUN] Would kill processes with PIDs: $pids_string"
+        echo "Command that would be executed: kill -9 $pids_string"
+    else
+        local pids_string
+        pids_string="$(lsof -t -i:"$port_arg" 2>/dev/null)"
+
+        if [ -n "$pids_string" ]; then
+            # Convert space-separated PIDs to array for safe handling
+            # shellcheck disable=SC2086
+            if kill -9 $pids_string 2>/dev/null; then
+                echo "Successfully killed processes: $pids_string"
             else
-                #read "resonse?Do you want to kill these ? (y/N): "
-                #if [[ $response =~ '^[yY]$' ]]
-                #then
-                kill -9 $(lsof -t -i:$port_arg)
-                echo "Killed Apps"
-                #else
-                #    echo "Quit"
-                #fi
+                echo "Error: Failed to kill some processes"
+                echo "This may happen if:"
+                echo "  • Processes are owned by another user (try with sudo)"
+                echo "  • Processes have already terminated"
+                echo "  • System protection prevented termination"
+                return 1
             fi
+        else
+            echo "Warning: No PIDs found to kill"
+            return 1
         fi
     fi
 }
@@ -123,11 +614,11 @@ function takedir() {
         return 1
     fi
 
-    local target_dir="${@: -1}"  # Last argument is the final directory
+    local target_dir="${*: -1}" # Last argument - directory to cd into after creation
 
     echo "Creating directory: $*"
     if mkdir -p "$@"; then
-        cd "$target_dir"
+        cd "$target_dir" || return
         echo "Created and entered $(pwd)"
     else
         echo "Failed to create directory: $*"
@@ -139,6 +630,18 @@ function takegit() {
     local repo_url="$1"
     local repo_name
 
+    # Validate input
+    if [ -z "$repo_url" ]; then
+        echo "Error: Repository URL is required"
+        return 1
+    fi
+
+    # Check if git is available
+    if ! command -v git >/dev/null 2>&1; then
+        echo "Error: git is not installed or not in PATH"
+        return 1
+    fi
+
     # Extract repository name from various URL formats
     if [[ $repo_url =~ .*/([^/]+)\.git/?$ ]]; then
         repo_name="${match[1]}"
@@ -148,12 +651,24 @@ function takegit() {
         repo_name="$(basename "$repo_url" .git)"
     fi
 
+    # Check if directory already exists
+    if [ -d "$repo_name" ]; then
+        echo "Error: Directory '$repo_name' already exists"
+        echo "Consider: rm -rf '$repo_name' or choose a different location"
+        return 1
+    fi
+
     echo "Cloning $repo_url into $repo_name..."
-    if git clone "$repo_url" "$repo_name"; then
-        cd "$repo_name"
+    if git clone "$repo_url" "$repo_name" 2>/dev/null; then
+        cd "$repo_name" || return
         echo "Successfully cloned and entered $repo_name"
     else
         echo "Failed to clone repository: $repo_url"
+        echo "Possible causes:"
+        echo "  • Repository doesn't exist or is private"
+        echo "  • Network connectivity issues"
+        echo "  • Invalid URL format"
+        echo "  • Insufficient permissions"
         return 1
     fi
 }
@@ -162,37 +677,92 @@ function takeurl() {
     local url="$1"
     local temp_file temp_dir extracted_dir
 
+    # Validate input
+    if [ -z "$url" ]; then
+        echo "Error: URL is required"
+        return 1
+    fi
+
+    # Check if curl is available
+    if ! command -v curl >/dev/null 2>&1; then
+        echo "Error: curl is not installed or not in PATH"
+        return 1
+    fi
+
+    # Check if tar is available
+    if ! command -v tar >/dev/null 2>&1; then
+        echo "Error: tar is not installed or not in PATH"
+        return 1
+    fi
+
     temp_file="$(mktemp)"
     temp_dir="$(mktemp -d)"
 
     echo "Downloading $url..."
-    if ! curl -L "$url" -o "$temp_file"; then
+    if ! curl -L "$url" -o "$temp_file" 2>/dev/null; then
         echo "Failed to download $url"
+        echo "Possible causes:"
+        echo "  • URL is invalid or file doesn't exist"
+        echo "  • Network connectivity issues"
+        echo "  • Server is unreachable"
+        rm -f "$temp_file"
+        rmdir "$temp_dir" 2>/dev/null
+        return 1
+    fi
+
+    # Verify file was downloaded and has content
+    if [ ! -s "$temp_file" ]; then
+        echo "Error: Downloaded file is empty"
         rm -f "$temp_file"
         rmdir "$temp_dir" 2>/dev/null
         return 1
     fi
 
     echo "Extracting archive..."
-    cd "$temp_dir"
+    cd "$temp_dir" || return
 
     # Determine extraction method based on file type
     case "$url" in
-        *.tar.gz|*.tgz)
-            tar -xzf "$temp_file"
+        *.tar.gz | *.tgz)
+            if ! tar -xzf "$temp_file" 2>/dev/null; then
+                echo "Error: Failed to extract tar.gz archive"
+                cd - >/dev/null || return
+                rm -f "$temp_file"
+                rmdir "$temp_dir" 2>/dev/null
+                return 1
+            fi
             ;;
-        *.tar.bz2|*.tbz2)
-            tar -xjf "$temp_file"
+        *.tar.bz2 | *.tbz2)
+            if ! tar -xjf "$temp_file" 2>/dev/null; then
+                echo "Error: Failed to extract tar.bz2 archive"
+                cd - >/dev/null || return
+                rm -f "$temp_file"
+                rmdir "$temp_dir" 2>/dev/null
+                return 1
+            fi
             ;;
         *.tar.xz)
-            tar -xJf "$temp_file"
+            if ! tar -xJf "$temp_file" 2>/dev/null; then
+                echo "Error: Failed to extract tar.xz archive"
+                cd - >/dev/null || return
+                rm -f "$temp_file"
+                rmdir "$temp_dir" 2>/dev/null
+                return 1
+            fi
             ;;
         *.tar)
-            tar -xf "$temp_file"
+            if ! tar -xf "$temp_file" 2>/dev/null; then
+                echo "Error: Failed to extract tar archive"
+                cd - >/dev/null || return
+                rm -f "$temp_file"
+                rmdir "$temp_dir" 2>/dev/null
+                return 1
+            fi
             ;;
         *)
-            echo "Unsupported archive format"
-            cd - > /dev/null
+            echo "Error: Unsupported archive format"
+            echo "Supported formats: .tar.gz, .tgz, .tar.bz2, .tbz2, .tar.xz, .tar"
+            cd - >/dev/null || return
             rm -f "$temp_file"
             rmdir "$temp_dir" 2>/dev/null
             return 1
@@ -203,31 +773,32 @@ function takeurl() {
     extracted_dir="$(find . -maxdepth 1 -type d ! -name '.' | head -n 1)"
 
     if [ -n "$extracted_dir" ]; then
-        cd "$extracted_dir"
+        cd "$extracted_dir" || return
         echo "Extracted and entered $(basename "$extracted_dir")"
     else
-        echo "No directory found in archive, staying in temp directory"
+        echo "Warning: No directory found in archive, staying in temp directory"
+        echo "Current location: $(pwd)"
     fi
 
     rm -f "$temp_file"
 }
 
 git_ignore_local() {
-  if [ -z "$1" ]; then
-    echo "Usage: git_ignore_local <file>"
-    return 1
-  fi
+    if [ -z "$1" ]; then
+        echo "Usage: git_ignore_local <file>"
+        return 1
+    fi
 
-  local repo_root
-  repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
 
-  if [ -z "$repo_root" ]; then
-    echo "Not inside a Git repository."
-    return 1
-  fi
+    if [ -z "$repo_root" ]; then
+        echo "Not inside a Git repository."
+        return 1
+    fi
 
-  echo "$1" >> "$repo_root/.git/info/exclude"
-  echo "Added '$1' to $repo_root/.git/info/exclude"
+    echo "$1" >>"$repo_root/.git/info/exclude"
+    echo "Added '$1' to $repo_root/.git/info/exclude"
 }
 
 # Show available modern tools and their usage
@@ -235,7 +806,7 @@ show_tools() {
     echo "🚀 Modern CLI Tools Available:"
     echo ""
 
-    if command -v eza &> /dev/null; then
+    if command -v eza &>/dev/null; then
         echo "📁 eza (modern ls):"
         echo "  ls      - Basic listing with icons and git status"
         echo "  ll      - Detailed listing with headers"
@@ -243,28 +814,28 @@ show_tools() {
         echo ""
     fi
 
-    if command -v bat &> /dev/null; then
+    if command -v bat &>/dev/null; then
         echo "📄 bat (enhanced cat):"
         echo "  cat file.js    - View with syntax highlighting"
         echo "  less README.md - Page through with highlighting"
         echo ""
     fi
 
-    if command -v rg &> /dev/null; then
+    if command -v rg &>/dev/null; then
         echo "🔍 ripgrep (fast grep):"
         echo "  grep 'pattern'     - Search with ripgrep"
         echo "  rg 'TODO' --type js - Search in JS files only"
         echo ""
     fi
 
-    if command -v lazygit &> /dev/null; then
+    if command -v lazygit &>/dev/null; then
         echo "🌿 lazygit (git TUI):"
         echo "  lg         - Open interactive git interface"
         echo "  glog       - Beautiful git log with graph"
         echo ""
     fi
 
-    if command -v tmux &> /dev/null; then
+    if command -v tmux &>/dev/null; then
         echo "📺 tmux (terminal multiplexer):"
         echo "  t          - Start new session"
         echo "  ta         - Attach to last session"
@@ -272,21 +843,21 @@ show_tools() {
         echo ""
     fi
 
-    if command -v fd &> /dev/null; then
+    if command -v fd &>/dev/null; then
         echo "🔎 fd (fast find):"
         echo "  find . -name '*.js' - Search for JavaScript files"
         echo "  fd -e js            - Same as above, shorter syntax"
         echo ""
     fi
 
-    if command -v delta &> /dev/null; then
+    if command -v delta &>/dev/null; then
         echo "📊 delta (enhanced git diff):"
         echo "  git diff           - Shows beautiful side-by-side diffs"
         echo "  git log -p         - Log with enhanced diff display"
         echo ""
     fi
 
-    if command -v atuin &> /dev/null; then
+    if command -v atuin &>/dev/null; then
         echo "📚 atuin (enhanced shell history):"
         echo "  hs                 - Interactive history search"
         echo "  Option+H           - Quick history search (keybinding)"
@@ -331,7 +902,7 @@ alias_help() {
     # Define comprehensive alias documentation
     case "$alias_name" in
         # File Operations
-        "ls"|"ll"|"la"|"lt")
+        "ls" | "ll" | "la" | "lt")
             echo "📁 File Listing Aliases (eza-powered)"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "ls     Enhanced listing with icons and git status"
@@ -348,7 +919,7 @@ alias_help() {
             echo "       Example: lt # shows directory structure"
             ;;
 
-        "cat"|"less"|"bat")
+        "cat" | "less" | "bat")
             echo "📄 File Viewing Aliases (bat-powered)"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "cat    Syntax-highlighted file viewer"
@@ -360,7 +931,7 @@ alias_help() {
             echo "       Keys: q (quit), / (search), n (next match)"
             ;;
 
-        "grep"|"rg")
+        "grep" | "rg")
             echo "🔍 Search Aliases (ripgrep-powered)"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "grep   Fast text search with ripgrep"
@@ -375,7 +946,7 @@ alias_help() {
             ;;
 
         # Git Operations
-        "git"|"gits"|"gl"|"gp"|"gco"|"gb"|"ga"|"gaa"|"lg"|"glog")
+        "git" | "gits" | "gl" | "gp" | "gco" | "gb" | "ga" | "gaa" | "lg" | "glog")
             echo "🌿 Git Aliases - Enhanced Git Workflow"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Basic Git:"
@@ -400,7 +971,7 @@ alias_help() {
             ;;
 
         # Gradle Operations
-        "gradle"|"gw"|"gwb"|"gwc"|"gwt"|"gwcb")
+        "gradle" | "gw" | "gwb" | "gwc" | "gwt" | "gwcb")
             echo "🏗️ Gradle Wrapper Aliases - Project Build Tool"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Core Build Tasks:"
@@ -425,7 +996,7 @@ alias_help() {
             ;;
 
         # Docker Operations
-        "docker"|"dps"|"dpsa"|"dex"|"dlog")
+        "docker" | "dps" | "dpsa" | "dex" | "dlog")
             echo "🐳 Docker Aliases - Container Management"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Container Status:"
@@ -448,7 +1019,7 @@ alias_help() {
             ;;
 
         # Tmux Operations
-        "tmux"|"t"|"ta"|"tat"|"tl"|"tn")
+        "tmux" | "t" | "ta" | "tat" | "tl" | "tn")
             echo "📺 Tmux Aliases - Terminal Multiplexer"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Session Management:"
@@ -470,7 +1041,7 @@ alias_help() {
             ;;
 
         # Network Operations
-        "myip"|"localip"|"ping")
+        "myip" | "localip" | "ping")
             echo "🌐 Network Aliases - Network Utilities"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "myip      Get your public IP address"
@@ -484,7 +1055,7 @@ alias_help() {
             ;;
 
         # Atuin Shell History
-        "atuin"|"hs"|"hstats"|"hsync")
+        "atuin" | "hs" | "hstats" | "hsync")
             echo "📚 Atuin Aliases - Enhanced Shell History"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Interactive History:"
@@ -540,7 +1111,7 @@ alias_docs() {
     echo "7) 📋 Show All Aliases"
     echo ""
     printf "Enter choice (1-7): "
-    read choice
+    read -r choice
 
     case "$choice" in
         1) alias_help ls ;;
@@ -600,6 +1171,77 @@ alias_categories() {
     echo ""
     echo "🔧 DEVELOPMENT:"
     echo "   take, kill_by_port, show_tools - Dev utilities"
+    echo "   profile_startup - Test shell startup performance"
+    echo "   manage_packages - Configure package installation"
     echo ""
     echo "For detailed help: alias_help <alias_name>"
+}
+
+# Profile shell startup performance
+profile_startup() {
+    # Check if we have the profiler script
+    local dotfiles_dir=""
+    if [ -d "${HOME}/dotfiles" ]; then
+        dotfiles_dir="${HOME}/dotfiles"
+    elif [ -d "${HOME}/.dotfiles" ]; then
+        dotfiles_dir="${HOME}/.dotfiles"
+    fi
+
+    if [ -n "$dotfiles_dir" ] && [ -f "$dotfiles_dir/bin/profile-startup" ]; then
+        "$dotfiles_dir/bin/profile-startup"
+    else
+        echo "🚀 Quick Shell Startup Performance Test"
+        echo "======================================"
+        echo ""
+        echo "Testing shell startup time (3 runs)..."
+
+        local times=()
+        for i in {1..3}; do
+            echo -n "Test $i/3: "
+            local time_output
+            local total_time
+            time_output=$(time zsh -i -c exit 2>&1)
+            total_time=$(echo "$time_output" | grep -o '[0-9.]*s.*total' | grep -o '^[0-9.]*')
+            times+=("$total_time")
+            echo "${total_time}s"
+        done
+
+        echo ""
+        echo "Results: ${times[*]}"
+        echo ""
+        echo "Performance targets:"
+        echo "• < 0.2s: Excellent (instant)"
+        echo "• < 0.4s: Good (very responsive)"
+        echo "• < 0.8s: Acceptable (responsive)"
+        echo "• > 1.5s: Slow (needs optimization)"
+        echo ""
+        echo "For detailed analysis, use the full profiler:"
+        echo "  $dotfiles_dir/bin/profile-startup"
+    fi
+}
+
+# Manage dotfiles packages (enable/disable packages and regenerate Brewfile)
+manage_packages() {
+    # Check if we have the package manager script
+    local dotfiles_dir=""
+    if [ -d "${HOME}/dotfiles" ]; then
+        dotfiles_dir="${HOME}/dotfiles"
+    elif [ -d "${HOME}/.dotfiles" ]; then
+        dotfiles_dir="${HOME}/.dotfiles"
+    fi
+
+    if [ -n "$dotfiles_dir" ] && [ -f "$dotfiles_dir/bin/manage-packages" ]; then
+        "$dotfiles_dir/bin/manage-packages" "$@"
+    else
+        echo "❌ Package manager not found"
+        echo "Expected location: $dotfiles_dir/bin/manage-packages"
+        echo ""
+        echo "📦 Package management allows you to:"
+        echo "• Enable/disable individual packages"
+        echo "• Enable/disable entire categories"
+        echo "• Automatically regenerate Brewfile"
+        echo "• Maintain consistency between init.sh and Brewfile"
+        echo ""
+        echo "Make sure you're in your dotfiles directory and the script exists."
+    fi
 }

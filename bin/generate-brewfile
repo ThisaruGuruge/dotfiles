@@ -1,0 +1,195 @@
+#!/usr/bin/env python3
+
+"""
+Generate Brewfile from packages.json configuration
+This ensures consistency between init.sh and Brewfile
+"""
+
+import json
+import os
+import sys
+from datetime import datetime
+from pathlib import Path
+
+def load_config(config_path):
+    """Load and validate the packages.json configuration"""
+    try:
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        return config
+    except FileNotFoundError:
+        print(f"Error: Configuration file not found at {config_path}")
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in configuration file: {e}")
+        sys.exit(1)
+
+def generate_brewfile_header(config):
+    """Generate the header section of the Brewfile"""
+    metadata = config.get('metadata', {})
+    header = f"""# Thisaru's Dotfiles Brewfile
+# Generated automatically from packages.json
+# Configuration version: {metadata.get('version', 'unknown')}
+# Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+# Install with: brew bundle
+
+"""
+    return header
+
+def generate_taps(config):
+    """Generate the taps section"""
+    taps = config.get('homebrew', {}).get('taps', [])
+    if not taps:
+        return ""
+
+    content = "# Homebrew taps\n"
+    for tap in taps:
+        name = tap.get('name', '')
+        description = tap.get('description', '')
+        if description:
+            content += f'tap "{name}"  # {description}\n'
+        else:
+            content += f'tap "{name}"\n'
+    content += "\n"
+    return content
+
+def get_enabled_packages(category_data, package_type):
+    """Get enabled packages of a specific type from a category"""
+    packages = []
+    for name, package in category_data.get('packages', {}).items():
+        if package.get('type') == package_type and package.get('enabled', False):
+            packages.append((name, package.get('description', '')))
+    return packages
+
+def get_disabled_packages(category_data, package_type):
+    """Get disabled packages of a specific type from a category"""
+    packages = []
+    for name, package in category_data.get('packages', {}).items():
+        if package.get('type') == package_type and not package.get('enabled', False):
+            packages.append((name, package.get('description', '')))
+    return packages
+
+def generate_package_section(title, packages, package_type, commented=False):
+    """Generate a section for packages"""
+    if not packages:
+        return ""
+
+    content = f"# {title}\n"
+    for name, description in packages:
+        prefix = "# " if commented else ""
+        if description:
+            content += f'{prefix}{package_type} "{name}"'.ljust(35 if not commented else 37)
+            content += f" # {description}\n"
+        else:
+            content += f'{prefix}{package_type} "{name}"\n'
+    content += "\n"
+    return content
+
+def generate_brewfile(config):
+    """Generate the complete Brewfile content"""
+    content = generate_brewfile_header(config)
+    content += generate_taps(config)
+
+    categories = config.get('categories', {})
+
+    # Process each category
+    for category_name, category_data in categories.items():
+        category_desc = category_data.get('description', category_name.title())
+
+        # Generate enabled brew packages
+        enabled_brew = get_enabled_packages(category_data, 'brew')
+        if enabled_brew:
+            content += generate_package_section(category_desc, enabled_brew, 'brew')
+
+        # Generate enabled cask packages
+        enabled_casks = get_enabled_packages(category_data, 'cask')
+        if enabled_casks:
+            content += generate_package_section(category_desc, enabled_casks, 'cask')
+
+    # Add disabled packages as comments
+    content += "# Optional packages (uncomment to install)\n"
+    content += "# " + "="*50 + "\n\n"
+
+    for category_name, category_data in categories.items():
+        category_desc = category_data.get('description', category_name.title())
+
+        # Generate disabled brew packages
+        disabled_brew = get_disabled_packages(category_data, 'brew')
+        if disabled_brew:
+            content += generate_package_section(
+                f"{category_desc} (optional - uncomment as needed)",
+                disabled_brew, 'brew', commented=True
+            )
+
+        # Generate disabled cask packages
+        disabled_casks = get_disabled_packages(category_data, 'cask')
+        if disabled_casks:
+            content += generate_package_section(
+                f"{category_desc} (optional - uncomment as needed)",
+                disabled_casks, 'cask', commented=True
+            )
+
+    return content
+
+def backup_existing_brewfile(brewfile_path):
+    """Create a backup of existing Brewfile"""
+    if brewfile_path.exists():
+        backup_path = brewfile_path.with_suffix('.backup')
+        backup_path.write_text(brewfile_path.read_text())
+        print(f"📦 Backed up existing Brewfile to {backup_path.name}")
+        return True
+    return False
+
+def main():
+    # Get paths
+    script_dir = Path(__file__).parent
+    dotfiles_dir = script_dir.parent
+    config_path = dotfiles_dir / 'packages.json'
+    brewfile_path = dotfiles_dir / 'Brewfile'
+
+    print("🍺 Generating Brewfile from packages.json")
+    print("=" * 45)
+
+    # Load configuration
+    config = load_config(config_path)
+
+    # Backup existing Brewfile
+    backup_existing_brewfile(brewfile_path)
+
+    # Generate new Brewfile
+    print("📝 Generating new Brewfile...")
+    brewfile_content = generate_brewfile(config)
+
+    # Write Brewfile
+    brewfile_path.write_text(brewfile_content)
+
+    # Success message
+    print("✅ Brewfile generated successfully!")
+    print(f"📍 Location: {brewfile_path}")
+    print()
+    print("Changes made:")
+    print("• Generated from packages.json configuration")
+    print("• Enabled packages are uncommented and ready to install")
+    print("• Disabled packages are commented with descriptions")
+    print("• Maintains perfect consistency with init.sh")
+    print()
+    print(f"To install packages: brew bundle --file={brewfile_path}")
+
+    # Show summary
+    total_enabled = 0
+    total_disabled = 0
+    categories = config.get('categories', {})
+
+    for category_data in categories.values():
+        for package in category_data.get('packages', {}).values():
+            if package.get('enabled', False):
+                total_enabled += 1
+            else:
+                total_disabled += 1
+
+    print(f"\n📊 Package Summary:")
+    print(f"• {total_enabled} packages enabled")
+    print(f"• {total_disabled} packages available (disabled)")
+
+if __name__ == "__main__":
+    main()
