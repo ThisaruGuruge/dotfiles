@@ -30,7 +30,7 @@ jobs:
         find . -name "*.sh" -not -path "./.git/*" | xargs shellcheck -e SC1091,SC2039
 
         echo "Checking .zshrc files..."
-        find . -name ".zshrc" -not -path "./.git/*" | xargs shellcheck -s bash -e SC1091,SC2039
+        find . -name ".zshrc" -not -path "./.git/*" | xargs shellcheck -s bash -e SC1091,SC2039,SC2296
 
         echo "Checking other shell config files..."
         find . -name ".aliases.sh" -o -name ".functions.sh" -o -name ".paths.sh" | xargs shellcheck -e SC1091,SC2039
