@@ -159,17 +159,30 @@ install_stow() {
 
     if command_exists stow; then
         log_success "GNU Stow already installed: $(stow --version | head -n 1)"
-        return 0
+    else
+        log_warning "GNU Stow not found"
+        if confirm "Install GNU Stow? (Required for dotfiles management)"; then
+            log_info "Installing GNU Stow..."
+            brew install stow
+            log_success "GNU Stow installed successfully"
+        else
+            log_error "GNU Stow is required for this dotfiles setup. Exiting."
+            exit 1
+        fi
     fi
 
-    log_warning "GNU Stow not found"
-    if confirm "Install GNU Stow? (Required for dotfiles management)"; then
-        log_info "Installing GNU Stow..."
-        brew install stow
-        log_success "GNU Stow installed successfully"
+    # Install jq for JSON parsing (used for dynamic package reading)
+    if command_exists jq; then
+        log_success "jq already installed: $(jq --version 2>/dev/null || echo 'unknown version')"
     else
-        log_error "GNU Stow is required for this dotfiles setup. Exiting."
-        exit 1
+        log_warning "jq not found (needed for dynamic package configuration)"
+        if confirm "Install jq? (Enables dynamic package reading from packages.json)"; then
+            log_info "Installing jq..."
+            brew install jq
+            log_success "jq installed successfully"
+        else
+            log_warning "jq not installed - will use fallback package lists"
+        fi
     fi
 }
 
@@ -177,7 +190,20 @@ install_stow() {
 install_core_dependencies() {
     log_step "Installing Core Dependencies"
 
-    local packages=("oh-my-posh" "fzf" "zoxide" "tree" "bat" "eza" "ripgrep" "fd" "git-delta" "lazygit" "tmux" "htop" "direnv" "atuin" "gh" "stow" "sops" "age")
+    # Read packages from packages.json if available, fallback to hardcoded list
+    local packages=()
+    if command_exists jq && [ -f "$DOTFILES_DIR/packages.json" ]; then
+        # Extract enabled packages from core and security categories
+        log_info "Reading package list from packages.json..."
+        local core_packages=() security_packages=()
+        mapfile -t core_packages < <(jq -r '.categories.core.packages | to_entries[] | select(.value.enabled == true) | .key' "$DOTFILES_DIR/packages.json" 2>/dev/null || true)
+        mapfile -t security_packages < <(jq -r '.categories.security.packages | to_entries[] | select(.value.enabled == true) | .key' "$DOTFILES_DIR/packages.json" 2>/dev/null || true)
+        packages=("${core_packages[@]}" "${security_packages[@]}")
+    else
+        # Fallback to hardcoded list if jq or packages.json not available
+        log_warning "Using fallback package list (jq or packages.json not found)"
+        packages=("oh-my-posh" "fzf" "zoxide" "tree" "bat" "eza" "ripgrep" "fd" "git-delta" "lazygit" "tmux" "htop" "direnv" "atuin" "gh" "stow" "sops" "age")
+    fi
     local missing_packages=()
 
     # Check which packages are missing
@@ -320,7 +346,9 @@ install_terminal_apps() {
                 if command -v "$cmd_name" >/dev/null 2>&1; then
                     installed=true
                     # Check if it's a legacy installation (not via Homebrew)
-                    if ! brew list "$install_cmd" >/dev/null 2>&1; then
+                    # Extract package name from install command (remove --cask and other flags)
+                    local brew_pkg_name="${install_cmd##* }"  # Get last word (package name)
+                    if ! brew list "$brew_pkg_name" >/dev/null 2>&1; then
                         legacy_info="Legacy: $cmd_name command found (non-Homebrew)"
                     fi
                 fi

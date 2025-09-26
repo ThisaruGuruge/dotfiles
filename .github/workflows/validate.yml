@@ -61,7 +61,10 @@ jobs:
         echo "Checking for common issues..."
 
         echo "Checking for hardcoded paths..."
-        if grep -r "/Users/" --include="*.sh" --include=".zshrc" --include=".functions.sh" --include=".aliases.sh" --include=".paths.sh" . | grep -v ".git" | grep -v "RANCHER"; then
+        # More specific pattern to catch variable assignments and actual path usage
+        # Looks for patterns like: VAR="/Users/...", cd /Users/, source /Users/, etc.
+        # Excludes documentation, comments, and parameterized paths like $HOME/...
+        if grep -rE '(\$[A-Z_]*=|^[^#]*\s+)"/Users/[^$"]*"|(\s|^)(cd|source|\.)\s+/Users/[^$\s]*' --include="*.sh" --include=".zshrc" --include=".functions.sh" --include=".aliases.sh" --include=".paths.sh" . | grep -v ".git" | grep -v "RANCHER" | grep -v '# ' | grep -v "echo.*example" | grep -v "documentation"; then
           echo "❌ Found hardcoded paths!"
           exit 1
         else
