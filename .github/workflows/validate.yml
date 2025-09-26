@@ -69,7 +69,8 @@ jobs:
         fi
 
         echo "Checking for secrets in files..."
-        if grep -ri "password\|secret\|token\|key.*=" --include="*.sh" --include=".zshrc" --include="*.md" . | grep -v ".git" | grep -v "example" | grep -v "template" | grep -v "your_" | grep -v "github_token_here"; then
+        # Look for actual secret patterns, not documentation about secrets
+        if grep -r "password\s*=\s*[\"']\S\|secret\s*=\s*[\"']\S\|token\s*=\s*[\"']\S\|key\s*=\s*[\"']\S" --include="*.sh" --include=".zshrc" . | grep -v ".git" | grep -v "example" | grep -v "template" | grep -v "your_" | grep -v "github_token_here" | grep -v "ENC\["; then
           echo "❌ Potential secrets found!"
           exit 1
         else
