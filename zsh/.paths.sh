@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Docker platform (keep for compatibility)
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
 
@@ -38,17 +40,17 @@ fi
 # PATH deduplication function to remove duplicate entries
 path_dedupe() {
     if [ -n "$PATH" ]; then
-        old_PATH=$PATH:; PATH=
-        while [ -n "$old_PATH" ]; do
-            x=${old_PATH%%:*}
-            case $PATH: in
+        local old_path="$PATH:"
+        local new_path=""
+        while [ -n "$old_path" ]; do
+            local x="${old_path%%:*}"
+            case ":$new_path:" in
                 *:"$x":*) ;;
-                *) PATH=$PATH:$x;;
+                *) new_path="$new_path:$x";;
             esac
-            old_PATH=${old_PATH#*:}
+            old_path="${old_path#*:}"
         done
-        PATH=${PATH#:}
-        unset old_PATH x
+        PATH="${new_path#:}"
     fi
 }
 
