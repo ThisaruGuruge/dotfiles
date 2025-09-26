@@ -571,17 +571,19 @@ kill_by_port() {
     echo ""
 
     if [ "$dry_run" = true ]; then
-        local pids
-        pids="$(lsof -t -i:"$port_arg" 2>/dev/null)"
-        echo "[DRY RUN] Would kill processes with PIDs: $pids"
-        echo "Command that would be executed: kill -9 $pids"
+        local pids_string
+        pids_string="$(lsof -t -i:"$port_arg" 2>/dev/null)"
+        echo "[DRY RUN] Would kill processes with PIDs: $pids_string"
+        echo "Command that would be executed: kill -9 $pids_string"
     else
-        local pids
-        pids="$(lsof -t -i:"$port_arg" 2>/dev/null)"
+        local pids_string
+        pids_string="$(lsof -t -i:"$port_arg" 2>/dev/null)"
 
-        if [ -n "$pids" ]; then
-            if kill -9 $pids 2>/dev/null; then
-                echo "Successfully killed processes: $pids"
+        if [ -n "$pids_string" ]; then
+            # Convert space-separated PIDs to array for safe handling
+            read -r -a pids_array <<< "$pids_string"
+            if kill -9 "${pids_array[@]}" 2>/dev/null; then
+                echo "Successfully killed processes: $pids_string"
             else
                 echo "Error: Failed to kill some processes"
                 echo "This may happen if:"
