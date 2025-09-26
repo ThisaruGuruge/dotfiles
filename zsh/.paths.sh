@@ -46,7 +46,7 @@ path_dedupe() {
             local x="${old_path%%:*}"
             case ":$new_path:" in
                 *:"$x":*) ;;
-                *) new_path="$new_path:$x";;
+                *) new_path="$new_path:$x" ;;
             esac
             old_path="${old_path#*:}"
         done

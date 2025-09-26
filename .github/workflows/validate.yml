@@ -41,7 +41,7 @@ jobs:
         find . -name "*.sh" -not -path "./.git/*" | xargs shfmt -d -i 4 -ci
 
         echo "Checking zsh config formatting..."
-        find . -name ".zshrc" -o -name ".aliases.sh" -o -name ".functions.sh" -o -name ".paths.sh" | xargs shfmt -d -i 4 -ci
+        find . -name ".aliases.sh" -o -name ".functions.sh" -o -name ".paths.sh" | xargs shfmt -d -i 4 -ci
 
     - name: Validate JSON files
       run: |

@@ -3,7 +3,7 @@
 # Dotfiles Initialization Script
 # This script sets up the complete development environment with dependency checking
 
-set -e  # Exit on any error
+set -e # Exit on any error
 
 # Ensure script is run from ~/.dotfiles directory
 basename_dir="$(basename "$PWD")"
@@ -63,8 +63,8 @@ confirm() {
     while true; do
         echo ""
         echo -en "  ${YELLOW}$1 (y/n/q): ${NC}"
-        read -r -n 1 -s key  # Read single character without echo
-        echo  # Print newline after keypress
+        read -r -n 1 -s key # Read single character without echo
+        echo                # Print newline after keypress
 
         case "$key" in
             [Yy])
@@ -295,12 +295,12 @@ install_terminal_apps() {
     local tool_info
 
     for tool_info in "${tools_list[@]}"; do
-        IFS='|' read -r tool category app_path install_cmd legacy_info <<< "$tool_info"
+        IFS='|' read -r tool category app_path install_cmd legacy_info <<<"$tool_info"
         local installed=false
 
         # Check if tool is installed
         case "$tool" in
-            "cursor"|"visual-studio-code"|"warp"|"iterm2")
+            "cursor" | "visual-studio-code" | "warp" | "iterm2")
                 if [ -d "$app_path" ]; then
                     installed=true
                 # Check for legacy installations
@@ -345,7 +345,7 @@ install_terminal_apps() {
         log_info "Installing selected tools..."
 
         for tool_install in "${to_install[@]}"; do
-            IFS='|' read -r tool install_cmd <<< "$tool_install"
+            IFS='|' read -r tool install_cmd <<<"$tool_install"
             log_info "Installing $tool..."
 
             # Special handling for Docker Desktop detection
@@ -562,7 +562,7 @@ setup_secret_management() {
     # Create .sops.yaml configuration
     if [ ! -f "$sops_config" ]; then
         log_info "Creating sops configuration..."
-        cat > "$sops_config" << EOF
+        cat >"$sops_config" <<EOF
 creation_rules:
   - path_regex: \.env$
     age: $public_key
@@ -653,7 +653,7 @@ EOF
     # Add .env to .gitignore if not already there
     local gitignore_file="$DOTFILES_DIR/.gitignore"
     if [ -f "$gitignore_file" ] && ! grep -q "\.env$" "$gitignore_file"; then
-        echo ".env" >> "$gitignore_file"
+        echo ".env" >>"$gitignore_file"
         log_success "Added .env to .gitignore"
     fi
 
