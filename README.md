@@ -18,6 +18,9 @@ A comprehensive development environment setup for macOS featuring Zsh, Oh My Pos
 - **Encrypted Secret Management**: SOPS + age encryption for environment variables with seamless editing
 - **Enhanced Tool Installation**: Individual confirmation with legacy installation detection
 - **Comprehensive Git Setup**: Modern Git configuration with delta integration and useful aliases
+- **Ballerina Support**: Cloud-native programming language for modern microservices
+- **Configuration Validation**: Built-in test suite to validate your environment setup
+- **Optimized Startup**: Fast shell initialization (~0.6s) with lazy loading for maximum performance
 
 ## 📋 Prerequisites
 
@@ -82,6 +85,7 @@ The `init.sh` script will:
 - ✅ Offer to install development tools (Python, Ruby, Node.js managers)
 - ✅ Enhanced tool installation (Cursor, VS Code, GitHub CLI, PostgreSQL, Redis, AWS Vault)
 - ✅ Install SDKMAN (Java, Gradle, Maven, Kotlin manager)
+- ✅ Install Ballerina (Cloud-native programming language)
 - ✅ Offer terminal app installation (Warp or iTerm2)
 - ✅ Install and configure Nerd Fonts
 - ✅ Set up Zinit plugin manager
@@ -89,7 +93,7 @@ The `init.sh` script will:
 - ✅ Set up Git personal configuration securely
 - ✅ Backup existing dotfiles automatically
 - ✅ Use Stow to manage symlinks cleanly
-- ✅ Test the installation
+- ✅ Test the installation with built-in validation suite
 - ✅ Provide next steps and usage instructions
 
 ### Option 2: Manual Installation
@@ -253,6 +257,10 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
 After installation, try these essential commands:
 
 ```bash
+# ✅ VALIDATE YOUR SETUP - Test Everything Works
+test-zsh                                   # Run comprehensive environment validation
+                                          # Tests all tools, runtimes, PATH, and performance
+
 # 📚 LEARN YOUR SYSTEM - Documentation & Discovery
 help                                       # Show comprehensive alias documentation
 docs                                       # Interactive menu to browse all aliases
@@ -347,7 +355,18 @@ stow config   # Application configs
    sdk install java 21.0.5-tem
    ```
 
-5. **Atuin Shell History** (first run setup):
+5. **Ballerina Environment** (if installed):
+   ```bash
+   # Verify installation
+   bal version
+
+   # Create a new Ballerina project
+   bal new my-project
+   cd my-project
+   bal run
+   ```
+
+6. **Atuin Shell History** (first run setup):
    ```bash
    # Import your existing shell history
    atuin import auto
@@ -645,9 +664,14 @@ brew install oh-my-posh
 
 ### Verify Setup
 
-Run this verification checklist to ensure everything is working:
+Run the built-in validation suite to ensure everything is working:
 
 ```bash
+# ✅ Run comprehensive validation (RECOMMENDED)
+test-zsh                                  # Tests all tools, runtimes, PATH, and performance
+                                          # Reads from packages.json for dynamic testing
+                                          # Shows beautiful output with pass/fail/warnings
+
 # ✅ Shell configuration syntax check
 zsh -n ~/.zshrc                          # Should pass without errors
 
@@ -678,6 +702,7 @@ age --version                            # Should show age version
 ```
 
 **Verification Checklist:**
+- [ ] `test-zsh` passes with no failures (automated validation)
 - [ ] `zsh -n ~/.zshrc` passes without errors
 - [ ] fzf fuzzy search works (Ctrl+R, but may conflict with Warp)
 - [ ] `tmux` starts and Ctrl+a | splits panes
@@ -686,25 +711,32 @@ age --version                            # Should show age version
 - [ ] `edit_secrets` command opens encrypted environment file
 - [ ] Ctrl+Alt+R triggers Atuin history search
 - [ ] Custom functions like `take` and `kill_by_port --help` work
+- [ ] `claude --version` works (if using Claude Code)
+- [ ] `bal version` works (if Ballerina is installed)
 
 ## ⚡ Performance
 
 This dotfiles setup is optimized for fast shell startup and responsive daily use:
 
 ### Performance Targets
-- **Excellent**: < 0.2s startup (instant feel)
-- **Good**: < 0.4s startup (very responsive)
-- **Acceptable**: < 0.8s startup (responsive)
-- **Slow**: > 1.5s startup (needs optimization)
+- **Excellent**: < 0.5s startup (instant feel) ✅ **Current: ~0.6s**
+- **Good**: < 1.0s startup (very responsive)
+- **Acceptable**: < 2.0s startup (responsive)
+- **Slow**: > 2.0s startup (needs optimization)
 
 ### Performance Features
-- **Lazy Loading**: Heavy components (fzf, atuin, direnv, pyenv, rbenv, SDKMAN) load only when needed
+- **Optimized NVM Loading**: Node.js PATH added immediately without full NVM initialization
+- **Lazy Loading**: NVM functions only load when `nvm` command is used
 - **Turbo Mode**: Non-essential Zinit plugins load with delay
 - **Efficient Initialization**: Optimized oh-my-posh and plugin loading
 - **PATH Deduplication**: Prevents PATH pollution and slow lookups
+- **Smart Caching**: Environment variables and paths cached for faster access
 
 ### Monitor Performance
 ```bash
+# Comprehensive validation (includes performance test)
+test-zsh                                  # Tests startup time with 3 samples
+
 # Quick performance test
 profile_startup
 
@@ -714,6 +746,15 @@ profile_startup
 # Manual timing
 time zsh -i -c exit
 ```
+
+### Performance Optimization Tips
+
+If your shell startup is slower than expected:
+
+1. **Check what's loading**: Run `test-zsh` to see performance metrics
+2. **Disable unused plugins**: Comment out Zinit plugins you don't use
+3. **Reduce PATH complexity**: Remove unused paths from `.paths.sh`
+4. **Profile startup**: Use `./bin/profile-startup` to identify bottlenecks
 
 ## 🔄 Updating
 
