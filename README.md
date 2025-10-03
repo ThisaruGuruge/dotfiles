@@ -2,6 +2,8 @@
 
 A comprehensive development environment setup for macOS featuring Zsh, Oh My Posh, and a curated collection of productivity tools and shortcuts.
 
+**Author**: Thisaru Guruge ([thisaru.me](https://thisaru.me))
+
 ## 🚀 What You'll Get
 
 - **Modern Shell Experience**: Zsh with intelligent autocompletion, syntax highlighting, and command suggestions
@@ -1011,6 +1013,7 @@ This dotfiles setup is optimized for fast shell startup and responsive daily use
 - **Slow**: > 2.0s startup (needs optimization)
 
 ### Performance Features
+
 - **Optimized NVM Loading**: Node.js PATH added immediately without full NVM initialization
 - **Lazy Loading**: NVM functions only load when `nvm` command is used
 - **Turbo Mode**: Non-essential Zinit plugins load with delay
@@ -1019,6 +1022,7 @@ This dotfiles setup is optimized for fast shell startup and responsive daily use
 - **Smart Caching**: Environment variables and paths cached for faster access
 
 ### Monitor Performance
+
 ```bash
 # Comprehensive validation (includes performance test)
 test-zsh                                  # Tests startup time with 3 samples
@@ -1062,6 +1066,7 @@ source ~/.zshrc  # Reload configuration
 ## 🤝 Contributing
 
 Found an issue or have a suggestion? Feel free to:
+
 1. Open an issue on GitHub
 2. Fork the repository and submit a pull request
 3. Suggest improvements to the setup
@@ -1069,6 +1074,7 @@ Found an issue or have a suggestion? Feel free to:
 ### Quality Assurance
 
 This repository includes automated validation:
+
 - **Shellcheck**: Validates all shell scripts for common issues
 - **Formatting**: Ensures consistent code formatting with shfmt
 - **Syntax Testing**: Validates JSON and shell configuration syntax
@@ -1086,3 +1092,9 @@ MIT License - feel free to use and modify as needed.
 **Enjoy your enhanced development environment! 🎉**
 
 For questions or issues, refer to the troubleshooting section above or open an issue on GitHub.
+
+---
+
+**Maintained by**: [Thisaru Guruge](https://thisaru.me)
+
+*P.S. Curious developers might find some interesting surprises hidden in the code. Happy exploring! 🔍*
