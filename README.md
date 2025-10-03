@@ -2,6 +2,8 @@
 
 A comprehensive development environment setup for macOS featuring Zsh, Oh My Posh, and a curated collection of productivity tools and shortcuts.
 
+**Author**: Thisaru Guruge ([thisaru.me](https://thisaru.me))
+
 ## 🚀 What You'll Get
 
 - **Modern Shell Experience**: Zsh with intelligent autocompletion, syntax highlighting, and command suggestions
@@ -18,6 +20,9 @@ A comprehensive development environment setup for macOS featuring Zsh, Oh My Pos
 - **Encrypted Secret Management**: SOPS + age encryption for environment variables with seamless editing
 - **Enhanced Tool Installation**: Individual confirmation with legacy installation detection
 - **Comprehensive Git Setup**: Modern Git configuration with delta integration and useful aliases
+- **Ballerina Support**: Cloud-native programming language for modern microservices
+- **Configuration Validation**: Built-in test suite to validate your environment setup
+- **Optimized Startup**: Fast shell initialization (~0.6s) with lazy loading for maximum performance
 
 ## 📋 Prerequisites
 
@@ -82,6 +87,7 @@ The `init.sh` script will:
 - ✅ Offer to install development tools (Python, Ruby, Node.js managers)
 - ✅ Enhanced tool installation (Cursor, VS Code, GitHub CLI, PostgreSQL, Redis, AWS Vault)
 - ✅ Install SDKMAN (Java, Gradle, Maven, Kotlin manager)
+- ✅ Install Ballerina (Cloud-native programming language)
 - ✅ Offer terminal app installation (Warp or iTerm2)
 - ✅ Install and configure Nerd Fonts
 - ✅ Set up Zinit plugin manager
@@ -89,7 +95,7 @@ The `init.sh` script will:
 - ✅ Set up Git personal configuration securely
 - ✅ Backup existing dotfiles automatically
 - ✅ Use Stow to manage symlinks cleanly
-- ✅ Test the installation
+- ✅ Test the installation with built-in validation suite
 - ✅ Provide next steps and usage instructions
 
 ### Option 2: Manual Installation
@@ -253,6 +259,10 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
 After installation, try these essential commands:
 
 ```bash
+# ✅ VALIDATE YOUR SETUP - Test Everything Works
+test-zsh                                   # Run comprehensive environment validation
+                                          # Tests all tools, runtimes, PATH, and performance
+
 # 📚 LEARN YOUR SYSTEM - Documentation & Discovery
 help                                       # Show comprehensive alias documentation
 docs                                       # Interactive menu to browse all aliases
@@ -347,7 +357,18 @@ stow config   # Application configs
    sdk install java 21.0.5-tem
    ```
 
-5. **Atuin Shell History** (first run setup):
+5. **Ballerina Environment** (if installed):
+   ```bash
+   # Verify installation
+   bal version
+
+   # Create a new Ballerina project
+   bal new my-project
+   cd my-project
+   bal run
+   ```
+
+6. **Atuin Shell History** (first run setup):
    ```bash
    # Import your existing shell history
    atuin import auto
@@ -586,12 +607,246 @@ my_function() {
 }
 ```
 
+### Understanding Your Prompt
+
+The Oh My Posh "zen" theme displays contextual information about your current environment:
+
+**Prompt Layout**:
+```
+~/dotfiles  ☕ 21.0.5  ⬢ 22.2.0  main ≢ 🖊️ 2   1:06:25 PM
+❯
+```
+
+**Segments Explained** (left to right):
+
+1. **📁 Current Directory** (blue background)
+   - Shows abbreviated path with max 3 levels deep
+   - Example: `~/p/myproject` instead of `~/projects/personal/myproject`
+
+2. **☕ Java Version** (blue background, only when Java project detected)
+   - Shows when `pom.xml`, `build.gradle`, or `.java` files present
+   - Example: `☕ 21.0.5`
+
+3. **⬢ Node.js Version** (green background, only when Node project detected)
+   - Shows when `package.json` or `.nvmrc` present
+   - Example: `⬢ 22.2.0`
+
+4. **🐍 Python Version** (yellow background, only when Python project detected)
+   - Shows when `.py` files, `requirements.txt`, or virtual env present
+   - Example: `🐍 3.13.7`
+
+5. **Ballerina Version** (teal background, only when Ballerina project detected)
+   - Shows when `Ballerina.toml` or `.bal` files present
+   - Example: `🩰 2201.13.0`
+
+6. **🌿 Git Status** (green/yellow/orange background)
+   - Branch name with upstream indicator (↑ ahead, ↓ behind)
+   - File changes: `🖊️ 2` (2 modified files), `📋 1` (1 staged file)
+   - Stash count: `💾 3` (if you have stashed changes)
+   - Colors: green (clean), yellow (changes), orange (ahead/behind)
+
+7. **🕐 Time** (right side, blue)
+   - Current time in 12-hour format
+   - Example: `1:06:25 PM`
+
+8. **❯ Prompt Symbol** (new line)
+   - Green `❯` = last command succeeded (exit code 0)
+   - Red `❯` = last command failed (exit code > 0)
+
+**Multi-Language Projects**:
+The prompt intelligently detects all languages in your project. For example, a Ballerina project using Java libraries will show both:
+```
+~/my-project  ☕ 21.0.5  🩰 2201.13.0  main
+❯
+```
+
+### Prompt State Examples
+
+Here are common prompt states you'll encounter:
+
+**Clean Repository (No Changes)**:
+```
+~/dotfiles  main                    1:06:16 PM
+❯
+```
+
+**Modified Files (Uncommitted Changes)**:
+```
+~/dotfiles  main ≢ 🖊️ 3             1:06:20 PM
+❯
+```
+*Shows 3 modified files in working directory*
+
+**Staged Files Ready to Commit**:
+```
+~/dotfiles  main ≢ 📋 2             1:06:22 PM
+❯
+```
+*Shows 2 files staged for commit*
+
+**Mixed State (Modified + Staged)**:
+```
+~/dotfiles  main ≢ 🖊️ 2 | 📋 1      1:06:25 PM
+❯
+```
+*Shows 2 modified and 1 staged file*
+
+**Ahead of Remote**:
+```
+~/dotfiles  ↑ main                  1:06:30 PM
+❯
+```
+*Local branch has commits not pushed to remote*
+
+**Behind Remote**:
+```
+~/dotfiles  ↓ main                  1:06:35 PM
+❯
+```
+*Remote has commits not pulled locally*
+
+**Diverged (Ahead + Behind)**:
+```
+~/dotfiles  ↕ main                  1:06:40 PM
+❯
+```
+*Both local and remote have unique commits*
+
+**With Stashed Changes**:
+```
+~/dotfiles  main ≢ 🖊️ 2 💾 1        1:06:45 PM
+❯
+```
+*Shows 2 modified files and 1 stash*
+
+**Multi-Language Project (Java + Node.js + Python)**:
+```
+~/api-server  ☕ 21.0.5  ⬢ 22.2.0  🐍 3.13.7  main  1:07:00 PM
+❯
+```
+*All detected runtimes shown when project uses multiple languages*
+
+**Failed Command (Red Prompt Symbol)**:
+```
+~/dotfiles  main                    1:07:10 PM
+❯
+```
+*Prompt symbol turns red when last command failed (exit code > 0)*
+
+**Successful Command (Green Prompt Symbol)**:
+```
+~/dotfiles  main                    1:07:15 PM
+❯
+```
+*Prompt symbol is green when last command succeeded (exit code 0)*
+
 ### Modifying the Prompt
 
 The Oh My Posh theme is located at `~/.config/ohmyposh/zen.json`. You can:
 - Modify colors in the `palette` section
 - Add/remove prompt segments
+- Reorder segments by changing their position in the `segments` array
+- Adjust path truncation by changing `max_depth` property
 - Check [Oh My Posh documentation](https://ohmyposh.dev/) for advanced customization
+
+#### Common Customizations
+
+**1. Change Prompt Colors**
+
+Edit the color palette in `~/.config/ohmyposh/zen.json`:
+
+```json
+"palette": {
+  "blue": "#3a8cf7",      // Directory and time color
+  "green": "#08c70e",     // Git clean / success color
+  "yellow": "#d5d907",    // Git changes color
+  "red": "#fe2222",       // Error color
+  "orange": "#de5f0b",    // Upstream ahead/behind
+  "background": "#3b3b39" // Segment background
+}
+```
+
+**2. Add a New Language Runtime**
+
+Example: Add Go version indicator after Python segment (around line 73):
+
+```json
+{
+  "type": "go",
+  "style": "powerline",
+  "powerline_symbol": "\ue0b0",
+  "foreground": "#ffffff",
+  "background": "#00ADD8",
+  "template": " \ue626 {{ .Full }} ",
+  "properties": {
+    "display_mode": "context"
+  }
+}
+```
+
+**3. Remove a Language Indicator**
+
+Simply delete the entire segment block (lines 41-85 contain language indicators).
+
+**4. Adjust Path Truncation**
+
+Edit the path segment (lines 22-40):
+
+```json
+{
+  "properties": {
+    "style": "folder",     // Options: "full", "folder", "agnoster", "short"
+    "max_depth": 3         // How many parent folders to show
+  }
+}
+```
+
+**5. Customize Git Status Icons**
+
+Edit the git segment template (line 94):
+
+```json
+"template": "{{ .UpstreamIcon }}{{ .HEAD }} ..."
+```
+
+Available template variables:
+- `{{ .HEAD }}` - current branch name
+- `{{ .UpstreamIcon }}` - ↑ ahead, ↓ behind, ↕ diverged
+- `{{ .Working.Changed }}` - number of modified files
+- `{{ .Staging.Changed }}` - number of staged files
+- `{{ .StashCount }}` - number of stashes
+
+#### Testing Workflow
+
+**1. Edit the configuration:**
+```bash
+vim ~/.config/ohmyposh/zen.json
+```
+
+**2. Test changes (without applying):**
+```bash
+oh-my-posh print primary --config ~/.config/ohmyposh/zen.json
+```
+
+**3. Apply changes:**
+```bash
+# Clear cache to force regeneration
+rm ~/.cache/zsh/omp_cache.zsh
+
+# Restart shell to see changes
+exec zsh
+```
+
+#### Troubleshooting
+
+**Changes not showing?**
+1. Clear cache: `rm ~/.cache/zsh/omp_cache.zsh`
+2. Verify config is valid JSON: `jq empty ~/.config/ohmyposh/zen.json`
+3. Check for errors: `oh-my-posh print primary --config ~/.config/ohmyposh/zen.json 2>&1`
+
+**Prompt looks broken?**
+1. Restore from git: `git checkout config/ohmyposh/zen.json`
+2. Or reset cache: `rm ~/.cache/zsh/omp_cache.zsh && exec zsh`
 
 ### Environment Variables
 
@@ -643,11 +898,68 @@ brew uninstall oh-my-posh
 brew install oh-my-posh
 ```
 
-### Verify Setup
-
-Run this verification checklist to ensure everything is working:
+**Seeing "CONFIG ERROR" in prompt**:
+This means Oh My Posh can't find the zen.json theme file.
 
 ```bash
+# Verify config symlink exists and points to correct location
+ls -la ~/.config/ohmyposh/zen.json
+
+# If broken or missing, recreate the symlink
+rm -f ~/.config/ohmyposh
+ln -sf ~/dotfiles/config/ohmyposh ~/.config/ohmyposh
+
+# Clear cache and restart
+rm ~/.cache/zsh/omp_cache.zsh
+exec zsh
+```
+
+**Prompt symbols showing as boxes or question marks**:
+Your terminal font doesn't support Nerd Font icons.
+
+```bash
+# Install a Nerd Font
+brew install --cask font-fira-code-nerd-font
+
+# Configure your terminal to use it:
+# - Warp: Settings → Appearance → Text → Font → "FiraCode Nerd Font"
+# - iTerm2: Preferences → Profiles → Text → Font → "FiraCode Nerd Font"
+# - VS Code Terminal: Settings → terminal.integrated.fontFamily → "FiraCode Nerd Font"
+
+# Restart your terminal and verify
+echo "  "  # Should show folder, git branch, and Python icons
+```
+
+**Language version not showing in prompt**:
+The prompt only shows language versions when in a project directory.
+
+```bash
+# Verify the language is installed
+java --version    # For Java
+node --version    # For Node.js
+python --version  # For Python
+bal version       # For Ballerina
+
+# Make sure you're in a project directory with relevant files:
+# - Java: pom.xml, build.gradle, or *.java files
+# - Node: package.json or .nvmrc
+# - Python: *.py files or requirements.txt
+# - Ballerina: Ballerina.toml or *.bal files
+
+# Test prompt rendering
+oh-my-posh print primary --config ~/.config/ohmyposh/zen.json
+```
+
+### Verify Setup
+
+Run the built-in validation suite to ensure everything is working:
+
+```bash
+# ✅ Run comprehensive validation (RECOMMENDED)
+test-zsh                                  # Tests all tools, runtimes, PATH, and performance
+                                          # Reads from packages.json for dynamic testing
+                                          # Shows beautiful output with pass/fail/warnings
+
 # ✅ Shell configuration syntax check
 zsh -n ~/.zshrc                          # Should pass without errors
 
@@ -678,6 +990,7 @@ age --version                            # Should show age version
 ```
 
 **Verification Checklist:**
+- [ ] `test-zsh` passes with no failures (automated validation)
 - [ ] `zsh -n ~/.zshrc` passes without errors
 - [ ] fzf fuzzy search works (Ctrl+R, but may conflict with Warp)
 - [ ] `tmux` starts and Ctrl+a | splits panes
@@ -686,25 +999,34 @@ age --version                            # Should show age version
 - [ ] `edit_secrets` command opens encrypted environment file
 - [ ] Ctrl+Alt+R triggers Atuin history search
 - [ ] Custom functions like `take` and `kill_by_port --help` work
+- [ ] `claude --version` works (if using Claude Code)
+- [ ] `bal version` works (if Ballerina is installed)
 
 ## ⚡ Performance
 
 This dotfiles setup is optimized for fast shell startup and responsive daily use:
 
 ### Performance Targets
-- **Excellent**: < 0.2s startup (instant feel)
-- **Good**: < 0.4s startup (very responsive)
-- **Acceptable**: < 0.8s startup (responsive)
-- **Slow**: > 1.5s startup (needs optimization)
+- **Excellent**: < 0.5s startup (instant feel) ✅ **Current: ~0.6s**
+- **Good**: < 1.0s startup (very responsive)
+- **Acceptable**: < 2.0s startup (responsive)
+- **Slow**: > 2.0s startup (needs optimization)
 
 ### Performance Features
-- **Lazy Loading**: Heavy components (fzf, atuin, direnv, pyenv, rbenv, SDKMAN) load only when needed
+
+- **Optimized NVM Loading**: Node.js PATH added immediately without full NVM initialization
+- **Lazy Loading**: NVM functions only load when `nvm` command is used
 - **Turbo Mode**: Non-essential Zinit plugins load with delay
 - **Efficient Initialization**: Optimized oh-my-posh and plugin loading
 - **PATH Deduplication**: Prevents PATH pollution and slow lookups
+- **Smart Caching**: Environment variables and paths cached for faster access
 
 ### Monitor Performance
+
 ```bash
+# Comprehensive validation (includes performance test)
+test-zsh                                  # Tests startup time with 3 samples
+
 # Quick performance test
 profile_startup
 
@@ -714,6 +1036,15 @@ profile_startup
 # Manual timing
 time zsh -i -c exit
 ```
+
+### Performance Optimization Tips
+
+If your shell startup is slower than expected:
+
+1. **Check what's loading**: Run `test-zsh` to see performance metrics
+2. **Disable unused plugins**: Comment out Zinit plugins you don't use
+3. **Reduce PATH complexity**: Remove unused paths from `.paths.sh`
+4. **Profile startup**: Use `./bin/profile-startup` to identify bottlenecks
 
 ## 🔄 Updating
 
@@ -735,6 +1066,7 @@ source ~/.zshrc  # Reload configuration
 ## 🤝 Contributing
 
 Found an issue or have a suggestion? Feel free to:
+
 1. Open an issue on GitHub
 2. Fork the repository and submit a pull request
 3. Suggest improvements to the setup
@@ -742,6 +1074,7 @@ Found an issue or have a suggestion? Feel free to:
 ### Quality Assurance
 
 This repository includes automated validation:
+
 - **Shellcheck**: Validates all shell scripts for common issues
 - **Formatting**: Ensures consistent code formatting with shfmt
 - **Syntax Testing**: Validates JSON and shell configuration syntax
@@ -759,3 +1092,9 @@ MIT License - feel free to use and modify as needed.
 **Enjoy your enhanced development environment! 🎉**
 
 For questions or issues, refer to the troubleshooting section above or open an issue on GitHub.
+
+---
+
+**Maintained by**: [Thisaru Guruge](https://thisaru.me)
+
+*P.S. Curious developers might find some interesting surprises hidden in the code. Happy exploring! 🔍*

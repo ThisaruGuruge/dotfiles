@@ -187,8 +187,7 @@ alias top='htop'
 #   find . -name "*.js"    # Fast file search with fd (much faster than traditional find)
 #   du -h                  # Disk usage with visual tree (dust)
 #   df -h                  # Disk free space with colors (duf)
-# Temporarily disabled fd alias to fix startup error
-# alias find='fd'
+alias find='fd'
 alias du='dust'
 alias df='duf'
 
@@ -236,6 +235,8 @@ alias bb='bal build'
 alias br='bal run'
 alias bv='bal -v'
 alias bt='bal test'
+alias btest='bal test --code-coverage'
+alias btestv='bal test --code-coverage --verbose'
 alias bro='bal run --offline'
 
 # Ballerina-specific search aliases
@@ -254,3 +255,6 @@ if command -v atuin >/dev/null 2>&1; then
     alias hup='atuin up'
     alias hdown='atuin down'
 fi
+
+# Dotfiles testing
+alias test-zsh='$HOME/dotfiles/bin/test-zsh-config'

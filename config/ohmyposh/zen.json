@@ -1,12 +1,18 @@
 {
   "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/themes/schema.json",
   "palette": {
-    "background": "#3b3b39",
-    "blue": "#3a8cf7",
-    "green": "#08c70e",
-    "orange": "#de5f0b",
-    "red": "#fe2222",
-    "yellow": "#d5d907"
+    "background": "#2A2C2F",
+    "surface": "#2F3236",
+    "slate": "#35393F",
+    "ink": "#E6E6E6",
+    "muted": "#B8BEC9",
+    "blue": "#3A6EA5",
+    "green": "#3A7A5D",
+    "teal": "#3F8886",
+    "orange": "#C06629",
+    "red": "#B44A4A",
+    "yellow": "#C2A436",
+    "purple": "#6E5AA2"
   },
   "transient_prompt": {
     "template": "❯ ",
@@ -20,22 +26,97 @@
       "alignment": "left",
       "segments": [
         {
+          "type": "session",
+          "style": "powerline",
+          "powerline_symbol": "\ue0b0",
+          "foreground": "#ffffff",
+          "background": "p:purple",
+          "template": "{{ if .SSHSession }} \uf817 {{ .UserName }}@{{ .HostName }} {{ end }}",
+          "properties": {
+            "display_host": true,
+            "display_user": true
+          }
+        },
+        {
+          "type": "command",
+          "style": "powerline",
+          "powerline_symbol": "\ue0b0",
+          "foreground": "#ffffff",
+          "background": "p:surface",
+          "template": "{{ if .Output }} {{ .Output }} {{ end }}",
+          "properties": {
+            "shell": "bash",
+            "command": "if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then basename $(git rev-parse --show-toplevel); fi"
+          }
+        },
+        {
           "properties": {
             "cache_duration": "none",
             "folder_icon": "\ue5fe",
             "folder_separator_icon": " \ue0b1 ",
-            "home_icon": "\uf46d",
+            "home_icon": "🏠",
             "mapped_locations": {
-              "/": "<b>\ue711</b>"
+              "/": "<b>\ue711</b>",
+              "~/Projects": "💼",
+              "~/Setup": "⚙️",
+              "~/Documents": "📄",
+              "~/Downloads": "⬇️",
+              "~/Desktop": "🖥️"
             },
-            "style": "full"
+            "style": "folder",
+            "max_depth": 3
           },
-          "template": " {{ .Parent }}<b>{{ .Folder }}</b> ",
+          "template": " {{ .Path }} ",
           "foreground": "p:blue",
           "powerline_symbol": "\ue0b0",
-          "background": "p:background",
+          "background": "p:slate",
           "type": "path",
           "style": "powerline"
+        },
+        {
+          "type": "java",
+          "style": "powerline",
+          "powerline_symbol": "\ue0b0",
+          "foreground": "#ffffff",
+          "background": "#2F5E86",
+          "template": " ☕ {{ .Full }} ",
+          "properties": {
+            "display_mode": "context"
+          }
+        },
+        {
+          "type": "node",
+          "style": "powerline",
+          "powerline_symbol": "\ue0b0",
+          "foreground": "#ffffff",
+          "background": "#339933",
+          "template": " \ue718 {{ .Full }} ",
+          "properties": {
+            "display_mode": "context"
+          }
+        },
+        {
+          "type": "python",
+          "style": "powerline",
+          "powerline_symbol": "\ue0b0",
+          "foreground": "#ffffff",
+          "background": "#3776AB",
+          "template": " \ue235 {{ .Full }} ",
+          "properties": {
+            "display_mode": "context"
+          }
+        },
+        {
+          "type": "command",
+          "style": "powerline",
+          "powerline_symbol": "\ue0b0",
+          "foreground": "#111111",
+          "background": "#52C3C2",
+          "template": "{{ if .Output }} 🩰 {{ .Output }} {{ end }}",
+          "properties": {
+            "shell": "bash",
+            "command": "dir=\"$PWD\"; while [ \"$dir\" != \"/\" ]; do if [ -f \"$dir/Ballerina.toml\" ]; then cat ~/.ballerina/ballerina-version | sed 's/ballerina-//'; exit 0; fi; dir=$(dirname \"$dir\"); done"
+          }
         },
         {
           "properties": {
@@ -45,10 +126,10 @@
             "fetch_status": true,
             "fetch_upstream_icon": true
           },
-          "template": "{{ .UpstreamIcon }}{{ .HEAD }} {{if .BranchStatus }}{{ .BranchStatus }}{{ end }}{{ if .Working.Changed }} \uf044 {{ .Working.String }}{{ end }}{{ if and (.Working.Changed) (.Staging.Changed) }}|{{ end }}{{ if .Staging.Changed }} \uf046 {{ .Staging.String }}{{ end }}{{ if gt .StashCount 0 }} \uf0c7 {{ .StashCount }}{{ end }}",
+          "template": "{{ if .Detached }}⚠️ DETACHED @ {{ .HEAD }}{{ else }}{{ .UpstreamIcon }}{{ .HEAD }}{{ end }} {{if .BranchStatus }}{{ .BranchStatus }}{{ end }}{{ if .Working.Changed }} \uf044 {{ .Working.String }}{{ end }}{{ if and (.Working.Changed) (.Staging.Changed) }}|{{ end }}{{ if .Staging.Changed }} \uf046 {{ .Staging.String }}{{ end }}{{ if gt .StashCount 0 }} \uf0c7 {{ .StashCount }}{{ end }}",
           "foreground": "p:green",
           "powerline_symbol": "\ue0b0",
-          "background": "p:background",
+          "background": "p:surface",
           "type": "git",
           "style": "powerline",
           "foreground_templates": [
@@ -67,13 +148,37 @@
       "filler": "\ueacc",
       "segments": [
         {
+          "type": "executiontime",
+          "style": "plain",
+          "foreground": "p:yellow",
+          "template": " \uf252 {{ .FormattedMs }} ",
+          "properties": {
+            "threshold": 2000,
+            "style": "austin"
+          }
+        },
+        {
+          "type": "battery",
+          "style": "plain",
+          "foreground": "p:yellow",
+          "foreground_templates": [
+            "{{if lt .Percentage 30}}p:red{{end}}"
+          ],
+          "template": " {{ .Icon }} {{ .Percentage }}% ",
+          "properties": {
+            "charged_icon": "🔋",
+            "charging_icon": "⚡",
+            "discharging_icon": "🔋"
+          }
+        },
+        {
           "properties": {
             "cache_duration": "none",
             "time_format": "3:04:05 PM"
           },
-          "foreground": "#007ACC",
+          "foreground": "p:blue",
           "type": "time",
-          "style": "powerline"
+          "style": "plain"
         }
       ]
     },
@@ -91,7 +196,7 @@
           "style": "powerline",
           "foreground_templates": [
             "{{ if gt .Code 0 }}p:red{{ end }}",
-            "{{ if eq .Code 0 }}p:green{{ end }}"
+            "{{ if eq .Code 0 }}p:blue{{ end }}"
           ]
         }
       ],
