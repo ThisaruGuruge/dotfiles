@@ -605,12 +605,246 @@ my_function() {
 }
 ```
 
+### Understanding Your Prompt
+
+The Oh My Posh "zen" theme displays contextual information about your current environment:
+
+**Prompt Layout**:
+```
+~/dotfiles  ☕ 21.0.5  ⬢ 22.2.0  main ≢ 🖊️ 2   1:06:25 PM
+❯
+```
+
+**Segments Explained** (left to right):
+
+1. **📁 Current Directory** (blue background)
+   - Shows abbreviated path with max 3 levels deep
+   - Example: `~/p/myproject` instead of `~/projects/personal/myproject`
+
+2. **☕ Java Version** (blue background, only when Java project detected)
+   - Shows when `pom.xml`, `build.gradle`, or `.java` files present
+   - Example: `☕ 21.0.5`
+
+3. **⬢ Node.js Version** (green background, only when Node project detected)
+   - Shows when `package.json` or `.nvmrc` present
+   - Example: `⬢ 22.2.0`
+
+4. **🐍 Python Version** (yellow background, only when Python project detected)
+   - Shows when `.py` files, `requirements.txt`, or virtual env present
+   - Example: `🐍 3.13.7`
+
+5. **Ballerina Version** (teal background, only when Ballerina project detected)
+   - Shows when `Ballerina.toml` or `.bal` files present
+   - Example: `🩰 2201.13.0`
+
+6. **🌿 Git Status** (green/yellow/orange background)
+   - Branch name with upstream indicator (↑ ahead, ↓ behind)
+   - File changes: `🖊️ 2` (2 modified files), `📋 1` (1 staged file)
+   - Stash count: `💾 3` (if you have stashed changes)
+   - Colors: green (clean), yellow (changes), orange (ahead/behind)
+
+7. **🕐 Time** (right side, blue)
+   - Current time in 12-hour format
+   - Example: `1:06:25 PM`
+
+8. **❯ Prompt Symbol** (new line)
+   - Green `❯` = last command succeeded (exit code 0)
+   - Red `❯` = last command failed (exit code > 0)
+
+**Multi-Language Projects**:
+The prompt intelligently detects all languages in your project. For example, a Ballerina project using Java libraries will show both:
+```
+~/my-project  ☕ 21.0.5  🩰 2201.13.0  main
+❯
+```
+
+### Prompt State Examples
+
+Here are common prompt states you'll encounter:
+
+**Clean Repository (No Changes)**:
+```
+~/dotfiles  main                    1:06:16 PM
+❯
+```
+
+**Modified Files (Uncommitted Changes)**:
+```
+~/dotfiles  main ≢ 🖊️ 3             1:06:20 PM
+❯
+```
+*Shows 3 modified files in working directory*
+
+**Staged Files Ready to Commit**:
+```
+~/dotfiles  main ≢ 📋 2             1:06:22 PM
+❯
+```
+*Shows 2 files staged for commit*
+
+**Mixed State (Modified + Staged)**:
+```
+~/dotfiles  main ≢ 🖊️ 2 | 📋 1      1:06:25 PM
+❯
+```
+*Shows 2 modified and 1 staged file*
+
+**Ahead of Remote**:
+```
+~/dotfiles  ↑ main                  1:06:30 PM
+❯
+```
+*Local branch has commits not pushed to remote*
+
+**Behind Remote**:
+```
+~/dotfiles  ↓ main                  1:06:35 PM
+❯
+```
+*Remote has commits not pulled locally*
+
+**Diverged (Ahead + Behind)**:
+```
+~/dotfiles  ↕ main                  1:06:40 PM
+❯
+```
+*Both local and remote have unique commits*
+
+**With Stashed Changes**:
+```
+~/dotfiles  main ≢ 🖊️ 2 💾 1        1:06:45 PM
+❯
+```
+*Shows 2 modified files and 1 stash*
+
+**Multi-Language Project (Java + Node.js + Python)**:
+```
+~/api-server  ☕ 21.0.5  ⬢ 22.2.0  🐍 3.13.7  main  1:07:00 PM
+❯
+```
+*All detected runtimes shown when project uses multiple languages*
+
+**Failed Command (Red Prompt Symbol)**:
+```
+~/dotfiles  main                    1:07:10 PM
+❯
+```
+*Prompt symbol turns red when last command failed (exit code > 0)*
+
+**Successful Command (Green Prompt Symbol)**:
+```
+~/dotfiles  main                    1:07:15 PM
+❯
+```
+*Prompt symbol is green when last command succeeded (exit code 0)*
+
 ### Modifying the Prompt
 
 The Oh My Posh theme is located at `~/.config/ohmyposh/zen.json`. You can:
 - Modify colors in the `palette` section
 - Add/remove prompt segments
+- Reorder segments by changing their position in the `segments` array
+- Adjust path truncation by changing `max_depth` property
 - Check [Oh My Posh documentation](https://ohmyposh.dev/) for advanced customization
+
+#### Common Customizations
+
+**1. Change Prompt Colors**
+
+Edit the color palette in `~/.config/ohmyposh/zen.json`:
+
+```json
+"palette": {
+  "blue": "#3a8cf7",      // Directory and time color
+  "green": "#08c70e",     // Git clean / success color
+  "yellow": "#d5d907",    // Git changes color
+  "red": "#fe2222",       // Error color
+  "orange": "#de5f0b",    // Upstream ahead/behind
+  "background": "#3b3b39" // Segment background
+}
+```
+
+**2. Add a New Language Runtime**
+
+Example: Add Go version indicator after Python segment (around line 73):
+
+```json
+{
+  "type": "go",
+  "style": "powerline",
+  "powerline_symbol": "\ue0b0",
+  "foreground": "#ffffff",
+  "background": "#00ADD8",
+  "template": " \ue626 {{ .Full }} ",
+  "properties": {
+    "display_mode": "context"
+  }
+}
+```
+
+**3. Remove a Language Indicator**
+
+Simply delete the entire segment block (lines 41-85 contain language indicators).
+
+**4. Adjust Path Truncation**
+
+Edit the path segment (lines 22-40):
+
+```json
+{
+  "properties": {
+    "style": "folder",     // Options: "full", "folder", "agnoster", "short"
+    "max_depth": 3         // How many parent folders to show
+  }
+}
+```
+
+**5. Customize Git Status Icons**
+
+Edit the git segment template (line 94):
+
+```json
+"template": "{{ .UpstreamIcon }}{{ .HEAD }} ..."
+```
+
+Available template variables:
+- `{{ .HEAD }}` - current branch name
+- `{{ .UpstreamIcon }}` - ↑ ahead, ↓ behind, ↕ diverged
+- `{{ .Working.Changed }}` - number of modified files
+- `{{ .Staging.Changed }}` - number of staged files
+- `{{ .StashCount }}` - number of stashes
+
+#### Testing Workflow
+
+**1. Edit the configuration:**
+```bash
+vim ~/.config/ohmyposh/zen.json
+```
+
+**2. Test changes (without applying):**
+```bash
+oh-my-posh print primary --config ~/.config/ohmyposh/zen.json
+```
+
+**3. Apply changes:**
+```bash
+# Clear cache to force regeneration
+rm ~/.cache/zsh/omp_cache.zsh
+
+# Restart shell to see changes
+exec zsh
+```
+
+#### Troubleshooting
+
+**Changes not showing?**
+1. Clear cache: `rm ~/.cache/zsh/omp_cache.zsh`
+2. Verify config is valid JSON: `jq empty ~/.config/ohmyposh/zen.json`
+3. Check for errors: `oh-my-posh print primary --config ~/.config/ohmyposh/zen.json 2>&1`
+
+**Prompt looks broken?**
+1. Restore from git: `git checkout config/ohmyposh/zen.json`
+2. Or reset cache: `rm ~/.cache/zsh/omp_cache.zsh && exec zsh`
 
 ### Environment Variables
 
@@ -660,6 +894,58 @@ oh-my-posh --version
 # Reinstall if needed
 brew uninstall oh-my-posh
 brew install oh-my-posh
+```
+
+**Seeing "CONFIG ERROR" in prompt**:
+This means Oh My Posh can't find the zen.json theme file.
+
+```bash
+# Verify config symlink exists and points to correct location
+ls -la ~/.config/ohmyposh/zen.json
+
+# If broken or missing, recreate the symlink
+rm -f ~/.config/ohmyposh
+ln -sf ~/dotfiles/config/ohmyposh ~/.config/ohmyposh
+
+# Clear cache and restart
+rm ~/.cache/zsh/omp_cache.zsh
+exec zsh
+```
+
+**Prompt symbols showing as boxes or question marks**:
+Your terminal font doesn't support Nerd Font icons.
+
+```bash
+# Install a Nerd Font
+brew install --cask font-fira-code-nerd-font
+
+# Configure your terminal to use it:
+# - Warp: Settings → Appearance → Text → Font → "FiraCode Nerd Font"
+# - iTerm2: Preferences → Profiles → Text → Font → "FiraCode Nerd Font"
+# - VS Code Terminal: Settings → terminal.integrated.fontFamily → "FiraCode Nerd Font"
+
+# Restart your terminal and verify
+echo "  "  # Should show folder, git branch, and Python icons
+```
+
+**Language version not showing in prompt**:
+The prompt only shows language versions when in a project directory.
+
+```bash
+# Verify the language is installed
+java --version    # For Java
+node --version    # For Node.js
+python --version  # For Python
+bal version       # For Ballerina
+
+# Make sure you're in a project directory with relevant files:
+# - Java: pom.xml, build.gradle, or *.java files
+# - Node: package.json or .nvmrc
+# - Python: *.py files or requirements.txt
+# - Ballerina: Ballerina.toml or *.bal files
+
+# Test prompt rendering
+oh-my-posh print primary --config ~/.config/ohmyposh/zen.json
 ```
 
 ### Verify Setup

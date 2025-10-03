@@ -342,6 +342,30 @@ else
     print_test "Zinit Plugin Manager" "warn" "Not found"
 fi
 
+# Test Oh My Posh prompt configuration
+if command -v oh-my-posh >/dev/null 2>&1; then
+    local omp_config="$HOME/.config/ohmyposh/zen.json"
+    if [[ -f "$omp_config" ]] || [[ -L "$omp_config" ]]; then
+        # Test if theme renders without errors
+        if oh-my-posh print primary --config "$omp_config" >/dev/null 2>&1; then
+            print_test "Oh My Posh Theme" "pass" "zen.json renders correctly"
+        else
+            print_test "Oh My Posh Theme" "fail" "Rendering errors in zen.json"
+        fi
+
+        # Check if cache exists
+        if [[ -f "$HOME/.cache/zsh/omp_cache.zsh" ]]; then
+            print_test "Oh My Posh Cache" "pass" "Cached at ~/.cache/zsh/omp_cache.zsh"
+        else
+            print_test "Oh My Posh Cache" "warn" "Not cached (will generate on first use)"
+        fi
+    else
+        print_test "Oh My Posh Config" "fail" "zen.json not found at $omp_config"
+    fi
+else
+    print_test "Oh My Posh" "warn" "Not installed"
+fi
+
 # ============================================================================
 # ENVIRONMENT FILES
 # ============================================================================

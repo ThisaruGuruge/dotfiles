@@ -818,6 +818,24 @@ test_installation() {
         fi
     done
 
+    # Verify Oh My Posh configuration
+    if command_exists oh-my-posh; then
+        if [ -L "$HOME/.config/ohmyposh/zen.json" ] || [ -f "$HOME/.config/ohmyposh/zen.json" ]; then
+            log_success "Oh My Posh config found at ~/.config/ohmyposh/zen.json"
+
+            # Test if theme renders correctly
+            if oh-my-posh print primary --config "$HOME/.config/ohmyposh/zen.json" >/dev/null 2>&1; then
+                log_success "Oh My Posh theme renders correctly"
+            else
+                log_warning "Oh My Posh theme has rendering errors - check config"
+                ((errors++))
+            fi
+        else
+            log_warning "Oh My Posh config not found at ~/.config/ohmyposh/zen.json"
+            log_info "Run 'stow config' to create the symlink"
+        fi
+    fi
+
     if [ $errors -eq 0 ]; then
         log_success "Installation test passed!"
     else

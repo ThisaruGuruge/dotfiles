@@ -1,5 +1,46 @@
 #!/bin/zsh
 
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Enhanced user confirmation function with single key press
+confirm() {
+    while true; do
+        echo ""
+        echo -en "  ${YELLOW}$1 (y/n/q): ${NC}"
+        read -r -n 1 -s key # Read single character without echo
+        echo                # Print newline after keypress
+
+        case "$key" in
+            [Yy])
+                echo -e "  ${GREEN}→ Yes${NC}"
+                echo ""
+                return 0
+                ;;
+            [Nn])
+                echo -e "  ${RED}→ No${NC}"
+                echo ""
+                return 1
+                ;;
+            [Qq])
+                echo -e "  ${YELLOW}→ Quit${NC}"
+                echo ""
+                echo "  Cancelled by user"
+                exit 0
+                ;;
+            *)
+                echo -e "  ${YELLOW}⚠️ Please press 'y' for yes, 'n' for no, or 'q' to quit.${NC}"
+                ;;
+        esac
+    done
+}
+
 # Edit secrets in .env file (handles both encrypted and plaintext)
 edit_secrets() {
     local env_file="$HOME/.env"
@@ -644,13 +685,12 @@ function takegit() {
         return 1
     fi
 
-    # Extract repository name from various URL formats
-    if [[ $repo_url =~ .*/([^/]+)\.git/?$ ]]; then
-        repo_name="${match[1]}"
-    elif [[ $repo_url =~ .*/([^/]+)/?$ ]]; then
-        repo_name="${match[1]}"
-    else
-        repo_name="$(basename "$repo_url" .git)"
+    # Extract repository name from URL (consistent approach)
+    repo_name="$(basename "$repo_url" .git)"
+
+    # Handle edge cases
+    if [[ "$repo_name" == "." ]] || [[ -z "$repo_name" ]]; then
+        repo_name="repository"
     fi
 
     # Check if directory already exists

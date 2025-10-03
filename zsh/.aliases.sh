@@ -235,6 +235,8 @@ alias bb='bal build'
 alias br='bal run'
 alias bv='bal -v'
 alias bt='bal test'
+alias btest='bal test --code-coverage'
+alias btestv='bal test --code-coverage --verbose'
 alias bro='bal run --offline'
 
 # Ballerina-specific search aliases

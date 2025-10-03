@@ -323,7 +323,9 @@ export PATH="${HOME}/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
 # Source local environment if it exists
-[ -f "$HOME/.local/bin/env" ] && source "$HOME/.local/bin/env" || true
+if [ -d "$HOME/.local/bin" ] && [ -f "$HOME/.local/bin/env" ]; then
+    source "$HOME/.local/bin/env"
+fi
 
 # Lazy load Google Cloud SDK - initialize only when gcloud commands are used
 _gcloud_lazy_load() {
