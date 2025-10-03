@@ -267,6 +267,9 @@ install_dev_tools() {
 
     # Install SDKMAN
     install_sdkman
+
+    # Install Ballerina
+    install_ballerina
 }
 
 # Install SDKMAN
@@ -297,6 +300,39 @@ install_sdkman() {
         fi
     else
         log_warning "Skipped SDKMAN installation"
+    fi
+}
+
+# Install Ballerina
+install_ballerina() {
+    log_step "Installing Ballerina (Cloud-Native Programming Language)"
+
+    # Check if Ballerina is already installed
+    if command -v bal >/dev/null 2>&1; then
+        local bal_version
+        bal_version=$(bal version 2>&1 | head -n 1)
+        log_success "Ballerina already installed: $bal_version"
+        return 0
+    fi
+
+    if confirm "Install Ballerina programming language?"; then
+        log_info "Installing Ballerina via Homebrew..."
+        if brew install ballerina; then
+            log_success "Ballerina installed successfully"
+
+            # Verify installation
+            if command -v bal >/dev/null 2>&1; then
+                local bal_version
+                bal_version=$(bal version 2>&1 | head -n 1)
+                log_success "Ballerina version: $bal_version"
+            else
+                log_warning "Ballerina installed but not found in PATH. You may need to restart your terminal."
+            fi
+        else
+            log_error "Ballerina installation failed"
+        fi
+    else
+        log_warning "Skipped Ballerina installation"
     fi
 }
 
