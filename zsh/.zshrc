@@ -263,14 +263,30 @@ if [ -f "$HOME/.env" ]; then
             # Encrypted - decrypt and cache
             if command -v sops >/dev/null 2>&1; then
                 if sops_output=$(sops -d "$env_file" 2>/dev/null); then
-                    echo "$sops_output" > "$env_cache_file"
-                    # Safely source only lines matching export KEY="VALUE" pattern
-                    # This avoids arbitrary code execution from decrypted content
+                    echo "$sops_output" >"$env_cache_file"
+                    # Safely source only lines matching export KEY="VALUE" or KEY='VALUE' pattern
+                    # This validates the export statement structure to prevent code injection
+                    # Pattern explanation:
+                    # - ^export[[:space:]]+     : Must start with 'export' and whitespace
+                    # - [A-Za-z_][A-Za-z0-9_]*  : Valid variable name (alphanumeric + underscore)
+                    # - =                       : Assignment operator
+                    # - Value must not contain: $( ) ` ; & | < > \n (command injection chars)
+                    # - Accepts: quoted strings without dangerous chars, or simple unquoted values
                     while IFS= read -r line; do
-                        if [[ "$line" =~ ^export[[:space:]]+[A-Za-z_][A-Za-z0-9_]*= ]]; then
-                            eval "$line"
+                        # Skip empty lines and comments
+                        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+
+                        # Validate safe export pattern (no command injection characters)
+                        # Must be: export VARNAME=value (no $(), `, ;, &, |, <, >, ${})
+                        if [[ "$line" =~ ^export[[:space:]]+[A-Za-z_][A-Za-z0-9_]*=.*$ ]]; then
+                            # Block dangerous patterns by checking for their absence
+                            if [[ "$line" != *'$('* && "$line" != *'`'* && "$line" != *'${'* &&
+                                  "$line" != *';'* && "$line" != *'&'* &&
+                                  "$line" != *'|'* && "$line" != *'<'* && "$line" != *'>'* ]]; then
+                                eval "$line"
+                            fi
                         fi
-                    done <<< "$sops_output"
+                    done <<<"$sops_output"
                 else
                     echo "Warning: Failed to decrypt $HOME/.env - check your SOPS/age configuration" >&2
                 fi

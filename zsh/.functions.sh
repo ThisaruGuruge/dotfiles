@@ -613,7 +613,8 @@ kill_by_port() {
 
         if [ -n "$pids_string" ]; then
             # Try to kill each PID individually to get better error reporting
-            echo "$pids_string" | while IFS= read -r pid; do
+            local kill_failed=false
+            while IFS= read -r pid; do
                 if [ -n "$pid" ]; then
                     if kill -9 "$pid" 2>/dev/null; then
                         echo "Successfully killed process: $pid"
@@ -623,9 +624,14 @@ kill_by_port() {
                         echo "  • Process is owned by another user (try with sudo)"
                         echo "  • Process has already terminated"
                         echo "  • System protection prevented termination"
+                        kill_failed=true
                     fi
                 fi
-            done
+            done <<<"$pids_string"
+
+            if [ "$kill_failed" = true ]; then
+                return 1
+            fi
         else
             echo "Warning: No PIDs found to kill"
             return 1
