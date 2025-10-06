@@ -267,6 +267,9 @@ install_dev_tools() {
 
     # Install SDKMAN
     install_sdkman
+
+    # Install Ballerina
+    install_ballerina
 }
 
 # Install SDKMAN
@@ -297,6 +300,39 @@ install_sdkman() {
         fi
     else
         log_warning "Skipped SDKMAN installation"
+    fi
+}
+
+# Install Ballerina
+install_ballerina() {
+    log_step "Installing Ballerina (Cloud-Native Programming Language)"
+
+    # Check if Ballerina is already installed
+    if command -v bal >/dev/null 2>&1; then
+        local bal_version
+        bal_version=$(bal version 2>&1 | head -n 1)
+        log_success "Ballerina already installed: $bal_version"
+        return 0
+    fi
+
+    if confirm "Install Ballerina programming language?"; then
+        log_info "Installing Ballerina via Homebrew..."
+        if brew install ballerina; then
+            log_success "Ballerina installed successfully"
+
+            # Verify installation
+            if command -v bal >/dev/null 2>&1; then
+                local bal_version
+                bal_version=$(bal version 2>&1 | head -n 1)
+                log_success "Ballerina version: $bal_version"
+            else
+                log_warning "Ballerina installed but not found in PATH. You may need to restart your terminal."
+            fi
+        else
+            log_error "Ballerina installation failed"
+        fi
+    else
+        log_warning "Skipped Ballerina installation"
     fi
 }
 
@@ -782,6 +818,24 @@ test_installation() {
         fi
     done
 
+    # Verify Oh My Posh configuration
+    if command_exists oh-my-posh; then
+        if [ -L "$HOME/.config/ohmyposh/zen.json" ] || [ -f "$HOME/.config/ohmyposh/zen.json" ]; then
+            log_success "Oh My Posh config found at ~/.config/ohmyposh/zen.json"
+
+            # Test if theme renders correctly
+            if oh-my-posh print primary --config "$HOME/.config/ohmyposh/zen.json" >/dev/null 2>&1; then
+                log_success "Oh My Posh theme renders correctly"
+            else
+                log_warning "Oh My Posh theme has rendering errors - check config"
+                ((errors++))
+            fi
+        else
+            log_warning "Oh My Posh config not found at ~/.config/ohmyposh/zen.json"
+            log_info "Run 'stow config' to create the symlink"
+        fi
+    fi
+
     if [ $errors -eq 0 ]; then
         log_success "Installation test passed!"
     else
@@ -808,6 +862,7 @@ print_final_instructions() {
     echo -e "\n${CYAN}Useful commands to try:${NC}"
     echo -e "• ${BLUE}show_tools${NC} - Discover all modern CLI tools with examples"
     echo -e "• ${BLUE}lg${NC} - Open lazygit for interactive git operations"
+    echo -e "• ${BLUE}gffs feature-name${NC} - Start a new git-flow feature branch"
     echo -e "• ${BLUE}ll${NC} - Enhanced file listing with icons and git status"
     echo -e "• ${BLUE}take my-project${NC} - Create and enter directory"
     echo -e "• ${BLUE}kill_by_port 3000${NC} - Kill processes on port 3000"

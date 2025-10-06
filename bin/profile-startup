@@ -26,7 +26,8 @@ echo ""
 format_time() {
     local time_str="$1"
     # Extract the total time (last number before 'total')
-    local total_time=$(echo "$time_str" | grep -o '[0-9.]*s.*total' | grep -o '^[0-9.]*')
+    local total_time
+    total_time=$(echo "$time_str" | grep -o '[0-9.]*s.*total' | grep -o '^[0-9.]*')
     echo "$total_time"
 }
 

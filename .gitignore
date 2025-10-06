@@ -4,3 +4,4 @@
 .claudeignore
 .claude
 analysis
+*audit-report*

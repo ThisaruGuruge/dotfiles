@@ -11,10 +11,23 @@ if [ ! -d "$ZINIT_HOME" ]; then
    git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
 fi
 
-# Initialize oh-my-posh except for Apple Terminal
-if [ "$TERM_PROGRAM" != "Apple_Terminal" ]; then
-  # Use faster oh-my-posh initialization
-  eval "$(oh-my-posh init zsh --config "$HOME"/.config/ohmyposh/zen.json)"
+# Initialize oh-my-posh with caching except for Apple Terminal
+if [ "$TERM_PROGRAM" != "Apple_Terminal" ] && command -v oh-my-posh >/dev/null 2>&1; then
+  omp_cache_file="$HOME/.cache/zsh/omp_cache.zsh"
+  omp_config_file="$HOME/.config/ohmyposh/zen.json"
+
+  # Create cache directory if it doesn't exist
+  [ ! -d "$HOME/.cache/zsh" ] && mkdir -p "$HOME/.cache/zsh"
+
+  # Check if cache is valid (newer than config file)
+  if [ -f "$omp_cache_file" ] && [ "$omp_cache_file" -nt "$omp_config_file" ]; then
+    # Use cached version
+    source "$omp_cache_file" 2>/dev/null
+  else
+    # Generate new cache
+    oh-my-posh init zsh --config "$omp_config_file" > "$omp_cache_file" 2>/dev/null
+    source "$omp_cache_file" 2>/dev/null
+  fi
 fi
 
 # Source/Load zinit
@@ -37,9 +50,6 @@ zinit ice wait"1" lucid
 zinit light zsh-users/zsh-autosuggestions
 
 # Add in snippets with turbo mode (utility functions, can be delayed)
-zinit ice wait"2" lucid
-zinit snippet OMZP::gradle
-
 zinit ice wait"2" lucid
 zinit snippet OMZP::sudo
 # Homebrew command-not-found integration (updated)
@@ -89,19 +99,45 @@ fi
 # Add Homebrew completions to fpath and exclude broken paths
 if type brew &>/dev/null; then
   FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
-  # Remove problematic old Intel Homebrew path
-  FPATH="${FPATH//\/usr\/local\/share\/zsh\/site-functions:/}"
 fi
 
-# Load completions with error suppression for missing files
-autoload -Uz compinit && compinit -i
+# Load completions with error suppression for missing files and function override
+autoload -Uz compinit && compinit -i 2>/dev/null
 
-# NVM configuration
+# NVM - Optimized loading for faster startup
 export NVM_DIR="$HOME/.nvm"
-  [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
-  [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+if [ -d "$NVM_DIR/versions/node" ]; then
+    # Quickly add current/default node version to PATH without loading full NVM
+    # This makes global npm packages (like claude) available immediately
+    latest_node_version="$(ls -t "$NVM_DIR/versions/node" 2>/dev/null | head -1)"
+
+    if [ -n "$latest_node_version" ]; then
+        default_node_path="$NVM_DIR/versions/node/$latest_node_version/bin"
+        if [ -d "$default_node_path" ]; then
+            export PATH="$default_node_path:$PATH"
+        fi
+    fi
+
+    # Lazy load NVM only when actually needed
+    if [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
+        _load_nvm() {
+            unset -f nvm node npm npx yarn _load_nvm
+            \. "/opt/homebrew/opt/nvm/nvm.sh"
+            [ -n "$PS1" ] && [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+        }
+        nvm() { _load_nvm; nvm "$@"; }
+    fi
+fi
 
 zinit cdreplay -q
+
+# SDKMAN initialization (load after completion system)
+export SDKMAN_DIR="$HOME/.sdkman"
+if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
+    # Load SDKMAN with completion error suppression
+    setopt localoptions nolocaltraps
+    source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
+fi
 
 # keybindings
 bindkey '^[[A' history-search-backward
@@ -120,6 +156,10 @@ setopt hist_save_no_dups # Do not save duplicates in history
 setopt hist_ignore_dups # Do not save duplicates in history
 setopt hist_find_no_dups # Do not display duplicates in history search
 setopt correct # Enable auto correction
+setopt no_correct_all # Don't correct arguments, only commands
+
+# Disable autocorrect for specific commands
+CORRECT_IGNORE_FILE=".*"
 
 # Completion styling
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
@@ -205,23 +245,59 @@ source "$HOME/.paths.sh"
 # Configure SOPS age key location
 export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 
-# Load environment variables (supports both encrypted and plaintext .env)
+# Load environment variables with caching (supports both encrypted and plaintext .env)
 if [ -f "$HOME/.env" ]; then
-    # Check if file is encrypted (starts with #ENC)
-    if head -1 "$HOME/.env" | grep -q "^#ENC\["; then
-        # Encrypted - decrypt and source
-        if command -v sops >/dev/null 2>&1; then
-            if sops_output=$(sops -d "$HOME/.env" 2>/dev/null); then
-                eval "$sops_output"
+    env_cache_file="$HOME/.cache/zsh/env_cache"
+    env_file="$HOME/.env"
+
+    # Create cache directory if it doesn't exist
+    [ ! -d "$HOME/.cache/zsh" ] && mkdir -p "$HOME/.cache/zsh"
+
+    # Check if cache is valid (newer than .env file)
+    if [ -f "$env_cache_file" ] && [ "$env_cache_file" -nt "$env_file" ]; then
+        # Use cached version
+        source "$env_cache_file" 2>/dev/null
+    else
+        # Check if file is encrypted (starts with #ENC)
+        if head -1 "$env_file" | grep -q "^#ENC\["; then
+            # Encrypted - decrypt and cache
+            if command -v sops >/dev/null 2>&1; then
+                if sops_output=$(sops -d "$env_file" 2>/dev/null); then
+                    echo "$sops_output" >"$env_cache_file"
+                    # Safely source only lines matching export KEY="VALUE" or KEY='VALUE' pattern
+                    # This validates the export statement structure to prevent code injection
+                    # Pattern explanation:
+                    # - ^export[[:space:]]+     : Must start with 'export' and whitespace
+                    # - [A-Za-z_][A-Za-z0-9_]*  : Valid variable name (alphanumeric + underscore)
+                    # - =                       : Assignment operator
+                    # - Value must not contain: $( ) ` ; & | < > \n (command injection chars)
+                    # - Accepts: quoted strings without dangerous chars, or simple unquoted values
+                    while IFS= read -r line; do
+                        # Skip empty lines and comments
+                        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+
+                        # Validate safe export pattern (no command injection characters)
+                        # Must be: export VARNAME=value (no $(), `, ;, &, |, <, >, ${})
+                        if [[ "$line" =~ ^export[[:space:]]+[A-Za-z_][A-Za-z0-9_]*=.*$ ]]; then
+                            # Block dangerous patterns by checking for their absence
+                            if [[ "$line" != *'$('* && "$line" != *'`'* && "$line" != *'${'* &&
+                                  "$line" != *';'* && "$line" != *'&'* &&
+                                  "$line" != *'|'* && "$line" != *'<'* && "$line" != *'>'* ]]; then
+                                eval "$line"
+                            fi
+                        fi
+                    done <<<"$sops_output"
+                else
+                    echo "Warning: Failed to decrypt $HOME/.env - check your SOPS/age configuration" >&2
+                fi
             else
-                echo "Warning: Failed to decrypt $HOME/.env - check your SOPS/age configuration" >&2
+                echo "Warning: SOPS not available - cannot decrypt $HOME/.env" >&2
             fi
         else
-            echo "Warning: SOPS not available - cannot decrypt $HOME/.env" >&2
+            # Plaintext - copy to cache and source
+            cp "$env_file" "$env_cache_file"
+            source "$env_file"
         fi
-    else
-        # Plaintext - source directly
-        source "$HOME/.env"
     fi
 fi
 
@@ -267,33 +343,49 @@ if command -v pyenv >/dev/null 2>&1; then
     pip3() { _pyenv_lazy_load pip3 "$@"; }
 fi
 
-# SDKMAN initialization (lazy loading caused issues)
-export SDKMAN_DIR="$HOME/.sdkman"
-if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
-    source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
-fi
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
 export PATH="${HOME}/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
 # Source local environment if it exists
-[ -f "$HOME/.local/bin/env" ] && source "$HOME/.local/bin/env" || true
-
-# Google Cloud SDK - check multiple possible installation locations
-if [ -f "$HOME/Downloads/google-cloud-sdk/path.zsh.inc" ]; then
-    source "$HOME/Downloads/google-cloud-sdk/path.zsh.inc"
-elif [ -f "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ]; then
-    source "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
-elif [ -f "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ]; then
-    source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
+if [ -d "$HOME/.local/bin" ] && [ -f "$HOME/.local/bin/env" ]; then
+    source "$HOME/.local/bin/env"
 fi
 
-# Google Cloud SDK completions
-if [ -f "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc" ]; then
-    source "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc"
-elif [ -f "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc" ]; then
-    source "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
-elif [ -f "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc" ]; then
-    source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
+# Lazy load Google Cloud SDK - initialize only when gcloud commands are used
+_gcloud_lazy_load() {
+    unset -f gcloud gsutil bq
+
+    # Load Google Cloud SDK path
+    if [ -f "$HOME/Downloads/google-cloud-sdk/path.zsh.inc" ]; then
+        source "$HOME/Downloads/google-cloud-sdk/path.zsh.inc"
+    elif [ -f "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ]; then
+        source "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
+    elif [ -f "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ]; then
+        source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
+    fi
+
+    # Load Google Cloud SDK completions
+    if [ -f "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc" ]; then
+        source "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc"
+    elif [ -f "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc" ]; then
+        source "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
+    elif [ -f "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc" ]; then
+        source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
+    fi
+
+    unset -f _gcloud_lazy_load
+}
+
+# Check if any Google Cloud SDK installation exists before creating placeholders
+if [ -f "$HOME/Downloads/google-cloud-sdk/path.zsh.inc" ] || \
+   [ -f "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ] || \
+   [ -f "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ]; then
+    gcloud() { _gcloud_lazy_load; gcloud "$@"; }
+    gsutil() { _gcloud_lazy_load; gsutil "$@"; }
+    bq() { _gcloud_lazy_load; bq "$@"; }
 fi
+
+# Force command hash rebuild at the end (fixes Warp terminal command discovery)
+rehash
