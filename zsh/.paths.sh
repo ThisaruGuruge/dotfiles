@@ -43,7 +43,7 @@ else
     # Find and cache JMeter path
     [ ! -d "$HOME/.cache/zsh" ] && mkdir -p "$HOME/.cache/zsh"
     jmeter_path=$(find "$HOME/Downloads" "$HOME/tools" "/opt" "/usr/local" -maxdepth 1 -name "apache-jmeter-*" -type d 2>/dev/null | head -n 1)
-    echo "$jmeter_path" > "$jmeter_cache_file"
+    echo "$jmeter_path" >"$jmeter_cache_file"
     if [ -n "$jmeter_path" ]; then
         export JMETER="$jmeter_path"
         export PATH="$JMETER/bin:$PATH"
