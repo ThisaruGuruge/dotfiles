@@ -260,7 +260,13 @@ if [ -f "$HOME/.env" ]; then
             if command -v sops >/dev/null 2>&1; then
                 if sops_output=$(sops -d "$env_file" 2>/dev/null); then
                     echo "$sops_output" > "$env_cache_file"
-                    eval "$sops_output"
+                    # Safely source only lines matching export KEY="VALUE" pattern
+                    # This avoids arbitrary code execution from decrypted content
+                    while IFS= read -r line; do
+                        if [[ "$line" =~ ^export[[:space:]]+[A-Za-z_][A-Za-z0-9_]*= ]]; then
+                            eval "$line"
+                        fi
+                    done <<< "$sops_output"
                 else
                     echo "Warning: Failed to decrypt $HOME/.env - check your SOPS/age configuration" >&2
                 fi

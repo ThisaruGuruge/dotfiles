@@ -115,7 +115,7 @@
           "template": "{{ if .Output }} 🩰 {{ .Output }} {{ end }}",
           "properties": {
             "shell": "bash",
-            "command": "dir=\"$PWD\"; while [ \"$dir\" != \"/\" ]; do if [ -f \"$dir/Ballerina.toml\" ]; then cat ~/.ballerina/ballerina-version | sed 's/ballerina-//'; exit 0; fi; dir=$(dirname \"$dir\"); done"
+            "command": "dir=\\\"$PWD\\\"; while [ \\\"$dir\\\" != \\\"/\\\" ]; do if [ -f \\\"$dir/Ballerina.toml\\\" ]; then if [ -f ~/.ballerina/ballerina-version ]; then cat ~/.ballerina/ballerina-version | sed 's/ballerina-//'; else echo 'unknown'; fi; exit 0; fi; dir=$(dirname \\\"$dir\\\"); done"
           }
         },
         {

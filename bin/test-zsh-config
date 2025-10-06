@@ -177,6 +177,7 @@ else
                 case "$package" in
                     "oh-my-posh") cmd="oh-my-posh"; version_cmd="oh-my-posh --version" ;;
                     "git-delta") cmd="delta"; version_cmd="delta --version" ;;
+                    "git-flow-avh") cmd="git-flow"; version_cmd="git flow version" ;;
                     "lazygit") cmd="lazygit"; version_cmd="lazygit --version" ;;
                     "ripgrep") cmd="rg"; version_cmd="rg --version | head -1" ;;
                     *) version_cmd="$cmd --version" ;;

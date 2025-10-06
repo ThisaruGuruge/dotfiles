@@ -125,6 +125,13 @@
           "type": "brew",
           "description": "GitHub CLI",
           "required": false
+        },
+        "git-flow-avh": {
+          "enabled": true,
+          "type": "brew",
+          "package_name": "git-flow-avh",
+          "description": "Git branching model extension",
+          "required": false
         }
       }
     },

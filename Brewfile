@@ -26,6 +26,7 @@ brew "htop"                             # System monitor
 brew "direnv"                           # Directory-specific environments
 brew "atuin"                            # Shell history with sync
 brew "gh"                               # GitHub CLI
+brew "git-flow-avh"                     # Git branching model
 
 # Tools for managing secrets and encryption
 brew "sops"                             # Secrets OPerationS

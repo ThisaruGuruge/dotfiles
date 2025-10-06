@@ -862,6 +862,7 @@ print_final_instructions() {
     echo -e "\n${CYAN}Useful commands to try:${NC}"
     echo -e "• ${BLUE}show_tools${NC} - Discover all modern CLI tools with examples"
     echo -e "• ${BLUE}lg${NC} - Open lazygit for interactive git operations"
+    echo -e "• ${BLUE}gffs feature-name${NC} - Start a new git-flow feature branch"
     echo -e "• ${BLUE}ll${NC} - Enhanced file listing with icons and git status"
     echo -e "• ${BLUE}take my-project${NC} - Create and enter directory"
     echo -e "• ${BLUE}kill_by_port 3000${NC} - Kill processes on port 3000"

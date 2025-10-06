@@ -12,7 +12,7 @@ A comprehensive development environment setup for macOS featuring Zsh, Oh My Pos
 - **Enhanced Navigation**: Fast directory jumping with `zoxide` and fuzzy finding with `fzf`
 - **Development Tools**: Pre-configured support for Python, Ruby, Node.js, Java, and Docker
 - **Modern CLI Tools**: Enhanced with eza (ls), bat (cat), delta (git diff), lazygit (git UI), atuin (shell history)
-- **Terminal Multiplexer**: Tmux configuration with modern keybindings and themes
+- **Terminal Multiplexer**: With Tmux configuration featuring modern keybindings and themes
 - **Project Environment Management**: Direnv for automatic project-specific environment loading
 - **Productivity Shortcuts**: 150+ aliases and custom functions for common development tasks
 - **Universal Archive Handler**: `take` command that handles git repos, archives, and directory creation
@@ -39,16 +39,17 @@ A comprehensive development environment setup for macOS featuring Zsh, Oh My Pos
 
 4. **Modern Terminal** (Choose one):
    - **Warp** (Recommended) - Modern, fast terminal with AI features
+
      ```bash
      brew install --cask warp
      ```
+
    - **iTerm2** - Feature-rich terminal
+
      ```bash
      brew install --cask iterm2
-     ```
-   - **Terminal.app** - Built-in macOS terminal (works but limited features)
-
 5. **Nerd Font** - Required for proper icon display in the prompt
+
    ```bash
    # Fonts are now in the main homebrew-cask repository (no tap needed)
    brew install --cask font-fira-code-nerd-font
@@ -59,7 +60,11 @@ A comprehensive development environment setup for macOS featuring Zsh, Oh My Pos
    - **Warp**: Go to `Settings > Appearance > Text` and select your Nerd Font
    - **iTerm2**: Go to `Preferences > Profiles > Text > Font` and select your Nerd Font
    - **Terminal.app**: Go to `Preferences > Profiles > Text` and select your Nerd Font
+   **Configure Your Terminal**:
+   - **Warp**: Go to `Settings > Appearance > Text` and select your Nerd Font
+### Option 1: Automated Installation (Recommended)
 
+The easiest way to set up everything:
 ## 🛠 Installation
 
 ### Option 1: Automated Installation (Recommended)
@@ -77,6 +82,7 @@ cd ~/dotfiles
 ```
 
 The `init.sh` script will:
+
 - ✅ Check for macOS compatibility
 - ✅ Install Xcode Command Line Tools (if needed)
 - ✅ Install Homebrew (if needed)
@@ -97,7 +103,8 @@ The `init.sh` script will:
 - ✅ Use Stow to manage symlinks cleanly
 - ✅ Test the installation with built-in validation suite
 - ✅ Provide next steps and usage instructions
-
+- 
+#### Step 1: Install Prerequisites
 ### Option 2: Manual Installation
 
 If you prefer to install manually or need to customize the process:
@@ -109,7 +116,7 @@ If you prefer to install manually or need to customize the process:
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install GNU Stow and core dependencies
-brew install stow oh-my-posh fzf zoxide tree bat eza ripgrep fd git-delta lazygit tmux htop direnv atuin gh sops age
+brew install stow oh-my-posh fzf zoxide tree bat eza ripgrep fd git-delta lazygit tmux htop direnv atuin gh sops age git-flow-avh
 
 # Install development tools (optional)
 brew install pyenv rbenv nvm
@@ -201,7 +208,7 @@ The system organizes packages into logical categories:
    ./bin/generate-brewfile
    ```
 
-4. **Install New Packages**:
+#### Step 2: Install Zinit
    ```bash
    brew bundle --file=Brewfile
    ```
@@ -209,12 +216,8 @@ The system organizes packages into logical categories:
 #### Step 2: Install Zinit
 
 ```bash
-bash -c "$(curl --fail --show-error --silent --location https://raw.githubusercontent.com/zdharma-continuum/zinit/HEAD/scripts/install.sh)"
-```
-
-#### Step 3: Clone and Setup Dotfiles
-
 1. **Clone the repository**:
+
    ```bash
    git clone https://github.com/ThisaruGuruge/dotfiles.git ~/dotfiles
    # OR: git clone https://github.com/ThisaruGuruge/dotfiles.git ~/.dotfiles
@@ -222,6 +225,7 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
    ```
 
 2. **Setup environment variables**:
+
    ```bash
    cp zsh/.env.example zsh/.env
 
@@ -234,6 +238,7 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
    ```
 
 3. **Backup existing configurations** (recommended):
+
    ```bash
    # Backup your current dotfiles
    cp ~/.zshrc ~/.zshrc.backup 2>/dev/null || true
@@ -241,6 +246,7 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
    ```
 
 4. **Use Stow to manage dotfiles**:
+
    ```bash
    # Stow manages symlinks automatically in organized packages
    stow zsh      # Links all zsh-related configs
@@ -248,6 +254,12 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
    stow config   # Links application configs (Oh My Posh theme)
    ```
 
+5. **Apply configuration**:
+
+   ```bash
+   # Restart your terminal or source the new configuration
+   source ~/.zshrc
+   ```
 5. **Apply configuration**:
    ```bash
    # Restart your terminal or source the new configuration
@@ -291,15 +303,16 @@ take my-project                            # Create directory and enter it
 kill_by_port 3000                         # Kill processes on port 3000
 
 # 📦 PACKAGE MANAGEMENT - Configure Your Setup
-manage_packages                            # Interactive package configuration
-manage_packages categories                 # List all available categories
-manage_packages enable docker              # Enable specific packages
+#### Stow Package Structure
 
-# 🔍 DISCOVERY - Find What You Need
-alias_search docker                       # Find all Docker-related aliases
-aliases                                    # Show aliases organized by category
-help docker                               # Show Docker workflow with examples
-```
+The dotfiles are organized into logical packages:
+
+- **zsh/** - All shell-related configurations (.zshrc, .aliases.sh, .functions.sh, etc.)
+- **vim/** - Vim configuration (.vimrc)
+- **git/** - Git configuration with modern features and security
+- **tmux/** - Terminal multiplexer configuration
+- **direnv/** - Project-specific environment management
+- **config/** - Application-specific configs (Oh My Posh themes, etc.)
 
 #### Stow Package Structure
 
@@ -326,6 +339,7 @@ stow config   # Application configs
 ### Configure Development Tools
 
 1. **Python Environment** (if using pyenv):
+
    ```bash
    # Install latest Python
    pyenv install 3.12.0
@@ -333,6 +347,7 @@ stow config   # Application configs
    ```
 
 2. **Node.js Environment** (if using nvm):
+
    ```bash
    # Install latest LTS Node.js
    nvm install --lts
@@ -341,6 +356,7 @@ stow config   # Application configs
    ```
 
 3. **Ruby Environment** (if using rbenv):
+
    ```bash
    # Install latest Ruby
    rbenv install 3.2.0
@@ -348,6 +364,7 @@ stow config   # Application configs
    ```
 
 4. **Java Environment** (if using SDKMAN):
+
    ```bash
    # Install SDKMAN
    curl -s "https://get.sdkman.io" | bash
@@ -358,6 +375,7 @@ stow config   # Application configs
    ```
 
 5. **Ballerina Environment** (if installed):
+
    ```bash
    # Verify installation
    bal version
@@ -369,6 +387,7 @@ stow config   # Application configs
    ```
 
 6. **Atuin Shell History** (first run setup):
+
    ```bash
    # Import your existing shell history
    atuin import auto
@@ -397,19 +416,32 @@ brew install jq curl wget htop
 ### Aliases Available
 
 **Navigation & File Operations**:
+
 - `..`, `...`, `....` - Quick directory traversal
 - `ll` - Detailed file listing
 - `c` - Clear terminal
 - `cls` - Clear and list filesw
 
 **Git Shortcuts**:
+
 - `gits` - Git status
 - `gp` / `gl` - Git push/pull
 - `gco` - Git checkout
 - `gb` - Git branch
 - `ga` / `gaa` - Git add / add all
 
+**Git Flow** (branching model):
+
+- `gfi` - Initialize git flow
+- `gffs <name>` - Start new feature
+- `gfff <name>` - Finish feature
+- `gfrs <version>` - Start release
+- `gfrf <version>` - Finish release
+- `gfhs <name>` - Start hotfix
+- `gfhf <name>` - Finish hotfix
+
 **Development**:
+
 - `p3` - Python 3
 - `v` - Vim
 - `gwb` - Gradle build
@@ -418,6 +450,7 @@ brew install jq curl wget htop
 ### Modern CLI Tools
 
 **`eza` - Enhanced File Listing**:
+
 ```bash
 ls                                         # Basic listing with icons and git status
 ll                                         # Detailed listing with headers and file info
@@ -428,6 +461,7 @@ ls_t                                       # Sort by modification time (newest l
 ```
 
 **`bat` - Syntax-Highlighted File Viewer**:
+
 ```bash
 cat file.js                               # View JavaScript with syntax highlighting
 less README.md                            # Page through markdown with highlighting
@@ -435,6 +469,7 @@ bat --style=numbers,changes file.py       # Show line numbers and git changes
 ```
 
 **`ripgrep` - Fast Text Search**:
+
 ```bash
 grep "TODO"                               # Fast search with ripgrep (much faster than grep)
 rg "function" --type js                   # Search in JavaScript files only
@@ -444,6 +479,7 @@ rg "pattern" -A 3 -B 3                   # Show 3 lines before and after matches
 > ⚠️ **Note**: `grep` is aliased to `ripgrep` for better performance, but it's not fully POSIX-compatible. For scripts requiring traditional grep behavior, use `\grep` or `/usr/bin/grep`.
 
 **`lazygit` - Interactive Git Interface**:
+
 ```bash
 lg                                         # Open lazygit TUI for git operations
 glog                                       # Beautiful git log with graph and colors
@@ -452,7 +488,35 @@ gundo                                      # Undo last commit but keep changes
 gcleanup                                   # Remove merged branches automatically
 ```
 
+**`git-flow` - Git Branching Model**:
+
+```bash
+# Initialize git-flow in your repository
+gfi                                        # Set up git-flow branch structure
+
+# Feature workflow (for new features)
+gffs login-feature                         # Start feature branch
+# ... work on feature ...
+gfff login-feature                         # Finish and merge to develop
+
+# Release workflow (for production releases)
+gfrs 1.2.0                                 # Start release branch
+# ... finalize release ...
+gfrf 1.2.0                                 # Merge to main and develop, create tag
+
+# Hotfix workflow (for urgent production fixes)
+gfhs critical-bug                          # Branch from main
+# ... fix bug ...
+gfhf critical-bug                          # Merge to main and develop
+
+# List branches
+gffl                                       # List all features
+gfrl                                       # List all releases
+gfhl                                       # List all hotfixes
+```
+
 **`tmux` - Terminal Multiplexer**:
+
 ```bash
 t                                          # Start new tmux session
 ta                                         # Attach to last session
@@ -462,6 +526,7 @@ tl                                         # List all sessions
 ```
 
 **`direnv` - Project Environment Management**:
+
 ```bash
 # In project root, create .envrc file:
 echo "layout python" > .envrc             # Auto-activate Python virtual env
@@ -472,6 +537,7 @@ direnv allow                               # Allow direnv to load the environmen
 ### Custom Functions
 
 **`take` - Universal Directory/Repo Handler**:
+
 ```bash
 take my-project                           # Create and enter directory
 take https://github.com/user/repo.git     # Clone repo and enter
@@ -480,6 +546,7 @@ take https://example.com/archive.tar.gz   # Download and extract
 ```
 
 **`kill_by_port` - Process Management**:
+
 ```bash
 kill_by_port 3000                         # Kill processes on port 3000
 kill_by_port -d 8080                      # Dry run (show what would be killed)
@@ -487,6 +554,7 @@ kill_by_port --help                       # Show help
 ```
 
 **Documentation System - Learn Your Aliases**:
+
 ```bash
 help                                       # Show documentation system usage
 help git                                   # Show all git aliases with detailed examples
@@ -497,11 +565,13 @@ alias_search git                          # Find all aliases containing "git"
 ```
 
 **`show_tools` - Discover Available Tools**:
+
 ```bash
 show_tools                                 # Show all modern CLI tools and examples
 ```
 
 **Secret Management**:
+
 ```bash
 edit_secrets                               # Edit encrypted environment variables seamlessly
 sops -d ~/.env                            # View decrypted secrets
@@ -509,6 +579,7 @@ sops ~/.env                               # Direct SOPS editing
 ```
 
 **Other Utilities**:
+
 - `extract archive.tar.gz` - Universal archive extractor
 - `compress <folder>` - Create tar.gz archive
 - `checkPort <port>` - See what's running on a port
@@ -582,6 +653,7 @@ export AWS_SECRET_ACCESS_KEY="your_aws_secret_key"
 ```
 
 After encryption, the same file will look like:
+
 ```bash
 #ENC[AES256_GCM,data:encrypted_data_here,iv:...,tag:...,type:comment]
 #
@@ -594,6 +666,7 @@ export GITHUB_TOKEN=ENC[AES256_GCM,data:more_encrypted_data...]
 ### Adding Your Own Aliases
 
 Edit `~/.aliases.sh` and add your custom aliases:
+
 ```bash
 alias myalias='my command'
 ```
@@ -601,6 +674,7 @@ alias myalias='my command'
 ### Adding Custom Functions
 
 Edit `~/.functions.sh` and add your functions:
+
 ```bash
 my_function() {
     echo "Hello from my function"
@@ -612,6 +686,7 @@ my_function() {
 The Oh My Posh "zen" theme displays contextual information about your current environment:
 
 **Prompt Layout**:
+
 ```
 ~/dotfiles  ☕ 21.0.5  ⬢ 22.2.0  main ≢ 🖊️ 2   1:06:25 PM
 ❯
@@ -743,6 +818,7 @@ Here are common prompt states you'll encounter:
 ### Modifying the Prompt
 
 The Oh My Posh theme is located at `~/.config/ohmyposh/zen.json`. You can:
+
 - Modify colors in the `palette` section
 - Add/remove prompt segments
 - Reorder segments by changing their position in the `segments` array
@@ -810,6 +886,7 @@ Edit the git segment template (line 94):
 ```
 
 Available template variables:
+
 - `{{ .HEAD }}` - current branch name
 - `{{ .UpstreamIcon }}` - ↑ ahead, ↓ behind, ↕ diverged
 - `{{ .Working.Changed }}` - number of modified files
@@ -840,17 +917,20 @@ exec zsh
 #### Troubleshooting
 
 **Changes not showing?**
+
 1. Clear cache: `rm ~/.cache/zsh/omp_cache.zsh`
 2. Verify config is valid JSON: `jq empty ~/.config/ohmyposh/zen.json`
 3. Check for errors: `oh-my-posh print primary --config ~/.config/ohmyposh/zen.json 2>&1`
 
 **Prompt looks broken?**
+
 1. Restore from git: `git checkout config/ohmyposh/zen.json`
 2. Or reset cache: `rm ~/.cache/zsh/omp_cache.zsh && exec zsh`
 
 ### Environment Variables
 
 Add custom environment variables to your encrypted `~/.env` file:
+
 ```bash
 # Use the secure edit_secrets command
 edit_secrets
@@ -867,6 +947,7 @@ The variables will be automatically encrypted when you save and exit the editor.
 ### Common Issues
 
 **"Command not found" errors**:
+
 ```bash
 # Restart terminal or re-source configuration
 source ~/.zshrc
@@ -876,12 +957,14 @@ which oh-my-posh fzf zoxide
 ```
 
 **Permission denied errors**:
+
 ```bash
 chmod +x ~/dotfiles/.functions.sh
 chmod +x ~/dotfiles/.aliases.sh
 ```
 
 **Zinit not loading**:
+
 ```bash
 # Reinstall zinit
 rm -rf ~/.local/share/zinit
@@ -889,6 +972,7 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
 ```
 
 **Oh My Posh not working**:
+
 ```bash
 # Verify installation
 oh-my-posh --version
@@ -990,6 +1074,7 @@ age --version                            # Should show age version
 ```
 
 **Verification Checklist:**
+
 - [ ] `test-zsh` passes with no failures (automated validation)
 - [ ] `zsh -n ~/.zshrc` passes without errors
 - [ ] fzf fuzzy search works (Ctrl+R, but may conflict with Warp)
@@ -1007,6 +1092,7 @@ age --version                            # Should show age version
 This dotfiles setup is optimized for fast shell startup and responsive daily use:
 
 ### Performance Targets
+
 - **Excellent**: < 0.5s startup (instant feel) ✅ **Current: ~0.6s**
 - **Good**: < 1.0s startup (very responsive)
 - **Acceptable**: < 2.0s startup (responsive)

@@ -14,7 +14,7 @@ confirm() {
     while true; do
         echo ""
         echo -en "  ${YELLOW}$1 (y/n/q): ${NC}"
-        read -r -n 1 -s key # Read single character without echo
+        read -r -n 1 -s key # Read single character silently without echo
         echo                # Print newline after keypress
 
         case "$key" in
@@ -1365,9 +1365,9 @@ remove_dotfiles_tool() {
     case "$tool_name" in
         "nvm")
             echo "Removing NVM configuration..."
-            # Comment out NVM section in .zshrc
-            if grep -q "Lazy load NVM" "$dotfiles_dir/zsh/.zshrc"; then
-                sed -i.bak '/# Lazy load NVM/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
+            # Comment out NVM section in .zshrc using more robust pattern matching
+            if grep -q "^# Lazy load NVM" "$dotfiles_dir/zsh/.zshrc"; then
+                sed -i.bak '/^# Lazy load NVM/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
                 echo "✅ NVM configuration commented out in .zshrc"
             else
                 echo "ℹ️ NVM configuration not found or already removed"

@@ -128,6 +128,29 @@ alias gundo='git undo'
 alias gamend='git amend'
 alias gcleanup='git cleanup'
 
+# Git Flow - Branching model workflow
+# Examples:
+#   gfi             # Initialize git flow in repository
+#   gffs login      # Start new feature branch 'login'
+#   gfff login      # Finish feature branch 'login'
+#   gfrs 1.2.0      # Start release branch '1.2.0'
+#   gfrf 1.2.0      # Finish release '1.2.0'
+#   gfhs hotfix-1   # Start hotfix branch 'hotfix-1'
+#   gfhf hotfix-1   # Finish hotfix 'hotfix-1'
+alias gfi='git flow init'
+alias gff='git flow feature'
+alias gffs='git flow feature start'
+alias gfff='git flow feature finish'
+alias gffl='git flow feature list'
+alias gfr='git flow release'
+alias gfrs='git flow release start'
+alias gfrf='git flow release finish'
+alias gfrl='git flow release list'
+alias gfh='git flow hotfix'
+alias gfhs='git flow hotfix start'
+alias gfhf='git flow hotfix finish'
+alias gfhl='git flow hotfix list'
+
 # Enhanced file viewing - Syntax highlighting and better output
 # Examples:
 #   cat file.js     # View JavaScript file with syntax highlighting
