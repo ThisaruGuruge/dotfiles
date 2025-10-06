@@ -13,8 +13,8 @@ fi
 
 # Initialize oh-my-posh with caching except for Apple Terminal
 if [ "$TERM_PROGRAM" != "Apple_Terminal" ] && command -v oh-my-posh >/dev/null 2>&1; then
-  local omp_cache_file="$HOME/.cache/zsh/omp_cache.zsh"
-  local omp_config_file="$HOME/.config/ohmyposh/zen.json"
+  omp_cache_file="$HOME/.cache/zsh/omp_cache.zsh"
+  omp_config_file="$HOME/.config/ohmyposh/zen.json"
 
   # Create cache directory if it doesn't exist
   [ ! -d "$HOME/.cache/zsh" ] && mkdir -p "$HOME/.cache/zsh"
@@ -109,7 +109,7 @@ export NVM_DIR="$HOME/.nvm"
 if [ -d "$NVM_DIR/versions/node" ]; then
     # Quickly add current/default node version to PATH without loading full NVM
     # This makes global npm packages (like claude) available immediately
-    local default_node_path="$NVM_DIR/versions/node/$(ls -t "$NVM_DIR/versions/node" 2>/dev/null | head -1)/bin"
+    default_node_path="$NVM_DIR/versions/node/$(ls -t "$NVM_DIR/versions/node" 2>/dev/null | head -1)/bin"
     if [ -d "$default_node_path" ]; then
         export PATH="$default_node_path:$PATH"
     fi
@@ -243,8 +243,8 @@ export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 
 # Load environment variables with caching (supports both encrypted and plaintext .env)
 if [ -f "$HOME/.env" ]; then
-    local env_cache_file="$HOME/.cache/zsh/env_cache"
-    local env_file="$HOME/.env"
+    env_cache_file="$HOME/.cache/zsh/env_cache"
+    env_file="$HOME/.env"
 
     # Create cache directory if it doesn't exist
     [ ! -d "$HOME/.cache/zsh" ] && mkdir -p "$HOME/.cache/zsh"
