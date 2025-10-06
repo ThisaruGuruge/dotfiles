@@ -109,9 +109,13 @@ export NVM_DIR="$HOME/.nvm"
 if [ -d "$NVM_DIR/versions/node" ]; then
     # Quickly add current/default node version to PATH without loading full NVM
     # This makes global npm packages (like claude) available immediately
-    default_node_path="$NVM_DIR/versions/node/$(ls -t "$NVM_DIR/versions/node" 2>/dev/null | head -1)/bin"
-    if [ -d "$default_node_path" ]; then
-        export PATH="$default_node_path:$PATH"
+    latest_node_version="$(ls -t "$NVM_DIR/versions/node" 2>/dev/null | head -1)"
+
+    if [ -n "$latest_node_version" ]; then
+        default_node_path="$NVM_DIR/versions/node/$latest_node_version/bin"
+        if [ -d "$default_node_path" ]; then
+            export PATH="$default_node_path:$PATH"
+        fi
     fi
 
     # Lazy load NVM only when actually needed
