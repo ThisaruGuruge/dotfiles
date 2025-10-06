@@ -14,6 +14,10 @@
       {
         "name": "homebrew/cask-fonts",
         "description": "Font packages"
+      },
+      {
+        "name": "jesseduffield/lazygit",
+        "description": "Official lazygit tap for frequent updates"
       }
     ]
   },
@@ -87,8 +91,10 @@
         "lazygit": {
           "enabled": true,
           "type": "brew",
-          "description": "Terminal UI for git",
-          "required": false
+          "package_name": "jesseduffield/lazygit/lazygit",
+          "description": "Terminal UI for git (official tap for frequent updates)",
+          "required": false,
+          "note": "Using official jesseduffield tap for more frequent updates than core Homebrew"
         },
         "tmux": {
           "enabled": true,
@@ -118,6 +124,13 @@
           "enabled": true,
           "type": "brew",
           "description": "GitHub CLI",
+          "required": false
+        },
+        "git-flow-avh": {
+          "enabled": true,
+          "type": "brew",
+          "package_name": "git-flow-avh",
+          "description": "Git branching model extension",
           "required": false
         }
       }
@@ -165,6 +178,15 @@
           "type": "brew",
           "description": "Node.js version manager",
           "required": false
+        },
+        "ballerina": {
+          "enabled": true,
+          "type": "brew",
+          "package_name": "ballerina",
+          "command_name": "bal",
+          "description": "Cloud-native programming language",
+          "required": false,
+          "note": "Install via: brew install ballerina"
         }
       }
     },
@@ -331,6 +353,16 @@
       "description": "Zsh plugin manager",
       "prompt_message": "Install Zinit plugin manager?",
       "install_command": "bash -c \"$(curl --fail --show-error --silent --location https://raw.githubusercontent.com/zdharma-continuum/zinit/HEAD/scripts/install.sh)\""
+    },
+    "ballerina": {
+      "enabled": true,
+      "description": "Cloud-native programming language",
+      "prompt_message": "Install Ballerina programming language?",
+      "install_command": "curl -fsSL https://dist.ballerina.io/downloads/latest/ballerina-installer-macos.pkg -o /tmp/ballerina-installer.pkg && sudo installer -pkg /tmp/ballerina-installer.pkg -target / && rm /tmp/ballerina-installer.pkg",
+      "post_install": [
+        "echo 'Ballerina installed successfully'",
+        "bal version"
+      ]
     }
   }
 }

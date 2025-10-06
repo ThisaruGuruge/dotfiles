@@ -1,0 +1,142 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get tag name
+        id: get_tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify tag exists
+        run: |
+          TAG="${{ steps.get_tag.outputs.tag }}"
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Error: Tag $TAG does not exist"
+            exit 1
+          fi
+          echo "✅ Tag $TAG verified"
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${{ steps.get_tag.outputs.tag }}"
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Check if CHANGELOG exists
+        id: check_changelog
+        run: |
+          if [ -f CHANGELOG.md ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ CHANGELOG.md found"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ CHANGELOG.md not found"
+          fi
+
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        if: steps.check_changelog.outputs.exists == 'true'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Extract the section for this version from CHANGELOG
+          if grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            # Use awk to extract the section between version headers
+            awk "/## \[$VERSION\]/,/## \[/" CHANGELOG.md | sed '$d' > release_notes.md
+
+            # Remove the version header line
+            sed -i '1d' release_notes.md
+
+            echo "✅ Extracted release notes for version $VERSION"
+            echo "has_notes=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ No section found for version $VERSION in CHANGELOG.md"
+            echo "has_notes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate release artifacts
+        run: |
+          # Create a release directory
+          mkdir -p release-artifacts
+
+          # Copy key files
+          cp Brewfile release-artifacts/
+          cp packages.json release-artifacts/
+
+          # Create a tarball of the dotfiles (excluding .git and other artifacts)
+          tar -czf release-artifacts/dotfiles-${{ steps.version.outputs.version }}.tar.gz \
+            --exclude='.git' \
+            --exclude='release-artifacts' \
+            --exclude='analysis' \
+            --exclude='*audit-report*' \
+            --exclude='.DS_Store' \
+            .
+
+          echo "✅ Release artifacts created"
+          ls -lh release-artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_tag.outputs.tag }}
+          name: Release ${{ steps.get_tag.outputs.tag }}
+          body_path: ${{ steps.changelog.outputs.has_notes == 'true' && 'release_notes.md' || '' }}
+          draft: false
+          prerelease: false
+          generate_release_notes: ${{ steps.changelog.outputs.has_notes != 'true' }}
+          files: |
+            release-artifacts/Brewfile
+            release-artifacts/packages.json
+            release-artifacts/dotfiles-${{ steps.version.outputs.version }}.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release summary
+        run: |
+          echo "## 🎉 Release Created Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag**: ${{ steps.get_tag.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Release Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Brewfile" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ packages.json" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ dotfiles-${{ steps.version.outputs.version }}.tar.gz" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Release Notes" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.changelog.outputs.has_notes }}" = "true" ]; then
+            echo "- ✅ Extracted from CHANGELOG.md" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ℹ️ Auto-generated from commits" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [View Release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.get_tag.outputs.tag }})" >> $GITHUB_STEP_SUMMARY

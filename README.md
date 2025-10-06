@@ -2,6 +2,8 @@
 
 A comprehensive development environment setup for macOS featuring Zsh, Oh My Posh, and a curated collection of productivity tools and shortcuts.
 
+**Author**: Thisaru Guruge ([thisaru.me](https://thisaru.me))
+
 ## 🚀 What You'll Get
 
 - **Modern Shell Experience**: Zsh with intelligent autocompletion, syntax highlighting, and command suggestions
@@ -10,7 +12,7 @@ A comprehensive development environment setup for macOS featuring Zsh, Oh My Pos
 - **Enhanced Navigation**: Fast directory jumping with `zoxide` and fuzzy finding with `fzf`
 - **Development Tools**: Pre-configured support for Python, Ruby, Node.js, Java, and Docker
 - **Modern CLI Tools**: Enhanced with eza (ls), bat (cat), delta (git diff), lazygit (git UI), atuin (shell history)
-- **Terminal Multiplexer**: Tmux configuration with modern keybindings and themes
+- **Terminal Multiplexer**: With Tmux configuration featuring modern keybindings and themes
 - **Project Environment Management**: Direnv for automatic project-specific environment loading
 - **Productivity Shortcuts**: 150+ aliases and custom functions for common development tasks
 - **Universal Archive Handler**: `take` command that handles git repos, archives, and directory creation
@@ -18,6 +20,9 @@ A comprehensive development environment setup for macOS featuring Zsh, Oh My Pos
 - **Encrypted Secret Management**: SOPS + age encryption for environment variables with seamless editing
 - **Enhanced Tool Installation**: Individual confirmation with legacy installation detection
 - **Comprehensive Git Setup**: Modern Git configuration with delta integration and useful aliases
+- **Ballerina Support**: Cloud-native programming language for modern microservices
+- **Configuration Validation**: Built-in test suite to validate your environment setup
+- **Optimized Startup**: Fast shell initialization (~0.6s) with lazy loading for maximum performance
 
 ## 📋 Prerequisites
 
@@ -34,16 +39,17 @@ A comprehensive development environment setup for macOS featuring Zsh, Oh My Pos
 
 4. **Modern Terminal** (Choose one):
    - **Warp** (Recommended) - Modern, fast terminal with AI features
+
      ```bash
      brew install --cask warp
      ```
+
    - **iTerm2** - Feature-rich terminal
+
      ```bash
      brew install --cask iterm2
-     ```
-   - **Terminal.app** - Built-in macOS terminal (works but limited features)
-
 5. **Nerd Font** - Required for proper icon display in the prompt
+
    ```bash
    # Fonts are now in the main homebrew-cask repository (no tap needed)
    brew install --cask font-fira-code-nerd-font
@@ -54,7 +60,11 @@ A comprehensive development environment setup for macOS featuring Zsh, Oh My Pos
    - **Warp**: Go to `Settings > Appearance > Text` and select your Nerd Font
    - **iTerm2**: Go to `Preferences > Profiles > Text > Font` and select your Nerd Font
    - **Terminal.app**: Go to `Preferences > Profiles > Text` and select your Nerd Font
+   **Configure Your Terminal**:
+   - **Warp**: Go to `Settings > Appearance > Text` and select your Nerd Font
+### Option 1: Automated Installation (Recommended)
 
+The easiest way to set up everything:
 ## 🛠 Installation
 
 ### Option 1: Automated Installation (Recommended)
@@ -72,6 +82,7 @@ cd ~/dotfiles
 ```
 
 The `init.sh` script will:
+
 - ✅ Check for macOS compatibility
 - ✅ Install Xcode Command Line Tools (if needed)
 - ✅ Install Homebrew (if needed)
@@ -82,6 +93,7 @@ The `init.sh` script will:
 - ✅ Offer to install development tools (Python, Ruby, Node.js managers)
 - ✅ Enhanced tool installation (Cursor, VS Code, GitHub CLI, PostgreSQL, Redis, AWS Vault)
 - ✅ Install SDKMAN (Java, Gradle, Maven, Kotlin manager)
+- ✅ Install Ballerina (Cloud-native programming language)
 - ✅ Offer terminal app installation (Warp or iTerm2)
 - ✅ Install and configure Nerd Fonts
 - ✅ Set up Zinit plugin manager
@@ -89,9 +101,10 @@ The `init.sh` script will:
 - ✅ Set up Git personal configuration securely
 - ✅ Backup existing dotfiles automatically
 - ✅ Use Stow to manage symlinks cleanly
-- ✅ Test the installation
+- ✅ Test the installation with built-in validation suite
 - ✅ Provide next steps and usage instructions
-
+- 
+#### Step 1: Install Prerequisites
 ### Option 2: Manual Installation
 
 If you prefer to install manually or need to customize the process:
@@ -103,7 +116,7 @@ If you prefer to install manually or need to customize the process:
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install GNU Stow and core dependencies
-brew install stow oh-my-posh fzf zoxide tree bat eza ripgrep fd git-delta lazygit tmux htop direnv atuin gh sops age
+brew install stow oh-my-posh fzf zoxide tree bat eza ripgrep fd git-delta lazygit tmux htop direnv atuin gh sops age git-flow-avh
 
 # Install development tools (optional)
 brew install pyenv rbenv nvm
@@ -195,7 +208,7 @@ The system organizes packages into logical categories:
    ./bin/generate-brewfile
    ```
 
-4. **Install New Packages**:
+#### Step 2: Install Zinit
    ```bash
    brew bundle --file=Brewfile
    ```
@@ -203,12 +216,8 @@ The system organizes packages into logical categories:
 #### Step 2: Install Zinit
 
 ```bash
-bash -c "$(curl --fail --show-error --silent --location https://raw.githubusercontent.com/zdharma-continuum/zinit/HEAD/scripts/install.sh)"
-```
-
-#### Step 3: Clone and Setup Dotfiles
-
 1. **Clone the repository**:
+
    ```bash
    git clone https://github.com/ThisaruGuruge/dotfiles.git ~/dotfiles
    # OR: git clone https://github.com/ThisaruGuruge/dotfiles.git ~/.dotfiles
@@ -216,6 +225,7 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
    ```
 
 2. **Setup environment variables**:
+
    ```bash
    cp zsh/.env.example zsh/.env
 
@@ -228,6 +238,7 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
    ```
 
 3. **Backup existing configurations** (recommended):
+
    ```bash
    # Backup your current dotfiles
    cp ~/.zshrc ~/.zshrc.backup 2>/dev/null || true
@@ -235,6 +246,7 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
    ```
 
 4. **Use Stow to manage dotfiles**:
+
    ```bash
    # Stow manages symlinks automatically in organized packages
    stow zsh      # Links all zsh-related configs
@@ -242,6 +254,12 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
    stow config   # Links application configs (Oh My Posh theme)
    ```
 
+5. **Apply configuration**:
+
+   ```bash
+   # Restart your terminal or source the new configuration
+   source ~/.zshrc
+   ```
 5. **Apply configuration**:
    ```bash
    # Restart your terminal or source the new configuration
@@ -253,6 +271,10 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
 After installation, try these essential commands:
 
 ```bash
+# ✅ VALIDATE YOUR SETUP - Test Everything Works
+test-zsh                                   # Run comprehensive environment validation
+                                          # Tests all tools, runtimes, PATH, and performance
+
 # 📚 LEARN YOUR SYSTEM - Documentation & Discovery
 help                                       # Show comprehensive alias documentation
 docs                                       # Interactive menu to browse all aliases
@@ -281,15 +303,16 @@ take my-project                            # Create directory and enter it
 kill_by_port 3000                         # Kill processes on port 3000
 
 # 📦 PACKAGE MANAGEMENT - Configure Your Setup
-manage_packages                            # Interactive package configuration
-manage_packages categories                 # List all available categories
-manage_packages enable docker              # Enable specific packages
+#### Stow Package Structure
 
-# 🔍 DISCOVERY - Find What You Need
-alias_search docker                       # Find all Docker-related aliases
-aliases                                    # Show aliases organized by category
-help docker                               # Show Docker workflow with examples
-```
+The dotfiles are organized into logical packages:
+
+- **zsh/** - All shell-related configurations (.zshrc, .aliases.sh, .functions.sh, etc.)
+- **vim/** - Vim configuration (.vimrc)
+- **git/** - Git configuration with modern features and security
+- **tmux/** - Terminal multiplexer configuration
+- **direnv/** - Project-specific environment management
+- **config/** - Application-specific configs (Oh My Posh themes, etc.)
 
 #### Stow Package Structure
 
@@ -316,6 +339,7 @@ stow config   # Application configs
 ### Configure Development Tools
 
 1. **Python Environment** (if using pyenv):
+
    ```bash
    # Install latest Python
    pyenv install 3.12.0
@@ -323,6 +347,7 @@ stow config   # Application configs
    ```
 
 2. **Node.js Environment** (if using nvm):
+
    ```bash
    # Install latest LTS Node.js
    nvm install --lts
@@ -331,6 +356,7 @@ stow config   # Application configs
    ```
 
 3. **Ruby Environment** (if using rbenv):
+
    ```bash
    # Install latest Ruby
    rbenv install 3.2.0
@@ -338,6 +364,7 @@ stow config   # Application configs
    ```
 
 4. **Java Environment** (if using SDKMAN):
+
    ```bash
    # Install SDKMAN
    curl -s "https://get.sdkman.io" | bash
@@ -347,7 +374,20 @@ stow config   # Application configs
    sdk install java 21.0.5-tem
    ```
 
-5. **Atuin Shell History** (first run setup):
+5. **Ballerina Environment** (if installed):
+
+   ```bash
+   # Verify installation
+   bal version
+
+   # Create a new Ballerina project
+   bal new my-project
+   cd my-project
+   bal run
+   ```
+
+6. **Atuin Shell History** (first run setup):
+
    ```bash
    # Import your existing shell history
    atuin import auto
@@ -376,19 +416,32 @@ brew install jq curl wget htop
 ### Aliases Available
 
 **Navigation & File Operations**:
+
 - `..`, `...`, `....` - Quick directory traversal
 - `ll` - Detailed file listing
 - `c` - Clear terminal
 - `cls` - Clear and list filesw
 
 **Git Shortcuts**:
+
 - `gits` - Git status
 - `gp` / `gl` - Git push/pull
 - `gco` - Git checkout
 - `gb` - Git branch
 - `ga` / `gaa` - Git add / add all
 
+**Git Flow** (branching model):
+
+- `gfi` - Initialize git flow
+- `gffs <name>` - Start new feature
+- `gfff <name>` - Finish feature
+- `gfrs <version>` - Start release
+- `gfrf <version>` - Finish release
+- `gfhs <name>` - Start hotfix
+- `gfhf <name>` - Finish hotfix
+
 **Development**:
+
 - `p3` - Python 3
 - `v` - Vim
 - `gwb` - Gradle build
@@ -397,6 +450,7 @@ brew install jq curl wget htop
 ### Modern CLI Tools
 
 **`eza` - Enhanced File Listing**:
+
 ```bash
 ls                                         # Basic listing with icons and git status
 ll                                         # Detailed listing with headers and file info
@@ -407,6 +461,7 @@ ls_t                                       # Sort by modification time (newest l
 ```
 
 **`bat` - Syntax-Highlighted File Viewer**:
+
 ```bash
 cat file.js                               # View JavaScript with syntax highlighting
 less README.md                            # Page through markdown with highlighting
@@ -414,6 +469,7 @@ bat --style=numbers,changes file.py       # Show line numbers and git changes
 ```
 
 **`ripgrep` - Fast Text Search**:
+
 ```bash
 grep "TODO"                               # Fast search with ripgrep (much faster than grep)
 rg "function" --type js                   # Search in JavaScript files only
@@ -423,6 +479,7 @@ rg "pattern" -A 3 -B 3                   # Show 3 lines before and after matches
 > ⚠️ **Note**: `grep` is aliased to `ripgrep` for better performance, but it's not fully POSIX-compatible. For scripts requiring traditional grep behavior, use `\grep` or `/usr/bin/grep`.
 
 **`lazygit` - Interactive Git Interface**:
+
 ```bash
 lg                                         # Open lazygit TUI for git operations
 glog                                       # Beautiful git log with graph and colors
@@ -431,7 +488,35 @@ gundo                                      # Undo last commit but keep changes
 gcleanup                                   # Remove merged branches automatically
 ```
 
+**`git-flow` - Git Branching Model**:
+
+```bash
+# Initialize git-flow in your repository
+gfi                                        # Set up git-flow branch structure
+
+# Feature workflow (for new features)
+gffs login-feature                         # Start feature branch
+# ... work on feature ...
+gfff login-feature                         # Finish and merge to develop
+
+# Release workflow (for production releases)
+gfrs 1.2.0                                 # Start release branch
+# ... finalize release ...
+gfrf 1.2.0                                 # Merge to main and develop, create tag
+
+# Hotfix workflow (for urgent production fixes)
+gfhs critical-bug                          # Branch from main
+# ... fix bug ...
+gfhf critical-bug                          # Merge to main and develop
+
+# List branches
+gffl                                       # List all features
+gfrl                                       # List all releases
+gfhl                                       # List all hotfixes
+```
+
 **`tmux` - Terminal Multiplexer**:
+
 ```bash
 t                                          # Start new tmux session
 ta                                         # Attach to last session
@@ -441,6 +526,7 @@ tl                                         # List all sessions
 ```
 
 **`direnv` - Project Environment Management**:
+
 ```bash
 # In project root, create .envrc file:
 echo "layout python" > .envrc             # Auto-activate Python virtual env
@@ -451,6 +537,7 @@ direnv allow                               # Allow direnv to load the environmen
 ### Custom Functions
 
 **`take` - Universal Directory/Repo Handler**:
+
 ```bash
 take my-project                           # Create and enter directory
 take https://github.com/user/repo.git     # Clone repo and enter
@@ -459,6 +546,7 @@ take https://example.com/archive.tar.gz   # Download and extract
 ```
 
 **`kill_by_port` - Process Management**:
+
 ```bash
 kill_by_port 3000                         # Kill processes on port 3000
 kill_by_port -d 8080                      # Dry run (show what would be killed)
@@ -466,6 +554,7 @@ kill_by_port --help                       # Show help
 ```
 
 **Documentation System - Learn Your Aliases**:
+
 ```bash
 help                                       # Show documentation system usage
 help git                                   # Show all git aliases with detailed examples
@@ -476,11 +565,13 @@ alias_search git                          # Find all aliases containing "git"
 ```
 
 **`show_tools` - Discover Available Tools**:
+
 ```bash
 show_tools                                 # Show all modern CLI tools and examples
 ```
 
 **Secret Management**:
+
 ```bash
 edit_secrets                               # Edit encrypted environment variables seamlessly
 sops -d ~/.env                            # View decrypted secrets
@@ -488,6 +579,7 @@ sops ~/.env                               # Direct SOPS editing
 ```
 
 **Other Utilities**:
+
 - `extract archive.tar.gz` - Universal archive extractor
 - `compress <folder>` - Create tar.gz archive
 - `checkPort <port>` - See what's running on a port
@@ -561,6 +653,7 @@ export AWS_SECRET_ACCESS_KEY="your_aws_secret_key"
 ```
 
 After encryption, the same file will look like:
+
 ```bash
 #ENC[AES256_GCM,data:encrypted_data_here,iv:...,tag:...,type:comment]
 #
@@ -573,6 +666,7 @@ export GITHUB_TOKEN=ENC[AES256_GCM,data:more_encrypted_data...]
 ### Adding Your Own Aliases
 
 Edit `~/.aliases.sh` and add your custom aliases:
+
 ```bash
 alias myalias='my command'
 ```
@@ -580,22 +674,263 @@ alias myalias='my command'
 ### Adding Custom Functions
 
 Edit `~/.functions.sh` and add your functions:
+
 ```bash
 my_function() {
     echo "Hello from my function"
 }
 ```
 
+### Understanding Your Prompt
+
+The Oh My Posh "zen" theme displays contextual information about your current environment:
+
+**Prompt Layout**:
+
+```
+~/dotfiles  ☕ 21.0.5  ⬢ 22.2.0  main ≢ 🖊️ 2   1:06:25 PM
+❯
+```
+
+**Segments Explained** (left to right):
+
+1. **📁 Current Directory** (blue background)
+   - Shows abbreviated path with max 3 levels deep
+   - Example: `~/p/myproject` instead of `~/projects/personal/myproject`
+
+2. **☕ Java Version** (blue background, only when Java project detected)
+   - Shows when `pom.xml`, `build.gradle`, or `.java` files present
+   - Example: `☕ 21.0.5`
+
+3. **⬢ Node.js Version** (green background, only when Node project detected)
+   - Shows when `package.json` or `.nvmrc` present
+   - Example: `⬢ 22.2.0`
+
+4. **🐍 Python Version** (yellow background, only when Python project detected)
+   - Shows when `.py` files, `requirements.txt`, or virtual env present
+   - Example: `🐍 3.13.7`
+
+5. **Ballerina Version** (teal background, only when Ballerina project detected)
+   - Shows when `Ballerina.toml` or `.bal` files present
+   - Example: `🩰 2201.13.0`
+
+6. **🌿 Git Status** (green/yellow/orange background)
+   - Branch name with upstream indicator (↑ ahead, ↓ behind)
+   - File changes: `🖊️ 2` (2 modified files), `📋 1` (1 staged file)
+   - Stash count: `💾 3` (if you have stashed changes)
+   - Colors: green (clean), yellow (changes), orange (ahead/behind)
+
+7. **🕐 Time** (right side, blue)
+   - Current time in 12-hour format
+   - Example: `1:06:25 PM`
+
+8. **❯ Prompt Symbol** (new line)
+   - Green `❯` = last command succeeded (exit code 0)
+   - Red `❯` = last command failed (exit code > 0)
+
+**Multi-Language Projects**:
+The prompt intelligently detects all languages in your project. For example, a Ballerina project using Java libraries will show both:
+```
+~/my-project  ☕ 21.0.5  🩰 2201.13.0  main
+❯
+```
+
+### Prompt State Examples
+
+Here are common prompt states you'll encounter:
+
+**Clean Repository (No Changes)**:
+```
+~/dotfiles  main                    1:06:16 PM
+❯
+```
+
+**Modified Files (Uncommitted Changes)**:
+```
+~/dotfiles  main ≢ 🖊️ 3             1:06:20 PM
+❯
+```
+*Shows 3 modified files in working directory*
+
+**Staged Files Ready to Commit**:
+```
+~/dotfiles  main ≢ 📋 2             1:06:22 PM
+❯
+```
+*Shows 2 files staged for commit*
+
+**Mixed State (Modified + Staged)**:
+```
+~/dotfiles  main ≢ 🖊️ 2 | 📋 1      1:06:25 PM
+❯
+```
+*Shows 2 modified and 1 staged file*
+
+**Ahead of Remote**:
+```
+~/dotfiles  ↑ main                  1:06:30 PM
+❯
+```
+*Local branch has commits not pushed to remote*
+
+**Behind Remote**:
+```
+~/dotfiles  ↓ main                  1:06:35 PM
+❯
+```
+*Remote has commits not pulled locally*
+
+**Diverged (Ahead + Behind)**:
+```
+~/dotfiles  ↕ main                  1:06:40 PM
+❯
+```
+*Both local and remote have unique commits*
+
+**With Stashed Changes**:
+```
+~/dotfiles  main ≢ 🖊️ 2 💾 1        1:06:45 PM
+❯
+```
+*Shows 2 modified files and 1 stash*
+
+**Multi-Language Project (Java + Node.js + Python)**:
+```
+~/api-server  ☕ 21.0.5  ⬢ 22.2.0  🐍 3.13.7  main  1:07:00 PM
+❯
+```
+*All detected runtimes shown when project uses multiple languages*
+
+**Failed Command (Red Prompt Symbol)**:
+```
+~/dotfiles  main                    1:07:10 PM
+❯
+```
+*Prompt symbol turns red when last command failed (exit code > 0)*
+
+**Successful Command (Green Prompt Symbol)**:
+```
+~/dotfiles  main                    1:07:15 PM
+❯
+```
+*Prompt symbol is green when last command succeeded (exit code 0)*
+
 ### Modifying the Prompt
 
 The Oh My Posh theme is located at `~/.config/ohmyposh/zen.json`. You can:
+
 - Modify colors in the `palette` section
 - Add/remove prompt segments
+- Reorder segments by changing their position in the `segments` array
+- Adjust path truncation by changing `max_depth` property
 - Check [Oh My Posh documentation](https://ohmyposh.dev/) for advanced customization
+
+#### Common Customizations
+
+**1. Change Prompt Colors**
+
+Edit the color palette in `~/.config/ohmyposh/zen.json`:
+
+```json
+"palette": {
+  "blue": "#3a8cf7",      // Directory and time color
+  "green": "#08c70e",     // Git clean / success color
+  "yellow": "#d5d907",    // Git changes color
+  "red": "#fe2222",       // Error color
+  "orange": "#de5f0b",    // Upstream ahead/behind
+  "background": "#3b3b39" // Segment background
+}
+```
+
+**2. Add a New Language Runtime**
+
+Example: Add Go version indicator after Python segment (around line 73):
+
+```json
+{
+  "type": "go",
+  "style": "powerline",
+  "powerline_symbol": "\ue0b0",
+  "foreground": "#ffffff",
+  "background": "#00ADD8",
+  "template": " \ue626 {{ .Full }} ",
+  "properties": {
+    "display_mode": "context"
+  }
+}
+```
+
+**3. Remove a Language Indicator**
+
+Simply delete the entire segment block (lines 41-85 contain language indicators).
+
+**4. Adjust Path Truncation**
+
+Edit the path segment (lines 22-40):
+
+```json
+{
+  "properties": {
+    "style": "folder",     // Options: "full", "folder", "agnoster", "short"
+    "max_depth": 3         // How many parent folders to show
+  }
+}
+```
+
+**5. Customize Git Status Icons**
+
+Edit the git segment template (line 94):
+
+```json
+"template": "{{ .UpstreamIcon }}{{ .HEAD }} ..."
+```
+
+Available template variables:
+
+- `{{ .HEAD }}` - current branch name
+- `{{ .UpstreamIcon }}` - ↑ ahead, ↓ behind, ↕ diverged
+- `{{ .Working.Changed }}` - number of modified files
+- `{{ .Staging.Changed }}` - number of staged files
+- `{{ .StashCount }}` - number of stashes
+
+#### Testing Workflow
+
+**1. Edit the configuration:**
+```bash
+vim ~/.config/ohmyposh/zen.json
+```
+
+**2. Test changes (without applying):**
+```bash
+oh-my-posh print primary --config ~/.config/ohmyposh/zen.json
+```
+
+**3. Apply changes:**
+```bash
+# Clear cache to force regeneration
+rm ~/.cache/zsh/omp_cache.zsh
+
+# Restart shell to see changes
+exec zsh
+```
+
+#### Troubleshooting
+
+**Changes not showing?**
+
+1. Clear cache: `rm ~/.cache/zsh/omp_cache.zsh`
+2. Verify config is valid JSON: `jq empty ~/.config/ohmyposh/zen.json`
+3. Check for errors: `oh-my-posh print primary --config ~/.config/ohmyposh/zen.json 2>&1`
+
+**Prompt looks broken?**
+
+1. Restore from git: `git checkout config/ohmyposh/zen.json`
+2. Or reset cache: `rm ~/.cache/zsh/omp_cache.zsh && exec zsh`
 
 ### Environment Variables
 
 Add custom environment variables to your encrypted `~/.env` file:
+
 ```bash
 # Use the secure edit_secrets command
 edit_secrets
@@ -612,6 +947,7 @@ The variables will be automatically encrypted when you save and exit the editor.
 ### Common Issues
 
 **"Command not found" errors**:
+
 ```bash
 # Restart terminal or re-source configuration
 source ~/.zshrc
@@ -621,12 +957,14 @@ which oh-my-posh fzf zoxide
 ```
 
 **Permission denied errors**:
+
 ```bash
 chmod +x ~/dotfiles/.functions.sh
 chmod +x ~/dotfiles/.aliases.sh
 ```
 
 **Zinit not loading**:
+
 ```bash
 # Reinstall zinit
 rm -rf ~/.local/share/zinit
@@ -634,6 +972,7 @@ bash -c "$(curl --fail --show-error --silent --location https://raw.githubuserco
 ```
 
 **Oh My Posh not working**:
+
 ```bash
 # Verify installation
 oh-my-posh --version
@@ -643,11 +982,68 @@ brew uninstall oh-my-posh
 brew install oh-my-posh
 ```
 
-### Verify Setup
-
-Run this verification checklist to ensure everything is working:
+**Seeing "CONFIG ERROR" in prompt**:
+This means Oh My Posh can't find the zen.json theme file.
 
 ```bash
+# Verify config symlink exists and points to correct location
+ls -la ~/.config/ohmyposh/zen.json
+
+# If broken or missing, recreate the symlink
+rm -f ~/.config/ohmyposh
+ln -sf ~/dotfiles/config/ohmyposh ~/.config/ohmyposh
+
+# Clear cache and restart
+rm ~/.cache/zsh/omp_cache.zsh
+exec zsh
+```
+
+**Prompt symbols showing as boxes or question marks**:
+Your terminal font doesn't support Nerd Font icons.
+
+```bash
+# Install a Nerd Font
+brew install --cask font-fira-code-nerd-font
+
+# Configure your terminal to use it:
+# - Warp: Settings → Appearance → Text → Font → "FiraCode Nerd Font"
+# - iTerm2: Preferences → Profiles → Text → Font → "FiraCode Nerd Font"
+# - VS Code Terminal: Settings → terminal.integrated.fontFamily → "FiraCode Nerd Font"
+
+# Restart your terminal and verify
+echo "  "  # Should show folder, git branch, and Python icons
+```
+
+**Language version not showing in prompt**:
+The prompt only shows language versions when in a project directory.
+
+```bash
+# Verify the language is installed
+java --version    # For Java
+node --version    # For Node.js
+python --version  # For Python
+bal version       # For Ballerina
+
+# Make sure you're in a project directory with relevant files:
+# - Java: pom.xml, build.gradle, or *.java files
+# - Node: package.json or .nvmrc
+# - Python: *.py files or requirements.txt
+# - Ballerina: Ballerina.toml or *.bal files
+
+# Test prompt rendering
+oh-my-posh print primary --config ~/.config/ohmyposh/zen.json
+```
+
+### Verify Setup
+
+Run the built-in validation suite to ensure everything is working:
+
+```bash
+# ✅ Run comprehensive validation (RECOMMENDED)
+test-zsh                                  # Tests all tools, runtimes, PATH, and performance
+                                          # Reads from packages.json for dynamic testing
+                                          # Shows beautiful output with pass/fail/warnings
+
 # ✅ Shell configuration syntax check
 zsh -n ~/.zshrc                          # Should pass without errors
 
@@ -678,6 +1074,8 @@ age --version                            # Should show age version
 ```
 
 **Verification Checklist:**
+
+- [ ] `test-zsh` passes with no failures (automated validation)
 - [ ] `zsh -n ~/.zshrc` passes without errors
 - [ ] fzf fuzzy search works (Ctrl+R, but may conflict with Warp)
 - [ ] `tmux` starts and Ctrl+a | splits panes
@@ -686,25 +1084,35 @@ age --version                            # Should show age version
 - [ ] `edit_secrets` command opens encrypted environment file
 - [ ] Ctrl+Alt+R triggers Atuin history search
 - [ ] Custom functions like `take` and `kill_by_port --help` work
+- [ ] `claude --version` works (if using Claude Code)
+- [ ] `bal version` works (if Ballerina is installed)
 
 ## ⚡ Performance
 
 This dotfiles setup is optimized for fast shell startup and responsive daily use:
 
 ### Performance Targets
-- **Excellent**: < 0.2s startup (instant feel)
-- **Good**: < 0.4s startup (very responsive)
-- **Acceptable**: < 0.8s startup (responsive)
-- **Slow**: > 1.5s startup (needs optimization)
+
+- **Excellent**: < 0.5s startup (instant feel) ✅ **Current: ~0.6s**
+- **Good**: < 1.0s startup (very responsive)
+- **Acceptable**: < 2.0s startup (responsive)
+- **Slow**: > 2.0s startup (needs optimization)
 
 ### Performance Features
-- **Lazy Loading**: Heavy components (fzf, atuin, direnv, pyenv, rbenv, SDKMAN) load only when needed
+
+- **Optimized NVM Loading**: Node.js PATH added immediately without full NVM initialization
+- **Lazy Loading**: NVM functions only load when `nvm` command is used
 - **Turbo Mode**: Non-essential Zinit plugins load with delay
 - **Efficient Initialization**: Optimized oh-my-posh and plugin loading
 - **PATH Deduplication**: Prevents PATH pollution and slow lookups
+- **Smart Caching**: Environment variables and paths cached for faster access
 
 ### Monitor Performance
+
 ```bash
+# Comprehensive validation (includes performance test)
+test-zsh                                  # Tests startup time with 3 samples
+
 # Quick performance test
 profile_startup
 
@@ -714,6 +1122,15 @@ profile_startup
 # Manual timing
 time zsh -i -c exit
 ```
+
+### Performance Optimization Tips
+
+If your shell startup is slower than expected:
+
+1. **Check what's loading**: Run `test-zsh` to see performance metrics
+2. **Disable unused plugins**: Comment out Zinit plugins you don't use
+3. **Reduce PATH complexity**: Remove unused paths from `.paths.sh`
+4. **Profile startup**: Use `./bin/profile-startup` to identify bottlenecks
 
 ## 🔄 Updating
 
@@ -735,6 +1152,7 @@ source ~/.zshrc  # Reload configuration
 ## 🤝 Contributing
 
 Found an issue or have a suggestion? Feel free to:
+
 1. Open an issue on GitHub
 2. Fork the repository and submit a pull request
 3. Suggest improvements to the setup
@@ -742,6 +1160,7 @@ Found an issue or have a suggestion? Feel free to:
 ### Quality Assurance
 
 This repository includes automated validation:
+
 - **Shellcheck**: Validates all shell scripts for common issues
 - **Formatting**: Ensures consistent code formatting with shfmt
 - **Syntax Testing**: Validates JSON and shell configuration syntax
@@ -759,3 +1178,9 @@ MIT License - feel free to use and modify as needed.
 **Enjoy your enhanced development environment! 🎉**
 
 For questions or issues, refer to the troubleshooting section above or open an issue on GitHub.
+
+---
+
+**Maintained by**: [Thisaru Guruge](https://thisaru.me)
+
+*P.S. Curious developers might find some interesting surprises hidden in the code. Happy exploring! 🔍*
