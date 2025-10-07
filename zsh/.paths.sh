@@ -3,6 +3,9 @@
 # Docker platform (keep for compatibility)
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
 
+# Force LazyGit to use XDG config location
+export XDG_CONFIG_HOME="$HOME/.config"
+
 # Add JAVA_HOME to PATH if set (managed by SDKMAN)
 [ -n "$JAVA_HOME" ] && export PATH=$JAVA_HOME/bin:$PATH
 
