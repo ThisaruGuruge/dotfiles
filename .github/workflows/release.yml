@@ -18,6 +18,9 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.get_tag.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - name: Checkout code
@@ -34,14 +37,24 @@ jobs:
             echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Verify tag exists
+      - name: Create or verify tag
         run: |
           TAG="${{ steps.get_tag.outputs.tag }}"
-          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Error: Tag $TAG does not exist"
-            exit 1
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "✅ Tag $TAG already exists"
+          else
+            echo "📝 Creating tag $TAG"
+            # Extract version for commit message
+            VERSION="${TAG#v}"
+            git tag -a "$TAG" -m "Release version $VERSION"
+            git push origin "$TAG"
+            echo "✅ Tag $TAG created and pushed"
           fi
-          echo "✅ Tag $TAG verified"
 
       - name: Extract version from tag
         id: version
@@ -140,3 +153,118 @@ jobs:
           fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "🔗 [View Release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.get_tag.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
+
+  bump-version:
+    name: Bump to Next Development Version
+    runs-on: ubuntu-latest
+    needs: release
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch || 'main' }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get current version
+        id: current_version
+        run: |
+          VERSION="${{ needs.release.outputs.version }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION"
+
+      - name: Calculate next version
+        id: next_version
+        run: |
+          VERSION="${{ steps.current_version.outputs.version }}"
+
+          # Parse semantic version (MAJOR.MINOR.PATCH)
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          # Increment patch version
+          NEXT_PATCH=$((PATCH + 1))
+          NEXT_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}-SNAPSHOT"
+
+          echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+          echo "Next development version: $NEXT_VERSION"
+
+      - name: Update version files
+        run: |
+          NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
+
+          # Update CHANGELOG.md - add new unreleased section
+          if [ -f CHANGELOG.md ]; then
+            # Create backup
+            cp CHANGELOG.md CHANGELOG.md.bak
+
+            # Add new unreleased section after the header
+            sed -i '0,/^## \[/s//## [Unreleased]\n\n### Added\n\n### Changed\n\n### Fixed\n\n&/' CHANGELOG.md
+
+            echo "✅ Updated CHANGELOG.md with unreleased section"
+          fi
+
+          # Update version in README.md if it exists
+          if [ -f README.md ]; then
+            # Update version badge or version reference
+            sed -i "s/v[0-9]*\.[0-9]*\.[0-9]*/v$NEXT_VERSION/g" README.md || true
+            echo "✅ Updated version references in README.md"
+          fi
+
+      - name: Create release branch and PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
+          CURRENT_VERSION="${{ steps.current_version.outputs.version }}"
+          BRANCH_NAME="release/post-v${CURRENT_VERSION}-bump"
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if there are any changes to commit
+          git add CHANGELOG.md README.md || true
+
+          if git diff --staged --quiet; then
+            echo "ℹ️ No version files to update"
+            exit 0
+          fi
+
+          # Create and switch to new branch
+          git checkout -b "$BRANCH_NAME"
+
+          # Commit changes
+          git commit -m "chore: bump version to $NEXT_VERSION"
+          # Push branch
+          git push -u origin "$BRANCH_NAME"
+
+          # Create pull request using gh CLI
+          gh pr create \
+            --title "chore: bump version to ${NEXT_VERSION}" \
+            --body "Post-Release Version Bump: ${CURRENT_VERSION} -> ${NEXT_VERSION}. Updated CHANGELOG.md and README.md. This PR was automatically created by the release workflow." \
+            --base "${{ github.event.repository.default_branch || 'main' }}" \
+            --head "$BRANCH_NAME"
+
+          echo "✅ Version bump PR created for branch: $BRANCH_NAME"
+
+      - name: Version bump summary
+        run: |
+          CURRENT_VERSION="${{ steps.current_version.outputs.version }}"
+          NEXT_VERSION="${{ steps.next_version.outputs.next_version }}"
+          BRANCH_NAME="release/post-v${CURRENT_VERSION}-bump"
+
+          echo "## 🔄 Version Bump PR Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Previous Version**: ${CURRENT_VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "**Next Version**: ${NEXT_VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: \`${BRANCH_NAME}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Updated Files" >> $GITHUB_STEP_SUMMARY
+          echo "- 📝 CHANGELOG.md (added Unreleased section)" >> $GITHUB_STEP_SUMMARY
+          echo "- 📝 README.md (updated version references)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔍 Review and merge the automatically created PR" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ The PR can be safely auto-merged to continue development" >> $GITHUB_STEP_SUMMARY
