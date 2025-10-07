@@ -1,0 +1,68 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior
+labels: ["bug"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the sections below to help us diagnose the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What's wrong?
+      description: A clear description of the bug
+      placeholder: Describe what happened and what you expected to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps to trigger the bug
+      placeholder: |
+        1. Run `./init.sh`
+        2. Open new terminal
+        3. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Your system information
+      placeholder: |
+        macOS version: (run `sw_vers`)
+        Shell: (run `echo $SHELL`)
+        Zsh version: (run `zsh --version`)
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error messages or logs
+      description: Paste any error output or relevant logs
+      render: shell
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Output of `test-zsh`
+      description: If applicable, run `test-zsh` and paste the output
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checklist
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: I have read the [troubleshooting section](https://github.com/ThisaruGuruge/dotfiles#troubleshooting) in the README
+          required: true

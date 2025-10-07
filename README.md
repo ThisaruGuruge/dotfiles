@@ -1,5 +1,11 @@
 # Thisaru's Dotfiles
 
+[![GitHub release](https://img.shields.io/github/v/release/ThisaruGuruge/dotfiles)](https://github.com/ThisaruGuruge/dotfiles/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/ThisaruGuruge/dotfiles/actions/workflows/validate.yml/badge.svg)](https://github.com/ThisaruGuruge/dotfiles/actions/workflows/validate.yml)
+[![macOS](https://img.shields.io/badge/platform-macOS-lightgrey)](https://www.apple.com/macos/)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
+
 A comprehensive development environment setup for macOS featuring Zsh, Oh My Posh, and a curated collection of productivity tools and shortcuts.
 
 **Author**: Thisaru Guruge ([thisaru.me](https://thisaru.me))

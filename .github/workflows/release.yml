@@ -236,14 +236,37 @@ jobs:
           git checkout -b "$BRANCH_NAME"
 
           # Commit changes
-          git commit -m "chore: bump version to $NEXT_VERSION"
+          git commit -m "chore: bump version to $NEXT_VERSION
+
           # Push branch
           git push -u origin "$BRANCH_NAME"
 
           # Create pull request using gh CLI
           gh pr create \
-            --title "chore: bump version to ${NEXT_VERSION}" \
-            --body "Post-Release Version Bump: ${CURRENT_VERSION} -> ${NEXT_VERSION}. Updated CHANGELOG.md and README.md. This PR was automatically created by the release workflow." \
+            --title "chore: bump version to $NEXT_VERSION" \
+            --body "$(cat <<'PR_BODY'
+                ## 🔄 Post-Release Version Bump
+
+                This PR automatically bumps the version to **$NEXT_VERSION** after the **v${CURRENT_VERSION}** release.
+
+                ### Changes
+
+                - ✅ Added **[Unreleased]** section to CHANGELOG.md
+                - ✅ Updated version references in README.md
+
+                ### Details
+
+                - **Previous Version**: ${CURRENT_VERSION}
+                - **Next Version**: ${NEXT_VERSION}
+                - **Triggered By**: Release workflow
+
+                ---
+
+                🤖 This PR was automatically created by the release workflow.
+
+                **Auto-merge**: This PR can be safely merged to continue development on the next version.
+                PR_BODY
+                )" \
             --base "${{ github.event.repository.default_branch || 'main' }}" \
             --head "$BRANCH_NAME"
 

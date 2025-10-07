@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/ThisaruGuruge/dotfiles#readme
+    about: Read the README for installation and usage instructions
+  - name: 🔒 Security Issue
+    url: https://github.com/ThisaruGuruge/dotfiles/security/advisories/new
+    about: Report a security vulnerability privately
+  - name: ❓ Question or Discussion
+    url: https://github.com/ThisaruGuruge/dotfiles/issues/new
+    about: Ask a question or start a discussion
