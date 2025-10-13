@@ -1,0 +1,250 @@
+# Starship Configuration - Optimized for Speed & Style
+# Documentation: https://starship.rs/config/
+
+# Timeout for commands (in milliseconds)
+command_timeout = 1000
+scan_timeout = 30
+
+# Format string (left prompt)
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_status\
+$java\
+$nodejs\
+$python\
+$custom\
+$fill\
+$cmd_duration\
+$battery\
+$time\
+$line_break\
+$character"""
+
+# Right prompt is empty (we use fill to space things out)
+right_format = ""
+
+# Add newline before prompt
+add_newline = true
+
+# Fill empty space between left and right sections
+[fill]
+symbol = " "
+
+# Directory/Path - Smart git-aware display
+# In git repos: shows "repo-name/relative/path"
+# Outside git: shows icons for special dirs like "~/󰈙 Documents"
+[directory]
+style = "bold cyan"
+format = "[$path]($style)[$read_only]($read_only_style) "
+truncation_length = 5
+truncation_symbol = "…/"
+truncate_to_repo = true
+read_only = " 󰌾"
+read_only_style = "bold red"
+home_symbol = "~"
+use_os_path_sep = true
+# When in a git repo, highlight repo root
+repo_root_style = "bold blue"
+repo_root_format = "[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) "
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = "🎵 "
+"Pictures" = "📷 "
+"Projects" = "💼 "
+"Desktop" = "🖥️ "
+".config" = " "
+"Leisure" = "🎮 "
+"Setup" = "⚙️ "
+
+# Git branch
+[git_branch]
+symbol = " "
+style = "bold purple"
+format = "on [$symbol$branch(:$remote_branch)]($style) "
+truncation_length = 50
+truncation_symbol = "…"
+
+# Git status - Clean, readable format
+[git_status]
+style = "bold red"
+format = '([\[$all_status$ahead_behind\]]($style) )'
+conflicted = "⚔️ "
+ahead = "⇡${count} "
+behind = "⇣${count} "
+diverged = "⇕⇡${ahead_count}⇣${behind_count} "
+up_to_date = ""
+untracked = "?${count} "
+stashed = "📦${count} "
+modified = "!${count} "
+staged = "+${count} "
+renamed = "»${count} "
+deleted = "✘${count} "
+
+# Java - Only show in Java projects
+[java]
+symbol = "☕ "
+style = "bold red"
+format = "via [$symbol($version)]($style) "
+detect_extensions = ["java", "class", "jar", "gradle", "clj", "cljc"]
+detect_files = ["pom.xml", "build.gradle.kts", "build.gradle", "build.sbt", ".java-version", "deps.edn", "project.clj", "build.boot", ".sdkmanrc"]
+detect_folders = []
+
+# Node.js - Only show in Node projects
+[nodejs]
+symbol = "⬢ "
+style = "bold green"
+format = "via [$symbol($version)]($style) "
+detect_extensions = ["js", "mjs", "cjs", "ts", "mts", "cts"]
+detect_files = ["package.json", ".node-version", ".nvmrc"]
+detect_folders = ["node_modules"]
+not_capable_style = "bold red"
+
+# Python - Only show in Python projects
+[python]
+symbol = "🐍 "
+style = "bold yellow"
+format = 'via [$symbol$pyenv_prefix($version)(\($virtualenv\))]($style) '
+pyenv_version_name = false
+pyenv_prefix = ""
+python_binary = ["python3", "python", "python2"]
+detect_extensions = ["py"]
+detect_files = [".python-version", "Pipfile", "pyproject.toml", "requirements.txt", "setup.py", "tox.ini", "requirements.in"]
+detect_folders = []
+
+# Username (only in SSH)
+[username]
+style_user = "bold yellow"
+style_root = "bold red"
+format = "[$user]($style)@"
+disabled = false
+show_always = false
+
+# Hostname (only in SSH)
+[hostname]
+ssh_only = true
+style = "bold green"
+format = "[$hostname]($style) in "
+disabled = false
+
+# Command duration (only if > 2s)
+[cmd_duration]
+min_time = 2000
+style = "bold yellow"
+format = "took [$duration]($style) "
+
+# Battery
+[battery]
+full_symbol = "󰂄 "
+charging_symbol = "⚡ "
+discharging_symbol = "󰂃 "
+unknown_symbol = "󰂑 "
+empty_symbol = "󰂎 "
+format = "[$symbol$percentage]($style) "
+
+[[battery.display]]
+threshold = 20
+style = "bold red"
+
+[[battery.display]]
+threshold = 50
+style = "bold yellow"
+
+[[battery.display]]
+threshold = 100
+style = "bold green"
+
+# Time
+[time]
+disabled = false
+time_format = "%R"
+style = "bold blue"
+format = 'at [$time]($style) '
+
+# Character (prompt symbol)
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+vimcmd_symbol = "[❮](bold yellow)"
+
+# Ballerina - Custom detector
+[custom.ballerina]
+command = '''
+dir="$PWD"
+while [ "$dir" != "/" ]; do
+  if [ -f "$dir/Ballerina.toml" ]; then
+    if [ -f "$HOME/.ballerina/ballerina-version" ]; then
+      cat "$HOME/.ballerina/ballerina-version" | sed 's/ballerina-//'
+    else
+      echo "bal"
+    fi
+    exit 0
+  fi
+  dir=$(dirname "$dir")
+done
+'''
+when = '''
+dir="$PWD"
+while [ "$dir" != "/" ]; do
+  [ -f "$dir/Ballerina.toml" ] && exit 0
+  dir=$(dirname "$dir")
+done
+exit 1
+'''
+symbol = "🩰 "
+style = "bold cyan"
+format = "via [$symbol$output]($style) "
+description = "Ballerina version in Ballerina projects"
+
+# Disabled modules for performance
+[aws]
+disabled = true
+
+[gcloud]
+disabled = true
+
+[docker_context]
+disabled = true
+
+[kubernetes]
+disabled = true
+
+[terraform]
+disabled = true
+
+[vagrant]
+disabled = true
+
+[nix_shell]
+disabled = true
+
+[conda]
+disabled = true
+
+[memory_usage]
+disabled = true
+
+[package]
+disabled = true
+
+[ruby]
+disabled = true
+
+[rust]
+disabled = true
+
+[golang]
+disabled = true
+
+[php]
+disabled = true
+
+[perl]
+disabled = true
+
+[lua]
+disabled = true

@@ -480,6 +480,12 @@ rg "pattern" -A 3 -B 3                   # Show 3 lines before and after matches
 
 **`lazygit` - Interactive Git Interface**:
 
+Lazygit is configured to use `~/.config/lazygit/config.yml` (managed by stow) with:
+- Nerd font icons enabled
+- Git delta integration for better diffs
+- Custom theme with cyan accents
+- Auto-fetch and auto-refresh enabled
+
 ```bash
 lg                                         # Open lazygit TUI for git operations
 glog                                       # Beautiful git log with graph and colors
@@ -487,6 +493,8 @@ gunstage                                   # Unstage files from git index
 gundo                                      # Undo last commit but keep changes
 gcleanup                                   # Remove merged branches automatically
 ```
+
+> 💡 **Tip**: The `LG_CONFIG_FILE` environment variable ensures lazygit always uses the stowed config from `~/.config/lazygit/config.yml`, even on fresh machines.
 
 **`git-flow` - Git Branching Model**:
 

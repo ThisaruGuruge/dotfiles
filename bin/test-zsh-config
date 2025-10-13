@@ -175,7 +175,7 @@ else
                 # Map package names to commands
                 local cmd="$package"
                 case "$package" in
-                    "oh-my-posh") cmd="oh-my-posh"; version_cmd="oh-my-posh --version" ;;
+                    "starship") cmd="starship"; version_cmd="starship --version" ;;
                     "git-delta") cmd="delta"; version_cmd="delta --version" ;;
                     "git-flow-avh") cmd="git-flow"; version_cmd="git flow version" ;;
                     "lazygit") cmd="lazygit"; version_cmd="lazygit --version" ;;
@@ -343,28 +343,24 @@ else
     print_test "Zinit Plugin Manager" "warn" "Not found"
 fi
 
-# Test Oh My Posh prompt configuration
-if command -v oh-my-posh >/dev/null 2>&1; then
-    local omp_config="$HOME/.config/ohmyposh/zen.json"
-    if [[ -f "$omp_config" ]] || [[ -L "$omp_config" ]]; then
-        # Test if theme renders without errors
-        if oh-my-posh print primary --config "$omp_config" >/dev/null 2>&1; then
-            print_test "Oh My Posh Theme" "pass" "zen.json renders correctly"
+# Test Starship prompt configuration
+if command -v starship >/dev/null 2>&1; then
+    local starship_config="$HOME/.config/starship.toml"
+    if [[ -f "$starship_config" ]] || [[ -L "$starship_config" ]]; then
+        # Test if starship can be initialized
+        if starship init zsh >/dev/null 2>&1; then
+            print_test "Starship Config" "pass" "starship.toml loads correctly"
         else
-            print_test "Oh My Posh Theme" "fail" "Rendering errors in zen.json"
+            print_test "Starship Config" "fail" "Initialization errors in starship.toml"
         fi
 
-        # Check if cache exists
-        if [[ -f "$HOME/.cache/zsh/omp_cache.zsh" ]]; then
-            print_test "Oh My Posh Cache" "pass" "Cached at ~/.cache/zsh/omp_cache.zsh"
-        else
-            print_test "Oh My Posh Cache" "warn" "Not cached (will generate on first use)"
-        fi
+        # Show config location
+        print_test "Starship Location" "pass" "Config at $starship_config"
     else
-        print_test "Oh My Posh Config" "fail" "zen.json not found at $omp_config"
+        print_test "Starship Config" "fail" "starship.toml not found at $starship_config"
     fi
 else
-    print_test "Oh My Posh" "warn" "Not installed"
+    print_test "Starship" "warn" "Not installed"
 fi
 
 # ============================================================================

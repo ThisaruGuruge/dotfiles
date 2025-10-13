@@ -208,7 +208,7 @@ install_core_dependencies() {
     else
         # Fallback to hardcoded list if jq or packages.json not available
         log_warning "Using fallback package list (jq or packages.json not found)"
-        packages=("oh-my-posh" "fzf" "zoxide" "tree" "bat" "eza" "ripgrep" "fd" "git-delta" "lazygit" "tmux" "htop" "direnv" "atuin" "gh" "stow" "sops" "age")
+        packages=("starship" "fzf" "zoxide" "tree" "bat" "eza" "ripgrep" "fd" "git-delta" "lazygit" "tmux" "htop" "direnv" "atuin" "gh" "stow" "sops" "age")
     fi
     local missing_packages=()
 
@@ -809,7 +809,7 @@ test_installation() {
     fi
 
     # Test command availability
-    local commands=("oh-my-posh" "fzf" "zoxide")
+    local commands=("starship" "fzf" "zoxide")
     for cmd in "${commands[@]}"; do
         if command_exists "$cmd"; then
             log_success "$cmd is available"
@@ -818,20 +818,20 @@ test_installation() {
         fi
     done
 
-    # Verify Oh My Posh configuration
-    if command_exists oh-my-posh; then
-        if [ -L "$HOME/.config/ohmyposh/zen.json" ] || [ -f "$HOME/.config/ohmyposh/zen.json" ]; then
-            log_success "Oh My Posh config found at ~/.config/ohmyposh/zen.json"
+    # Verify Starship configuration
+    if command_exists starship; then
+        if [ -L "$HOME/.config/starship.toml" ] || [ -f "$HOME/.config/starship.toml" ]; then
+            log_success "Starship config found at ~/.config/starship.toml"
 
-            # Test if theme renders correctly
-            if oh-my-posh print primary --config "$HOME/.config/ohmyposh/zen.json" >/dev/null 2>&1; then
-                log_success "Oh My Posh theme renders correctly"
+            # Test if starship can be initialized
+            if starship init zsh >/dev/null 2>&1; then
+                log_success "Starship initializes correctly"
             else
-                log_warning "Oh My Posh theme has rendering errors - check config"
+                log_warning "Starship initialization has errors - check config"
                 ((errors++))
             fi
         else
-            log_warning "Oh My Posh config not found at ~/.config/ohmyposh/zen.json"
+            log_warning "Starship config not found at ~/.config/starship.toml"
             log_info "Run 'stow config' to create the symlink"
         fi
     fi
