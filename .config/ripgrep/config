@@ -1,0 +1,43 @@
+# Ripgrep configuration file
+# Documentation: https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md
+
+# Add custom file types
+--type-add=ballerina:*.bal
+--type-add=bal:*.bal
+
+# Smart case searching (case-insensitive unless pattern contains uppercase)
+--smart-case
+
+# Follow symbolic links
+--follow
+
+# Search hidden files and directories (except .git)
+--hidden
+
+# Exclude patterns
+--glob=!.git/*
+--glob=!node_modules/*
+--glob=!.cache/*
+--glob=!.npm/*
+--glob=!.vscode/*
+--glob=!dist/*
+--glob=!build/*
+--glob=!target/*
+--glob=!*.min.js
+--glob=!*.min.css
+--glob=!package-lock.json
+--glob=!yarn.lock
+
+# Show line numbers by default
+--line-number
+
+# Show column numbers
+--column
+
+# Use colors
+--colors=line:fg:yellow
+--colors=line:style:bold
+--colors=path:fg:green
+--colors=path:style:bold
+--colors=match:fg:red
+--colors=match:style:bold

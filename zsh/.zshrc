@@ -13,6 +13,7 @@ fi
 
 # Initialize Starship prompt (fast, modern, written in Rust)
 if command -v starship >/dev/null 2>&1; then
+  export STARSHIP_CONFIG="$HOME/.config/starship.toml"
   eval "$(starship init zsh)"
 fi
 
@@ -307,8 +308,8 @@ fi
 # Docker settings
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
 
-# Ripgrep configuration
-export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
+# Ripgrep configuration (XDG standard location, managed by stow)
+export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/config"
 
 # Lazygit configuration - force use of ~/.config/lazygit instead of ~/Library/Application Support
 export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
