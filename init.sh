@@ -765,7 +765,8 @@ handle_stow_conflict() {
 
         case "$choice" in
             [Bb])
-                local backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+                local backup_dir
+                backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
                 mkdir -p "$backup_dir"
                 mv "$conflict_file" "$backup_dir/"
                 log_success "Backed up to: $backup_dir/$(basename "$conflict_file")"
@@ -776,7 +777,7 @@ handle_stow_conflict() {
                 return 1
                 ;;
             [Ss])
-                local dotfile_path="$DOTFILES_DIR/$package/${conflict_file#$HOME/}"
+                local dotfile_path="$DOTFILES_DIR/$package/${conflict_file#"$HOME"/}"
                 if [ -f "$dotfile_path" ]; then
                     echo -e "\n${CYAN}=== Diff: Existing (left) vs Dotfiles (right) ===${NC}"
                     if command -v delta >/dev/null 2>&1; then
@@ -861,7 +862,8 @@ stow_packages() {
                         case "$bulk_choice" in
                             [Aa])
                                 # Backup all conflicts
-                                local backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+                                local backup_dir
+                                backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
                                 mkdir -p "$backup_dir"
                                 log_info "Creating backup directory: $backup_dir"
 

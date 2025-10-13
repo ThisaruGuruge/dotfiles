@@ -90,8 +90,10 @@ fi
 
 # Optimized completion system - regenerate dump only once per day
 # This reduces startup time from ~360ms to ~50ms
+# Note: (#qNmh-20) is a zsh glob qualifier meaning "modified less than 20 hours ago"
 autoload -Uz compinit
-if [[ -n ${ZDOTDIR}/.zcompdump(#qNmh-20) ]]; then
+# shellcheck disable=SC1036,SC1072,SC1073,SC1009
+if [[ -e ${ZDOTDIR:-$HOME}/.zcompdump(#qNmh-20) ]]; then
     # Completion dump is fresh (less than 20 hours old)
     # Use -C to skip security check (saves ~250ms)
     compinit -C -d "${ZDOTDIR:-$HOME}/.zcompdump"
@@ -200,8 +202,8 @@ _cache_tool_init() {
     if [[ -f "$cache_file" ]] && [[ -n "$tool_path" ]] && [[ "$cache_file" -nt "$tool_path" ]]; then
         source "$cache_file"
     else
-        # Generate and cache
-        eval "$init_cmd" | tee "$cache_file" | source /dev/stdin
+        # Generate and cache - write first, then source for reliability
+        eval "$init_cmd" > "$cache_file" && source "$cache_file"
     fi
 }
 

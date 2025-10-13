@@ -171,11 +171,15 @@ success_symbol = "[❯](bold green)"
 error_symbol = "[❯](bold red)"
 vimcmd_symbol = "[❮](bold yellow)"
 
-# Ballerina - Custom detector
+# Ballerina - Custom detector with max depth limit for performance
+# Ballerina projects have max 3-4 levels: root, modules/<name>, tests
+# Using max_depth=5 as safety margin while keeping prompt snappy
 [custom.ballerina]
 command = '''
 dir="$PWD"
-while [ "$dir" != "/" ]; do
+depth=0
+max_depth=5
+while [ "$dir" != "/" ] && [ $depth -lt $max_depth ]; do
   if [ -f "$dir/Ballerina.toml" ]; then
     if [ -f "$HOME/.ballerina/ballerina-version" ]; then
       cat "$HOME/.ballerina/ballerina-version" | sed 's/ballerina-//'
@@ -185,13 +189,18 @@ while [ "$dir" != "/" ]; do
     exit 0
   fi
   dir=$(dirname "$dir")
+  depth=$((depth + 1))
 done
+exit 1
 '''
 when = '''
 dir="$PWD"
-while [ "$dir" != "/" ]; do
+depth=0
+max_depth=5
+while [ "$dir" != "/" ] && [ $depth -lt $max_depth ]; do
   [ -f "$dir/Ballerina.toml" ] && exit 0
   dir=$(dirname "$dir")
+  depth=$((depth + 1))
 done
 exit 1
 '''
