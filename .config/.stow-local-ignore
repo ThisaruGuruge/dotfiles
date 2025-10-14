@@ -1,0 +1,12 @@
+# Stow ignore patterns for .config package
+
+# macOS metadata
+\.DS_Store
+
+# Backup files
+.*~
+\.bak$
+\.swp$
+
+# README and documentation
+README\.md

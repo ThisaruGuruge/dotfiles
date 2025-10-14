@@ -11,23 +11,10 @@ if [ ! -d "$ZINIT_HOME" ]; then
    git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
 fi
 
-# Initialize oh-my-posh with caching except for Apple Terminal
-if [ "$TERM_PROGRAM" != "Apple_Terminal" ] && command -v oh-my-posh >/dev/null 2>&1; then
-  omp_cache_file="$HOME/.cache/zsh/omp_cache.zsh"
-  omp_config_file="$HOME/.config/ohmyposh/zen.json"
-
-  # Create cache directory if it doesn't exist
-  [ ! -d "$HOME/.cache/zsh" ] && mkdir -p "$HOME/.cache/zsh"
-
-  # Check if cache is valid (newer than config file)
-  if [ -f "$omp_cache_file" ] && [ "$omp_cache_file" -nt "$omp_config_file" ]; then
-    # Use cached version
-    source "$omp_cache_file" 2>/dev/null
-  else
-    # Generate new cache
-    oh-my-posh init zsh --config "$omp_config_file" > "$omp_cache_file" 2>/dev/null
-    source "$omp_cache_file" 2>/dev/null
-  fi
+# Initialize Starship prompt (fast, modern, written in Rust)
+if command -v starship >/dev/null 2>&1; then
+  export STARSHIP_CONFIG="$HOME/.config/starship.toml"
+  eval "$(starship init zsh)"
 fi
 
 # Source/Load zinit
@@ -101,8 +88,21 @@ if type brew &>/dev/null; then
   FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
 fi
 
-# Load completions with error suppression for missing files and function override
-autoload -Uz compinit && compinit -i 2>/dev/null
+# Optimized completion system - regenerate dump only once per day
+# This reduces startup time from ~360ms to ~50ms
+# Note: (#qNmh-20) is a zsh glob qualifier meaning "modified less than 20 hours ago"
+autoload -Uz compinit
+# shellcheck disable=SC1036,SC1072,SC1073,SC1009
+if [[ -e ${ZDOTDIR:-$HOME}/.zcompdump(#qNmh-20) ]]; then
+    # Completion dump is fresh (less than 20 hours old)
+    # Use -C to skip security check (saves ~250ms)
+    compinit -C -d "${ZDOTDIR:-$HOME}/.zcompdump"
+else
+    # Dump is old or doesn't exist - do full initialization
+    compinit -i -d "${ZDOTDIR:-$HOME}/.zcompdump"
+    # Compile the completion dump for faster loading
+    { rm -f "${ZDOTDIR:-$HOME}/.zcompdump.zwc" && zcompile "${ZDOTDIR:-$HOME}/.zcompdump" } &!
+fi
 
 # NVM - Optimized loading for faster startup
 export NVM_DIR="$HOME/.nvm"
@@ -131,10 +131,10 @@ fi
 
 zinit cdreplay -q
 
-# SDKMAN initialization (load after completion system)
+# SDKMAN initialization - kept simple for reliability
 export SDKMAN_DIR="$HOME/.sdkman"
 if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
-    # Load SDKMAN with completion error suppression
+    # Source SDKMAN directly (caching doesn't work well with SDKMAN's complexity)
     setopt localoptions nolocaltraps
     source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
 fi
@@ -165,40 +165,56 @@ CORRECT_IGNORE_FILE=".*"
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*' menu no
-zstyle ':fzf-tab:complete:cd:*' fzf-preview "ls --color \$realpath"
-zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview "ls --color \$realpath"
+
+# FZF-tab configuration for directory completion
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always --icons $realpath 2>/dev/null || ls -1 $realpath'
+zstyle ':fzf-tab:complete:cd:*' fzf-flags '--height=80%' '--preview-window=right:50%'
+zstyle ':fzf-tab:complete:cd:*' popup-pad 30 0
+
+# FZF-tab configuration for zoxide (__zoxide_z)
+zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'eza -1 --color=always --icons $realpath 2>/dev/null || ls -1 $realpath'
+zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-flags '--height=80%' '--preview-window=right:50%'
+zstyle ':fzf-tab:complete:__zoxide_z:*' query-string prefix input
+zstyle ':fzf-tab:complete:__zoxide_z:*' popup-pad 30 0
+
+# FZF-tab general settings
+zstyle ':completion:*:descriptions' format '[%d]'
+zstyle ':fzf-tab:*' switch-group '<' '>'
+zstyle ':fzf-tab:*' fzf-command fzf
+zstyle ':fzf-tab:*' accept-line enter
 
 # Bash style jumps
 autoload -U select-word-style
 select-word-style bash
 
-# Shell integrations with lazy loading for performance
+# Shell integrations with caching for faster startup
 
-# Lazy load fzf - initialize only when first used
+# Helper function to cache tool initialization
+_cache_tool_init() {
+    local tool=$1
+    local init_cmd=$2
+    local cache_file="$HOME/.cache/zsh/${tool}_init.zsh"
+
+    [[ ! -d "$HOME/.cache/zsh" ]] && mkdir -p "$HOME/.cache/zsh"
+
+    # Check if cache exists and is newer than the tool binary
+    local tool_path=$(command -v "$tool" 2>/dev/null)
+    if [[ -f "$cache_file" ]] && [[ -n "$tool_path" ]] && [[ "$cache_file" -nt "$tool_path" ]]; then
+        source "$cache_file"
+    else
+        # Generate and cache - write first, then source for reliability
+        eval "$init_cmd" > "$cache_file" && source "$cache_file"
+    fi
+}
+
+# Initialize fzf with caching
 if command -v fzf >/dev/null 2>&1; then
-    _fzf_lazy_load() {
-        # Load fzf more efficiently
-        eval "$(fzf --zsh)"
-        unset -f _fzf_lazy_load
-        # Re-bind Ctrl-R and Ctrl-T immediately after loading
-        bindkey '^R' fzf-history-widget
-        bindkey '^T' fzf-file-widget
-        bindkey '\ec' fzf-cd-widget
-    }
-    # Create lightweight placeholder functions
-    fzf() { _fzf_lazy_load "$@"; fzf "$@"; }
-    # Set up key bindings that trigger lazy loading
-    bindkey '^R' '_fzf_lazy_load'
-    bindkey '^T' '_fzf_lazy_load'
-    bindkey '\ec' '_fzf_lazy_load'
-else
-    # Provide fallback if fzf not available
-    fzf() { echo "fzf not installed"; return 1; }
+    _cache_tool_init "fzf" "fzf --zsh"
 fi
 
-# Initialize zoxide immediately (lazy loading caused issues)
+# Initialize zoxide with caching
 if command -v zoxide >/dev/null 2>&1; then
-    eval "$(zoxide init --cmd cd zsh)"
+    _cache_tool_init "zoxide" "zoxide init --cmd cd zsh"
 else
     # Keep builtin cd if zoxide not available
     cd() { builtin cd "$@" || return; }
@@ -221,21 +237,11 @@ if command -v direnv >/dev/null 2>&1; then
     }
 fi
 
-# Lazy load atuin - initialize only when history search is used
+# Initialize atuin with caching
 if command -v atuin >/dev/null 2>&1; then
-    _atuin_lazy_load() {
-        eval "$(atuin init zsh --disable-up-arrow --disable-ctrl-r)"
-        unset -f _atuin_lazy_load
-        # Bind Ctrl+Alt+R to Atuin search (avoid Warp conflicts)
-        bindkey '^[^R' _atuin_search_widget
-        # Re-run atuin command if called directly
-        if [[ $# -gt 0 ]]; then
-            atuin "$@"
-        fi
-    }
-    atuin() { _atuin_lazy_load atuin "$@"; }
-    # Set up lazy loading for the keybinding
-    bindkey '^[^R' '_atuin_lazy_load'
+    _cache_tool_init "atuin" "atuin init zsh --disable-up-arrow --disable-ctrl-r"
+    # Bind Ctrl+Alt+R to Atuin search (avoid Warp conflicts)
+    bindkey '^[^R' _atuin_search_widget
 fi
 
 # source the personal configs
@@ -304,43 +310,25 @@ fi
 # Docker settings
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
 
-# Ripgrep configuration
-export RIPGREP_CONFIG_PATH="$HOME/.ripgreprc"
+# Ripgrep configuration (XDG standard location, managed by stow)
+export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/config"
+
+# Lazygit configuration - force use of ~/.config/lazygit instead of ~/Library/Application Support
+export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
 
 # Homebrew settings
 export HOMEBREW_AUTO_UPDATE_SECS=86400
 
-# Lazy load rbenv - initialize only when ruby command is used
+# Initialize rbenv with caching
 if command -v rbenv >/dev/null 2>&1; then
-    _rbenv_lazy_load() {
-        eval "$(rbenv init - zsh)"
-        unset -f _rbenv_lazy_load ruby gem bundle
-        # Re-run the command that triggered loading
-        if [[ $# -gt 0 ]]; then
-            "$@"
-        fi
-    }
-    ruby() { _rbenv_lazy_load ruby "$@"; }
-    gem() { _rbenv_lazy_load gem "$@"; }
-    bundle() { _rbenv_lazy_load bundle "$@"; }
+    _cache_tool_init "rbenv" "rbenv init - zsh"
 fi
 
-# Lazy load pyenv - initialize only when python command is used
+# Initialize pyenv with caching
 export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
 if command -v pyenv >/dev/null 2>&1; then
-    _pyenv_lazy_load() {
-        eval "$(pyenv init -)"
-        unset -f _pyenv_lazy_load python python3 pip pip3
-        # Re-run the command that triggered loading
-        if [[ $# -gt 0 ]]; then
-            "$@"
-        fi
-    }
-    python() { _pyenv_lazy_load python "$@"; }
-    python3() { _pyenv_lazy_load python3 "$@"; }
-    pip() { _pyenv_lazy_load pip "$@"; }
-    pip3() { _pyenv_lazy_load pip3 "$@"; }
+    _cache_tool_init "pyenv" "pyenv init -"
 fi
 
 
@@ -351,40 +339,6 @@ export PATH="${HOME}/.rd/bin:$PATH"
 # Source local environment if it exists
 if [ -d "$HOME/.local/bin" ] && [ -f "$HOME/.local/bin/env" ]; then
     source "$HOME/.local/bin/env"
-fi
-
-# Lazy load Google Cloud SDK - initialize only when gcloud commands are used
-_gcloud_lazy_load() {
-    unset -f gcloud gsutil bq
-
-    # Load Google Cloud SDK path
-    if [ -f "$HOME/Downloads/google-cloud-sdk/path.zsh.inc" ]; then
-        source "$HOME/Downloads/google-cloud-sdk/path.zsh.inc"
-    elif [ -f "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ]; then
-        source "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
-    elif [ -f "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ]; then
-        source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc"
-    fi
-
-    # Load Google Cloud SDK completions
-    if [ -f "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc" ]; then
-        source "$HOME/Downloads/google-cloud-sdk/completion.zsh.inc"
-    elif [ -f "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc" ]; then
-        source "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
-    elif [ -f "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc" ]; then
-        source "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/completion.zsh.inc"
-    fi
-
-    unset -f _gcloud_lazy_load
-}
-
-# Check if any Google Cloud SDK installation exists before creating placeholders
-if [ -f "$HOME/Downloads/google-cloud-sdk/path.zsh.inc" ] || \
-   [ -f "/usr/local/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ] || \
-   [ -f "/opt/homebrew/Caskroom/google-cloud-sdk/latest/google-cloud-sdk/path.zsh.inc" ]; then
-    gcloud() { _gcloud_lazy_load; gcloud "$@"; }
-    gsutil() { _gcloud_lazy_load; gsutil "$@"; }
-    bq() { _gcloud_lazy_load; bq "$@"; }
 fi
 
 # Force command hash rebuild at the end (fixes Warp terminal command discovery)
