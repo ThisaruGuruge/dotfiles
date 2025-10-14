@@ -464,8 +464,8 @@ install_fonts() {
     log_step "Installing Nerd Fonts"
 
     # Check if FiraCode Nerd Font is installed (check for any variant)
-    if ls "$HOME/Library/Fonts/FiraCodeNerdFont"*.ttf >/dev/null 2>&1 || \
-       brew list --cask font-fira-code-nerd-font >/dev/null 2>&1; then
+    if ls "$HOME/Library/Fonts/FiraCodeNerdFont"*.ttf >/dev/null 2>&1 ||
+        brew list --cask font-fira-code-nerd-font >/dev/null 2>&1; then
         log_success "FiraCode Nerd Font already installed"
         return 0
     fi
