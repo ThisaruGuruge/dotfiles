@@ -1,13 +1,13 @@
 # Thisaru's Dotfiles
 
-A comprehensive development environment setup for macOS featuring Zsh, Oh My Posh, and a curated collection of productivity tools and shortcuts.
+A comprehensive development environment setup for macOS featuring Zsh, Starship prompt, and a curated collection of productivity tools and shortcuts.
 
 **Author**: Thisaru Guruge ([thisaru.me](https://thisaru.me))
 
 ## 🚀 What You'll Get
 
 - **Modern Shell Experience**: Zsh with intelligent autocompletion, syntax highlighting, and command suggestions
-- **Beautiful Prompt**: Custom Oh My Posh theme with git integration and contextual information
+- **Beautiful Prompt**: Starship prompt with git integration and contextual information
 - **Terminal Compatibility**: Works with any modern terminal (Warp, iTerm2, Terminal.app, etc.)
 - **Enhanced Navigation**: Fast directory jumping with `zoxide` and fuzzy finding with `fzf`
 - **Development Tools**: Pre-configured support for Python, Ruby, Node.js, Java, and Docker
@@ -116,7 +116,7 @@ If you prefer to install manually or need to customize the process:
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install GNU Stow and core dependencies
-brew install stow oh-my-posh fzf zoxide tree bat eza ripgrep fd git-delta lazygit tmux htop direnv atuin gh sops age git-flow-avh
+brew install stow starship fzf zoxide tree bat eza ripgrep fd git-delta lazygit tmux htop direnv atuin gh sops age git-flow-avh
 
 # Install development tools (optional)
 brew install pyenv rbenv nvm
@@ -251,7 +251,7 @@ The system organizes packages into logical categories:
    # Stow manages symlinks automatically in organized packages
    stow zsh      # Links all zsh-related configs
    stow vim      # Links vim configuration
-   stow config   # Links application configs (Oh My Posh theme)
+   stow .config  # Links application configs (Starship, Lazygit, Ripgrep)
    ```
 
 5. **Apply configuration**:
@@ -312,7 +312,7 @@ The dotfiles are organized into logical packages:
 - **git/** - Git configuration with modern features and security
 - **tmux/** - Terminal multiplexer configuration
 - **direnv/** - Project-specific environment management
-- **config/** - Application-specific configs (Oh My Posh themes, etc.)
+- **.config/** - XDG-compliant application configs (Starship, Lazygit, Ripgrep)
 
 #### Stow Package Structure
 
@@ -322,7 +322,7 @@ The dotfiles are organized into logical packages:
 - **git/** - Git configuration with modern features and security
 - **tmux/** - Terminal multiplexer configuration
 - **direnv/** - Project-specific environment management
-- **config/** - Application-specific configs (Oh My Posh themes, etc.)
+- **.config/** - XDG-compliant application configs (Starship, Lazygit, Ripgrep)
 
 ```bash
 # Install specific packages
@@ -331,7 +331,7 @@ stow vim      # Editor setup
 stow git      # Git with modern features
 stow tmux     # Terminal multiplexer
 stow direnv   # Project environments
-stow config   # Application configs
+stow .config  # Application configs (XDG-compliant)
 ```
 
 ## 🎨 Post-Installation Setup
@@ -480,6 +480,12 @@ rg "pattern" -A 3 -B 3                   # Show 3 lines before and after matches
 
 **`lazygit` - Interactive Git Interface**:
 
+Lazygit is configured to use `~/.config/lazygit/config.yml` (managed by stow) with:
+- Nerd font icons enabled
+- Git delta integration for better diffs
+- Custom theme with cyan accents
+- Auto-fetch and auto-refresh enabled
+
 ```bash
 lg                                         # Open lazygit TUI for git operations
 glog                                       # Beautiful git log with graph and colors
@@ -487,6 +493,8 @@ gunstage                                   # Unstage files from git index
 gundo                                      # Undo last commit but keep changes
 gcleanup                                   # Remove merged branches automatically
 ```
+
+> 💡 **Tip**: The `LG_CONFIG_FILE` environment variable ensures lazygit always uses the stowed config from `~/.config/lazygit/config.yml`, even on fresh machines.
 
 **`git-flow` - Git Branching Model**:
 

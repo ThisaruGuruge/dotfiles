@@ -1,0 +1,153 @@
+#!/usr/bin/env zsh
+
+# ZSH Startup Profiler
+# Measures time taken by each component during shell initialization
+
+set -e
+
+echo "🔍 ZSH Startup Performance Profiler"
+echo "===================================="
+echo ""
+
+# Colors for output
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Function to time a command
+time_command() {
+    local description="$1"
+    local command="$2"
+    local iterations=${3:-5}
+
+    local total=0
+    local min=999999
+    local max=0
+
+    for i in {1..$iterations}; do
+        local start=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time * 1000000')
+        eval "$command" >/dev/null 2>&1
+        local end=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time * 1000000')
+        local elapsed=$((end - start))
+
+        total=$((total + elapsed))
+        [ $elapsed -lt $min ] && min=$elapsed
+        [ $elapsed -gt $max ] && max=$elapsed
+    done
+
+    local avg=$((total / iterations))
+    local avg_ms=$((avg / 1000))
+
+    # Color coding based on time
+    local color=$GREEN
+    if [ $avg_ms -gt 100 ]; then
+        color=$RED
+    elif [ $avg_ms -gt 50 ]; then
+        color=$YELLOW
+    fi
+
+    printf "${color}%-50s %8d ms${NC}\n" "$description" "$avg_ms"
+
+    # Return average time for later analysis
+    echo "$avg_ms" >> /tmp/zsh_profile_times.txt
+}
+
+# Clean up temporary file
+rm -f /tmp/zsh_profile_times.txt
+
+echo "Testing component initialization times (5 iterations each)..."
+echo "--------------------------------------------------------------"
+echo ""
+
+# Test individual components
+time_command "Homebrew shellenv" "eval \"\$(/opt/homebrew/bin/brew shellenv)\""
+time_command "Oh My Posh init (no cache)" "oh-my-posh init zsh --config ~/.config/ohmyposh/zen.json"
+time_command "Oh My Posh cached version" "[ -f ~/.cache/zsh/omp_cache.zsh ] && source ~/.cache/zsh/omp_cache.zsh"
+time_command "Zinit load completions" "zinit light zsh-users/zsh-completions"
+time_command "Zinit load fzf-tab" "zinit light Aloxaf/fzf-tab"
+time_command "FZF initialization" "fzf --zsh"
+time_command "Zoxide initialization" "zoxide init --cmd cd zsh"
+time_command "Atuin initialization" "atuin init zsh --disable-up-arrow --disable-ctrl-r"
+time_command "SDKMAN initialization" "source ~/.sdkman/bin/sdkman-init.sh"
+time_command "rbenv initialization" "rbenv init - zsh"
+time_command "pyenv initialization" "pyenv init -"
+time_command "compinit (completion system)" "autoload -Uz compinit && compinit -i"
+time_command "Source .aliases.sh" "source ~/.aliases.sh"
+time_command "Source .functions.sh" "source ~/.functions.sh"
+time_command "Source .paths.sh" "source ~/.paths.sh"
+
+# Test file operations that may be slow
+echo ""
+echo "File I/O Operations:"
+echo "--------------------------------------------------------------"
+time_command "Read .env file (if exists)" "[ -f ~/.env ] && cat ~/.env"
+time_command "NVM directory scan" "ls -t ~/.nvm/versions/node 2>/dev/null | head -1"
+time_command "JMeter path discovery (.paths.sh)" "find ~/Downloads ~/tools /opt /usr/local -maxdepth 1 -name 'apache-jmeter-*' -type d 2>/dev/null | head -n 1"
+
+echo ""
+echo "Full Shell Startup:"
+echo "--------------------------------------------------------------"
+time_command "Complete zsh startup (new shell)" "zsh -i -c exit" 3
+
+echo ""
+echo "Cache Performance:"
+echo "--------------------------------------------------------------"
+# Test cache effectiveness
+if [ -f ~/.cache/zsh/omp_cache.zsh ]; then
+    omp_cached=$(perl -MTime::HiRes=time -e '
+        my $start = time;
+        system("source ~/.cache/zsh/omp_cache.zsh >/dev/null 2>&1");
+        printf "%.0f\n", (time - $start) * 1000;
+    ')
+    omp_uncached=$(perl -MTime::HiRes=time -e '
+        my $start = time;
+        system("oh-my-posh init zsh --config ~/.config/ohmyposh/zen.json >/dev/null 2>&1");
+        printf "%.0f\n", (time - $start) * 1000;
+    ')
+    echo "Oh My Posh cached:    ${GREEN}${omp_cached}ms${NC}"
+    echo "Oh My Posh uncached:  ${YELLOW}${omp_uncached}ms${NC}"
+    echo "Cache speedup:        $((omp_uncached - omp_cached))ms saved"
+else
+    echo "${YELLOW}No Oh My Posh cache found${NC}"
+fi
+
+echo ""
+echo "📊 Analysis:"
+echo "--------------------------------------------------------------"
+
+# Parse and analyze results
+if [ -f /tmp/zsh_profile_times.txt ]; then
+    # Calculate total estimated time
+    total_time=0
+    while read -r time_ms; do
+        total_time=$((total_time + time_ms))
+    done < /tmp/zsh_profile_times.txt
+
+    echo "Estimated total initialization time: ${BLUE}${total_time}ms${NC}"
+    echo ""
+
+    # Show recommendations
+    echo "💡 Recommendations:"
+    if [ $total_time -gt 2000 ]; then
+        echo "  ${RED}⚠ Startup time is very slow (>2s)${NC}"
+        echo "  Consider lazy loading more components or disabling unused tools"
+    elif [ $total_time -gt 1000 ]; then
+        echo "  ${YELLOW}⚠ Startup time is slow (>1s)${NC}"
+        echo "  Some optimizations recommended"
+    else
+        echo "  ${GREEN}✓ Startup time is acceptable (<1s)${NC}"
+    fi
+fi
+
+# Cleanup
+rm -f /tmp/zsh_profile_times.txt
+
+echo ""
+echo "🔬 Detailed profiling with zprof:"
+echo "--------------------------------------------------------------"
+echo "Run the following to get detailed function-level profiling:"
+echo ""
+echo "  zsh -c 'zmodload zsh/zprof && source ~/.zshrc && zprof'"
+echo ""

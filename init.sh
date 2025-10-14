@@ -142,11 +142,19 @@ setup_homebrew() {
         # Add Homebrew to PATH for this session
         if [[ -f "/opt/homebrew/bin/brew" ]]; then
             eval "$(/opt/homebrew/bin/brew shellenv)"
+            log_success "Homebrew installed successfully"
+            log_info "Homebrew has been added to PATH for this installation session"
         elif [[ -f "/usr/local/bin/brew" ]]; then
             eval "$(/usr/local/bin/brew shellenv)"
+            log_success "Homebrew installed successfully"
+            log_info "Homebrew has been added to PATH for this installation session"
+        else
+            log_warning "Homebrew installed but could not be found in expected locations"
+            log_info "You may need to manually add Homebrew to your PATH"
+            log_info "Run: eval \"\$(/opt/homebrew/bin/brew shellenv)\" or check Homebrew docs"
         fi
 
-        log_success "Homebrew installed successfully"
+        log_info "Note: Your .zshrc is already configured to load Homebrew on shell startup"
     else
         log_error "Homebrew is required. Exiting."
         exit 1
@@ -208,7 +216,7 @@ install_core_dependencies() {
     else
         # Fallback to hardcoded list if jq or packages.json not available
         log_warning "Using fallback package list (jq or packages.json not found)"
-        packages=("oh-my-posh" "fzf" "zoxide" "tree" "bat" "eza" "ripgrep" "fd" "git-delta" "lazygit" "tmux" "htop" "direnv" "atuin" "gh" "stow" "sops" "age")
+        packages=("starship" "fzf" "zoxide" "tree" "bat" "eza" "ripgrep" "fd" "git-delta" "lazygit" "tmux" "htop" "direnv" "atuin" "gh" "stow" "sops" "age")
     fi
     local missing_packages=()
 
@@ -455,8 +463,9 @@ install_terminal_apps() {
 install_fonts() {
     log_step "Installing Nerd Fonts"
 
-    # Check if FiraCode Nerd Font is installed
-    if [ -f "$HOME/Library/Fonts/FiraCodeNerdFont-Regular.ttf" ] || [ -f "/System/Library/Fonts/FiraCodeNerdFont-Regular.ttf" ]; then
+    # Check if FiraCode Nerd Font is installed (check for any variant)
+    if ls "$HOME/Library/Fonts/FiraCodeNerdFont"*.ttf >/dev/null 2>&1 ||
+        brew list --cask font-fira-code-nerd-font >/dev/null 2>&1; then
         log_success "FiraCode Nerd Font already installed"
         return 0
     fi
@@ -733,36 +742,190 @@ EOF
     log_info "  • Direct edit: sops ~/.env"
 }
 
-# Use stow to create symlinks
+# Handle stow conflicts for a specific file
+handle_stow_conflict() {
+    local conflict_file="$1"
+    local package="$2"
+
+    echo ""
+    log_warning "Conflict detected: $conflict_file"
+    log_info "This file already exists in your home directory"
+    echo ""
+    echo -e "${CYAN}Options:${NC}"
+    echo -e "  ${YELLOW}b${NC}) Backup existing file and replace with stow symlink"
+    echo -e "  ${YELLOW}k${NC}) Keep existing file (skip stowing this file)"
+    echo -e "  ${YELLOW}s${NC}) Show diff between existing and dotfiles version"
+    echo -e "  ${YELLOW}q${NC}) Quit installation"
+    echo ""
+
+    while true; do
+        echo -en "  ${YELLOW}Choose action (b/k/s/q): ${NC}"
+        read -r -n 1 choice
+        echo
+
+        case "$choice" in
+            [Bb])
+                local backup_dir
+                backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+                mkdir -p "$backup_dir"
+                mv "$conflict_file" "$backup_dir/"
+                log_success "Backed up to: $backup_dir/$(basename "$conflict_file")"
+                return 0
+                ;;
+            [Kk])
+                log_info "Keeping existing file: $conflict_file"
+                return 1
+                ;;
+            [Ss])
+                local dotfile_path="$DOTFILES_DIR/$package/${conflict_file#"$HOME"/}"
+                if [ -f "$dotfile_path" ]; then
+                    echo -e "\n${CYAN}=== Diff: Existing (left) vs Dotfiles (right) ===${NC}"
+                    if command -v delta >/dev/null 2>&1; then
+                        diff -u "$conflict_file" "$dotfile_path" | delta
+                    else
+                        diff -u "$conflict_file" "$dotfile_path" || true
+                    fi
+                    echo ""
+                else
+                    log_warning "Could not find dotfile at: $dotfile_path"
+                fi
+                ;;
+            [Qq])
+                log_info "Installation cancelled by user"
+                exit 0
+                ;;
+            *)
+                echo -e "  ${YELLOW}${WARNING} Please press 'b', 'k', 's', or 'q'${NC}"
+                ;;
+        esac
+    done
+}
+
+# Use stow to create symlinks with conflict resolution
 stow_packages() {
     log_step "Using Stow to manage dotfiles"
 
-    local packages=("zsh" "vim" "config" "git" "tmux" "direnv")
+    local packages=("zsh" "vim" ".config" "git" "tmux" "direnv")
     local stowed_packages=()
+    local skipped_files=()
 
     for package in "${packages[@]}"; do
         if [ -d "$DOTFILES_DIR/$package" ]; then
-            log_info "Stowing $package package..."
+            log_info "Processing $package package..."
 
-            # Use stow to create symlinks (exclude .env files for zsh package)
+            # Use stow to create symlinks
+            # Note: Exclusions are managed via .stow-local-ignore files in each package
             local stow_args=(-t "$HOME" "$package")
-            if [ "$package" = "zsh" ]; then
-                # Exclude .env files from stowing since they're managed by secret management
-                stow_args+=(--ignore='.env$' --ignore='.env.example$')
-            fi
 
-            if stow "${stow_args[@]}" 2>/dev/null; then
-                log_success "Stowed $package package"
-                stowed_packages+=("$package")
-            else
-                log_warning "Failed to stow $package (may have conflicts)"
+            # First, try a dry-run to detect conflicts
+            local stow_output
+            stow_output=$(stow -n "${stow_args[@]}" 2>&1)
+            local stow_status=$?
 
-                # Try to restow (useful if already stowed)
-                if stow -R "${stow_args[@]}" 2>/dev/null; then
-                    log_success "Re-stowed $package package"
+            if [ $stow_status -eq 0 ]; then
+                # No conflicts, proceed with stowing
+                if stow "${stow_args[@]}" 2>/dev/null; then
+                    log_success "Stowed $package package"
                     stowed_packages+=("$package")
                 else
-                    log_error "Could not stow $package package"
+                    log_error "Unexpected error stowing $package package"
+                fi
+            else
+                # Check if it's already stowed
+                if echo "$stow_output" | grep -q "already stowed"; then
+                    log_success "$package package already stowed"
+                    stowed_packages+=("$package")
+                # Check for conflicts
+                elif echo "$stow_output" | grep -q "existing target"; then
+                    log_warning "Conflicts detected in $package package"
+
+                    # Extract conflicting files from stow output
+                    local conflicts
+                    conflicts=$(echo "$stow_output" | grep "existing target" | sed 's/.*existing target is //g' | sed 's/ .*//g')
+
+                    # Ask user how to handle conflicts
+                    echo ""
+                    log_info "Found conflicts in $package package. How would you like to proceed?"
+                    echo ""
+                    echo -e "${CYAN}Options:${NC}"
+                    echo -e "  ${YELLOW}a${NC}) Backup ALL conflicting files and replace with stow symlinks"
+                    echo -e "  ${YELLOW}i${NC}) Handle each conflict individually"
+                    echo -e "  ${YELLOW}k${NC}) Keep all existing files (skip this package)"
+                    echo -e "  ${YELLOW}q${NC}) Quit installation"
+                    echo ""
+
+                    while true; do
+                        echo -en "  ${YELLOW}Choose action (a/i/k/q): ${NC}"
+                        read -r -n 1 bulk_choice
+                        echo
+
+                        case "$bulk_choice" in
+                            [Aa])
+                                # Backup all conflicts
+                                local backup_dir
+                                backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+                                mkdir -p "$backup_dir"
+                                log_info "Creating backup directory: $backup_dir"
+
+                                for conflict in $conflicts; do
+                                    if [ -f "$conflict" ] || [ -d "$conflict" ]; then
+                                        mv "$conflict" "$backup_dir/"
+                                        log_success "Backed up: $(basename "$conflict")"
+                                    fi
+                                done
+
+                                # Now stow should work
+                                if stow "${stow_args[@]}" 2>/dev/null; then
+                                    log_success "Stowed $package package"
+                                    stowed_packages+=("$package")
+                                else
+                                    log_error "Failed to stow $package after backup"
+                                fi
+                                break
+                                ;;
+                            [Ii])
+                                # Handle individually
+                                local can_stow=true
+                                for conflict in $conflicts; do
+                                    if ! handle_stow_conflict "$conflict" "$package"; then
+                                        can_stow=false
+                                        skipped_files+=("$conflict")
+                                    fi
+                                done
+
+                                if [ "$can_stow" = true ]; then
+                                    if stow "${stow_args[@]}" 2>/dev/null; then
+                                        log_success "Stowed $package package"
+                                        stowed_packages+=("$package")
+                                    else
+                                        log_warning "Some files in $package were skipped"
+                                    fi
+                                else
+                                    log_warning "Skipped $package package due to conflicts"
+                                fi
+                                break
+                                ;;
+                            [Kk])
+                                log_info "Skipped $package package"
+                                break
+                                ;;
+                            [Qq])
+                                log_info "Installation cancelled by user"
+                                exit 0
+                                ;;
+                            *)
+                                echo -e "  ${YELLOW}${WARNING} Please press 'a', 'i', 'k', or 'q'${NC}"
+                                ;;
+                        esac
+                    done
+                else
+                    # Some other error, try restowing
+                    if stow -R "${stow_args[@]}" 2>/dev/null; then
+                        log_success "Re-stowed $package package"
+                        stowed_packages+=("$package")
+                    else
+                        log_error "Could not stow $package package"
+                    fi
                 fi
             fi
         else
@@ -775,6 +938,14 @@ stow_packages() {
     else
         log_error "No packages were stowed successfully"
         return 1
+    fi
+
+    if [ ${#skipped_files[@]} -gt 0 ]; then
+        echo ""
+        log_info "Note: Some files were skipped and kept as-is:"
+        for skipped in "${skipped_files[@]}"; do
+            log_info "  - $skipped"
+        done
     fi
 }
 
@@ -809,7 +980,7 @@ test_installation() {
     fi
 
     # Test command availability
-    local commands=("oh-my-posh" "fzf" "zoxide")
+    local commands=("starship" "fzf" "zoxide")
     for cmd in "${commands[@]}"; do
         if command_exists "$cmd"; then
             log_success "$cmd is available"
@@ -818,20 +989,20 @@ test_installation() {
         fi
     done
 
-    # Verify Oh My Posh configuration
-    if command_exists oh-my-posh; then
-        if [ -L "$HOME/.config/ohmyposh/zen.json" ] || [ -f "$HOME/.config/ohmyposh/zen.json" ]; then
-            log_success "Oh My Posh config found at ~/.config/ohmyposh/zen.json"
+    # Verify Starship configuration
+    if command_exists starship; then
+        if [ -L "$HOME/.config/starship.toml" ] || [ -f "$HOME/.config/starship.toml" ]; then
+            log_success "Starship config found at ~/.config/starship.toml"
 
-            # Test if theme renders correctly
-            if oh-my-posh print primary --config "$HOME/.config/ohmyposh/zen.json" >/dev/null 2>&1; then
-                log_success "Oh My Posh theme renders correctly"
+            # Test if starship can be initialized
+            if starship init zsh >/dev/null 2>&1; then
+                log_success "Starship initializes correctly"
             else
-                log_warning "Oh My Posh theme has rendering errors - check config"
+                log_warning "Starship initialization has errors - check config"
                 ((errors++))
             fi
         else
-            log_warning "Oh My Posh config not found at ~/.config/ohmyposh/zen.json"
+            log_warning "Starship config not found at ~/.config/starship.toml"
             log_info "Run 'stow config' to create the symlink"
         fi
     fi

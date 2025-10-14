@@ -1,7 +1,18 @@
+# Environment and secrets
 .env
+
+# IDE and editor
 .vscode
-.DS_Store
 .claudeignore
 .claude
+
+# macOS
+.DS_Store
+
+# Analysis and reports
 analysis
 *audit-report*
+
+# Override global gitignore - we WANT to track .config in this repo
+!/.config
+!/.config/**

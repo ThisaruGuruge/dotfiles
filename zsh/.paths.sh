@@ -1,10 +1,18 @@
 #!/bin/bash
+#
+# PATH and Environment Configuration
+# This file safely adds tools to PATH only if they exist on the system
+# All paths are checked before being added for portability across machines
 
 # Docker platform (keep for compatibility)
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
 
+# Add local bin directories if they exist
+[ -d "$HOME/.local/bin" ] && export PATH="$HOME/.local/bin:$PATH"
+[ -d "$HOME/bin" ] && export PATH="$HOME/bin:$PATH"
+
 # Add JAVA_HOME to PATH if set (managed by SDKMAN)
-[ -n "$JAVA_HOME" ] && export PATH=$JAVA_HOME/bin:$PATH
+[ -n "$JAVA_HOME" ] && export PATH="$JAVA_HOME/bin:$PATH"
 
 # Legacy tool paths - only add to PATH if directories exist
 # Note: Consider using SDKMAN for Java ecosystem tools instead

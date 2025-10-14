@@ -1,0 +1,14 @@
+# Stow ignore patterns for zsh package
+# These files will not be symlinked
+
+# Environment files (managed separately for security)
+\.env$
+\.env\..*
+
+# Backup files
+.*~
+\.bak$
+\.swp$
+
+# README and documentation
+README\.md

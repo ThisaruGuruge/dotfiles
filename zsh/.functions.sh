@@ -210,8 +210,8 @@ edit_dotfiles() {
             description="Vim Configuration"
             ;;
         7)
-            file_to_edit="$dotfiles_dir/config/ohmyposh/zen.json"
-            description="Oh My Posh Theme"
+            file_to_edit="$dotfiles_dir/config/starship.toml"
+            description="Starship Prompt Config"
             ;;
         8)
             file_to_edit="$dotfiles_dir/zsh/.env.example"
@@ -472,8 +472,8 @@ update_dotfiles() {
         fi
     fi
 
-    if echo "$changed_files" | grep -q "config/ohmyposh"; then
-        echo "   🎨 Prompt theme updated"
+    if echo "$changed_files" | grep -q "config/starship.toml"; then
+        echo "   🎨 Prompt config updated"
         echo "   💡 Restart terminal to see prompt changes"
     fi
 
@@ -1275,7 +1275,7 @@ list_dotfiles_tools() {
     echo ""
     echo "📺 SHELL & TERMINAL ENHANCEMENT:"
     echo "   zsh              - Shell"
-    echo "   oh-my-posh       - Prompt theme"
+    echo "   starship         - Fast prompt (Rust)"
     echo "   zinit            - Plugin manager"
     echo "   tmux             - Terminal multiplexer"
     echo ""
@@ -1345,8 +1345,8 @@ remove_dotfiles_tool() {
         echo ""
         echo "Available tools to remove:"
         echo "• nvm, sdkman, rbenv, pyenv"
-        echo "• oh-my-posh, atuin, direnv"
-        echo "• google-cloud-sdk, docker"
+        echo "• starship, atuin, direnv"
+        echo "• docker"
         echo "• legacy-java-tools (maven, tomcat, ant, mysql)"
         echo "• jmeter"
         echo ""
@@ -1410,13 +1410,23 @@ remove_dotfiles_tool() {
             fi
             ;;
 
-        "oh-my-posh")
-            echo "Removing Oh My Posh configuration..."
-            if grep -q "oh-my-posh" "$dotfiles_dir/zsh/.zshrc"; then
-                sed -i.bak '/# Initialize oh-my-posh/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-                echo "✅ Oh My Posh configuration commented out in .zshrc"
+        "oh-my-posh" | "starship")
+            echo "Removing $tool_name configuration..."
+            if grep -qi "$tool_name" "$dotfiles_dir/zsh/.zshrc"; then
+                sed -i.bak "/# Initialize $tool_name/,/^fi$/s/^/# REMOVED: /" "$dotfiles_dir/zsh/.zshrc"
+                echo "✅ $tool_name configuration commented out in .zshrc"
             else
-                echo "ℹ️ Oh My Posh configuration not found or already removed"
+                echo "ℹ️ $tool_name configuration not found or already removed"
+            fi
+
+            # Cleanup instructions
+            echo ""
+            echo "To fully remove $tool_name:"
+            echo "  brew uninstall $tool_name"
+            if [ "$tool_name" = "oh-my-posh" ]; then
+                echo "  rm -rf ~/.config/ohmyposh ~/.cache/zsh/omp_cache.zsh"
+            else
+                echo "  rm -rf ~/.config/starship.toml"
             fi
             ;;
 
@@ -1444,13 +1454,13 @@ remove_dotfiles_tool() {
             ;;
 
         "google-cloud-sdk")
-            echo "Removing Google Cloud SDK configuration..."
-            if grep -q "_gcloud_lazy_load" "$dotfiles_dir/zsh/.zshrc"; then
-                sed -i.bak '/# Lazy load Google Cloud SDK/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-                echo "✅ Google Cloud SDK configuration commented out in .zshrc"
-            else
-                echo "ℹ️ Google Cloud SDK configuration not found or already removed"
-            fi
+            echo "ℹ️ Google Cloud SDK is now managed via packages.json (gcp category)"
+            echo "   Set 'enabled: true' in packages.json under categories.gcp to enable"
+            echo "   gcloud is disabled by default and no longer part of core dotfiles"
+            echo ""
+            echo "   To uninstall gcloud completely, run:"
+            echo "   brew uninstall --cask google-cloud-sdk"
+            return 0
             ;;
 
         "legacy-java-tools")
@@ -1489,8 +1499,8 @@ remove_dotfiles_tool() {
             echo ""
             echo "Available tools to remove:"
             echo "• nvm, sdkman, rbenv, pyenv"
-            echo "• oh-my-posh, atuin, direnv"
-            echo "• google-cloud-sdk, docker"
+            echo "• starship, atuin, direnv"
+            echo "• docker"
             echo "• legacy-java-tools (maven, tomcat, ant, mysql)"
             echo "• jmeter"
             return 1

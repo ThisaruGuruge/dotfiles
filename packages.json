@@ -34,10 +34,10 @@
           "description": "Symlink farm manager",
           "required": true
         },
-        "oh-my-posh": {
+        "starship": {
           "enabled": true,
           "type": "brew",
-          "description": "Modern shell prompt",
+          "description": "Fast, modern shell prompt written in Rust",
           "required": true
         },
         "fzf": {
@@ -220,6 +220,20 @@
           "enabled": false,
           "type": "brew",
           "description": "AWS credentials manager",
+          "required": false
+        }
+      }
+    },
+    "gcp": {
+      "description": "Google Cloud Platform tools",
+      "enabled": false,
+      "required": false,
+      "prompt_message": "Install Google Cloud Platform tools?",
+      "packages": {
+        "google-cloud-sdk": {
+          "enabled": false,
+          "type": "cask",
+          "description": "Google Cloud SDK and CLI tools",
           "required": false
         }
       }
