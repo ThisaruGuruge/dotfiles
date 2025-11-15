@@ -947,6 +947,20 @@ stow_packages() {
             log_info "  - $skipped"
         done
     fi
+
+    # Workaround for stow bug: manually create nvim and vim symlinks if they don't exist
+    # See: https://github.com/aspiers/stow/issues - stow sometimes fails to create new directory symlinks
+    if [ ! -e "$HOME/.config/nvim" ] && [ -d "$DOTFILES_DIR/.config/nvim" ]; then
+        log_info "Creating nvim symlink manually (stow workaround)"
+        ln -s ../dotfiles/.config/nvim "$HOME/.config/nvim"
+        log_success "Created ~/.config/nvim symlink"
+    fi
+
+    if [ ! -e "$HOME/.config/vim" ] && [ -d "$DOTFILES_DIR/.config/vim" ]; then
+        log_info "Creating vim symlink manually (stow workaround)"
+        ln -s ../dotfiles/.config/vim "$HOME/.config/vim"
+        log_success "Created ~/.config/vim symlink"
+    fi
 }
 
 # Test installation

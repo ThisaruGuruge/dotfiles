@@ -126,11 +126,10 @@
           "description": "GitHub CLI",
           "required": false
         },
-        "git-flow-avh": {
+        "neovim": {
           "enabled": true,
           "type": "brew",
-          "package_name": "git-flow-avh",
-          "description": "Git branching model extension",
+          "description": "Hyperextensible Vim-based text editor",
           "required": false
         }
       }

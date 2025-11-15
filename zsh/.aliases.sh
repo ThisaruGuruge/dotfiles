@@ -53,9 +53,9 @@ alias sudo='sudo '
 
 # Bash Customization
 alias my_soc="source ~/.zshrc"
-alias my_pro="vim ~/.zshrc"
-alias my_ali="vim ~/.aliases.sh"
-alias my_func="vim ~/.functions.sh"
+alias my_pro="nvim ~/.zshrc"
+alias my_ali="nvim ~/.aliases.sh"
+alias my_func="nvim ~/.functions.sh"
 
 alias d='dirs -v | head -10'
 
@@ -69,10 +69,13 @@ alias ......="cd ../../../../../"
 alias remove_empty_dirs="find . -type d | tail -r | xargs rmdir 2>/dev/null"
 
 # Editors
-alias v="vim"
+# Editor aliases - use Neovim
+alias vi="nvim"
+alias vim="nvim"
+alias v="nvim"
 
 # Devlopment
-alias editHosts='sudo vim /etc/hosts'
+alias editHosts='sudo nvim /etc/hosts'
 alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"
 
 # Gradle wrapper aliases - Use ./gradlew for project builds
@@ -215,11 +218,11 @@ alias du='dust'
 alias df='duf'
 
 # Quick edit configs
-alias edit_zsh='vim ~/.zshrc'
-alias edit_aliases='vim ~/.aliases.sh'
-alias edit_functions='vim ~/.functions.sh'
-alias edit_git='vim ~/.gitconfig'
-alias edit_tmux='vim ~/.tmux.conf'
+alias edit_zsh='nvim ~/.zshrc'
+alias edit_aliases='nvim ~/.aliases.sh'
+alias edit_functions='nvim ~/.functions.sh'
+alias edit_git='nvim ~/.gitconfig'
+alias edit_tmux='nvim ~/.tmux.conf'
 
 # Documentation system - Quick access to alias help
 # Examples:
