@@ -1,0 +1,2 @@
+require("thisarug")
+print("Hello")

@@ -12,6 +12,7 @@ A comprehensive development environment setup for macOS featuring Zsh, Starship 
 - **Enhanced Navigation**: Fast directory jumping with `zoxide` and fuzzy finding with `fzf`
 - **Development Tools**: Pre-configured support for Python, Ruby, Node.js, Java, and Docker
 - **Modern CLI Tools**: Enhanced with eza (ls), bat (cat), delta (git diff), lazygit (git UI), atuin (shell history)
+- **Neovim Configuration**: Modern Lua-based configuration with modular structure ready for customization
 - **Terminal Multiplexer**: With Tmux configuration featuring modern keybindings and themes
 - **Project Environment Management**: Direnv for automatic project-specific environment loading
 - **Productivity Shortcuts**: 150+ aliases and custom functions for common development tasks
@@ -312,7 +313,7 @@ The dotfiles are organized into logical packages:
 - **git/** - Git configuration with modern features and security
 - **tmux/** - Terminal multiplexer configuration
 - **direnv/** - Project-specific environment management
-- **.config/** - XDG-compliant application configs (Starship, Lazygit, Ripgrep)
+- **.config/** - XDG-compliant application configs (Starship, Lazygit, Ripgrep, Neovim)
 
 #### Stow Package Structure
 
@@ -322,7 +323,7 @@ The dotfiles are organized into logical packages:
 - **git/** - Git configuration with modern features and security
 - **tmux/** - Terminal multiplexer configuration
 - **direnv/** - Project-specific environment management
-- **.config/** - XDG-compliant application configs (Starship, Lazygit, Ripgrep)
+- **.config/** - XDG-compliant application configs (Starship, Lazygit, Ripgrep, Neovim)
 
 ```bash
 # Install specific packages
@@ -444,6 +445,7 @@ brew install jq curl wget htop
 
 - `p3` - Python 3
 - `v` - Vim
+- `nvim` - Neovim (modern Vim-based editor)
 - `gwb` - Gradle build
 - `use_java_17` / `use_java_21` - Switch Java versions
 
@@ -592,6 +594,39 @@ sops ~/.env                               # Direct SOPS editing
 - `compress <folder>` - Create tar.gz archive
 - `checkPort <port>` - See what's running on a port
 - `git_ignore_local <file>` - Add to local git ignore
+
+### Neovim Configuration
+
+The dotfiles include a modern Neovim configuration with a modular Lua-based structure:
+
+```
+~/.config/nvim/
+├── init.lua                    # Main configuration entry point
+├── lua/
+│   ├── config/
+│   │   ├── options.lua        # Vim options and settings
+│   │   ├── keymaps.lua        # Custom keybindings
+│   │   ├── autocmds.lua       # Autocommands
+│   │   └── lazy.lua           # Plugin manager bootstrap
+│   └── plugins/
+│       └── init.lua           # Plugin specifications
+├── after/plugin/              # Late-loading plugin configs
+└── ftplugin/                  # Filetype-specific settings
+```
+
+**Features**:
+- Modern Lua-based configuration (faster than VimScript)
+- Modular structure for easy customization
+- Ready for lazy.nvim plugin manager integration
+- Organized by concern (options, keymaps, plugins)
+- Follows Neovim best practices and XDG standards
+
+**Getting Started**:
+```bash
+nvim ~/.config/nvim/init.lua                    # Start customizing
+nvim ~/.config/nvim/lua/config/options.lua      # Configure Vim options
+nvim ~/.config/nvim/lua/plugins/init.lua        # Add plugins
+```
 
 ## 🔐 Secret Management
 

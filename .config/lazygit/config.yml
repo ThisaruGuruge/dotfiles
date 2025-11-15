@@ -3,12 +3,10 @@ gui:
   showIcons: true
   nerdFontsVersion: "3"
   showFileIcons: true
-
   # Better UI
   border: rounded
   showBranchCommitHash: true
   showDivergenceFromBaseBranch: arrowAndNumber
-
   # Theme
   theme:
     activeBorderColor:
@@ -24,37 +22,30 @@ gui:
       - blue
     unstagedChangesColor:
       - red
-
 git:
-  paging:
-    # Use delta for better diffs (if available)
-    colorArg: always
-    pager: delta --dark --paging=never
-
+  pagers:
+    - # Use delta for better diffs (if available)
+      colorArg: always
+      pager: delta --dark --paging=never
   commit:
     signOff: false
     autoWrapCommitMessage: true
     autoWrapWidth: 72
-
   # Auto fetch and refresh
   autoFetch: true
   autoRefresh: true
-
   # Main branches
   mainBranches:
     - master
     - main
     - develop
-
   # Better log display
   log:
     order: topo-order
     showGraph: always
     showWholeGraph: false
-
 # Don't confirm on quit
 confirmOnQuit: false
-
 # Refresh intervals
 refresher:
   refreshInterval: 10

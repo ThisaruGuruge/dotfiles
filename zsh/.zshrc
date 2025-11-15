@@ -1,5 +1,22 @@
 #!/bin/zsh
 
+# Detect VS Code Ballerina extension env probes (non-interactive zsh -i -c ... env)
+_is_ballerina_vscode_probe() {
+  [[ -n "$ZSH_EXECUTION_STRING" ]] || return 1
+  [[ "$ZSH_EXECUTION_STRING" == *"source ~/.zshrc"* ]] || return 1
+  [[ "$ZSH_EXECUTION_STRING" == *"env"* ]] || return 1
+  [[ ! -t 1 ]] || return 1
+  return 0
+}
+
+if _is_ballerina_vscode_probe; then
+  # Provide just enough environment for the extension without loading plugins.
+  export DOTFILES_FAST_ENV=1
+  [ -f "$HOME/.paths.sh" ] && source "$HOME/.paths.sh"
+  unset DOTFILES_FAST_ENV
+  return 0 2>/dev/null || exit 0
+fi
+
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Set the directory we want to store zinit and plugins
