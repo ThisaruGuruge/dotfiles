@@ -32,46 +32,15 @@ brew "git-flow-avh"                 # Git branching model extension
 brew "sops"                         # Secrets OPerationS
 brew "age"                          # Simple file encryption
 
+# JSON processing (Required for some scripts)
+brew "jq"
+
+# Antigravity (AI Agent)
+brew "antigravity"
+
 # Language version managers and development tools
 brew "ballerina"                    # Cloud-native programming language
 
 # Nerd fonts with icons for terminal display
 cask "font-fira-code-nerd-font"     # Nerd font with icons
-
-# Optional packages (uncomment to install)
-# ==================================================
-
-# Language version managers and development tools (optional - uncomment as needed)
-# brew "pyenv"                        # Python version manager
-# brew "rbenv"                        # Ruby version manager
-# brew "nvm"                          # Node.js version manager
-
-# Database servers and tools (optional - uncomment as needed)
-# brew "postgresql@16"                # PostgreSQL database
-# brew "redis"                        # In-memory data store
-
-# AWS development tools (optional - uncomment as needed)
-# brew "aws-vault"                    # AWS credentials manager
-
-# Google Cloud Platform tools (optional - uncomment as needed)
-# cask "google-cloud-sdk"             # Google Cloud SDK and CLI tools
-
-# Code editors and IDEs (optional - uncomment as needed)
-# cask "cursor"                       # AI-powered code editor
-# cask "visual-studio-code"           # Microsoft's code editor
-
-# Modern terminal applications (optional - uncomment as needed)
-# cask "warp"                         # Modern terminal with AI features
-# cask "iterm2"                       # Feature-rich terminal
-
-# Container management tools (optional - uncomment as needed)
-# cask "rancher-desktop"              # Container management (Docker alternative)
-# cask "docker"                       # Docker Desktop
-
-# Productivity and utility applications (optional - uncomment as needed)
-# cask "postman"                      # API testing tool
-# cask "tableplus"                    # Database management
-# cask "raycast"                      # Spotlight replacement
-# cask "rectangle"                    # Window management
-# cask "alfred"                       # Productivity launcher
 

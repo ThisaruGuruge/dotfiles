@@ -1,0 +1,3 @@
+# Modern terminal applications
+cask "warp"
+cask "iterm2"

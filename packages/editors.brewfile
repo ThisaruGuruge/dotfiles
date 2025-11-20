@@ -1,0 +1,3 @@
+# Code editors and IDEs
+cask "cursor"
+cask "visual-studio-code"

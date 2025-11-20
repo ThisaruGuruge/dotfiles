@@ -36,9 +36,18 @@ if [ -d "/usr/local/apache-ant-1.10.3" ]; then
     export PATH=$ANT_HOME/bin:$PATH
 fi
 
+# Ballerina - Always set BALLERINA_HOME (required for IDE extensions)
 if [ -d "/Library/Ballerina" ]; then
-	export BALLERINA_HOME=/Library/Ballerina
-	export PATH=$BALLERINA_HOME/bin:$PATH
+    export BALLERINA_HOME=/Library/Ballerina
+    export PATH=$BALLERINA_HOME/bin:$PATH
+else
+    # Fallback: Set BALLERINA_HOME even if directory doesn't exist
+    # This prevents IDE extensions from breaking
+    export BALLERINA_HOME=/Library/Ballerina
+    # Only warn in interactive shells, not in IDE contexts
+    if [[ -z "$DOTFILES_FAST_ENV" ]] && [[ -o interactive ]]; then
+        echo "⚠️  Warning: BALLERINA_HOME set to $BALLERINA_HOME but directory not found" >&2
+    fi
 fi
 
 # JMeter lookup is expensive; skip when fast environment detection is requested
@@ -73,8 +82,8 @@ path_dedupe() {
         while [ -n "$old_path" ]; do
             local x="${old_path%%:*}"
             case ":$new_path:" in
-                *:"$x":*) ;;
-                *) new_path="$new_path:$x" ;;
+            *:"$x":*) ;;
+            *) new_path="$new_path:$x" ;;
             esac
             old_path="${old_path#*:}"
         done

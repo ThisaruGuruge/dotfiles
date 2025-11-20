@@ -1,0 +1,5 @@
+# AWS development tools
+brew "aws-vault"
+
+# Google Cloud Platform tools
+cask "google-cloud-sdk"

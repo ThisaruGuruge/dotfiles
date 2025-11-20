@@ -284,3 +284,9 @@ fi
 
 # Dotfiles testing
 alias test-zsh='$HOME/dotfiles/bin/test-zsh-config'
+
+# Package Management
+alias brew-sync='brew bundle dump --force --describe --file=$HOME/dotfiles/Brewfile'
+alias brew-sync-optional='brew bundle dump --force --describe --file=$HOME/dotfiles/Brewfile.optional'
+alias brew-check='brew bundle check --file=$HOME/dotfiles/Brewfile'
+alias brew-check-optional='brew bundle check --file=$HOME/dotfiles/Brewfile.optional'
