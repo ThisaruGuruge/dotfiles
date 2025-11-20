@@ -1,0 +1,3 @@
+# Database servers and tools
+brew "postgresql@16"
+brew "redis"

@@ -67,25 +67,25 @@ confirm() {
         echo                # Print newline after keypress
 
         case "$key" in
-            [Yy])
-                echo -e "  ${GREEN}→ Yes${NC}"
-                echo ""
-                return 0
-                ;;
-            [Nn])
-                echo -e "  ${RED}→ No${NC}"
-                echo ""
-                return 1
-                ;;
-            [Qq])
-                echo -e "  ${YELLOW}→ Quit${NC}"
-                echo ""
-                log_info "Installation cancelled by user"
-                exit 0
-                ;;
-            *)
-                echo -e "  ${YELLOW}${WARNING} Please press 'y' for yes, 'n' for no, or 'q' to quit.${NC}"
-                ;;
+        [Yy])
+            echo -e "  ${GREEN}→ Yes${NC}"
+            echo ""
+            return 0
+            ;;
+        [Nn])
+            echo -e "  ${RED}→ No${NC}"
+            echo ""
+            return 1
+            ;;
+        [Qq])
+            echo -e "  ${YELLOW}→ Quit${NC}"
+            echo ""
+            log_info "Installation cancelled by user"
+            exit 0
+            ;;
+        *)
+            echo -e "  ${YELLOW}${WARNING} Please press 'y' for yes, 'n' for no, or 'q' to quit.${NC}"
+            ;;
         esac
     done
 }
@@ -162,85 +162,35 @@ setup_homebrew() {
 }
 
 # Install GNU Stow
-install_stow() {
-    log_step "Installing GNU Stow"
-
-    if command_exists stow; then
-        log_success "GNU Stow already installed: $(stow --version | head -n 1)"
+# Install GNU Stow
+if command_exists stow; then
+    log_success "GNU Stow already installed: $(stow --version | head -n 1)"
+else
+    log_warning "GNU Stow not found"
+    if confirm "Install GNU Stow? (Required for dotfiles management)"; then
+        log_info "Installing GNU Stow..."
+        brew install stow
+        log_success "GNU Stow installed successfully"
     else
-        log_warning "GNU Stow not found"
-        if confirm "Install GNU Stow? (Required for dotfiles management)"; then
-            log_info "Installing GNU Stow..."
-            brew install stow
-            log_success "GNU Stow installed successfully"
-        else
-            log_error "GNU Stow is required for this dotfiles setup. Exiting."
-            exit 1
-        fi
+        log_error "GNU Stow is required for this dotfiles setup. Exiting."
+        exit 1
     fi
-
-    # Install jq for JSON parsing (used for dynamic package reading)
-    if command_exists jq; then
-        log_success "jq already installed: $(jq --version 2>/dev/null || echo 'unknown version')"
-    else
-        log_warning "jq not found (needed for dynamic package configuration)"
-        if confirm "Install jq? (Enables dynamic package reading from packages.json)"; then
-            log_info "Installing jq..."
-            brew install jq
-            log_success "jq installed successfully"
-        else
-            log_warning "jq not installed - will use fallback package lists"
-        fi
-    fi
-}
+fi
 
 # Install core dependencies
 install_core_dependencies() {
     log_step "Installing Core Dependencies"
 
-    # Read packages from packages.json if available, fallback to hardcoded list
-    local packages=()
-    if command_exists jq && [ -f "$DOTFILES_DIR/packages.json" ]; then
-        # Extract enabled packages from core and security categories in single jq call
-        log_info "Reading package list from packages.json..."
-        local enabled_packages_list
-        enabled_packages_list="$(jq -r '.categories.core.packages, .categories.security.packages | to_entries[] | select(.value.enabled == true) | .key' "$DOTFILES_DIR/packages.json" 2>/dev/null || true)"
-
-        # Build packages array manually for maximum compatibility
-        local pkg
-        for pkg in $enabled_packages_list; do
-            if [ -n "$pkg" ]; then
-                packages[${#packages[@]}]="$pkg"
-            fi
-        done
-    else
-        # Fallback to hardcoded list if jq or packages.json not available
-        log_warning "Using fallback package list (jq or packages.json not found)"
-        packages=("starship" "fzf" "zoxide" "tree" "bat" "eza" "ripgrep" "fd" "git-delta" "lazygit" "tmux" "htop" "direnv" "atuin" "gh" "stow" "sops" "age")
-    fi
-    local missing_packages=()
-
-    # Check which packages are missing
-    for package in "${packages[@]}"; do
-        if ! brew list "$package" >/dev/null 2>&1; then
-            missing_packages+=("$package")
+    if [ -f "$DOTFILES_DIR/Brewfile" ]; then
+        log_info "Installing dependencies from Brewfile..."
+        if brew bundle --file="$DOTFILES_DIR/Brewfile"; then
+            log_success "Core dependencies installed"
         else
-            log_success "$package already installed"
+            log_warning "Some dependencies failed to install"
         fi
-    done
-
-    if [ ${#missing_packages[@]} -eq 0 ]; then
-        log_success "All core dependencies already installed"
-        return 0
-    fi
-
-    log_info "Missing packages: ${missing_packages[*]}"
-    if confirm "Install missing core dependencies?"; then
-        log_info "Installing: ${missing_packages[*]}"
-        brew install "${missing_packages[@]}"
-        log_success "Core dependencies installed"
     else
-        log_warning "Skipped core dependencies installation"
+        log_error "Brewfile not found at $DOTFILES_DIR/Brewfile"
+        return 1
     fi
 }
 
@@ -347,115 +297,31 @@ install_ballerina() {
 # Install terminal applications
 # Enhanced tool installation with individual confirmation and legacy detection
 install_terminal_apps() {
-    log_step "Installing Terminal Applications & Development Tools (Optional)"
+    log_step "Installing Optional Applications & Tools"
 
-    # Define tools with their detection and installation info
-    # Using arrays instead of associative arrays for better compatibility
-    local tools_list=(
-        "cursor|Code Editor|/Applications/Cursor.app|--cask cursor|Legacy: installer download"
-        "visual-studio-code|Code Editor|/Applications/Visual Studio Code.app|--cask visual-studio-code|Legacy: installer download"
-        "warp|Terminal|/Applications/Warp.app|--cask warp|Legacy: none"
-        "iterm2|Terminal|/Applications/iTerm.app|--cask iterm2|Legacy: none"
-        "github-cli|Development|gh command|gh|Legacy: none"
-        "postgresql|Database|postgres command|postgresql@16|Legacy: installer or postgres.app"
-        "redis|Database|redis-server command|redis|Legacy: manual install"
-        "aws-vault|AWS Tool|aws-vault command|aws-vault|Legacy: manual install"
-    )
+    if [ -d "$DOTFILES_DIR/packages" ]; then
+        echo "Optional package categories found in $DOTFILES_DIR/packages/"
 
-    # Check each tool individually (compatible approach)
-    echo ""
-    echo "📋 Tool Installation Status:"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        for brewfile in "$DOTFILES_DIR/packages/"*.brewfile; do
+            [ -e "$brewfile" ] || continue
 
-    local -a to_install
-    local tool_info
+            local category_name
+            category_name=$(basename "$brewfile" .brewfile)
 
-    for tool_info in "${tools_list[@]}"; do
-        IFS='|' read -r tool category app_path install_cmd legacy_info <<<"$tool_info"
-        local installed=false
-
-        # Check if tool is installed
-        case "$tool" in
-            "cursor" | "visual-studio-code" | "warp" | "iterm2")
-                if [ -d "$app_path" ]; then
-                    installed=true
-                # Check for legacy installations
-                elif [ "$tool" = "visual-studio-code" ] && command -v code >/dev/null 2>&1; then
-                    installed=true
-                    legacy_info="Legacy: command 'code' found"
+            echo ""
+            if confirm "Install $category_name packages?"; then
+                log_info "Installing $category_name..."
+                if brew bundle --file="$brewfile"; then
+                    log_success "$category_name installed"
+                else
+                    log_warning "Some packages in $category_name failed to install"
                 fi
-                ;;
-            *)
-                local cmd_name
-                case "$tool" in
-                    "github-cli") cmd_name="gh" ;;
-                    "postgresql") cmd_name="postgres" ;;
-                    "redis") cmd_name="redis-server" ;;
-                    "aws-vault") cmd_name="aws-vault" ;;
-                esac
-                if command -v "$cmd_name" >/dev/null 2>&1; then
-                    installed=true
-                    # Check if it's a legacy installation (not via Homebrew)
-                    # Extract package name from install command (remove --cask and other flags)
-                    local brew_pkg_name="${install_cmd##* }" # Get last word (package name)
-                    if ! brew list "$brew_pkg_name" >/dev/null 2>&1; then
-                        legacy_info="Legacy: $cmd_name command found (non-Homebrew)"
-                    fi
-                fi
-                ;;
-        esac
-
-        # Display status and ask for installation
-        if [ "$installed" = "true" ]; then
-            log_success "$tool already installed ($legacy_info)"
-        else
-            log_info "$tool not found - $category tool"
-            if confirm "Install $tool?"; then
-                to_install+=("$tool|$install_cmd")
             else
-                log_info "Skipped $tool installation"
-            fi
-        fi
-    done
-
-    # Install selected tools
-    if [ ${#to_install[@]} -gt 0 ]; then
-        log_info "Installing selected tools..."
-
-        for tool_install in "${to_install[@]}"; do
-            IFS='|' read -r tool install_cmd <<<"$tool_install"
-            log_info "Installing $tool..."
-
-            # Special handling for Docker Desktop detection
-            if [ "$tool" = "docker" ]; then
-                # Enhanced Docker vs Rancher Desktop detection
-                local has_docker_desktop=false
-                local has_rancher_desktop=false
-
-                # Check for Docker Desktop
-                if [ -d "/Applications/Docker.app" ]; then
-                    has_docker_desktop=true
-                fi
-
-                # Check for Rancher Desktop
-                if [ -d "/Applications/Rancher Desktop.app" ]; then
-                    has_rancher_desktop=true
-                fi
-
-                if [ "$has_rancher_desktop" = "true" ] && [ "$has_docker_desktop" = "false" ]; then
-                    log_success "Rancher Desktop detected (provides Docker functionality)"
-                    continue
-                fi
-            fi
-
-            if brew install "$install_cmd"; then
-                log_success "$tool installed successfully"
-            else
-                log_warning "Failed to install $tool - you may need to install it manually"
+                log_info "Skipped $category_name"
             fi
         done
     else
-        log_success "All desired tools are already installed or skipped"
+        log_warning "No optional packages directory found"
     fi
 }
 
@@ -764,39 +630,39 @@ handle_stow_conflict() {
         echo
 
         case "$choice" in
-            [Bb])
-                local backup_dir
-                backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
-                mkdir -p "$backup_dir"
-                mv "$conflict_file" "$backup_dir/"
-                log_success "Backed up to: $backup_dir/$(basename "$conflict_file")"
-                return 0
-                ;;
-            [Kk])
-                log_info "Keeping existing file: $conflict_file"
-                return 1
-                ;;
-            [Ss])
-                local dotfile_path="$DOTFILES_DIR/$package/${conflict_file#"$HOME"/}"
-                if [ -f "$dotfile_path" ]; then
-                    echo -e "\n${CYAN}=== Diff: Existing (left) vs Dotfiles (right) ===${NC}"
-                    if command -v delta >/dev/null 2>&1; then
-                        diff -u "$conflict_file" "$dotfile_path" | delta
-                    else
-                        diff -u "$conflict_file" "$dotfile_path" || true
-                    fi
-                    echo ""
+        [Bb])
+            local backup_dir
+            backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$backup_dir"
+            mv "$conflict_file" "$backup_dir/"
+            log_success "Backed up to: $backup_dir/$(basename "$conflict_file")"
+            return 0
+            ;;
+        [Kk])
+            log_info "Keeping existing file: $conflict_file"
+            return 1
+            ;;
+        [Ss])
+            local dotfile_path="$DOTFILES_DIR/$package/${conflict_file#"$HOME"/}"
+            if [ -f "$dotfile_path" ]; then
+                echo -e "\n${CYAN}=== Diff: Existing (left) vs Dotfiles (right) ===${NC}"
+                if command -v delta >/dev/null 2>&1; then
+                    diff -u "$conflict_file" "$dotfile_path" | delta
                 else
-                    log_warning "Could not find dotfile at: $dotfile_path"
+                    diff -u "$conflict_file" "$dotfile_path" || true
                 fi
-                ;;
-            [Qq])
-                log_info "Installation cancelled by user"
-                exit 0
-                ;;
-            *)
-                echo -e "  ${YELLOW}${WARNING} Please press 'b', 'k', 's', or 'q'${NC}"
-                ;;
+                echo ""
+            else
+                log_warning "Could not find dotfile at: $dotfile_path"
+            fi
+            ;;
+        [Qq])
+            log_info "Installation cancelled by user"
+            exit 0
+            ;;
+        *)
+            echo -e "  ${YELLOW}${WARNING} Please press 'b', 'k', 's', or 'q'${NC}"
+            ;;
         esac
     done
 }
@@ -860,62 +726,62 @@ stow_packages() {
                         echo
 
                         case "$bulk_choice" in
-                            [Aa])
-                                # Backup all conflicts
-                                local backup_dir
-                                backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
-                                mkdir -p "$backup_dir"
-                                log_info "Creating backup directory: $backup_dir"
+                        [Aa])
+                            # Backup all conflicts
+                            local backup_dir
+                            backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+                            mkdir -p "$backup_dir"
+                            log_info "Creating backup directory: $backup_dir"
 
-                                for conflict in $conflicts; do
-                                    if [ -f "$conflict" ] || [ -d "$conflict" ]; then
-                                        mv "$conflict" "$backup_dir/"
-                                        log_success "Backed up: $(basename "$conflict")"
-                                    fi
-                                done
+                            for conflict in $conflicts; do
+                                if [ -f "$conflict" ] || [ -d "$conflict" ]; then
+                                    mv "$conflict" "$backup_dir/"
+                                    log_success "Backed up: $(basename "$conflict")"
+                                fi
+                            done
 
-                                # Now stow should work
+                            # Now stow should work
+                            if stow "${stow_args[@]}" 2>/dev/null; then
+                                log_success "Stowed $package package"
+                                stowed_packages+=("$package")
+                            else
+                                log_error "Failed to stow $package after backup"
+                            fi
+                            break
+                            ;;
+                        [Ii])
+                            # Handle individually
+                            local can_stow=true
+                            for conflict in $conflicts; do
+                                if ! handle_stow_conflict "$conflict" "$package"; then
+                                    can_stow=false
+                                    skipped_files+=("$conflict")
+                                fi
+                            done
+
+                            if [ "$can_stow" = true ]; then
                                 if stow "${stow_args[@]}" 2>/dev/null; then
                                     log_success "Stowed $package package"
                                     stowed_packages+=("$package")
                                 else
-                                    log_error "Failed to stow $package after backup"
+                                    log_warning "Some files in $package were skipped"
                                 fi
-                                break
-                                ;;
-                            [Ii])
-                                # Handle individually
-                                local can_stow=true
-                                for conflict in $conflicts; do
-                                    if ! handle_stow_conflict "$conflict" "$package"; then
-                                        can_stow=false
-                                        skipped_files+=("$conflict")
-                                    fi
-                                done
-
-                                if [ "$can_stow" = true ]; then
-                                    if stow "${stow_args[@]}" 2>/dev/null; then
-                                        log_success "Stowed $package package"
-                                        stowed_packages+=("$package")
-                                    else
-                                        log_warning "Some files in $package were skipped"
-                                    fi
-                                else
-                                    log_warning "Skipped $package package due to conflicts"
-                                fi
-                                break
-                                ;;
-                            [Kk])
-                                log_info "Skipped $package package"
-                                break
-                                ;;
-                            [Qq])
-                                log_info "Installation cancelled by user"
-                                exit 0
-                                ;;
-                            *)
-                                echo -e "  ${YELLOW}${WARNING} Please press 'a', 'i', 'k', or 'q'${NC}"
-                                ;;
+                            else
+                                log_warning "Skipped $package package due to conflicts"
+                            fi
+                            break
+                            ;;
+                        [Kk])
+                            log_info "Skipped $package package"
+                            break
+                            ;;
+                        [Qq])
+                            log_info "Installation cancelled by user"
+                            exit 0
+                            ;;
+                        *)
+                            echo -e "  ${YELLOW}${WARNING} Please press 'a', 'i', 'k', or 'q'${NC}"
+                            ;;
                         esac
                     done
                 else

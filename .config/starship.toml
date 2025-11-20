@@ -1,11 +1,14 @@
-# Starship Configuration - Optimized for Speed & Style
+# Starship Configuration - Modern Style with Simple Separators
 # Documentation: https://starship.rs/config/
 
 # Timeout for commands (in milliseconds)
 command_timeout = 1000
 scan_timeout = 30
 
-# Format string (left prompt)
+# Using simple but effective separators that work across all terminals
+# If you want fancier powerline arrows, ensure your terminal font is set to a Nerd Font
+
+# Format string (left prompt with colored segments)
 format = """
 $username\
 $hostname\
@@ -33,22 +36,22 @@ add_newline = true
 [fill]
 symbol = " "
 
-# Directory/Path - Smart git-aware display
+# Directory/Path - Colored background with simple separator
 # In git repos: shows "repo-name/relative/path"
 # Outside git: shows icons for special dirs like "~/󰈙 Documents"
 [directory]
-style = "bold cyan"
-format = "[$path]($style)[$read_only]($read_only_style) "
+style = "bg:#3B4252 fg:#D8DEE9 bold"
+format = "[ $path ]($style)[$read_only]($read_only_style)[▶](fg:#3B4252)"
 truncation_length = 5
 truncation_symbol = "…/"
 truncate_to_repo = true
 read_only = " 󰌾"
-read_only_style = "bold red"
+read_only_style = "bg:#3B4252 fg:#BF616A bold"
 home_symbol = "~"
 use_os_path_sep = true
 # When in a git repo, highlight repo root
-repo_root_style = "bold blue"
-repo_root_format = "[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) "
+repo_root_style = "bg:#3B4252 fg:#88C0D0 bold"
+repo_root_format = "[ $repo_root]($repo_root_style)[$path ]($style)[$read_only]($read_only_style)[▶](fg:#3B4252)"
 
 [directory.substitutions]
 "Documents" = "󰈙 "
@@ -61,18 +64,18 @@ repo_root_format = "[$repo_root]($repo_root_style)[$path]($style)[$read_only]($r
 "Leisure" = "🎮 "
 "Setup" = "⚙️ "
 
-# Git branch
+# Git branch - Colored background
 [git_branch]
 symbol = " "
-style = "bold purple"
-format = "on [$symbol$branch(:$remote_branch)]($style) "
+style = "bg:#5E81AC fg:#ECEFF4 bold"
+format = "[◀](fg:#5E81AC)[ $symbol$branch(:$remote_branch) ](bg:#5E81AC fg:#ECEFF4)[▶](fg:#5E81AC)"
 truncation_length = 50
 truncation_symbol = "…"
 
-# Git status - Clean, readable format
+# Git status - Colored background
 [git_status]
-style = "bold red"
-format = '([\[$all_status$ahead_behind\]]($style) )'
+style = "bg:#BF616A fg:#ECEFF4 bold"
+format = "[◀](fg:#BF616A)([ $all_status$ahead_behind ](bg:#BF616A fg:#ECEFF4)[▶](fg:#BF616A))"
 conflicted = "⚔️ "
 ahead = "⇡${count} "
 behind = "⇣${count} "
@@ -87,28 +90,28 @@ deleted = "✘${count} "
 
 # Java - Only show in Java projects
 [java]
-symbol = "☕ "
-style = "bold red"
-format = "via [$symbol($version)]($style) "
+symbol = "☕"
+style = "bg:#D08770 fg:#2E3440 bold"
+format = "[◀](fg:#D08770)[ $symbol $version ](bg:#D08770 fg:#2E3440)[▶](fg:#D08770)"
 detect_extensions = ["java", "class", "jar", "gradle", "clj", "cljc"]
 detect_files = ["pom.xml", "build.gradle.kts", "build.gradle", "build.sbt", ".java-version", "deps.edn", "project.clj", "build.boot", ".sdkmanrc"]
 detect_folders = []
 
 # Node.js - Only show in Node projects
 [nodejs]
-symbol = "⬢ "
-style = "bold green"
-format = "via [$symbol($version)]($style) "
+symbol = "⬢"
+style = "bg:#A3BE8C fg:#2E3440 bold"
+format = "[◀](fg:#A3BE8C)[ $symbol $version ](bg:#A3BE8C fg:#2E3440)[▶](fg:#A3BE8C)"
 detect_extensions = ["js", "mjs", "cjs", "ts", "mts", "cts"]
 detect_files = ["package.json", ".node-version", ".nvmrc"]
 detect_folders = ["node_modules"]
-not_capable_style = "bold red"
+not_capable_style = "bg:#BF616A fg:#ECEFF4 bold"
 
 # Python - Only show in Python projects
 [python]
-symbol = "🐍 "
-style = "bold yellow"
-format = 'via [$symbol$pyenv_prefix($version)(\($virtualenv\))]($style) '
+symbol = "🐍"
+style = "bg:#EBCB8B fg:#2E3440 bold"
+format = '[◀](fg:#EBCB8B)[ $symbol $pyenv_prefix$version(\($virtualenv\)) ](bg:#EBCB8B fg:#2E3440)[▶](fg:#EBCB8B)'
 pyenv_version_name = false
 pyenv_prefix = ""
 python_binary = ["python3", "python", "python2"]
@@ -118,54 +121,54 @@ detect_folders = []
 
 # Username (only in SSH)
 [username]
-style_user = "bold yellow"
-style_root = "bold red"
-format = "[$user]($style)@"
+style_user = "bg:#EBCB8B fg:#2E3440 bold"
+style_root = "bg:#BF616A fg:#ECEFF4 bold"
+format = "[ $user](bg:#EBCB8B fg:#2E3440)[@](bg:#EBCB8B fg:#2E3440)"
 disabled = false
 show_always = false
 
 # Hostname (only in SSH)
 [hostname]
 ssh_only = true
-style = "bold green"
-format = "[$hostname]($style) in "
+style = "bg:#A3BE8C fg:#2E3440 bold"
+format = "[$hostname ](bg:#A3BE8C fg:#2E3440)[▶](fg:#A3BE8C)"
 disabled = false
 
 # Command duration (only if > 2s)
 [cmd_duration]
 min_time = 2000
-style = "bold yellow"
-format = "took [$duration]($style) "
+style = "bg:#EBCB8B fg:#2E3440 bold"
+format = "[◀](fg:#EBCB8B)[ 󱦟 $duration ](bg:#EBCB8B fg:#2E3440)[▶](fg:#EBCB8B)"
 
 # Battery
 [battery]
-full_symbol = "󰂄 "
-charging_symbol = "⚡ "
-discharging_symbol = "󰂃 "
-unknown_symbol = "󰂑 "
-empty_symbol = "󰂎 "
-format = "[$symbol$percentage]($style) "
+full_symbol = "󰂄"
+charging_symbol = "⚡"
+discharging_symbol = "󰂃"
+unknown_symbol = "󰂑"
+empty_symbol = "󰂎"
+format = "[◀](fg:#434C5E)[ $symbol $percentage ](bg:#434C5E fg:#ECEFF4)[▶](fg:#434C5E)"
 
 [[battery.display]]
 threshold = 20
-style = "bold red"
+style = "bg:#BF616A fg:#ECEFF4 bold"
 
 [[battery.display]]
 threshold = 50
-style = "bold yellow"
+style = "bg:#EBCB8B fg:#2E3440 bold"
 
 [[battery.display]]
 threshold = 100
-style = "bold green"
+style = "bg:#A3BE8C fg:#2E3440 bold"
 
 # Time
 [time]
 disabled = false
 time_format = "%R"
-style = "bold blue"
-format = 'at [$time]($style) '
+style = "bg:#434C5E fg:#ECEFF4 bold"
+format = "[◀](fg:#434C5E)[ 󱑎 $time ](bg:#434C5E fg:#ECEFF4)[▶](fg:#434C5E)"
 
-# Character (prompt symbol)
+# Character (prompt symbol) - Enhanced with colors
 [character]
 success_symbol = "[❯](bold green)"
 error_symbol = "[❯](bold red)"
@@ -204,9 +207,9 @@ while [ "$dir" != "/" ] && [ $depth -lt $max_depth ]; do
 done
 exit 1
 '''
-symbol = "🩰 "
-style = "bold cyan"
-format = "via [$symbol$output]($style) "
+symbol = "🩰"
+style = "bg:#88C0D0 fg:#2E3440 bold"
+format = "[◀](fg:#88C0D0)[ $symbol $output ](bg:#88C0D0 fg:#2E3440)[▶](fg:#88C0D0)"
 description = "Ballerina version in Ballerina projects"
 
 # Disabled modules for performance

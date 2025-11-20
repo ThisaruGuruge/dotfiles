@@ -16,3 +16,15 @@ analysis
 # Override global gitignore - we WANT to track .config in this repo
 !/.config
 !/.config/**
+
+# Neovim
+*.swp
+*.swo
+*~
+.netrwhist
+.nvim-state/
+.local_state/
+lazy-lock.json
+
+# Session Artifacts
+dotfiles_analysis_report.md

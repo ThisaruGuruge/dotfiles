@@ -1,0 +1,7 @@
+# Productivity and utility applications
+cask "postman"
+cask "tableplus"
+cask "raycast"
+cask "rectangle"
+cask "alfred"
+brew "snelusha/noto/noto"
