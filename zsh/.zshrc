@@ -350,7 +350,7 @@ fi
 
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-export PATH="${HOME}/.rd/bin:$PATH"
+export PATH="/Users/thisaru/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
 # Source local environment if it exists
@@ -360,3 +360,6 @@ fi
 
 # Force command hash rebuild at the end (fixes Warp terminal command discovery)
 rehash
+
+# Added by Antigravity
+export PATH="/Users/thisaru/.antigravity/antigravity/bin:$PATH"
