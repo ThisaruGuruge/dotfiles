@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Replaced the legacy Oh My Posh prompt with the current Starship configuration, including new docs and tooling updates
+
+### Documentation
+
+- Rewrote `README.md` to describe the Starship prompt, SOPS workflow, and package manager updates
+- Updated helper scripts and contribution guidelines to point to the Starship config instead of the removed Oh My Posh theme
+
+### Removed
+
+- Removed the old `config/ohmyposh/zen.json` theme files in favor of `.config/starship.toml`
+
 ## [1.0.0] - 2025-10-03
 
 ### Major Features

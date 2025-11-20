@@ -110,7 +110,7 @@ echo "Diagnostic Information:"
 echo "---------------------"
 echo "Shell: $(zsh --version)"
 echo "Terminal: ${TERM_PROGRAM:-Unknown}"
-echo "OH MY POSH: $(command -v oh-my-posh >/dev/null && oh-my-posh --version || echo 'Not installed')"
+echo "Starship: $(command -v starship >/dev/null && starship --version | head -n1 || echo 'Not installed')"
 echo "Zinit: $([ -d ~/.local/share/zinit ] && echo 'Installed' || echo 'Not found')"
 
 # Check for common performance issues
@@ -119,10 +119,10 @@ echo "Quick Diagnostics:"
 echo "----------------"
 
 # Check if commonly slow components are present
-if grep -q "oh-my-posh" ~/.zshrc 2>/dev/null; then
-    echo "• OH MY POSH: Detected (can impact startup time)"
+if grep -q "starship" ~/.zshrc 2>/dev/null; then
+    echo "• Starship: Configured in .zshrc"
 else
-    echo "• OH MY POSH: Not detected"
+    echo "• Starship: Not detected in .zshrc"
 fi
 
 if [ -d ~/.local/share/zinit ]; then

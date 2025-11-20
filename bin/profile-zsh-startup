@@ -63,8 +63,12 @@ echo ""
 
 # Test individual components
 time_command "Homebrew shellenv" "eval \"\$(/opt/homebrew/bin/brew shellenv)\""
-time_command "Oh My Posh init (no cache)" "oh-my-posh init zsh --config ~/.config/ohmyposh/zen.json"
-time_command "Oh My Posh cached version" "[ -f ~/.cache/zsh/omp_cache.zsh ] && source ~/.cache/zsh/omp_cache.zsh"
+if command -v starship >/dev/null 2>&1; then
+    time_command "Starship init script" "starship init zsh --print-full-init >/dev/null"
+    time_command "Starship prompt render" "starship prompt >/dev/null"
+else
+    echo "Starship not installed - skipping prompt timing"
+fi
 time_command "Zinit load completions" "zinit light zsh-users/zsh-completions"
 time_command "Zinit load fzf-tab" "zinit light Aloxaf/fzf-tab"
 time_command "FZF initialization" "fzf --zsh"
@@ -92,25 +96,17 @@ echo "--------------------------------------------------------------"
 time_command "Complete zsh startup (new shell)" "zsh -i -c exit" 3
 
 echo ""
-echo "Cache Performance:"
+echo "Prompt Diagnostics:"
 echo "--------------------------------------------------------------"
-# Test cache effectiveness
-if [ -f ~/.cache/zsh/omp_cache.zsh ]; then
-    omp_cached=$(perl -MTime::HiRes=time -e '
-        my $start = time;
-        system("source ~/.cache/zsh/omp_cache.zsh >/dev/null 2>&1");
-        printf "%.0f\n", (time - $start) * 1000;
-    ')
-    omp_uncached=$(perl -MTime::HiRes=time -e '
-        my $start = time;
-        system("oh-my-posh init zsh --config ~/.config/ohmyposh/zen.json >/dev/null 2>&1");
-        printf "%.0f\n", (time - $start) * 1000;
-    ')
-    echo "Oh My Posh cached:    ${GREEN}${omp_cached}ms${NC}"
-    echo "Oh My Posh uncached:  ${YELLOW}${omp_uncached}ms${NC}"
-    echo "Cache speedup:        $((omp_uncached - omp_cached))ms saved"
+if command -v starship >/dev/null 2>&1; then
+    echo "Starship version: $(starship --version)"
+    if [ -f ~/.config/starship.toml ]; then
+        echo "Config file: ~/.config/starship.toml"
+    else
+        echo "Config file: Not found (using Starship defaults)"
+    fi
 else
-    echo "${YELLOW}No Oh My Posh cache found${NC}"
+    echo "Starship is not installed"
 fi
 
 echo ""

@@ -169,7 +169,7 @@ edit_dotfiles() {
     echo "  4) Paths (.paths.sh)"
     echo "  5) Git Config (.gitconfig)"
     echo "  6) Vim Config (.vimrc)"
-    echo "  7) Oh My Posh Theme (zen.json)"
+    echo "  7) Starship Prompt (starship.toml)"
     echo "  8) Environment Template (.env.example)"
     echo "  9) Brewfile (package list)"
     echo " 10) Init Script (init.sh)"
@@ -210,8 +210,8 @@ edit_dotfiles() {
             description="Vim Configuration"
             ;;
         7)
-            file_to_edit="$dotfiles_dir/config/starship.toml"
-            description="Starship Prompt Config"
+            file_to_edit="$dotfiles_dir/.config/starship.toml"
+            description="Starship Prompt"
             ;;
         8)
             file_to_edit="$dotfiles_dir/zsh/.env.example"

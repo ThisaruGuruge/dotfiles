@@ -210,7 +210,7 @@ Use scopes to indicate which part of the codebase is affected:
 - `(docs)` - Documentation (README, CONTRIBUTING, etc.)
 - `(packages)` - Package management (packages.json, Brewfile)
 - `(security)` - Secret management and security features
-- `(prompt)` - Oh My Posh theme configuration
+- `(prompt)` - Starship prompt configuration
 - `(git)` - Git configuration
 - `(vim)` - Vim configuration
 - `(tmux)` - Tmux configuration
@@ -234,7 +234,7 @@ Reordered installation steps to ensure dependencies are met.
 
 docs(readme): update troubleshooting section
 
-Add solutions for common Oh My Posh font rendering issues.
+Add solutions for common Starship glyph/font rendering issues.
 
 perf(zsh): optimize NVM lazy loading
 
@@ -242,7 +242,7 @@ Reduce shell startup time from 1.2s to 0.6s by deferring full NVM initialization
 
 chore(packages): update Homebrew package versions
 
-Bump lazygit to 0.55.1, oh-my-posh to 26.25.0
+Bump lazygit to 0.55.1, starship to 1.20.0
 ```
 
 **Bad commit messages** (avoid these):
@@ -262,7 +262,7 @@ For breaking changes, add `BREAKING CHANGE:` in the footer or use `!` after type
 ```bash
 feat(zsh)!: change default shell theme to minimal
 
-BREAKING CHANGE: The default Oh My Posh theme has changed from zen to minimal.
+BREAKING CHANGE: The default Starship prompt layout has changed (old configs may need updates).
 Users can restore the previous theme by setting THEME=zen in .env
 ```
 
