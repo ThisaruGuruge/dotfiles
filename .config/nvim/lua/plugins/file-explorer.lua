@@ -47,6 +47,8 @@ return {
                     width = 30,
                     mappings = {
                         ["<space>"] = "none",
+                        ["n"] = "add",
+                        ["N"] = "add_directory",
                     },
                 },
                 filesystem = {
