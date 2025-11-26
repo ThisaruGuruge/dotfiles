@@ -1,6 +1,9 @@
 # Stow ignore patterns for zsh package
 # These files will not be symlinked
 
+# macOS metadata
+\.DS_Store
+
 # Environment files (managed separately for security)
 \.env$
 \.env\..*

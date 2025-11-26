@@ -223,7 +223,8 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' popup-pad 30 0
 zstyle ':completion:*:descriptions' format '[%d]'
 zstyle ':fzf-tab:*' switch-group '<' '>'
 zstyle ':fzf-tab:*' fzf-command fzf
-zstyle ':fzf-tab:*' accept-line enter
+# Don't accept-line on enter - just insert the completion and continue editing
+zstyle ':fzf-tab:*' continuous-trigger '/'
 
 # Bash style jumps
 autoload -U select-word-style
@@ -254,12 +255,16 @@ if command -v fzf >/dev/null 2>&1; then
     _cache_tool_init "fzf" "fzf --zsh"
 fi
 
-# Initialize zoxide with caching
+# FZF configuration - show important hidden files/dirs like .config and .env
+# Excludes noise like .git/, node_modules/, .cache/ for better performance
+export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git --exclude node_modules --exclude .cache'
+export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git --exclude node_modules --exclude .cache'
+
+# Initialize zoxide with caching - using 'z' command instead of overriding 'cd'
+# This keeps 'cd' working normally for scripts and tools
 if command -v zoxide >/dev/null 2>&1; then
-    _cache_tool_init "zoxide" "zoxide init --cmd cd zsh"
-else
-    # Keep builtin cd if zoxide not available
-    cd() { builtin cd "$@" || return; }
+    _cache_tool_init "zoxide" "zoxide init --cmd z zsh"
 fi
 
 # Lazy load direnv - initialize only when entering directory with .envrc
@@ -375,7 +380,7 @@ fi
 
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-export PATH="$Home/.rd/bin:$PATH"
+export PATH="$HOME/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
 # Source local environment if it exists

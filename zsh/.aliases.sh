@@ -57,7 +57,8 @@ alias my_pro="nvim ~/.zshrc"
 alias my_ali="nvim ~/.aliases.sh"
 alias my_func="nvim ~/.functions.sh"
 
-alias d='dirs -v | head -10'
+# Commented out - rarely used, freeing up 'd' for dust if needed
+# alias d='dirs -v | head -10'
 
 # Navigation
 alias .="pwd"
@@ -154,23 +155,18 @@ alias gfhs='git flow hotfix start'
 alias gfhf='git flow hotfix finish'
 alias gfhl='git flow hotfix list'
 
-# Enhanced file viewing - Syntax highlighting and better output
+# Modern file viewing and search tools - Single letter aliases for convenience
+# Use these for better experience, while keeping original commands working for scripts
 # Examples:
-#   cat file.js     # View JavaScript file with syntax highlighting
-#   less README.md  # Page through markdown with highlighting
-#   grep "TODO"     # Fast search with ripgrep (much faster than traditional grep)
-alias cat='bat'
-alias less='bat'
-alias grep='rg'
-
-# Fallback to traditional tools if modern ones not available
-if ! command -v bat &>/dev/null; then
-    alias cat='cat'
-    alias less='less'
+#   v file.js       # View JavaScript file with syntax highlighting (bat)
+#   g "TODO"        # Fast search with ripgrep (much faster than grep)
+#   f "*.js"        # Fast file finding with fd
+if command -v bat &>/dev/null; then
+    alias v='bat' # v for "view"
 fi
 
-if ! command -v rg &>/dev/null; then
-    alias grep='grep --color=auto'
+if command -v rg &>/dev/null; then
+    alias g='rg'
 fi
 
 # Docker shortcuts - Container and image management
@@ -209,13 +205,19 @@ alias psg='ps aux | grep'
 alias top='htop'
 
 # Modern alternatives - Faster and more feature-rich replacements
+# Using single letter aliases to keep original commands working
 # Examples:
-#   find . -name "*.js"    # Fast file search with fd (much faster than traditional find)
-#   du -h                  # Disk usage with visual tree (dust)
-#   df -h                  # Disk free space with colors (duf)
-alias find='fd'
-alias du='dust'
-alias df='duf'
+#   f "*.js"        # Fast file search with fd (much faster than find)
+#   d               # Disk usage visual tree with dust (du stays original)
+if command -v fd &>/dev/null; then
+    alias f='fd'
+fi
+
+if command -v dust &>/dev/null; then
+    alias d='dust' # Visual disk usage analyzer
+fi
+
+# Note: duf keeps its original name (df stays original)
 
 # Quick edit configs
 alias edit_zsh='nvim ~/.zshrc'

@@ -10,7 +10,17 @@ return {
         },
         keys = {
             { "<leader>e", "<cmd>Neotree toggle<cr>", desc = "Toggle file explorer" },
-            { "<leader>o", "<cmd>Neotree focus<cr>", desc = "Focus file explorer" },
+            {
+                "<leader>o",
+                function()
+                    if vim.bo.filetype == "neo-tree" then
+                        vim.cmd("wincmd p")
+                    else
+                        vim.cmd("Neotree focus")
+                    end
+                end,
+                desc = "Toggle focus: file explorer <-> editor",
+            },
         },
         config = function()
             require("neo-tree").setup({
@@ -49,6 +59,7 @@ return {
                         ["<space>"] = "none",
                         ["n"] = "add",
                         ["N"] = "add_directory",
+                        ["q"] = "none", -- Disable q mapping to allow macro recording
                     },
                 },
                 filesystem = {

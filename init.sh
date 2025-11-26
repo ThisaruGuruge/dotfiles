@@ -814,8 +814,8 @@ stow_packages() {
         done
     fi
 
-    # Workaround for stow bug: manually create nvim and vim symlinks if they don't exist
-    # See: https://github.com/aspiers/stow/issues - stow sometimes fails to create new directory symlinks
+    # Workaround for stow bug: manually create directory symlinks if they don't exist
+    # See: https://github.com/aspiers/stow/issues - stow 2.4.1 reports "LINK:" but doesn't actually create new directory symlinks
     if [ ! -e "$HOME/.config/nvim" ] && [ -d "$DOTFILES_DIR/.config/nvim" ]; then
         log_info "Creating nvim symlink manually (stow workaround)"
         ln -s ../dotfiles/.config/nvim "$HOME/.config/nvim"
@@ -826,6 +826,12 @@ stow_packages() {
         log_info "Creating vim symlink manually (stow workaround)"
         ln -s ../dotfiles/.config/vim "$HOME/.config/vim"
         log_success "Created ~/.config/vim symlink"
+    fi
+
+    if [ ! -e "$HOME/.config/wezterm" ] && [ -d "$DOTFILES_DIR/.config/wezterm" ]; then
+        log_info "Creating wezterm symlink manually (stow workaround)"
+        ln -s ../dotfiles/.config/wezterm "$HOME/.config/wezterm"
+        log_success "Created ~/.config/wezterm symlink"
     fi
 }
 
@@ -906,7 +912,7 @@ print_final_instructions() {
     echo -e "4. ${YELLOW}Explore available aliases${NC} with: ${BLUE}alias | grep git${NC}"
 
     echo -e "\n${CYAN}Terminal font configuration:${NC}"
-    echo -e "• ${YELLOW}Warp:${NC} Settings → Appearance → Text → Font"
+    echo -e "• ${YELLOW}WezTerm:${NC} Already configured in ~/.config/wezterm/wezterm.lua (FiraCode Nerd Font)"
     echo -e "• ${YELLOW}iTerm2:${NC} Preferences → Profiles → Text → Font"
     echo -e "• ${YELLOW}Terminal.app:${NC} Preferences → Profiles → Text → Font"
 
