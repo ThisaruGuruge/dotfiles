@@ -4,10 +4,11 @@ A macOS-focused developer workstation built around Zsh, Starship, modern CLI too
 
 ## Highlights
 
-- **Fast Zsh environment** – zinit-managed plugins, fzf-tab completion, syntax highlighting, autosuggestions, zoxide, Atuin history (Ctrl+Alt+R), and warp/iTerm compatible key bindings
+- **Fast Zsh environment** – zinit-managed plugins, fzf-tab completion, syntax highlighting, autosuggestions, zoxide (via `z` command), Atuin history (Ctrl+Alt+R), and WezTerm/iTerm compatible key bindings
 - **Starship prompt** – contextual Git state, Java/Node/Python/Ballerina indicators, battery/time segments, and sub-second rendering (see `PROMPT_GUIDE.md` for visuals)
 - **Modern CLI stack** – eza, bat, ripgrep, fd, lazygit, tmux, direnv, atuin, gh, git-delta, git-flow, and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
-- **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina with lazy-loading shell glue so heavy managers don’t slow startup
+- **Smart aliases** – Single-letter shortcuts for modern tools (`v` for bat, `g` for ripgrep, `f` for fd, `z` for zoxide) while keeping original commands for scripts
+- **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina with lazy-loading shell glue so heavy managers don't slow startup
 - **Secrets handled correctly** – SOPS + age encryption, `edit_secrets` workflow, and automatic `.env` handling inside `init.sh`
 - **Single source of truth** – `packages.json` powers the installer, `manage_packages` CLI, and the generated `Brewfile`
 - **Validation + profiling** – `test-zsh` integration tests, `profile_startup` quick timing, and `bin/profile-zsh-startup` for deep dives
@@ -20,7 +21,7 @@ A macOS-focused developer workstation built around Zsh, Starship, modern CLI too
    ```bash
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
    ```
-4. **Terminal** – Warp (recommended), iTerm2, or Terminal.app all work
+4. **Terminal** – WezTerm (recommended and configured), iTerm2, or Terminal.app all work
 5. **Nerd Font** – Needed for icons in Starship/lazygit:
    ```bash
    brew install --cask font-fira-code-nerd-font
@@ -96,7 +97,7 @@ manage_packages enable-category editors # Toggle an entire category
 - `database` – PostgreSQL 16, Redis
 - `aws`, `gcp` – cloud CLIs and helpers
 - `editors` – Cursor, VS Code
-- `terminals` – Warp, iTerm2 (casks)
+- `terminals` – WezTerm, iTerm2 (casks)
 - `containers` – Docker Desktop, Rancher Desktop
 - `productivity` – Raycast, Rectangle, TablePlus, Alfred, Postman
 
@@ -107,23 +108,36 @@ Disable what you do not need, regenerate the Brewfile, then rerun the installer 
 | Path | Notes |
 | --- | --- |
 | `zsh/` | `.zshrc`, aliases, functions, paths, `.env.example` |
-| `.config/` | XDG configs (`starship.toml`, lazygit, nvim, ripgrep, vim) |
+| `.config/` | XDG configs (`starship.toml`, `wezterm`, `lazygit`, `nvim`, `ripgrep`) |
 | `git/` | `.gitconfig`, ignore rules, delta settings |
 | `tmux/` | Modern tmux config + keybinds |
 | `direnv/` | Project-specific environment automation |
 | `bin/` | Helper scripts (`manage-packages`, `generate-brewfile`, profilers, tests) |
 | `lib/` | Shared shell helpers sourced by scripts |
 
-Stow usage examples:
+### WezTerm Configuration
+
+WezTerm is configured with:
+- Option key for word navigation (Option+Left/Right)
+- Catppuccin Mocha theme
+- FiraCode Nerd Font with ligatures
+- Comprehensive keyboard shortcuts
+- See `.config/wezterm/README.md` for full details
+
+### Stow Usage & Known Issues
+
+⚠️ **Known Bug**: GNU Stow 2.4.1 has a bug where it reports creating directory symlinks but doesn't actually create them for new directories in `.config/`. The `init.sh` script includes a workaround that manually creates these symlinks for `nvim`, `vim`, and `wezterm`.
 
 ```bash
 stow zsh              # Shell config
-stow .config          # Starship, lazygit, nvim, ripgrep
+stow .config          # Starship, lazygit, nvim, wezterm, ripgrep
 stow git tmux direnv  # Git/Tmux/Direnv packages
 
 # Remove a package
 stow -D zsh
 ```
+
+**Alternative**: Consider migrating to [Chezmoi](./DOTFILE_MANAGER_ALTERNATIVES.md) for a more robust dotfile management solution without symlink bugs.
 
 ## Quick Start Commands
 

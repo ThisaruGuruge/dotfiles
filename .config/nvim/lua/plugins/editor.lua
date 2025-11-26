@@ -135,6 +135,7 @@ return {
 
     {
         "folke/noice.nvim",
+        enabled = false, -- Disabled - interferes with macro recording
         event = "VeryLazy",
         dependencies = {
             "MunifTanjim/nui.nvim",

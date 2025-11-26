@@ -21,9 +21,15 @@ return {
     -- Mason LSP Config: Bridge between mason and lspconfig
     {
         "williamboman/mason-lspconfig.nvim",
-        dependencies = { "williamboman/mason.nvim" },
-        event = { "BufReadPre", "BufNewFile" },
+        dependencies = {
+            "williamboman/mason.nvim",
+            "neovim/nvim-lspconfig",
+            "hrsh7th/cmp-nvim-lsp",
+        },
+        lazy = false,
         config = function()
+            local capabilities = require("cmp_nvim_lsp").default_capabilities()
+
             require("mason-lspconfig").setup({
                 ensure_installed = {
                     "lua_ls",
@@ -37,6 +43,30 @@ return {
                     "marksman", -- Markdown LSP
                 },
                 automatic_installation = true,
+                handlers = {
+                    -- Default handler for all servers
+                    function(server_name)
+                        require("lspconfig")[server_name].setup({
+                            capabilities = capabilities,
+                        })
+                    end,
+                    -- Lua-specific settings
+                    ["lua_ls"] = function()
+                        require("lspconfig").lua_ls.setup({
+                            capabilities = capabilities,
+                            settings = {
+                                Lua = {
+                                    completion = {
+                                        callSnippet = "Replace",
+                                    },
+                                    telemetry = {
+                                        enable = false,
+                                    },
+                                },
+                            },
+                        })
+                    end,
+                },
             })
         end,
     },
@@ -46,7 +76,6 @@ return {
         "neovim/nvim-lspconfig",
         dependencies = {
             "williamboman/mason-lspconfig.nvim",
-            "hrsh7th/cmp-nvim-lsp",
             "folke/neodev.nvim",
         },
         event = { "BufReadPre", "BufNewFile" },
@@ -58,9 +87,6 @@ return {
                     plugins = true, -- Include plugin definitions
                 },
             })
-
-            local lspconfig = require("lspconfig")
-            local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
             -- LSP keybindings using LspAttach autocmd (Neovim 0.11+)
             vim.api.nvim_create_autocmd("LspAttach", {
@@ -92,8 +118,6 @@ return {
                 end,
             })
 
-            -- Remove this - lua_ls will be configured by the handler below
-
             -- Configure diagnostic display
             vim.diagnostic.config({
                 virtual_text = true,
@@ -107,42 +131,18 @@ return {
                 },
             })
 
-            -- Setup handlers for all servers
-            local mason_lspconfig = require("mason-lspconfig")
-            mason_lspconfig.setup_handlers({
-                -- Default handler for all servers
-                function(server_name)
-                    local config = {
-                        capabilities = capabilities,
-                    }
-
-                    -- Lua-specific settings (neodev handles workspace/diagnostics)
-                    if server_name == "lua_ls" then
-                        config.settings = {
-                            Lua = {
-                                completion = {
-                                    callSnippet = "Replace",
-                                },
-                                telemetry = {
-                                    enable = false,
-                                },
-                            },
-                        }
-                    end
-
-                    lspconfig[server_name].setup(config)
-                end,
-            })
-
             -- Ballerina LSP (manual setup - not in Mason)
             -- Install: Download from https://ballerina.io/downloads/
             -- The LSP server comes bundled with Ballerina
-            lspconfig.ballerina.setup({
+            local capabilities = require("cmp_nvim_lsp").default_capabilities()
+
+            vim.lsp.config("ballerina", {
                 capabilities = capabilities,
                 cmd = { "bal", "start-language-server" },
                 filetypes = { "ballerina" },
-                root_dir = lspconfig.util.root_pattern("Ballerina.toml", ".git"),
+                root_markers = { "Ballerina.toml", ".git" },
             })
+            vim.lsp.enable("ballerina")
         end,
     },
 }

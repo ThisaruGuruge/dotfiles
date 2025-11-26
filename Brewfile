@@ -10,7 +10,8 @@ tap "homebrew/cask-fonts"  # Font packages
 tap "jesseduffield/lazygit"  # Official lazygit tap for frequent updates
 
 # Essential tools required for dotfiles functionality
-brew "stow"                         # Symlink farm manager
+brew "stow"                         # Symlink farm manager (with known directory symlink bug - see init.sh workaround)
+brew "chezmoi"                      # Modern dotfile manager (alternative to stow)
 brew "starship"                     # Fast, modern shell prompt written in Rust
 brew "fzf"                          # Fuzzy finder
 brew "zoxide"                       # Smart cd command
