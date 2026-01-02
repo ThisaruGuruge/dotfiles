@@ -1,0 +1,91 @@
+#!/bin/bash
+# Script to adopt existing .config directories into dotfiles
+# Usage: ./bin/adopt-config <app-name>
+
+set -e
+
+APP_NAME="$1"
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONFIG_SOURCE="$HOME/.config/$APP_NAME"
+CONFIG_DEST="$DOTFILES_DIR/config/.config/$APP_NAME"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+if [ -z "$APP_NAME" ]; then
+    echo -e "${RED}Error: Please provide an application name${NC}"
+    echo "Usage: $0 <app-name>"
+    echo ""
+    echo "Example: $0 fish"
+    exit 1
+fi
+
+if [ ! -d "$CONFIG_SOURCE" ]; then
+    echo -e "${RED}Error: $CONFIG_SOURCE does not exist${NC}"
+    exit 1
+fi
+
+if [ -L "$CONFIG_SOURCE" ]; then
+    echo -e "${YELLOW}$APP_NAME is already a symlink, skipping${NC}"
+    readlink "$CONFIG_SOURCE"
+    exit 0
+fi
+
+echo -e "${GREEN}Adopting $APP_NAME into dotfiles...${NC}"
+echo ""
+
+# Show size
+SIZE=$(du -sh "$CONFIG_SOURCE" | awk '{print $1}')
+echo "Size: $SIZE"
+echo ""
+
+# Check if it contains sensitive data
+if grep -r -i -E "(token|password|key|secret|credential)" "$CONFIG_SOURCE" 2>/dev/null | head -5; then
+    echo ""
+    echo -e "${YELLOW}⚠️  Warning: This config may contain sensitive data!${NC}"
+    echo -e "${YELLOW}Make sure to add appropriate .stow-local-ignore entries${NC}"
+    echo ""
+fi
+
+# Ask for confirmation
+read -p "Do you want to adopt this config? (y/N): " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Cancelled"
+    exit 0
+fi
+
+# Move to dotfiles
+echo "Moving $CONFIG_SOURCE to $CONFIG_DEST..."
+mv "$CONFIG_SOURCE" "$CONFIG_DEST"
+
+# Create .stow-local-ignore if needed
+if [ ! -f "$CONFIG_DEST/.stow-local-ignore" ]; then
+    echo "Creating .stow-local-ignore..."
+    cat > "$CONFIG_DEST/.stow-local-ignore" <<'EOF'
+# Ignore sensitive and generated files
+*.log
+*.cache
+**/cache/
+**/Cache/
+*.token
+*.key
+credentials*
+secrets*
+EOF
+fi
+
+# Restow to create symlink
+cd "$DOTFILES_DIR"
+stow -R config
+
+echo -e "${GREEN}✓ Successfully adopted $APP_NAME${NC}"
+echo -e "${GREEN}✓ Symlink created: $CONFIG_SOURCE -> $CONFIG_DEST${NC}"
+echo ""
+echo "Next steps:"
+echo "1. Review $CONFIG_DEST/.stow-local-ignore"
+echo "2. Git commit the new config"
+echo "3. Test that the application still works"

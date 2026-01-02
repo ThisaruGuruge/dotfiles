@@ -63,7 +63,7 @@ confirm() {
     while true; do
         echo ""
         echo -en "  ${YELLOW}$1 (y/n/q): ${NC}"
-        read -r -n 1 -s key # Read single character without echo
+        read -r -n 1 -s key </dev/tty # Read single character from terminal
         echo                # Print newline after keypress
 
         case "$key" in
@@ -162,20 +162,23 @@ setup_homebrew() {
 }
 
 # Install GNU Stow
-# Install GNU Stow
-if command_exists stow; then
-    log_success "GNU Stow already installed: $(stow --version | head -n 1)"
-else
-    log_warning "GNU Stow not found"
-    if confirm "Install GNU Stow? (Required for dotfiles management)"; then
-        log_info "Installing GNU Stow..."
-        brew install stow
-        log_success "GNU Stow installed successfully"
+install_stow() {
+    log_step "Installing GNU Stow"
+
+    if command_exists stow; then
+        log_success "GNU Stow already installed: $(stow --version | head -n 1)"
     else
-        log_error "GNU Stow is required for this dotfiles setup. Exiting."
-        exit 1
+        log_warning "GNU Stow not found"
+        if confirm "Install GNU Stow? (Required for dotfiles management)"; then
+            log_info "Installing GNU Stow..."
+            brew install stow
+            log_success "GNU Stow installed successfully"
+        else
+            log_error "GNU Stow is required for this dotfiles setup. Exiting."
+            exit 1
+        fi
     fi
-fi
+}
 
 # Install core dependencies
 install_core_dependencies() {
@@ -198,30 +201,35 @@ install_core_dependencies() {
 install_dev_tools() {
     log_step "Installing Development Tools (Optional)"
 
-    local dev_tools=("pyenv" "rbenv" "nvm")
-    local missing_tools=()
+    # Helper function to get description
+    get_tool_description() {
+        case "$1" in
+            pyenv) echo "Python version manager" ;;
+            rbenv) echo "Ruby version manager" ;;
+            nvm) echo "Node.js version manager" ;;
+            *) echo "$1" ;;
+        esac
+    }
 
-    # Check which tools are missing
-    for tool in "${dev_tools[@]}"; do
-        if ! brew list "$tool" >/dev/null 2>&1; then
-            missing_tools+=("$tool")
-        else
+    # Check and install each tool individually
+    for tool in pyenv rbenv nvm; do
+        if brew list "$tool" >/dev/null 2>&1; then
             log_success "$tool already installed"
+        else
+            local description
+            description=$(get_tool_description "$tool")
+            if confirm "Install $tool? ($description)"; then
+                log_info "Installing $tool..."
+                if brew install "$tool"; then
+                    log_success "$tool installed"
+                else
+                    log_warning "Failed to install $tool"
+                fi
+            else
+                log_info "Skipped $tool"
+            fi
         fi
     done
-
-    if [ ${#missing_tools[@]} -eq 0 ]; then
-        log_success "All development tools already installed"
-    else
-        log_info "Missing development tools: ${missing_tools[*]}"
-        if confirm "Install development tools? (Python, Ruby, Node.js version managers)"; then
-            log_info "Installing: ${missing_tools[*]}"
-            brew install "${missing_tools[@]}"
-            log_success "Development tools installed"
-        else
-            log_warning "Skipped development tools installation"
-        fi
-    fi
 
     # Install SDKMAN
     install_sdkman
@@ -309,15 +317,90 @@ install_terminal_apps() {
             category_name=$(basename "$brewfile" .brewfile)
 
             echo ""
-            if confirm "Install $category_name packages?"; then
-                log_info "Installing $category_name..."
-                if brew bundle --file="$brewfile"; then
-                    log_success "$category_name installed"
-                else
-                    log_warning "Some packages in $category_name failed to install"
-                fi
+            if confirm "Review $category_name packages?"; then
+                log_info "Reviewing $category_name packages..."
+
+                # Read brewfile and parse packages
+                while IFS= read -r line; do
+                    # Skip comments and empty lines
+                    [[ "$line" =~ ^#.*$ ]] && continue
+                    [[ -z "$line" ]] && continue
+
+                    local package_type=""
+                    local package_name=""
+                    local package_comment=""
+
+                    # Extract package info
+                    if [[ "$line" =~ ^brew[[:space:]]+\"([^\"]+)\"[[:space:]]*#?[[:space:]]*(.*)?$ ]]; then
+                        package_type="brew"
+                        package_name="${BASH_REMATCH[1]}"
+                        package_comment="${BASH_REMATCH[2]}"
+                    elif [[ "$line" =~ ^cask[[:space:]]+\"([^\"]+)\"[[:space:]]*#?[[:space:]]*(.*)?$ ]]; then
+                        package_type="cask"
+                        package_name="${BASH_REMATCH[1]}"
+                        package_comment="${BASH_REMATCH[2]}"
+                    elif [[ "$line" =~ ^tap[[:space:]]+\"([^\"]+)\" ]]; then
+                        # Auto-install taps without asking
+                        package_name="${BASH_REMATCH[1]}"
+                        if ! brew tap | grep -q "^${package_name}$"; then
+                            log_info "Adding tap: $package_name"
+                            brew tap "$package_name" 2>/dev/null || log_warning "Failed to add tap $package_name"
+                        fi
+                        continue
+                    else
+                        continue
+                    fi
+
+                    # Check if already installed
+                    local already_installed=false
+                    local install_status=""
+
+                    if [ "$package_type" = "cask" ]; then
+                        if brew list --cask "$package_name" >/dev/null 2>&1; then
+                            already_installed=true
+                            install_status="via Homebrew"
+                        else
+                            # Check if app exists in /Applications (manual install)
+                            local app_name
+                            # Convert package name to app name (e.g., postman -> Postman.app)
+                            app_name=$(echo "$package_name" | sed 's/-/ /g; s/\b\(.\)/\u\1/g; s/ //g')
+                            if [ -d "/Applications/${app_name}.app" ]; then
+                                already_installed=true
+                                install_status="manually installed"
+                            fi
+                        fi
+                    else
+                        if brew list "$package_name" >/dev/null 2>&1; then
+                            already_installed=true
+                            install_status="via Homebrew"
+                        fi
+                    fi
+
+                    if [ "$already_installed" = true ]; then
+                        echo -e "  ${GREEN}✓${NC} $package_name ${CYAN}($install_status)${NC}"
+                    else
+                        local description="$package_name"
+                        [ -n "$package_comment" ] && description="$package_name - $package_comment"
+
+                        if confirm "  Install $description?"; then
+                            if [ "$package_type" = "cask" ]; then
+                                if brew install --cask "$package_name" 2>&1 | tee /dev/tty | grep -q "It seems there is already an App"; then
+                                    log_warning "$package_name appears to be manually installed - skipping Homebrew install"
+                                else
+                                    log_success "Installed $package_name"
+                                fi
+                            else
+                                brew install "$package_name" && log_success "Installed $package_name" || log_warning "Failed to install $package_name"
+                            fi
+                        else
+                            log_info "Skipped $package_name"
+                        fi
+                    fi
+                done < "$brewfile"
+
+                log_success "Finished reviewing $category_name"
             else
-                log_info "Skipped $category_name"
+                log_info "Skipped $category_name category"
             fi
         done
     else
@@ -671,7 +754,7 @@ handle_stow_conflict() {
 stow_packages() {
     log_step "Using Stow to manage dotfiles"
 
-    local packages=("zsh" "vim" ".config" "git" "tmux" "direnv")
+    local packages=("zsh" "bash" "vim" "config" "git" "tmux" "direnv")
     local stowed_packages=()
     local skipped_files=()
 
@@ -812,26 +895,6 @@ stow_packages() {
         for skipped in "${skipped_files[@]}"; do
             log_info "  - $skipped"
         done
-    fi
-
-    # Workaround for stow bug: manually create directory symlinks if they don't exist
-    # See: https://github.com/aspiers/stow/issues - stow 2.4.1 reports "LINK:" but doesn't actually create new directory symlinks
-    if [ ! -e "$HOME/.config/nvim" ] && [ -d "$DOTFILES_DIR/.config/nvim" ]; then
-        log_info "Creating nvim symlink manually (stow workaround)"
-        ln -s ../dotfiles/.config/nvim "$HOME/.config/nvim"
-        log_success "Created ~/.config/nvim symlink"
-    fi
-
-    if [ ! -e "$HOME/.config/vim" ] && [ -d "$DOTFILES_DIR/.config/vim" ]; then
-        log_info "Creating vim symlink manually (stow workaround)"
-        ln -s ../dotfiles/.config/vim "$HOME/.config/vim"
-        log_success "Created ~/.config/vim symlink"
-    fi
-
-    if [ ! -e "$HOME/.config/wezterm" ] && [ -d "$DOTFILES_DIR/.config/wezterm" ]; then
-        log_info "Creating wezterm symlink manually (stow workaround)"
-        ln -s ../dotfiles/.config/wezterm "$HOME/.config/wezterm"
-        log_success "Created ~/.config/wezterm symlink"
     fi
 }
 

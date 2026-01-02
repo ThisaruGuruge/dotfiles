@@ -6,14 +6,14 @@ We release patches for security vulnerabilities for the following versions:
 
 | Version | Supported |
 | ------- | --------- |
-| 1.0.x   | ✅        |
-| < 1.0   | ❌        |
+| 1.0.x   | Yes       |
+| < 1.0   | No        |
 
 ## Reporting a Vulnerability
 
 We take the security of this dotfiles repository seriously. If you discover a security vulnerability, please follow these steps:
 
-### 🔒 Private Disclosure
+### Private Disclosure
 
 **Please DO NOT open a public GitHub issue for security vulnerabilities.**
 
@@ -50,14 +50,14 @@ Instead, report security issues privately:
 
 This repository uses **SOPS (Secrets OPerationS) + age encryption** for managing sensitive data:
 
-#### 🔐 How It Works
+#### How It Works
 
 1. **Encryption at Rest:** All secrets in `~/.env` are encrypted using age encryption
 2. **Automatic Decryption:** Shell automatically decrypts secrets on startup
 3. **Safe Editing:** Use `edit_secrets` command to edit encrypted files
 4. **Key Isolation:** Encryption keys stored in `~/.config/sops/age/keys.txt`
 
-#### ✅ Secure Setup
+#### Secure Setup
 
 ```bash
 # GOOD: Use edit_secrets for safe editing
@@ -71,17 +71,17 @@ cp zsh/.env.example zsh/.env
 edit_secrets
 ```
 
-#### ❌ What NOT to Do
+#### What NOT to Do
 
 ```bash
 # BAD: Don't commit .env files
-git add zsh/.env  # ❌ NEVER DO THIS
+git add zsh/.env  # NEVER DO THIS
 
 # BAD: Don't share encryption keys
-cat ~/.config/sops/age/keys.txt  # ❌ Keep this private
+cat ~/.config/sops/age/keys.txt  # Keep this private
 
 # BAD: Don't store plaintext secrets
-echo "export API_KEY=secret123" > ~/.env  # ❌ Use edit_secrets instead
+echo "export API_KEY=secret123" > ~/.env  # Use edit_secrets instead
 ```
 
 ### Environment Variables Security
@@ -154,13 +154,13 @@ cat init.sh
 
 The installation script:
 
-- ✅ Installs Homebrew packages from packages.json
-- ✅ Creates encrypted environment files
-- ✅ Sets up SOPS/age encryption
-- ✅ Creates symlinks with GNU Stow
-- ❌ Does NOT modify existing configs without backup
-- ❌ Does NOT download executables from untrusted sources
-- ❌ Does NOT require sudo (except for Xcode Command Line Tools)
+- Installs Homebrew packages from packages.json
+- Creates encrypted environment files
+- Sets up SOPS/age encryption
+- Creates symlinks with GNU Stow
+- Does NOT modify existing configs without backup
+- Does NOT download executables from untrusted sources
+- Does NOT require sudo (except for Xcode Command Line Tools)
 
 ### Age Encryption Key Management
 
@@ -244,7 +244,7 @@ tmux kill-session -t sensitive-work
 
 ## Security Features
 
-### ✅ What's Protected
+### What's Protected
 
 - **Environment variables:** SOPS + age encryption
 - **Git history:** No secrets committed (verified)
@@ -252,7 +252,7 @@ tmux kill-session -t sensitive-work
 - **CI/CD:** Security scanning in GitHub Actions
 - **Package sources:** Only trusted Homebrew formulas
 
-### 🔍 Automated Security Checks
+### Automated Security Checks
 
 GitHub Actions CI includes:
 

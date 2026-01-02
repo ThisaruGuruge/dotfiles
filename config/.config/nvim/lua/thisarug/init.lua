@@ -33,3 +33,8 @@ opt.backup = false
 
 -- Performance
 opt.updatetime = 50
+
+-- Ruler
+opt.colorcolumn = "80,120"
+
+-- Note: All keybindings are now managed by which-key in plugins/editor.lua

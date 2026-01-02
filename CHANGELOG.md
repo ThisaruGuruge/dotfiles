@@ -63,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Custom Oh My Posh Theme
 
 - **Context-aware prompt** with language runtime indicators
-- Java (☕), Node.js (⬢), Python (🐍), Ballerina (🦢) version display
+- Java, Node.js, Python, Ballerina version display
 - Git status with file changes, staged files, stash count
 - Path truncation (max 3 levels) for clean display
 - Multi-language project support
@@ -291,7 +291,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Performance Metrics
 
-- **Shell startup**: ~0.6s (target: <1.0s) ✅ Excellent
+- **Shell startup**: ~0.6s (target: <1.0s) - Excellent
 - **Validation suite**: Comprehensive coverage of all tools and configs
 - **PATH optimization**: Deduplication prevents slowdowns
 - **Plugin loading**: Turbo mode for non-essential plugins

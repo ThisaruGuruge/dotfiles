@@ -96,11 +96,11 @@ test-zsh
 
 This validates:
 
-- ✅ All tools and packages are installed
-- ✅ Environment variables are set correctly
-- ✅ Shell configuration loads without errors
-- ✅ Performance metrics (startup time)
-- ✅ PATH is configured correctly
+- All tools and packages are installed
+- Environment variables are set correctly
+- Shell configuration loads without errors
+- Performance metrics (startup time)
+- PATH is configured correctly
 
 ### CI/CD Validation
 
@@ -559,4 +559,4 @@ By contributing, you agree that your contributions will be licensed under the sa
 
 ---
 
-Thank you for contributing! 🎉
+Thank you for contributing!

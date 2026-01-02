@@ -38,6 +38,31 @@ if ! command -v eza &>/dev/null; then
     alias la='ls -la'
 fi
 
+# Suffix Aliases for File Types
+# Automatically open files with the appropriate tool based on extension
+# Examples:
+#   file.md         # Opens in bat with syntax highlighting
+#   config.yaml     # Opens in jless for interactive JSON/YAML viewing
+#   script.py       # Opens in nvim for editing
+
+# Viewing/browsing tools
+alias -s md='bat'
+alias -s json='jless'
+alias -s yaml='jless'
+alias -s yml='jless'
+
+# Code files - open in editor
+alias -s py="$EDITOR"
+alias -s sh="$EDITOR"
+alias -s bash="$EDITOR"
+alias -s zsh="$EDITOR"
+alias -s bal="$EDITOR"
+
+# Configuration files - open in editor
+alias -s conf="$EDITOR"
+alias -s config="$EDITOR"
+alias -s ini="$EDITOR"
+
 alias showFiles='defaults write com.apple.finder AppleShowAllFiles YES; killall Finder /System/Library/CoreServices/Finder.app'
 alias hideFiles='defaults write com.apple.finder AppleShowAllFiles NO; killall Finder /System/Library/CoreServices/Finder.app'
 

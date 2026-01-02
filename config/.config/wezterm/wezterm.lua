@@ -2,14 +2,8 @@
 -- Pull in the wezterm API
 local wezterm = require("wezterm")
 
--- This table will hold the configuration
-local config = {}
-
--- In newer versions of wezterm, use the config_builder which will
--- help provide clearer error messages
-if wezterm.config_builder then
-	config = wezterm.config_builder()
-end
+-- Use config builder
+local config = wezterm.config_builder()
 
 -- ============================================================================
 -- Appearance
@@ -28,9 +22,29 @@ config.font = wezterm.font_with_fallback({
 config.font_size = 13.0
 
 -- Window appearance
-config.window_decorations = "RESIZE" -- Hide title bar but keep resize
-config.window_background_opacity = 0.95
+-- Use INTEGRATED_BUTTONS|RESIZE for native fullscreen with menu bar on hover
+-- Alternative: "RESIZE" hides title bar but prevents menu bar access in fullscreen
+config.window_decorations = "INTEGRATED_BUTTONS|RESIZE"
+config.window_background_opacity = 0.90 -- Adjust transparency (0.0-1.0)
 config.macos_window_background_blur = 20
+
+-- Background image
+config.background = {
+	{
+		source = {
+			File = wezterm.home_dir .. "/Pictures/Wallpapers/Towards the darkness.jpg",
+		},
+		-- Adjust image opacity separately from window opacity
+		opacity = 0.4,
+		-- How the image should be sized/positioned
+		hsb = {
+			brightness = 0.1, -- Darken the image so text is readable
+		},
+		-- Image positioning options: "Cover", "Contain", etc.
+		width = "100%",
+		height = "100%",
+	},
+}
 
 -- Tab bar
 config.enable_tab_bar = true
@@ -198,12 +212,38 @@ config.keys = {
 		mods = "CMD",
 		action = wezterm.action.ClearScrollback("ScrollbackAndViewport"),
 	},
+	{
+		key = "l",
+		mods = "CMD",
+		action = wezterm.action_callback(function(window, pane)
+			-- scroll to bottom in case you aren't already
+			window:perform_action(wezterm.action.ScrollToBottom, pane)
+
+			-- get the current height of the viewport
+			local height = pane:get_dimensions().viewport_rows
+
+			-- build a string of new lines equal to the viewport height
+			local blank_viewport = string.rep("\r\n", height)
+
+			-- inject those new lines to push the viewport contents into the scrollback
+			pane:inject_output(blank_viewport)
+
+			-- send an escape sequence to clear the viewport (CTRL-L)
+			pane:send_text("\x0c")
+		end),
+	},
 
 	-- Search
 	{
 		key = "f",
 		mods = "CMD",
 		action = wezterm.action.Search({ CaseSensitiveString = "" }),
+	},
+	-- Shift enter for line break in Claude
+	{
+		key = "Enter",
+		mods = "SHIFT",
+		action = wezterm.action({ SendString = "\x1b\r" }),
 	},
 }
 
@@ -223,6 +263,9 @@ config.mouse_bindings = {
 -- ============================================================================
 -- Performance & Behavior
 -- ============================================================================
+
+-- Automatically reload configuration when it changes
+config.automatically_reload_config = true
 
 -- Scrollback
 config.scrollback_lines = 10000

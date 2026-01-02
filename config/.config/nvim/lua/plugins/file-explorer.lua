@@ -8,23 +8,12 @@ return {
             "nvim-tree/nvim-web-devicons",
             "MunifTanjim/nui.nvim",
         },
-        keys = {
-            { "<leader>e", "<cmd>Neotree toggle<cr>", desc = "Toggle file explorer" },
-            {
-                "<leader>o",
-                function()
-                    if vim.bo.filetype == "neo-tree" then
-                        vim.cmd("wincmd p")
-                    else
-                        vim.cmd("Neotree focus")
-                    end
-                end,
-                desc = "Toggle focus: file explorer <-> editor",
-            },
-        },
+        -- Keybindings moved to which-key config for better integration
+        lazy = false, -- Load immediately, not lazily
+        priority = 1000, -- Load before other plugins
         config = function()
             require("neo-tree").setup({
-                close_if_last_window = true,
+                close_if_last_window = false, -- Keep neo-tree open
                 popup_border_style = "rounded",
                 enable_git_status = true,
                 enable_diagnostics = true,
@@ -72,6 +61,22 @@ return {
                         hide_gitignored = false,
                     },
                 },
+            })
+
+            -- Auto-open Neo-tree when starting Neovim
+            vim.api.nvim_create_autocmd("VimEnter", {
+                callback = function()
+                    -- Only open if no files were specified on command line
+                    if vim.fn.argc() == 0 then
+                        vim.cmd("Neotree show")
+                        -- Focus back to the main window
+                        vim.cmd("wincmd l")
+                    else
+                        -- Files were opened, show neo-tree but keep focus on file
+                        vim.cmd("Neotree show")
+                        vim.cmd("wincmd l")
+                    end
+                end,
             })
         end,
     },

@@ -1,21 +1,21 @@
 # Starship Prompt & Terminal Guide
 
-## 🎨 Understanding Your New Prompt
+## Understanding Your New Prompt
 
 ### What You See
 
 ```
-~/dotfiles on  main [📦2 !6 ?3] ⚡ 65% at 18:08
-❯
+~/dotfiles on  main [STASH:2 !6 ?3] BAT:65% at 18:08
+>
 ```
 
 **Breakdown:**
 - `~/dotfiles` - Current directory (cyan, truncated to 3 levels)
 - `on  main` - Git branch (purple, only in git repos)
-- `[📦2 !6 ?3]` - Git status (red, see legend below)
-- `⚡ 65%` - Battery status (color changes based on %)
+- `[STASH:2 !6 ?3]` - Git status (red, see legend below)
+- `BAT:65%` - Battery status (color changes based on %)
 - `at 18:08` - Current time (24h format)
-- `❯` - Prompt symbol (green = success, red = error)
+- `>` - Prompt symbol (green = success, red = error)
 
 ### Git Status Icons
 
@@ -24,11 +24,11 @@
 | `?3` | 3 untracked files | New files not in git |
 | `!6` | 6 modified files | Changed files |
 | `+2` | 2 staged files | Ready to commit |
-| `📦2` | 2 stashed changes | Saved for later |
-| `✘1` | 1 deleted file | Removed files |
-| `⇡2` | 2 commits ahead | Push needed |
-| `⇣1` | 1 commit behind | Pull needed |
-| `⚔️` | Merge conflict | Needs resolution |
+| `STASH:2` | 2 stashed changes | Saved for later |
+| `X1` | 1 deleted file | Removed files |
+| `UP:2` | 2 commits ahead | Push needed |
+| `DOWN:1` | 1 commit behind | Pull needed |
+| `CONFLICT` | Merge conflict | Needs resolution |
 
 ### Language Version Indicators
 
@@ -36,10 +36,10 @@ These **only show when in relevant projects**:
 
 | Icon | Language | Shows When |
 |------|----------|------------|
-| `☕ 21.0.5` | Java | In dir with pom.xml, build.gradle, etc. |
-| `⬢ v22.2.0` | Node.js | In dir with package.json, node_modules, etc. |
-| `🐍 3.11` | Python | In dir with .py files, requirements.txt, etc. |
-| `🩰 2201.10.0` | Ballerina | In dir with Ballerina.toml |
+| `JAVA 21.0.5` | Java | In dir with pom.xml, build.gradle, etc. |
+| `NODE v22.2.0` | Node.js | In dir with package.json, node_modules, etc. |
+| `PY 3.11` | Python | In dir with .py files, requirements.txt, etc. |
+| `BAL 2201.10.0` | Ballerina | In dir with Ballerina.toml |
 
 **Why they don't always show:**
 - Starship only shows language versions when you're in a project that uses that language
@@ -48,7 +48,7 @@ These **only show when in relevant projects**:
 
 ---
 
-## 🔍 FZF Tab Completion
+## FZF Tab Completion
 
 ### How to Use
 
@@ -98,7 +98,7 @@ echo $HO<TAB>            # Shows $HOME, $HOSTNAME, etc.
 
 ---
 
-## 🔎 Atuin - Smart Shell History
+## Atuin - Smart Shell History
 
 ### What is Atuin?
 
@@ -148,7 +148,7 @@ Atuin supports multiple search modes (press `Ctrl+R` while in search to cycle):
 
 ---
 
-## ⚡ Performance Tips
+## Performance Tips
 
 ### Current Speed
 
@@ -165,7 +165,7 @@ Atuin supports multiple search modes (press `Ctrl+R` while in search to cycle):
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Prompt looks wrong
 
@@ -217,7 +217,7 @@ disabled = true  # Never show Node version
 
 ---
 
-## 🎨 Customization
+## Customization
 
 ### Edit Starship Config
 
@@ -230,8 +230,8 @@ vim ~/.config/starship.toml
 **Change prompt symbol:**
 ```toml
 [character]
-success_symbol = "[➜](bold green)"
-error_symbol = "[✗](bold red)"
+success_symbol = "[>](bold green)"
+error_symbol = "[x](bold red)"
 ```
 
 **Change directory truncation:**
@@ -264,7 +264,7 @@ source ~/.zshrc
 
 ---
 
-## 📚 Resources
+## Resources
 
 - **Starship Docs:** https://starship.rs/config/
 - **Atuin Docs:** https://github.com/atuinsh/atuin
@@ -273,7 +273,7 @@ source ~/.zshrc
 
 ---
 
-## 🆘 Quick Help
+## Quick Help
 
 ```bash
 # See all aliases

@@ -1,0 +1,6 @@
+# Ignore atuin database and sensitive data
+history.db
+history.db-shm
+history.db-wal
+session
+key

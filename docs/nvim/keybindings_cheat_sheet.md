@@ -2,9 +2,32 @@
 
 **Leader**: `<Space>` | **Modes**: `n` = Normal, `i` = Insert, `v` = Visual
 
+## Keybinding Conventions
+
+This configuration follows standard Vim/Neovim conventions:
+
+| Pattern | Purpose | Examples |
+|:--------|:--------|:---------|
+| `g*` | Navigation (go to...) | `gd` (definition), `gr` (references), `gi` (implementation) |
+| `<Space>g*` | Git operations | `<Space>gs` (stage), `<Space>gp` (preview), `<Space>gg` (LazyGit) |
+| `<Space>l*` | LSP actions | `<Space>lr` (rename), `<Space>la` (actions), `<Space>lf` (format) |
+| `<Space>f*` | Find/Search | `<Space>ff` (files), `<Space>fg` (grep), `<Space>fb` (buffers) |
+| `[` / `]` | Previous/Next | `[d` (prev diagnostic), `]c` (next git hunk) |
+
 ---
 
-## 🔍 Search & Find (Telescope)
+## Quick Help
+
+| Key | Mode | Action |
+|:----|:-----|:-------|
+| `<Space>?` | `n` | **Show ALL keybindings** (fuzzy search) |
+| `<Space><Space>` | `n` | **Show leader commands** (which-key popup) |
+
+**Tip**: Press `<Space>` and wait 1 second - which-key will automatically show all available commands!
+
+---
+
+## Search & Find (Telescope)
 
 | Key | Mode | Action |
 |:----|:-----|:-------|
@@ -17,7 +40,7 @@
 
 ---
 
-## 📁 File Navigation
+## File Navigation
 
 | Key | Mode | Action |
 |:----|:-----|:-------|
@@ -36,7 +59,7 @@
 
 ---
 
-## 🔀 Git Operations
+## Git Operations
 
 ### LazyGit (Git UI)
 | Key | Mode | Action |
@@ -69,7 +92,7 @@
 
 ---
 
-## 💡 LSP (Code Intelligence)
+## LSP (Code Intelligence)
 
 ### Navigation
 | Key | Mode | Action |
@@ -92,7 +115,7 @@
 
 ---
 
-## ✨ Completion (Insert Mode)
+## Completion (Insert Mode)
 
 | Key | Mode | Action |
 |:----|:-----|:-------|
@@ -106,7 +129,7 @@
 
 ---
 
-## 🎯 Treesitter (Selection)
+## Treesitter (Selection)
 
 | Key | Mode | Action |
 |:----|:-----|:-------|
@@ -116,7 +139,7 @@
 
 ---
 
-## 💻 Terminal
+## Terminal
 
 | Key | Mode | Action |
 |:----|:-----|:-------|
@@ -125,7 +148,7 @@
 
 ---
 
-## 🎮 Practice
+## Practice
 
 | Key | Mode | Action |
 |:----|:-----|:-------|
@@ -133,7 +156,7 @@
 
 ---
 
-## 🚀 Essential Vim Motions
+## Essential Vim Motions
 
 ### Movement (Normal Mode)
 | Key | Action |
@@ -174,7 +197,7 @@
 
 ---
 
-## 💾 File Operations
+## File Operations
 
 | Key | Mode | Action |
 |:----|:-----|:-------|
@@ -186,10 +209,11 @@
 
 ---
 
-## 🔥 Pro Tips
+## Pro Tips
 
-1. **Which-Key**: Press `<Space>` and wait → shows all available commands
-2. **Telescope**: Start typing immediately after keybinding
-3. **LSP**: Use `K` on any function/variable to see docs
-4. **Git**: `<Space>gg` opens full Git UI (like Magit)
-5. **Completion**: Just start typing, `<Tab>` to navigate
+1. **Discover Keybindings**: Press `<Space>?` for searchable list or `<Space><Space>` for visual menu
+2. **Which-Key Auto-popup**: Press `<Space>` and wait 1 second → shows all available commands
+3. **LSP Documentation**: Use `K` on any function/variable to see docs instantly
+4. **Git UI**: `<Space>gg` opens full LazyGit interface (like Magit for Emacs)
+5. **Navigation**: `gd` (definition), `gr` (references), `gi` (implementation) - all searchable with Telescope
+6. **Completion**: Just start typing in insert mode, `<Tab>` to navigate suggestions

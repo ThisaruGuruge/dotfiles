@@ -35,6 +35,7 @@ fi
 if [ -x "/opt/homebrew/bin/brew" ]; then
     # Check if cache exists and is valid (less than 24 hours old)
     # (#qNmh-24) is a zsh glob qualifier for "modified less than 24 hours ago"
+    setopt extendedglob
     if [[ -r "${HOME}/.cache/zsh/brew_shellenv.zsh"(#qNmh-24) ]]; then
         source "${HOME}/.cache/zsh/brew_shellenv.zsh"
     else
@@ -133,6 +134,7 @@ fi
 # Optimized completion system - regenerate dump only once per day
 # This reduces startup time from ~360ms to ~50ms
 # Note: (#qNmh-20) is a zsh glob qualifier meaning "modified less than 20 hours ago"
+setopt extendedglob
 autoload -Uz compinit
 # shellcheck disable=SC1036,SC1072,SC1073,SC1009
 if [[ -e ${ZDOTDIR:-$HOME}/.zcompdump(#qNmh-20) ]]; then
@@ -380,7 +382,7 @@ fi
 
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-export PATH="$HOME/.rd/bin:$PATH"
+export PATH="/Users/thisaru/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
 # Source local environment if it exists
