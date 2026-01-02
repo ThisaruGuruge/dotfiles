@@ -2,11 +2,23 @@
 
 Leader key: `<Space>`
 
+## Keybinding Conventions
+
+This configuration follows standard Vim/Neovim conventions:
+
+- **`g*`** - Navigation commands (go to definition, references, etc.) - Standard Vim pattern
+- **`<leader>g*`** - Git operations (stage, commit, diff, etc.)
+- **`<leader>l*`** - LSP actions (rename, code actions, format, diagnostics)
+- **`<leader>f*`** - Find/Search operations (Telescope)
+- **`[` / `]`** - Jump to previous/next (diagnostics, git hunks, etc.)
+
 ## General
 
 | Key | Action | Source |
 |-----|--------|--------|
 | `<Space>` | Leader key | config/lazy.lua:21 |
+| `<leader>?` | Show all keybindings (searchable) | thisarug/init.lua:39 |
+| `<leader><leader>` | Show all leader commands | thisarug/init.lua:41 |
 
 ## File Navigation & Search (Telescope)
 

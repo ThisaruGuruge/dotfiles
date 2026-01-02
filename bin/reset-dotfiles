@@ -1,0 +1,203 @@
+#!/bin/bash
+
+# Dotfiles Reset/Clean Script
+# This script removes all symlinks created by Stow and optionally removes installed packages
+
+set -e # Exit on any error
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Unicode symbols
+CHECK="✅"
+CROSS="❌"
+WARNING="⚠️"
+INFO="ℹ️"
+
+# Logging functions
+log_success() {
+    echo -e "  ${GREEN}${CHECK}  $1${NC}"
+}
+
+log_warning() {
+    echo -e "  ${YELLOW}${WARNING}  $1${NC}"
+}
+
+log_info() {
+    echo -e "  ${CYAN}${INFO}  $1${NC}"
+}
+
+log_error() {
+    echo -e "  ${RED}${CROSS}  $1${NC}"
+}
+
+log_step() {
+    echo ""
+    echo -e "${BLUE}==>${NC} ${PURPLE}$1${NC}"
+}
+
+# Confirmation prompt
+confirm() {
+    local prompt="$1"
+    local default="${2:-n}"
+
+    if [[ "$default" == "y" ]]; then
+        prompt="$prompt [Y/n] "
+    else
+        prompt="$prompt [y/N] "
+    fi
+
+    read -r -p "$prompt" response
+    response=${response:-$default}
+
+    [[ "$response" =~ ^[Yy]$ ]]
+}
+
+# Get the dotfiles directory
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$DOTFILES_DIR"
+
+echo ""
+echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║${NC}  ${PURPLE}Dotfiles Reset/Clean Script${NC}                            ${BLUE}║${NC}"
+echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+log_warning "This script will remove Stow-managed symlinks from your home directory"
+echo ""
+
+# Check what will be removed
+log_step "Checking current Stow setup"
+
+PACKAGES=("zsh" "git" "tmux" "direnv" ".config")
+FOUND_PACKAGES=()
+
+for package in "${PACKAGES[@]}"; do
+    if [ -d "$package" ]; then
+        FOUND_PACKAGES+=("$package")
+        log_info "Found package: $package"
+    fi
+done
+
+if [ ${#FOUND_PACKAGES[@]} -eq 0 ]; then
+    log_warning "No Stow packages found in $DOTFILES_DIR"
+    exit 0
+fi
+
+echo ""
+log_warning "The following symlinks will be removed:"
+echo ""
+
+# Show what stow would unstow (dry run)
+for package in "${FOUND_PACKAGES[@]}"; do
+    echo -e "${CYAN}Package: $package${NC}"
+    stow -n -D -t "$HOME" "$package" 2>&1 | grep -E "UNLINK:" | sed 's/UNLINK: /  - ~\//' || true
+done
+
+echo ""
+if ! confirm "Do you want to proceed with removing these symlinks?" "n"; then
+    log_info "Aborted by user"
+    exit 0
+fi
+
+# Remove Stow symlinks
+log_step "Removing Stow symlinks"
+
+for package in "${FOUND_PACKAGES[@]}"; do
+    if stow -D -t "$HOME" "$package" 2>&1; then
+        log_success "Removed symlinks for $package"
+    else
+        log_error "Failed to remove symlinks for $package"
+    fi
+done
+
+# Additional cleanup
+log_step "Additional cleanup"
+
+# Remove Chezmoi directories if they exist
+if [ -d "$HOME/.local/share/chezmoi" ]; then
+    if confirm "Found Chezmoi directory. Remove ~/.local/share/chezmoi?" "y"; then
+        rm -rf "$HOME/.local/share/chezmoi"
+        log_success "Removed ~/.local/share/chezmoi"
+    fi
+fi
+
+if [ -d "$HOME/.config/chezmoi" ]; then
+    if confirm "Found Chezmoi config. Remove ~/.config/chezmoi?" "y"; then
+        rm -rf "$HOME/.config/chezmoi"
+        log_success "Removed ~/.config/chezmoi"
+    fi
+fi
+
+# Check for backup directory
+BACKUP_DIR="$HOME/.dotfiles_backup"
+if [ -d "$BACKUP_DIR" ]; then
+    log_info "Found backup directory at $BACKUP_DIR"
+    if confirm "Do you want to remove the backup directory?" "n"; then
+        rm -rf "$BACKUP_DIR"
+        log_success "Removed backup directory"
+    else
+        log_info "Keeping backup directory"
+    fi
+fi
+
+# Optional: Remove installed packages
+echo ""
+if confirm "Do you want to uninstall packages that were installed via init.sh?" "n"; then
+    log_step "Uninstalling packages"
+
+    # Uninstall packages from brewfiles
+    if [ -d "$DOTFILES_DIR/packages" ]; then
+        for brewfile in "$DOTFILES_DIR/packages"/*.brewfile; do
+            if [ -f "$brewfile" ]; then
+                log_info "Processing $(basename "$brewfile")"
+                # Extract package names and uninstall
+                while IFS= read -r line; do
+                    # Skip comments and empty lines
+                    [[ "$line" =~ ^#.*$ ]] && continue
+                    [[ -z "$line" ]] && continue
+
+                    if [[ "$line" =~ ^brew[[:space:]]\"(.*)\" ]]; then
+                        package="${BASH_REMATCH[1]}"
+                        if brew list "$package" &>/dev/null; then
+                            log_info "Uninstalling $package"
+                            brew uninstall "$package" 2>/dev/null || log_warning "Could not uninstall $package"
+                        fi
+                    elif [[ "$line" =~ ^cask[[:space:]]\"(.*)\" ]]; then
+                        package="${BASH_REMATCH[1]}"
+                        if brew list --cask "$package" &>/dev/null; then
+                            log_info "Uninstalling cask $package"
+                            brew uninstall --cask "$package" 2>/dev/null || log_warning "Could not uninstall $package"
+                        fi
+                    fi
+                done < "$brewfile"
+            fi
+        done
+        log_success "Package uninstallation complete"
+    fi
+fi
+
+# Optional: Uninstall Homebrew
+echo ""
+if confirm "Do you want to uninstall Homebrew entirely?" "n"; then
+    log_warning "This will remove Homebrew and ALL installed packages"
+    if confirm "Are you absolutely sure?" "n"; then
+        log_info "Uninstalling Homebrew..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
+        log_success "Homebrew uninstalled"
+    fi
+fi
+
+echo ""
+echo -e "${GREEN}╔════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║${NC}  ${GREEN}Reset complete!${NC}                                           ${GREEN}║${NC}"
+echo -e "${GREEN}╚════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+log_info "Your dotfiles symlinks have been removed"
+log_info "To reinstall, run: ./init.sh"
+echo ""

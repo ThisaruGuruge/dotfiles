@@ -1,0 +1,57 @@
+#!/bin/bash
+# Audit .config directory to see what's managed vs unmanaged
+
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+echo -e "${BLUE}=== .config Directory Audit ===${NC}"
+echo ""
+
+echo -e "${GREEN}Managed by dotfiles (symlinks):${NC}"
+for item in ~/.config/*; do
+    if [ -L "$item" ]; then
+        name=$(basename "$item")
+        target=$(readlink "$item")
+        echo -e "  ✓ $name -> $target"
+    fi
+done
+
+echo ""
+echo -e "${YELLOW}Not managed (real directories):${NC}"
+for item in ~/.config/*; do
+    if [ -d "$item" ] && [ ! -L "$item" ]; then
+        name=$(basename "$item")
+        size=$(du -sh "$item" 2>/dev/null | awk '{print $1}')
+
+        # Check if it's likely user config (small size, has config files)
+        if [ -f "$item/config" ] || [ -f "$item/config.toml" ] || [ -f "$item/config.yaml" ] || [ -f "$item/config.json" ]; then
+            echo -e "  ${CYAN}→ $name${NC} ($size) ${GREEN}[Likely user config]${NC}"
+        else
+            echo -e "  → $name ($size)"
+        fi
+    fi
+done
+
+echo ""
+echo -e "${BLUE}=== Recommendations ===${NC}"
+echo ""
+echo "To adopt a config into dotfiles:"
+echo "  ./bin/adopt-config <app-name>"
+echo ""
+echo "Example:"
+echo "  ./bin/adopt-config fish"
+echo ""
+echo "Configs that should probably be adopted:"
+echo "  - fish (if you use fish shell)"
+echo "  - sops (encryption settings)"
+echo ""
+echo "Configs that should NOT be adopted (credentials/cache):"
+echo "  - gcloud (credentials, 86MB)"
+echo "  - github-copilot (auth tokens)"
+echo "  - configstore (app-generated)"

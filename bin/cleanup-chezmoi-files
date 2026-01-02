@@ -1,0 +1,183 @@
+#!/bin/bash
+
+# Cleanup Chezmoi-Applied Files Script
+# This script removes files that were directly applied by Chezmoi (not as symlinks)
+# so that Stow can properly create symlinks instead
+
+set -e
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# Unicode symbols
+CHECK="✅"
+CROSS="❌"
+WARNING="⚠️"
+INFO="ℹ️"
+
+# Logging functions
+log_success() {
+    echo -e "  ${GREEN}${CHECK}  $1${NC}"
+}
+
+log_warning() {
+    echo -e "  ${YELLOW}${WARNING}  $1${NC}"
+}
+
+log_info() {
+    echo -e "  ${CYAN}${INFO}  $1${NC}"
+}
+
+log_error() {
+    echo -e "  ${RED}${CROSS}  $1${NC}"
+}
+
+# Confirmation prompt
+confirm() {
+    local prompt="$1"
+    local default="${2:-n}"
+
+    if [[ "$default" == "y" ]]; then
+        prompt="$prompt [Y/n] "
+    else
+        prompt="$prompt [y/N] "
+    fi
+
+    read -r -p "$prompt" response
+    response=${response:-$default}
+
+    [[ "$response" =~ ^[Yy]$ ]]
+}
+
+echo ""
+echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}║${NC}  ${YELLOW}Cleanup Chezmoi-Applied Files${NC}                          ${BLUE}║${NC}"
+echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+echo ""
+
+log_warning "This script will remove files/directories that Chezmoi applied"
+log_warning "so that Stow can create symlinks in their place"
+echo ""
+
+# Create backup directory
+BACKUP_DIR="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+log_info "Backup directory created at: $BACKUP_DIR"
+echo ""
+
+# Files and directories to check and potentially remove
+# These are files that Stow needs to symlink but currently exist as regular files/dirs
+
+CONFIG_ITEMS=(
+    "nvim"
+    "wezterm"
+    "lazygit"
+    "ripgrep"
+    "gh"
+    "htop"
+    "git"
+    "atuin"
+    "starship.toml"
+)
+
+HOME_ITEMS=(
+    ".zshrc"
+    ".zshenv"
+    ".zprofile"
+    ".aliases.sh"
+    ".functions.sh"
+    ".paths.sh"
+    ".gitconfig"
+    ".gitignore_global"
+    ".tmux.conf"
+    ".direnvrc"
+    ".bash_profile"
+    ".bashrc"
+    ".profile"
+    ".ripgreprc"
+    ".wezterm.lua"
+    ".sops.yaml"
+)
+
+# Check ~/.config items
+log_info "Checking ~/.config directory..."
+for item in "${CONFIG_ITEMS[@]}"; do
+    path="$HOME/.config/$item"
+    if [ -e "$path" ] && [ ! -L "$path" ]; then
+        echo -e "  ${YELLOW}Found:${NC} ~/.config/$item (not a symlink)"
+    fi
+done
+
+echo ""
+
+# Check home directory items
+log_info "Checking home directory..."
+for item in "${HOME_ITEMS[@]}"; do
+    path="$HOME/$item"
+    if [ -e "$path" ] && [ ! -L "$path" ]; then
+        echo -e "  ${YELLOW}Found:${NC} ~/$item (not a symlink)"
+    fi
+done
+
+echo ""
+if ! confirm "Do you want to backup and remove these files?" "y"; then
+    log_info "Aborted by user"
+    rm -rf "$BACKUP_DIR"
+    exit 0
+fi
+
+echo ""
+log_info "Backing up and removing files..."
+echo ""
+
+# Backup and remove ~/.config items
+for item in "${CONFIG_ITEMS[@]}"; do
+    path="$HOME/.config/$item"
+    if [ -e "$path" ] && [ ! -L "$path" ]; then
+        # Backup
+        cp -R "$path" "$BACKUP_DIR/" 2>/dev/null || true
+        log_success "Backed up ~/.config/$item"
+
+        # Remove
+        rm -rf "$path"
+        log_success "Removed ~/.config/$item"
+    fi
+done
+
+# Backup and remove home directory items
+for item in "${HOME_ITEMS[@]}"; do
+    path="$HOME/$item"
+    if [ -e "$path" ] && [ ! -L "$path" ]; then
+        # Backup
+        cp "$path" "$BACKUP_DIR/" 2>/dev/null || true
+        log_success "Backed up ~/$item"
+
+        # Remove
+        rm -f "$path"
+        log_success "Removed ~/$item"
+    fi
+done
+
+echo ""
+log_success "Cleanup complete!"
+echo ""
+log_info "All removed files have been backed up to:"
+echo -e "  ${CYAN}$BACKUP_DIR${NC}"
+echo ""
+log_info "You can now run ./init.sh to set up Stow symlinks"
+echo ""
+
+# Show what's left in ~/.config that might still conflict
+echo -e "${CYAN}Remaining non-symlink items in ~/.config:${NC}"
+for item in ~/.config/*; do
+    if [ ! -L "$item" ]; then
+        basename "$item"
+    fi
+done | head -10
+
+echo ""

@@ -6,8 +6,9 @@ A macOS-focused developer workstation built around Zsh, Starship, modern CLI too
 
 - **Fast Zsh environment** – zinit-managed plugins, fzf-tab completion, syntax highlighting, autosuggestions, zoxide (via `z` command), Atuin history (Ctrl+Alt+R), and WezTerm/iTerm compatible key bindings
 - **Starship prompt** – contextual Git state, Java/Node/Python/Ballerina indicators, battery/time segments, and sub-second rendering (see `PROMPT_GUIDE.md` for visuals)
-- **Modern CLI stack** – eza, bat, ripgrep, fd, lazygit, tmux, direnv, atuin, gh, git-delta, git-flow, and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
+- **Modern CLI stack** – eza, bat, ripgrep, fd, jless, lazygit, tmux, direnv, atuin, gh, git-delta, git-flow, and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
 - **Smart aliases** – Single-letter shortcuts for modern tools (`v` for bat, `g` for ripgrep, `f` for fd, `z` for zoxide) while keeping original commands for scripts
+- **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → bat, `.json`/`.yaml` → jless, `.py`/`.sh`/`.bal` → $EDITOR)
 - **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina with lazy-loading shell glue so heavy managers don't slow startup
 - **Secrets handled correctly** – SOPS + age encryption, `edit_secrets` workflow, and automatic `.env` handling inside `init.sh`
 - **Single source of truth** – `packages.json` powers the installer, `manage_packages` CLI, and the generated `Brewfile`
@@ -126,7 +127,7 @@ WezTerm is configured with:
 
 ### Stow Usage & Known Issues
 
-⚠️ **Known Bug**: GNU Stow 2.4.1 has a bug where it reports creating directory symlinks but doesn't actually create them for new directories in `.config/`. The `init.sh` script includes a workaround that manually creates these symlinks for `nvim`, `vim`, and `wezterm`.
+**Known Bug**: GNU Stow 2.4.1 has a bug where it reports creating directory symlinks but doesn't actually create them for new directories in `.config/`. The `init.sh` script includes a workaround that manually creates these symlinks for `nvim`, `vim`, and `wezterm`.
 
 ```bash
 stow zsh              # Shell config
@@ -158,6 +159,37 @@ lg                                         # Launch lazygit with our config
 Ctrl+Alt+R                                 # Atuin search UI (history across terminals)
 ```
 
+## Suffix Aliases
+
+Zsh suffix aliases automatically open files based on their extension. Just type the filename and press Enter:
+
+```bash
+# Viewing files (read-only, syntax-highlighted)
+README.md                                  # Opens in bat with Markdown highlighting
+data.json                                  # Opens in jless (interactive JSON viewer)
+config.yaml                                # Opens in jless (interactive YAML viewer)
+
+# Editing files (opens in $EDITOR/nvim)
+script.py                                  # Opens Python files in nvim
+setup.sh                                   # Opens shell scripts in nvim
+service.bal                                # Opens Ballerina files in nvim
+app.conf                                   # Opens config files in nvim
+```
+
+**Supported extensions:**
+
+| Extension | Tool | Purpose |
+|-----------|------|---------|
+| `.md` | `bat` | View Markdown with syntax highlighting |
+| `.json` | `jless` | Interactive JSON browsing with folding |
+| `.yaml`, `.yml` | `jless` | Interactive YAML browsing |
+| `.py` | `$EDITOR` | Edit Python files |
+| `.sh`, `.bash`, `.zsh` | `$EDITOR` | Edit shell scripts |
+| `.bal` | `$EDITOR` | Edit Ballerina files |
+| `.conf`, `.config`, `.ini` | `$EDITOR` | Edit configuration files |
+
+The default editor is set to `nvim` via the `$EDITOR` environment variable in `.zshenv`.
+
 ## Secret Management (SOPS + age)
 
 - Keys live at `~/.config/sops/age/keys.txt` and are created by `init.sh`. Backup that file somewhere safe.
@@ -176,17 +208,17 @@ Ctrl+Alt+R                                 # Atuin search UI (history across ter
 Sample prompt:
 
 ```
-~/dotfiles on main [!2 +1] via ☕ 21.0.5 ⬢ v22.2.0 🐍 3.12 🩰 2201 at 18:08
-❯
+~/dotfiles on main [!2 +1] via JAVA 21.0.5 NODE v22.2.0 PY 3.12 BAL 2201 at 18:08
+>
 ```
 
 What you see:
 
 - **Directory** – Git-aware truncation (repo root highlighted, read-only indicator for unwritable dirs)
-- **Git branch/status** – Ahead/behind arrows, modified/staged counts (`!`, `+`, `?`, `📦` for stashes)
+- **Git branch/status** – Ahead/behind arrows, modified/staged counts (`!`, `+`, `?`, stash indicator)
 - **Runtime indicators** – Java, Node.js, Python, and Ballerina only appear inside matching projects
 - **Battery/Time** – Battery icons colored by percentage and a 24h clock
-- **Prompt character** – Green `❯` on success, red on failure, yellow `❮` in vim mode
+- **Prompt character** – Green `>` on success, red on failure, yellow `<` in vim mode
 
 Customize Starship at `~/.config/starship.toml` (stowed from `.config/starship.toml`):
 
@@ -235,4 +267,4 @@ Remember to `stow -D` packages you no longer want and re-run `stow` after pullin
 
 Bug reports and PRs are welcome! Please run `test-zsh` plus any relevant profilers before opening a pull request. See `CONTRIBUTING.md` for commit conventions, scopes (including `prompt` for Starship changes), and validation expectations.
 
-Happy hacking! 🚀
+Happy hacking!

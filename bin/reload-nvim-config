@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Reload Neovim configuration by clearing caches
+
+set -e
+
+echo "🔄 Reloading Neovim configuration..."
+
+# Step 1: Clear Lazy.nvim cache
+echo "  Clearing Lazy.nvim cache..."
+rm -rf ~/.local/share/nvim/lazy/which-key.nvim/.cache 2>/dev/null || true
+rm -rf ~/.local/state/nvim/lazy 2>/dev/null || true
+
+# Step 2: Show what needs to be done in Neovim
+echo ""
+echo "✅ Cache cleared!"
+echo ""
+echo "📝 Next steps in Neovim:"
+echo "   1. Open Neovim"
+echo "   2. Run: :Lazy reload which-key.nvim"
+echo "   3. Run: :Lazy reload telescope.nvim"
+echo "   4. Run: :source ~/.config/nvim/init.lua"
+echo "   5. Restart Neovim completely"
+echo ""
+echo "Or just restart Neovim and let Lazy reload plugins automatically."

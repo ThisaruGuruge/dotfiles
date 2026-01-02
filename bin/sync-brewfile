@@ -1,0 +1,40 @@
+#!/bin/bash
+# Sync Brewfile with currently installed packages
+
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BREWFILE="$DOTFILES_DIR/Brewfile"
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+echo -e "${BLUE}=== Brewfile Sync ===${NC}"
+echo ""
+
+# Create backup
+cp "$BREWFILE" "$BREWFILE.backup"
+echo -e "${GREEN}✓ Created backup: Brewfile.backup${NC}"
+
+# Generate new Brewfile
+echo "Generating new Brewfile..."
+brew bundle dump --force --file="$BREWFILE"
+
+echo -e "${GREEN}✓ Brewfile updated${NC}"
+echo ""
+
+# Show diff
+if command -v delta >/dev/null 2>&1; then
+    echo -e "${BLUE}Changes:${NC}"
+    git diff --no-index "$BREWFILE.backup" "$BREWFILE" | delta || true
+else
+    echo -e "${BLUE}Changes:${NC}"
+    diff -u "$BREWFILE.backup" "$BREWFILE" || true
+fi
+
+echo ""
+echo "Next steps:"
+echo "1. Review the changes above"
+echo "2. If satisfied: git add Brewfile && git commit -m 'Update Brewfile'"
+echo "3. If not: mv Brewfile.backup Brewfile"

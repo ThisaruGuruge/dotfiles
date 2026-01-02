@@ -2,7 +2,7 @@
 
 This directory contains all documentation for the dotfiles repository.
 
-## 📁 Structure
+## Structure
 
 ### Neovim (`nvim/`)
 - [keybindings_cheat_sheet.md](nvim/keybindings_cheat_sheet.md) - Complete Neovim keybindings reference
@@ -15,7 +15,7 @@ This directory contains all documentation for the dotfiles repository.
 ### Analysis
 - [dotfiles_analysis_report.md](dotfiles_analysis_report.md) - Dotfiles analysis
 
-## 📚 Main Documentation
+## Main Documentation
 
 See the root directory for:
 - [README.md](../README.md) - Main repository documentation

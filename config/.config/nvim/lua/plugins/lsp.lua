@@ -35,6 +35,7 @@ return {
                     "lua_ls",
                     "gopls",
                     "pyright",
+                    "ruff", -- Python linter/formatter with code actions
                     "ts_ls",
                     "rust_analyzer",
                     "bashls",
@@ -66,6 +67,54 @@ return {
                             },
                         })
                     end,
+                    -- Python-specific settings
+                    ["pyright"] = function()
+                        require("lspconfig").pyright.setup({
+                            capabilities = capabilities,
+                            settings = {
+                                pyright = {
+                                    -- Using Ruff's import organizer
+                                    disableOrganizeImports = true,
+                                },
+                                python = {
+                                    analysis = {
+                                        autoSearchPaths = true,
+                                        useLibraryCodeForTypes = true,
+                                        diagnosticMode = "workspace",
+                                        typeCheckingMode = "basic",
+                                        -- Enable all language features
+                                        autoImportCompletions = true,
+                                    },
+                                },
+                            },
+                            on_attach = function(client, bufnr)
+                                -- Ensure Pyright provides navigation features
+                                client.server_capabilities.definitionProvider = true
+                                client.server_capabilities.referencesProvider = true
+                                client.server_capabilities.declarationProvider = true
+                                client.server_capabilities.implementationProvider = true
+                            end,
+                        })
+                    end,
+                    -- Ruff LSP for Python linting and code actions
+                    ["ruff"] = function()
+                        require("lspconfig").ruff.setup({
+                            capabilities = capabilities,
+                            init_options = {
+                                settings = {
+                                    -- Ruff configuration
+                                    args = {},
+                                },
+                            },
+                            on_attach = function(client, bufnr)
+                                -- Disable Ruff's hover in favor of Pyright
+                                client.server_capabilities.hoverProvider = false
+                                -- Ruff doesn't provide navigation, only code actions
+                                client.server_capabilities.definitionProvider = false
+                                client.server_capabilities.referencesProvider = false
+                            end,
+                        })
+                    end,
                 },
             })
         end,
@@ -92,16 +141,29 @@ return {
             vim.api.nvim_create_autocmd("LspAttach", {
                 callback = function(args)
                     local bufnr = args.buf
+                    local client = vim.lsp.get_client_by_id(args.data.client_id)
                     local opts = { buffer = bufnr, silent = true }
+
+                    -- Use Telescope for LSP features if available, otherwise fall back to built-in
+                    local has_telescope = pcall(require, "telescope.builtin")
 
                     vim.keymap.set("n", "gd", vim.lsp.buf.definition,
                         vim.tbl_extend("force", opts, { desc = "Go to definition" }))
                     vim.keymap.set("n", "gD", vim.lsp.buf.declaration,
                         vim.tbl_extend("force", opts, { desc = "Go to declaration" }))
-                    vim.keymap.set("n", "gr", vim.lsp.buf.references,
-                        vim.tbl_extend("force", opts, { desc = "Find references" }))
-                    vim.keymap.set("n", "gi", vim.lsp.buf.implementation,
-                        vim.tbl_extend("force", opts, { desc = "Go to implementation" }))
+
+                    if has_telescope then
+                        vim.keymap.set("n", "gr", "<cmd>Telescope lsp_references<cr>",
+                            vim.tbl_extend("force", opts, { desc = "Find references" }))
+                        vim.keymap.set("n", "gi", "<cmd>Telescope lsp_implementations<cr>",
+                            vim.tbl_extend("force", opts, { desc = "Go to implementation" }))
+                    else
+                        vim.keymap.set("n", "gr", vim.lsp.buf.references,
+                            vim.tbl_extend("force", opts, { desc = "Find references" }))
+                        vim.keymap.set("n", "gi", vim.lsp.buf.implementation,
+                            vim.tbl_extend("force", opts, { desc = "Go to implementation" }))
+                    end
+
                     vim.keymap.set("n", "K", vim.lsp.buf.hover,
                         vim.tbl_extend("force", opts, { desc = "Hover documentation" }))
                     vim.keymap.set("n", "<leader>lr", vim.lsp.buf.rename,
