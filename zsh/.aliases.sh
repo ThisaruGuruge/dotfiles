@@ -2,7 +2,8 @@
 
 # Common Commands
 
-alias c="clear"
+# Smart clear: clears terminal while preserving scrollback history
+c() { yes "" 2>/dev/null | head -n ${LINES:-50}; printf '\x0c'; }
 alias cls="clear;ls"
 alias mk="mkdir -p "
 alias cp="cp -riv"
@@ -52,16 +53,16 @@ alias -s yaml='jless'
 alias -s yml='jless'
 
 # Code files - open in editor
-alias -s py="$EDITOR"
-alias -s sh="$EDITOR"
-alias -s bash="$EDITOR"
-alias -s zsh="$EDITOR"
-alias -s bal="$EDITOR"
+alias -s py="\$EDITOR"
+alias -s sh="\$EDITOR"
+alias -s bash="\$EDITOR"
+alias -s zsh="\$EDITOR"
+alias -s bal="\$EDITOR"
 
 # Configuration files - open in editor
-alias -s conf="$EDITOR"
-alias -s config="$EDITOR"
-alias -s ini="$EDITOR"
+alias -s conf="\$EDITOR"
+alias -s config="\$EDITOR"
+alias -s ini="\$EDITOR"
 
 alias showFiles='defaults write com.apple.finder AppleShowAllFiles YES; killall Finder /System/Library/CoreServices/Finder.app'
 alias hideFiles='defaults write com.apple.finder AppleShowAllFiles NO; killall Finder /System/Library/CoreServices/Finder.app'
@@ -76,11 +77,25 @@ alias dock_add_space='defaults write com.apple.dock persistent-apps -array-add "
 # Add sudo as an alias so we can use aliases with sudo :D
 alias sudo='sudo '
 
-# Bash Customization
-alias my_soc="source ~/.zshrc"
-alias my_pro="nvim ~/.zshrc"
-alias my_ali="nvim ~/.aliases.sh"
-alias my_func="nvim ~/.functions.sh"
+# Shell Configuration Management
+# Reload shell configuration (most frequently used)
+alias reload="source ~/.zshrc"
+
+# Edit shell configuration files
+alias edit-zsh="nvim ~/.zshrc"
+alias edit-aliases="nvim ~/.aliases.sh"
+alias edit-functions="nvim ~/.functions.sh"
+alias edit-paths="nvim ~/.paths.sh"
+
+# Edit other configuration files
+alias edit-git="nvim ~/.gitconfig"
+alias edit-wezterm="nvim ~/.config/wezterm/wezterm.lua"
+alias edit-nvim="nvim ~/.config/nvim/init.lua"
+alias edit-vim="nvim ~/.vimrc"
+alias edit-starship="nvim ~/.config/starship.toml"
+alias edit-tmux="nvim ~/.tmux.conf"
+alias edit-lazygit="nvim ~/.config/lazygit/config.yml"
+alias edit-ripgrep="nvim ~/.config/ripgrep/config"
 
 # Commented out - rarely used, freeing up 'd' for dust if needed
 # alias d='dirs -v | head -10'
@@ -93,6 +108,23 @@ alias ....="cd ../../../"
 alias .....="cd ../../../../"
 alias ......="cd ../../../../../"
 alias remove_empty_dirs="find . -type d | tail -r | xargs rmdir 2>/dev/null"
+
+# Directory stack navigation - Use numbers to jump back through directory history
+# Examples:
+#   ds          # Show directory stack with numbers
+#   1           # Go to previous directory (same as 'cd -')
+#   2           # Go to 2nd previous directory
+#   3           # Go to 3rd previous directory
+alias ds='dirs -v | head -10'
+alias 1='cd -1'
+alias 2='cd -2'
+alias 3='cd -3'
+alias 4='cd -4'
+alias 5='cd -5'
+alias 6='cd -6'
+alias 7='cd -7'
+alias 8='cd -8'
+alias 9='cd -9'
 
 # Editors
 # Editor aliases - use Neovim

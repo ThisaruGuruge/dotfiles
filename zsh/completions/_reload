@@ -1,0 +1,6 @@
+#compdef reload
+
+# ZSH completion function for reload command
+# This provides a description when using TAB completion
+
+_message 'Reload ZSH configuration (source ~/.zshrc)'

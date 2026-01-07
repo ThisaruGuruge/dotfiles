@@ -192,19 +192,6 @@ return {
                     source = "always",
                 },
             })
-
-            -- Ballerina LSP (manual setup - not in Mason)
-            -- Install: Download from https://ballerina.io/downloads/
-            -- The LSP server comes bundled with Ballerina
-            local capabilities = require("cmp_nvim_lsp").default_capabilities()
-
-            vim.lsp.config("ballerina", {
-                capabilities = capabilities,
-                cmd = { "bal", "start-language-server" },
-                filetypes = { "ballerina" },
-                root_markers = { "Ballerina.toml", ".git" },
-            })
-            vim.lsp.enable("ballerina")
         end,
     },
 }

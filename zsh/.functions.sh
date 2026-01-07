@@ -9,6 +9,26 @@ PURPLE='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Smart cd function that uses zoxide (z) for interactive use,
+# but falls back to builtin cd for non-interactive use (scripts, AI tools, etc.)
+# This allows tools like Claude to execute cd commands properly while
+# still giving you the benefit of zoxide's smart directory jumping
+cd() {
+    # Check if this is an interactive shell with a terminal
+    if [[ -o interactive ]] && [[ -t 0 ]]; then
+        # Interactive use - use zoxide for smart directory jumping
+        if command -v __zoxide_z >/dev/null 2>&1; then
+            __zoxide_z "$@"
+        else
+            # Fallback if zoxide isn't loaded yet
+            builtin cd "$@"
+        fi
+    else
+        # Non-interactive use (scripts, tools like Claude) - use builtin cd
+        builtin cd "$@"
+    fi
+}
+
 # Enhanced user confirmation function with single key press
 confirm() {
     while true; do
