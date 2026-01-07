@@ -44,17 +44,17 @@ That's it! One line does both the keybinding and the description.
 
 Common Nerd Font icons you can use:
 
-- `` - File/Document
-- `` - Search
-- `` - Git
-- `` - Code/Programming
-- `` - Settings/Config
-- `` - Terminal
-- `` - Toggle/Switch
-- `` - Help/Question
-- `` - Warning/Diagnostic
-- `` - Save/Disk
-- `` - Navigation
+-  - File/Document
+-  - Search
+-  - Git
+-  - Code/Programming
+-  - Settings/Config
+-  - Terminal
+-  - Toggle/Switch
+-  - Help/Question
+-  - Warning/Diagnostic
+-  - Save/Disk
+-  - Navigation
 
 ## Automatic Features
 
