@@ -1,0 +1,23 @@
+#compdef edit-zsh edit-aliases edit-functions edit-paths edit-git edit-wezterm edit-nvim edit-vim edit-starship edit-tmux edit-lazygit edit-ripgrep
+
+# ZSH completion function for edit-* commands
+# This provides descriptions when using TAB completion
+
+local -a edit_commands
+
+edit_commands=(
+  'edit-zsh:Edit ZSH configuration (.zshrc)'
+  'edit-aliases:Edit shell aliases configuration'
+  'edit-functions:Edit shell functions'
+  'edit-paths:Edit PATH configuration'
+  'edit-git:Edit Git configuration (.gitconfig)'
+  'edit-wezterm:Edit WezTerm terminal configuration'
+  'edit-nvim:Edit NeoVim editor configuration'
+  'edit-vim:Edit Vim configuration (.vimrc)'
+  'edit-starship:Edit Starship prompt configuration'
+  'edit-tmux:Edit tmux terminal multiplexer configuration'
+  'edit-lazygit:Edit LazyGit TUI configuration'
+  'edit-ripgrep:Edit ripgrep search tool configuration'
+)
+
+_describe 'edit commands' edit_commands

@@ -32,7 +32,7 @@ config.macos_window_background_blur = 20
 config.background = {
 	{
 		source = {
-			File = wezterm.home_dir .. "/Pictures/Wallpapers/Towards the darkness.jpg",
+			File = wezterm.config_dir .. "/resources/backgrounds/background_image.jpg",
 		},
 		-- Adjust image opacity separately from window opacity
 		opacity = 0.4,
@@ -94,6 +94,36 @@ config.keys = {
 		mods = "OPT",
 		action = wezterm.action.SendKey({
 			key = "w",
+			mods = "CTRL",
+		}),
+	},
+
+	-- Delete word forwards with Option+Delete (fn+Delete on compact keyboards)
+	{
+		key = "Delete",
+		mods = "OPT",
+		action = wezterm.action.SendKey({
+			key = "d",
+			mods = "ALT",
+		}),
+	},
+
+	-- Delete to beginning of line with Cmd+Backspace
+	{
+		key = "Backspace",
+		mods = "CMD",
+		action = wezterm.action.SendKey({
+			key = "u",
+			mods = "CTRL",
+		}),
+	},
+
+	-- Delete to end of line with Cmd+Delete (fn+Delete on compact keyboards)
+	{
+		key = "Delete",
+		mods = "CMD",
+		action = wezterm.action.SendKey({
+			key = "k",
 			mods = "CTRL",
 		}),
 	},
