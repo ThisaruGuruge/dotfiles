@@ -100,3 +100,7 @@ if [[ -o interactive ]] && [[ -t 1 ]]; then
     # Output newlines to push prompt to bottom
     yes "" 2>/dev/null | head -n "$lines_to_bottom"
 fi
+
+### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
+export PATH="/Users/thisaru/.rd/bin:$PATH"
+### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)

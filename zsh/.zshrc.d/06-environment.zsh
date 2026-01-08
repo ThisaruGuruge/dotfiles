@@ -100,9 +100,6 @@ if [ -d "$HOME/.local/bin" ] && [ -f "$HOME/.local/bin/env" ]; then
     source "$HOME/.local/bin/env"
 fi
 
-# Antigravity
-export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
-
 # Force command hash rebuild at the end (fixes Warp terminal command discovery)
 # Only run if we added new paths that might need discovery
 if [[ -n "$ZSH_VERSION" ]]; then
