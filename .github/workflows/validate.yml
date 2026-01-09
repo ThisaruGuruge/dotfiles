@@ -29,18 +29,26 @@ jobs:
         echo "Checking shell scripts..."
         find . -name "*.sh" -not -path "./.git/*" -not -name ".functions.sh" | xargs shellcheck -e SC1091,SC2039
 
-        echo "Checking .zshrc files..."
-        find . -name ".zshrc" -not -path "./.git/*" | xargs shellcheck -s bash -e SC1090,SC1091,SC2039,SC2296,SC2015,SC2012,SC2034,SC2155,SC2016
-
         echo "Checking other shell config files..."
         find . -name ".aliases.sh" -o -name ".paths.sh" | xargs shellcheck -e SC1091,SC2039
 
-        echo "Checking zsh functions file syntax..."
-        # Use zsh to check syntax of functions file since shellcheck doesn't support zsh
+        echo "Checking zsh syntax with native zsh parser..."
         if command -v zsh >/dev/null 2>&1; then
-          zsh -n zsh/.functions.sh
+          echo "  Checking zsh/.zshrc..."
+          zsh -n zsh/.zshrc && echo "  ✅ zsh/.zshrc" || exit 1
+
+          echo "  Checking zsh/.functions.sh..."
+          zsh -n zsh/.functions.sh && echo "  ✅ zsh/.functions.sh" || exit 1
+
+          echo "  Checking modular zsh configs..."
+          if [ -d "zsh/.zshrc.d" ]; then
+            find zsh/.zshrc.d -name "*.zsh" -type f | while read -r file; do
+              zsh -n "$file" && echo "  ✅ $file" || exit 1
+            done
+          fi
         else
-          echo "⚠️ zsh not available for syntax checking .functions.sh"
+          echo "⚠️ zsh not available for syntax checking"
+          exit 1
         fi
 
     - name: Check shell script formatting

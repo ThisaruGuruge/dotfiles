@@ -3,7 +3,6 @@
 # Dotfiles Cleanup Script
 # Removes symlinks created by Stow
 
-DOTFILES_DIR="$HOME/dotfiles"
 STOW_DIRS=(
     "zsh"
     "git"

@@ -28,30 +28,6 @@ else
     fi
 fi
 
-# JMeter lookup is expensive; skip when fast environment detection is requested
-if [ -z "$DOTFILES_FAST_ENV" ]; then
-    jmeter_cache_file="$HOME/.cache/zsh/jmeter_path_cache"
-    if [ -f "$jmeter_cache_file" ] && [ "$jmeter_cache_file" -nt "$HOME/.zshrc" ]; then
-        # Use cached JMeter path
-        if [ -f "$jmeter_cache_file" ]; then
-            jmeter_path=$(cat "$jmeter_cache_file" 2>/dev/null)
-            if [ -n "$jmeter_path" ] && [ -d "$jmeter_path" ]; then
-                export JMETER="$jmeter_path"
-                export PATH="$JMETER/bin:$PATH"
-            fi
-        fi
-    else
-        # Find and cache JMeter path
-        [ ! -d "$HOME/.cache/zsh" ] && mkdir -p "$HOME/.cache/zsh"
-        jmeter_path=$(find "$HOME/Downloads" "$HOME/tools" "/opt" "/usr/local" -maxdepth 1 -name "apache-jmeter-*" -type d 2>/dev/null | head -n 1)
-        echo "$jmeter_path" >"$jmeter_cache_file"
-        if [ -n "$jmeter_path" ]; then
-            export JMETER="$jmeter_path"
-            export PATH="$JMETER/bin:$PATH"
-        fi
-    fi
-fi
-
 # PATH deduplication function to remove duplicate entries
 path_dedupe() {
     if [ -n "$PATH" ]; then
