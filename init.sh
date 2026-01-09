@@ -64,28 +64,28 @@ confirm() {
         echo ""
         echo -en "  ${YELLOW}$1 (y/n/q): ${NC}"
         read -r -n 1 -s key </dev/tty # Read single character from terminal
-        echo                # Print newline after keypress
+        echo                          # Print newline after keypress
 
         case "$key" in
-        [Yy])
-            echo -e "  ${GREEN}→ Yes${NC}"
-            echo ""
-            return 0
-            ;;
-        [Nn])
-            echo -e "  ${RED}→ No${NC}"
-            echo ""
-            return 1
-            ;;
-        [Qq])
-            echo -e "  ${YELLOW}→ Quit${NC}"
-            echo ""
-            log_info "Installation cancelled by user"
-            exit 0
-            ;;
-        *)
-            echo -e "  ${YELLOW}${WARNING} Please press 'y' for yes, 'n' for no, or 'q' to quit.${NC}"
-            ;;
+            [Yy])
+                echo -e "  ${GREEN}→ Yes${NC}"
+                echo ""
+                return 0
+                ;;
+            [Nn])
+                echo -e "  ${RED}→ No${NC}"
+                echo ""
+                return 1
+                ;;
+            [Qq])
+                echo -e "  ${YELLOW}→ Quit${NC}"
+                echo ""
+                log_info "Installation cancelled by user"
+                exit 0
+                ;;
+            *)
+                echo -e "  ${YELLOW}${WARNING} Please press 'y' for yes, 'n' for no, or 'q' to quit.${NC}"
+                ;;
         esac
     done
 }
@@ -400,7 +400,7 @@ install_terminal_apps() {
                             log_info "Skipped $package_name"
                         fi
                     fi
-                done < "$brewfile"
+                done <"$brewfile"
 
                 log_success "Finished reviewing $category_name"
             else
@@ -717,39 +717,39 @@ handle_stow_conflict() {
         echo
 
         case "$choice" in
-        [Bb])
-            local backup_dir
-            backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
-            mkdir -p "$backup_dir"
-            mv "$conflict_file" "$backup_dir/"
-            log_success "Backed up to: $backup_dir/$(basename "$conflict_file")"
-            return 0
-            ;;
-        [Kk])
-            log_info "Keeping existing file: $conflict_file"
-            return 1
-            ;;
-        [Ss])
-            local dotfile_path="$DOTFILES_DIR/$package/${conflict_file#"$HOME"/}"
-            if [ -f "$dotfile_path" ]; then
-                echo -e "\n${CYAN}=== Diff: Existing (left) vs Dotfiles (right) ===${NC}"
-                if command -v delta >/dev/null 2>&1; then
-                    diff -u "$conflict_file" "$dotfile_path" | delta
+            [Bb])
+                local backup_dir
+                backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+                mkdir -p "$backup_dir"
+                mv "$conflict_file" "$backup_dir/"
+                log_success "Backed up to: $backup_dir/$(basename "$conflict_file")"
+                return 0
+                ;;
+            [Kk])
+                log_info "Keeping existing file: $conflict_file"
+                return 1
+                ;;
+            [Ss])
+                local dotfile_path="$DOTFILES_DIR/$package/${conflict_file#"$HOME"/}"
+                if [ -f "$dotfile_path" ]; then
+                    echo -e "\n${CYAN}=== Diff: Existing (left) vs Dotfiles (right) ===${NC}"
+                    if command -v delta >/dev/null 2>&1; then
+                        diff -u "$conflict_file" "$dotfile_path" | delta
+                    else
+                        diff -u "$conflict_file" "$dotfile_path" || true
+                    fi
+                    echo ""
                 else
-                    diff -u "$conflict_file" "$dotfile_path" || true
+                    log_warning "Could not find dotfile at: $dotfile_path"
                 fi
-                echo ""
-            else
-                log_warning "Could not find dotfile at: $dotfile_path"
-            fi
-            ;;
-        [Qq])
-            log_info "Installation cancelled by user"
-            exit 0
-            ;;
-        *)
-            echo -e "  ${YELLOW}${WARNING} Please press 'b', 'k', 's', or 'q'${NC}"
-            ;;
+                ;;
+            [Qq])
+                log_info "Installation cancelled by user"
+                exit 0
+                ;;
+            *)
+                echo -e "  ${YELLOW}${WARNING} Please press 'b', 'k', 's', or 'q'${NC}"
+                ;;
         esac
     done
 }
@@ -813,62 +813,62 @@ stow_packages() {
                         echo
 
                         case "$bulk_choice" in
-                        [Aa])
-                            # Backup all conflicts
-                            local backup_dir
-                            backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
-                            mkdir -p "$backup_dir"
-                            log_info "Creating backup directory: $backup_dir"
+                            [Aa])
+                                # Backup all conflicts
+                                local backup_dir
+                                backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+                                mkdir -p "$backup_dir"
+                                log_info "Creating backup directory: $backup_dir"
 
-                            for conflict in $conflicts; do
-                                if [ -f "$conflict" ] || [ -d "$conflict" ]; then
-                                    mv "$conflict" "$backup_dir/"
-                                    log_success "Backed up: $(basename "$conflict")"
-                                fi
-                            done
+                                for conflict in $conflicts; do
+                                    if [ -f "$conflict" ] || [ -d "$conflict" ]; then
+                                        mv "$conflict" "$backup_dir/"
+                                        log_success "Backed up: $(basename "$conflict")"
+                                    fi
+                                done
 
-                            # Now stow should work
-                            if stow "${stow_args[@]}" 2>/dev/null; then
-                                log_success "Stowed $package package"
-                                stowed_packages+=("$package")
-                            else
-                                log_error "Failed to stow $package after backup"
-                            fi
-                            break
-                            ;;
-                        [Ii])
-                            # Handle individually
-                            local can_stow=true
-                            for conflict in $conflicts; do
-                                if ! handle_stow_conflict "$conflict" "$package"; then
-                                    can_stow=false
-                                    skipped_files+=("$conflict")
-                                fi
-                            done
-
-                            if [ "$can_stow" = true ]; then
+                                # Now stow should work
                                 if stow "${stow_args[@]}" 2>/dev/null; then
                                     log_success "Stowed $package package"
                                     stowed_packages+=("$package")
                                 else
-                                    log_warning "Some files in $package were skipped"
+                                    log_error "Failed to stow $package after backup"
                                 fi
-                            else
-                                log_warning "Skipped $package package due to conflicts"
-                            fi
-                            break
-                            ;;
-                        [Kk])
-                            log_info "Skipped $package package"
-                            break
-                            ;;
-                        [Qq])
-                            log_info "Installation cancelled by user"
-                            exit 0
-                            ;;
-                        *)
-                            echo -e "  ${YELLOW}${WARNING} Please press 'a', 'i', 'k', or 'q'${NC}"
-                            ;;
+                                break
+                                ;;
+                            [Ii])
+                                # Handle individually
+                                local can_stow=true
+                                for conflict in $conflicts; do
+                                    if ! handle_stow_conflict "$conflict" "$package"; then
+                                        can_stow=false
+                                        skipped_files+=("$conflict")
+                                    fi
+                                done
+
+                                if [ "$can_stow" = true ]; then
+                                    if stow "${stow_args[@]}" 2>/dev/null; then
+                                        log_success "Stowed $package package"
+                                        stowed_packages+=("$package")
+                                    else
+                                        log_warning "Some files in $package were skipped"
+                                    fi
+                                else
+                                    log_warning "Skipped $package package due to conflicts"
+                                fi
+                                break
+                                ;;
+                            [Kk])
+                                log_info "Skipped $package package"
+                                break
+                                ;;
+                            [Qq])
+                                log_info "Installation cancelled by user"
+                                exit 0
+                                ;;
+                            *)
+                                echo -e "  ${YELLOW}${WARNING} Please press 'a', 'i', 'k', or 'q'${NC}"
+                                ;;
                         esac
                     done
                 else

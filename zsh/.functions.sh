@@ -38,25 +38,25 @@ confirm() {
         echo                # Print newline after keypress
 
         case "$key" in
-        [Yy])
-            echo -e "  ${GREEN}→ Yes${NC}"
-            echo ""
-            return 0
-            ;;
-        [Nn])
-            echo -e "  ${RED}→ No${NC}"
-            echo ""
-            return 1
-            ;;
-        [Qq])
-            echo -e "  ${YELLOW}→ Quit${NC}"
-            echo ""
-            echo "  Cancelled by user"
-            exit 0
-            ;;
-        *)
-            echo -e "  ${YELLOW}⚠️ Please press 'y' for yes, 'n' for no, or 'q' to quit.${NC}"
-            ;;
+            [Yy])
+                echo -e "  ${GREEN}→ Yes${NC}"
+                echo ""
+                return 0
+                ;;
+            [Nn])
+                echo -e "  ${RED}→ No${NC}"
+                echo ""
+                return 1
+                ;;
+            [Qq])
+                echo -e "  ${YELLOW}→ Quit${NC}"
+                echo ""
+                echo "  Cancelled by user"
+                exit 0
+                ;;
+            *)
+                echo -e "  ${YELLOW}⚠️ Please press 'y' for yes, 'n' for no, or 'q' to quit.${NC}"
+                ;;
         esac
     done
 }
@@ -205,69 +205,69 @@ edit_dotfiles() {
     local description=""
 
     case "$choice" in
-    1)
-        file_to_edit="$dotfiles_dir/zsh/.zshrc"
-        description="Shell Configuration"
-        ;;
-    2)
-        file_to_edit="$dotfiles_dir/zsh/.aliases.sh"
-        description="Command Aliases"
-        ;;
-    3)
-        file_to_edit="$dotfiles_dir/zsh/.functions.sh"
-        description="Custom Functions"
-        ;;
-    4)
-        file_to_edit="$dotfiles_dir/zsh/.paths.sh"
-        description="PATH Configuration"
-        ;;
-    5)
-        file_to_edit="$dotfiles_dir/git/.gitconfig"
-        description="Git Configuration"
-        ;;
-    6)
-        file_to_edit="$dotfiles_dir/vim/.vimrc"
-        description="Vim Configuration"
-        ;;
-    7)
-        file_to_edit="$dotfiles_dir/.config/starship.toml"
-        description="Starship Prompt"
-        ;;
-    8)
-        file_to_edit="$dotfiles_dir/zsh/.env.example"
-        description="Environment Template"
-        ;;
-    9)
-        file_to_edit="$dotfiles_dir/Brewfile"
-        description="Homebrew Package List"
-        ;;
-    10)
-        file_to_edit="$dotfiles_dir/init.sh"
-        description="Installation Script"
-        ;;
-    11)
-        echo ""
-        echo "📁 Available dotfiles:"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        find "$dotfiles_dir" -type f \( -name ".*" -o -name "*.sh" -o -name "*.json" -o -name "Brewfile" -o -name "README.md" \) ! -path "*/.git/*" | sed "s|$dotfiles_dir/||" | sort
-        echo ""
-        read -r -p "Enter file path to edit (relative to $dotfiles_dir): " relative_path
-        if [ -n "$relative_path" ]; then
-            file_to_edit="$dotfiles_dir/$relative_path"
-            description="Custom File: $relative_path"
-        else
-            echo "❌ No file specified"
+        1)
+            file_to_edit="$dotfiles_dir/zsh/.zshrc"
+            description="Shell Configuration"
+            ;;
+        2)
+            file_to_edit="$dotfiles_dir/zsh/.aliases.sh"
+            description="Command Aliases"
+            ;;
+        3)
+            file_to_edit="$dotfiles_dir/zsh/.functions.sh"
+            description="Custom Functions"
+            ;;
+        4)
+            file_to_edit="$dotfiles_dir/zsh/.paths.sh"
+            description="PATH Configuration"
+            ;;
+        5)
+            file_to_edit="$dotfiles_dir/git/.gitconfig"
+            description="Git Configuration"
+            ;;
+        6)
+            file_to_edit="$dotfiles_dir/vim/.vimrc"
+            description="Vim Configuration"
+            ;;
+        7)
+            file_to_edit="$dotfiles_dir/.config/starship.toml"
+            description="Starship Prompt"
+            ;;
+        8)
+            file_to_edit="$dotfiles_dir/zsh/.env.example"
+            description="Environment Template"
+            ;;
+        9)
+            file_to_edit="$dotfiles_dir/Brewfile"
+            description="Homebrew Package List"
+            ;;
+        10)
+            file_to_edit="$dotfiles_dir/init.sh"
+            description="Installation Script"
+            ;;
+        11)
+            echo ""
+            echo "📁 Available dotfiles:"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            find "$dotfiles_dir" -type f \( -name ".*" -o -name "*.sh" -o -name "*.json" -o -name "Brewfile" -o -name "README.md" \) ! -path "*/.git/*" | sed "s|$dotfiles_dir/||" | sort
+            echo ""
+            read -r -p "Enter file path to edit (relative to $dotfiles_dir): " relative_path
+            if [ -n "$relative_path" ]; then
+                file_to_edit="$dotfiles_dir/$relative_path"
+                description="Custom File: $relative_path"
+            else
+                echo "❌ No file specified"
+                return 1
+            fi
+            ;;
+        0)
+            echo "👋 Goodbye!"
+            return 0
+            ;;
+        *)
+            echo "❌ Invalid choice: $choice"
             return 1
-        fi
-        ;;
-    0)
-        echo "👋 Goodbye!"
-        return 0
-        ;;
-    *)
-        echo "❌ Invalid choice: $choice"
-        return 1
-        ;;
+            ;;
     esac
 
     # Verify file exists
@@ -292,41 +292,41 @@ edit_dotfiles() {
 
         # Test syntax for shell files
         case "$file_to_edit" in
-        *.sh | */.zshrc)
-            echo "🔍 Testing syntax..."
-            if bash -n "$file_to_edit" 2>/dev/null; then
-                echo "✅ Syntax check passed"
-            else
-                echo "⚠️  Syntax check failed - please review your changes"
-            fi
-            ;;
-        *.json)
-            echo "🔍 Testing JSON syntax..."
-            if command -v jq >/dev/null 2>&1 && jq empty "$file_to_edit" 2>/dev/null; then
-                echo "✅ JSON syntax check passed"
-            elif python3 -m json.tool "$file_to_edit" >/dev/null 2>&1; then
-                echo "✅ JSON syntax check passed"
-            else
-                echo "⚠️  JSON syntax check failed - please review your changes"
-            fi
-            ;;
+            *.sh | */.zshrc)
+                echo "🔍 Testing syntax..."
+                if bash -n "$file_to_edit" 2>/dev/null; then
+                    echo "✅ Syntax check passed"
+                else
+                    echo "⚠️  Syntax check failed - please review your changes"
+                fi
+                ;;
+            *.json)
+                echo "🔍 Testing JSON syntax..."
+                if command -v jq >/dev/null 2>&1 && jq empty "$file_to_edit" 2>/dev/null; then
+                    echo "✅ JSON syntax check passed"
+                elif python3 -m json.tool "$file_to_edit" >/dev/null 2>&1; then
+                    echo "✅ JSON syntax check passed"
+                else
+                    echo "⚠️  JSON syntax check failed - please review your changes"
+                fi
+                ;;
         esac
 
         echo ""
         echo "💡 Next steps:"
         case "$file_to_edit" in
-        */.zshrc | */.aliases.sh | */.functions.sh | */.paths.sh)
-            echo "   • Restart terminal or run: source ~/.zshrc"
-            ;;
-        */zen.json)
-            echo "   • Restart terminal to see prompt changes"
-            ;;
-        */Brewfile)
-            echo "   • Run: brew bundle --file=$dotfiles_dir/Brewfile"
-            ;;
-        */init.sh)
-            echo "   • Test with: bash -n $dotfiles_dir/init.sh"
-            ;;
+            */.zshrc | */.aliases.sh | */.functions.sh | */.paths.sh)
+                echo "   • Restart terminal or run: source ~/.zshrc"
+                ;;
+            */zen.json)
+                echo "   • Restart terminal to see prompt changes"
+                ;;
+            */Brewfile)
+                echo "   • Run: brew bundle --file=$dotfiles_dir/Brewfile"
+                ;;
+            */init.sh)
+                echo "   • Test with: bash -n $dotfiles_dir/init.sh"
+                ;;
         esac
 
         # Option to commit changes
@@ -524,18 +524,18 @@ compress() {
 extract() {
     if [ -f "$1" ]; then
         case $1 in
-        *.tar.bz2) tar xjf "$1" ;;
-        *.tar.gz) tar xzf "$1" ;;
-        *.bz2) bunzip2 "$1" ;;
-        *.rar) unrar e "$1" ;;
-        *.gz) gunzip "$1" ;;
-        *.tar) tar xf "$1" ;;
-        *.tbz2) tar xjf "$1" ;;
-        *.tgz) tar xzf "$1" ;;
-        *.zip) unzip "$1" ;;
-        *.Z) uncompress "$1" ;;
-        *.7z) 7z x "$1" ;;
-        *) echo "'$1' cannot be extracted via extract()" ;;
+            *.tar.bz2) tar xjf "$1" ;;
+            *.tar.gz) tar xzf "$1" ;;
+            *.bz2) bunzip2 "$1" ;;
+            *.rar) unrar e "$1" ;;
+            *.gz) gunzip "$1" ;;
+            *.tar) tar xf "$1" ;;
+            *.tbz2) tar xjf "$1" ;;
+            *.tgz) tar xzf "$1" ;;
+            *.zip) unzip "$1" ;;
+            *.Z) uncompress "$1" ;;
+            *.7z) 7z x "$1" ;;
+            *) echo "'$1' cannot be extracted via extract()" ;;
         esac
     else
         echo "'$1' is not a valid file"
@@ -553,32 +553,32 @@ kill_by_port() {
     # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
-        -d | --dry-run)
-            dry_run=true
-            shift
-            ;;
-        -h | --help)
-            echo "Usage: kill_by_port [OPTIONS] PORT"
-            echo "Kill processes running on the specified port"
-            echo ""
-            echo "Options:"
-            echo "  -d, --dry-run    List processes without killing them"
-            echo "  -h, --help       Show this help message"
-            echo ""
-            echo "Examples:"
-            echo "  kill_by_port 3000        # Kill processes on port 3000"
-            echo "  kill_by_port -d 3000     # List processes on port 3000 (dry run)"
-            return 0
-            ;;
-        -*)
-            echo "Unknown option: $1"
-            echo "Use -h or --help for usage information"
-            return 1
-            ;;
-        *)
-            port_arg="$1"
-            shift
-            ;;
+            -d | --dry-run)
+                dry_run=true
+                shift
+                ;;
+            -h | --help)
+                echo "Usage: kill_by_port [OPTIONS] PORT"
+                echo "Kill processes running on the specified port"
+                echo ""
+                echo "Options:"
+                echo "  -d, --dry-run    List processes without killing them"
+                echo "  -h, --help       Show this help message"
+                echo ""
+                echo "Examples:"
+                echo "  kill_by_port 3000        # Kill processes on port 3000"
+                echo "  kill_by_port -d 3000     # List processes on port 3000 (dry run)"
+                return 0
+                ;;
+            -*)
+                echo "Unknown option: $1"
+                echo "Use -h or --help for usage information"
+                return 1
+                ;;
+            *)
+                port_arg="$1"
+                shift
+                ;;
         esac
     done
 
@@ -791,50 +791,50 @@ function takeurl() {
 
     # Determine extraction method based on file type
     case "$url" in
-    *.tar.gz | *.tgz)
-        if ! tar -xzf "$temp_file" 2>/dev/null; then
-            echo "Error: Failed to extract tar.gz archive"
+        *.tar.gz | *.tgz)
+            if ! tar -xzf "$temp_file" 2>/dev/null; then
+                echo "Error: Failed to extract tar.gz archive"
+                cd - >/dev/null || return
+                rm -f "$temp_file"
+                rmdir "$temp_dir" 2>/dev/null
+                return 1
+            fi
+            ;;
+        *.tar.bz2 | *.tbz2)
+            if ! tar -xjf "$temp_file" 2>/dev/null; then
+                echo "Error: Failed to extract tar.bz2 archive"
+                cd - >/dev/null || return
+                rm -f "$temp_file"
+                rmdir "$temp_dir" 2>/dev/null
+                return 1
+            fi
+            ;;
+        *.tar.xz)
+            if ! tar -xJf "$temp_file" 2>/dev/null; then
+                echo "Error: Failed to extract tar.xz archive"
+                cd - >/dev/null || return
+                rm -f "$temp_file"
+                rmdir "$temp_dir" 2>/dev/null
+                return 1
+            fi
+            ;;
+        *.tar)
+            if ! tar -xf "$temp_file" 2>/dev/null; then
+                echo "Error: Failed to extract tar archive"
+                cd - >/dev/null || return
+                rm -f "$temp_file"
+                rmdir "$temp_dir" 2>/dev/null
+                return 1
+            fi
+            ;;
+        *)
+            echo "Error: Unsupported archive format"
+            echo "Supported formats: .tar.gz, .tgz, .tar.bz2, .tbz2, .tar.xz, .tar"
             cd - >/dev/null || return
             rm -f "$temp_file"
             rmdir "$temp_dir" 2>/dev/null
             return 1
-        fi
-        ;;
-    *.tar.bz2 | *.tbz2)
-        if ! tar -xjf "$temp_file" 2>/dev/null; then
-            echo "Error: Failed to extract tar.bz2 archive"
-            cd - >/dev/null || return
-            rm -f "$temp_file"
-            rmdir "$temp_dir" 2>/dev/null
-            return 1
-        fi
-        ;;
-    *.tar.xz)
-        if ! tar -xJf "$temp_file" 2>/dev/null; then
-            echo "Error: Failed to extract tar.xz archive"
-            cd - >/dev/null || return
-            rm -f "$temp_file"
-            rmdir "$temp_dir" 2>/dev/null
-            return 1
-        fi
-        ;;
-    *.tar)
-        if ! tar -xf "$temp_file" 2>/dev/null; then
-            echo "Error: Failed to extract tar archive"
-            cd - >/dev/null || return
-            rm -f "$temp_file"
-            rmdir "$temp_dir" 2>/dev/null
-            return 1
-        fi
-        ;;
-    *)
-        echo "Error: Unsupported archive format"
-        echo "Supported formats: .tar.gz, .tgz, .tar.bz2, .tbz2, .tar.xz, .tar"
-        cd - >/dev/null || return
-        rm -f "$temp_file"
-        rmdir "$temp_dir" 2>/dev/null
-        return 1
-        ;;
+            ;;
     esac
 
     # Find the extracted directory
@@ -969,198 +969,198 @@ alias_help() {
 
     # Define comprehensive alias documentation
     case "$alias_name" in
-    # File Operations
-    "ls" | "ll" | "la" | "lt")
-        echo "📁 File Listing Aliases (eza-powered)"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "ls     Enhanced listing with icons and git status"
-        echo "       Example: ls -l src/"
-        echo ""
-        echo "ll     Detailed listing with headers and file info"
-        echo "       Shows: permissions, size, date, git status"
-        echo "       Example: ll ~/projects"
-        echo ""
-        echo "la     Show all files including hidden ones"
-        echo "       Example: la # shows .env, .gitignore, etc."
-        echo ""
-        echo "lt     Tree view (2 levels deep)"
-        echo "       Example: lt # shows directory structure"
-        ;;
+        # File Operations
+        "ls" | "ll" | "la" | "lt")
+            echo "📁 File Listing Aliases (eza-powered)"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "ls     Enhanced listing with icons and git status"
+            echo "       Example: ls -l src/"
+            echo ""
+            echo "ll     Detailed listing with headers and file info"
+            echo "       Shows: permissions, size, date, git status"
+            echo "       Example: ll ~/projects"
+            echo ""
+            echo "la     Show all files including hidden ones"
+            echo "       Example: la # shows .env, .gitignore, etc."
+            echo ""
+            echo "lt     Tree view (2 levels deep)"
+            echo "       Example: lt # shows directory structure"
+            ;;
 
-    "cat" | "less" | "bat")
-        echo "📄 File Viewing Aliases (bat-powered)"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "cat    Syntax-highlighted file viewer"
-        echo "       Example: cat package.json"
-        echo "       Features: syntax highlighting, git integration"
-        echo ""
-        echo "less   Paginated file viewer with highlighting"
-        echo "       Example: less README.md"
-        echo "       Keys: q (quit), / (search), n (next match)"
-        ;;
+        "cat" | "less" | "bat")
+            echo "📄 File Viewing Aliases (bat-powered)"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "cat    Syntax-highlighted file viewer"
+            echo "       Example: cat package.json"
+            echo "       Features: syntax highlighting, git integration"
+            echo ""
+            echo "less   Paginated file viewer with highlighting"
+            echo "       Example: less README.md"
+            echo "       Keys: q (quit), / (search), n (next match)"
+            ;;
 
-    "grep" | "rg")
-        echo "🔍 Search Aliases (ripgrep-powered)"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "grep   Fast text search with ripgrep"
-        echo "       Example: grep 'TODO' *.js"
-        echo "       Features: automatic .gitignore respect, 10x faster"
-        echo ""
-        echo "Advanced ripgrep usage:"
-        echo "  rg 'pattern' --type js    # Search only JavaScript files"
-        echo "  rg 'pattern' --type bal   # Search only Ballerina files"
-        echo "  rg 'error' -A 3 -B 3      # Show 3 lines context"
-        echo "  rg 'function' -c          # Count matches"
-        ;;
+        "grep" | "rg")
+            echo "🔍 Search Aliases (ripgrep-powered)"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "grep   Fast text search with ripgrep"
+            echo "       Example: grep 'TODO' *.js"
+            echo "       Features: automatic .gitignore respect, 10x faster"
+            echo ""
+            echo "Advanced ripgrep usage:"
+            echo "  rg 'pattern' --type js    # Search only JavaScript files"
+            echo "  rg 'pattern' --type bal   # Search only Ballerina files"
+            echo "  rg 'error' -A 3 -B 3      # Show 3 lines context"
+            echo "  rg 'function' -c          # Count matches"
+            ;;
 
-    # Git Operations
-    "git" | "gits" | "gl" | "gp" | "gco" | "gb" | "ga" | "gaa" | "lg" | "glog")
-        echo "🌿 Git Aliases - Enhanced Git Workflow"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "Basic Git:"
-        echo "  gits    git status (quick status check)"
-        echo "  ga      git add (stage files)"
-        echo "  gaa     git add --all (stage everything)"
-        echo "  gb      git branch (list/create branches)"
-        echo "  gco     git checkout (switch branches)"
-        echo ""
-        echo "Remote Operations:"
-        echo "  gl      git pull (update from remote)"
-        echo "  gp      git push (push to remote)"
-        echo "  gf      git fetch (fetch without merge)"
-        echo ""
-        echo "Modern Git Tools:"
-        echo "  lg      lazygit (interactive git TUI)"
-        echo "  glog    beautiful git log with graph"
-        echo "  gundo   undo last commit (keep changes)"
-        echo "  gamend  amend last commit message"
-        echo ""
-        echo "💡 Pro tip: Use 'lg' for complex git operations!"
-        ;;
+        # Git Operations
+        "git" | "gits" | "gl" | "gp" | "gco" | "gb" | "ga" | "gaa" | "lg" | "glog")
+            echo "🌿 Git Aliases - Enhanced Git Workflow"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Basic Git:"
+            echo "  gits    git status (quick status check)"
+            echo "  ga      git add (stage files)"
+            echo "  gaa     git add --all (stage everything)"
+            echo "  gb      git branch (list/create branches)"
+            echo "  gco     git checkout (switch branches)"
+            echo ""
+            echo "Remote Operations:"
+            echo "  gl      git pull (update from remote)"
+            echo "  gp      git push (push to remote)"
+            echo "  gf      git fetch (fetch without merge)"
+            echo ""
+            echo "Modern Git Tools:"
+            echo "  lg      lazygit (interactive git TUI)"
+            echo "  glog    beautiful git log with graph"
+            echo "  gundo   undo last commit (keep changes)"
+            echo "  gamend  amend last commit message"
+            echo ""
+            echo "💡 Pro tip: Use 'lg' for complex git operations!"
+            ;;
 
-    # Gradle Operations
-    "gradle" | "gw" | "gwb" | "gwc" | "gwt" | "gwcb")
-        echo "🏗️ Gradle Wrapper Aliases - Project Build Tool"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "Core Build Tasks:"
-        echo "  gw      ./gradlew (with optimized 6 max workers)"
-        echo "  gwb     ./gradlew build (compile and package)"
-        echo "  gwc     ./gradlew clean (clean build artifacts)"
-        echo "  gwt     ./gradlew test (run all tests)"
-        echo ""
-        echo "Combined Operations:"
-        echo "  gwcb    ./gradlew clean build (full clean build)"
-        echo ""
-        echo "💡 Examples:"
-        echo "  gwb                      # Quick build"
-        echo "  gwcb                     # Full rebuild"
-        echo "  gwt --tests MyTest       # Run specific test"
-        echo "  gw bootRun               # Spring Boot run"
-        echo "  gw dependencies          # Show dependency tree"
-        echo "  ./gradlew tasks          # Show all available tasks (use full command)"
-        echo ""
-        echo "💡 Note: These use ./gradlew (project wrapper), not system gw command"
-        echo "💡 For Gradle tasks list, use: ./gradlew tasks (not gw tasks)"
-        ;;
+        # Gradle Operations
+        "gradle" | "gw" | "gwb" | "gwc" | "gwt" | "gwcb")
+            echo "🏗️ Gradle Wrapper Aliases - Project Build Tool"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Core Build Tasks:"
+            echo "  gw      ./gradlew (with optimized 6 max workers)"
+            echo "  gwb     ./gradlew build (compile and package)"
+            echo "  gwc     ./gradlew clean (clean build artifacts)"
+            echo "  gwt     ./gradlew test (run all tests)"
+            echo ""
+            echo "Combined Operations:"
+            echo "  gwcb    ./gradlew clean build (full clean build)"
+            echo ""
+            echo "💡 Examples:"
+            echo "  gwb                      # Quick build"
+            echo "  gwcb                     # Full rebuild"
+            echo "  gwt --tests MyTest       # Run specific test"
+            echo "  gw bootRun               # Spring Boot run"
+            echo "  gw dependencies          # Show dependency tree"
+            echo "  ./gradlew tasks          # Show all available tasks (use full command)"
+            echo ""
+            echo "💡 Note: These use ./gradlew (project wrapper), not system gw command"
+            echo "💡 For Gradle tasks list, use: ./gradlew tasks (not gw tasks)"
+            ;;
 
-    # Docker Operations
-    "docker" | "dps" | "dpsa" | "dex" | "dlog")
-        echo "🐳 Docker Aliases - Container Management"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "Container Status:"
-        echo "  dps     docker ps (running containers)"
-        echo "  dpsa    docker ps -a (all containers)"
-        echo "  dimg    docker images (list images)"
-        echo ""
-        echo "Container Operations:"
-        echo "  dex     docker exec -it (enter container)"
-        echo "          Example: dex mycontainer bash"
-        echo "  dlog    docker logs (view container logs)"
-        echo "  dlogf   docker logs -f (follow logs)"
-        echo "  dstop   docker stop (stop container)"
-        echo ""
-        echo "Cleanup:"
-        echo "  dprune  docker system prune -f (cleanup unused)"
-        echo ""
-        echo "💡 Example workflow:"
-        echo "  dps → dex myapp bash → exit → dlog myapp"
-        ;;
+        # Docker Operations
+        "docker" | "dps" | "dpsa" | "dex" | "dlog")
+            echo "🐳 Docker Aliases - Container Management"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Container Status:"
+            echo "  dps     docker ps (running containers)"
+            echo "  dpsa    docker ps -a (all containers)"
+            echo "  dimg    docker images (list images)"
+            echo ""
+            echo "Container Operations:"
+            echo "  dex     docker exec -it (enter container)"
+            echo "          Example: dex mycontainer bash"
+            echo "  dlog    docker logs (view container logs)"
+            echo "  dlogf   docker logs -f (follow logs)"
+            echo "  dstop   docker stop (stop container)"
+            echo ""
+            echo "Cleanup:"
+            echo "  dprune  docker system prune -f (cleanup unused)"
+            echo ""
+            echo "💡 Example workflow:"
+            echo "  dps → dex myapp bash → exit → dlog myapp"
+            ;;
 
-    # Tmux Operations
-    "tmux" | "t" | "ta" | "tat" | "tl" | "tn")
-        echo "📺 Tmux Aliases - Terminal Multiplexer"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "Session Management:"
-        echo "  t       tmux (start new session)"
-        echo "  ta      tmux attach (attach to last session)"
-        echo "  tat     tmux attach -t <name> (attach to named)"
-        echo "  tn      tmux new (create new session)"
-        echo "  tl      tmux list-sessions (show all)"
-        echo "  tk      tmux kill-session (kill current)"
-        echo ""
-        echo "Inside Tmux (prefix: Ctrl-a):"
-        echo "  Ctrl-a |    Split horizontally"
-        echo "  Ctrl-a -    Split vertically"
-        echo "  Ctrl-a h/j/k/l    Navigate panes"
-        echo "  Ctrl-a c    New window"
-        echo "  Ctrl-a d    Detach session"
-        echo ""
-        echo "💡 Example: tn myproject → work → Ctrl-a d → ta"
-        ;;
+        # Tmux Operations
+        "tmux" | "t" | "ta" | "tat" | "tl" | "tn")
+            echo "📺 Tmux Aliases - Terminal Multiplexer"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Session Management:"
+            echo "  t       tmux (start new session)"
+            echo "  ta      tmux attach (attach to last session)"
+            echo "  tat     tmux attach -t <name> (attach to named)"
+            echo "  tn      tmux new (create new session)"
+            echo "  tl      tmux list-sessions (show all)"
+            echo "  tk      tmux kill-session (kill current)"
+            echo ""
+            echo "Inside Tmux (prefix: Ctrl-a):"
+            echo "  Ctrl-a |    Split horizontally"
+            echo "  Ctrl-a -    Split vertically"
+            echo "  Ctrl-a h/j/k/l    Navigate panes"
+            echo "  Ctrl-a c    New window"
+            echo "  Ctrl-a d    Detach session"
+            echo ""
+            echo "💡 Example: tn myproject → work → Ctrl-a d → ta"
+            ;;
 
-    # Network Operations
-    "myip" | "localip" | "ping")
-        echo "🌐 Network Aliases - Network Utilities"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "myip      Get your public IP address"
-        echo "          Example: myip # returns 203.0.113.1"
-        echo ""
-        echo "localip   Get your local network IP"
-        echo "          Example: localip # returns 192.168.1.100"
-        echo ""
-        echo "ping      Ping with 5 packet limit"
-        echo "          Example: ping google.com"
-        ;;
+        # Network Operations
+        "myip" | "localip" | "ping")
+            echo "🌐 Network Aliases - Network Utilities"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "myip      Get your public IP address"
+            echo "          Example: myip # returns 203.0.113.1"
+            echo ""
+            echo "localip   Get your local network IP"
+            echo "          Example: localip # returns 192.168.1.100"
+            echo ""
+            echo "ping      Ping with 5 packet limit"
+            echo "          Example: ping google.com"
+            ;;
 
-    # Atuin Shell History
-    "atuin" | "hs" | "hstats" | "hsync")
-        echo "📚 Atuin Aliases - Enhanced Shell History"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "Interactive History:"
-        echo "  hs          atuin search (interactive fuzzy search)"
-        echo "  Ctrl+Alt+R  atuin search (keybinding for quick access)"
-        echo "  Ctrl+R      uses your terminal's native history (e.g., Warp's)"
-        echo ""
-        echo "Statistics & Sync:"
-        echo "  hstats  atuin stats (show command statistics)"
-        echo "  hsync   atuin sync (sync to server if configured)"
-        echo "  hup     atuin up (navigate history up)"
-        echo "  hdown   atuin down (navigate history down)"
-        echo ""
-        echo "💡 Features:"
-        echo "  • Fuzzy search through entire command history"
-        echo "  • Statistics on command usage and patterns"
-        echo "  • Optional sync across multiple machines"
-        echo "  • Context-aware suggestions"
-        echo "  • Works alongside terminal's native history"
-        echo ""
-        echo "💡 Pro tip: Use Ctrl+Alt+R for quick Atuin search, Ctrl+R for Warp history!"
-        ;;
+        # Atuin Shell History
+        "atuin" | "hs" | "hstats" | "hsync")
+            echo "📚 Atuin Aliases - Enhanced Shell History"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Interactive History:"
+            echo "  hs          atuin search (interactive fuzzy search)"
+            echo "  Ctrl+Alt+R  atuin search (keybinding for quick access)"
+            echo "  Ctrl+R      uses your terminal's native history (e.g., Warp's)"
+            echo ""
+            echo "Statistics & Sync:"
+            echo "  hstats  atuin stats (show command statistics)"
+            echo "  hsync   atuin sync (sync to server if configured)"
+            echo "  hup     atuin up (navigate history up)"
+            echo "  hdown   atuin down (navigate history down)"
+            echo ""
+            echo "💡 Features:"
+            echo "  • Fuzzy search through entire command history"
+            echo "  • Statistics on command usage and patterns"
+            echo "  • Optional sync across multiple machines"
+            echo "  • Context-aware suggestions"
+            echo "  • Works alongside terminal's native history"
+            echo ""
+            echo "💡 Pro tip: Use Ctrl+Alt+R for quick Atuin search, Ctrl+R for Warp history!"
+            ;;
 
-    *)
-        echo "❓ Alias '$alias_name' not found in documentation."
-        echo ""
-        echo "Available categories:"
-        echo "  File operations: ls, ll, cat, grep"
-        echo "  Git workflow: git, gits, lg, glog"
-        echo "  Gradle build: gw, gwb, gwc, gwt, gwcb"
-        echo "  Docker: docker, dps, dex, dlog"
-        echo "  Tmux: tmux, t, ta, tl"
-        echo "  Network: myip, localip, ping"
-        echo "  History: atuin, hs, hstats, hsync"
-        echo ""
-        echo "Try: alias_docs for interactive browsing"
-        ;;
+        *)
+            echo "❓ Alias '$alias_name' not found in documentation."
+            echo ""
+            echo "Available categories:"
+            echo "  File operations: ls, ll, cat, grep"
+            echo "  Git workflow: git, gits, lg, glog"
+            echo "  Gradle build: gw, gwb, gwc, gwt, gwcb"
+            echo "  Docker: docker, dps, dex, dlog"
+            echo "  Tmux: tmux, t, ta, tl"
+            echo "  Network: myip, localip, ping"
+            echo "  History: atuin, hs, hstats, hsync"
+            echo ""
+            echo "Try: alias_docs for interactive browsing"
+            ;;
     esac
 }
 
@@ -1182,32 +1182,32 @@ alias_docs() {
     read -r choice
 
     case "$choice" in
-    1) alias_help ls ;;
-    2) alias_help git ;;
-    3) alias_help docker ;;
-    4) alias_help tmux ;;
-    5) alias_help myip ;;
-    6)
-        echo "🔧 Development Tool Functions"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "take <path>           Create directory and enter it"
-        echo "take <git-url>        Clone repo and enter it"
-        echo "take <archive-url>    Download, extract and enter"
-        echo ""
-        echo "kill_by_port <port>   Kill processes on port"
-        echo "kill_by_port -d <port>  Dry run (show what would be killed)"
-        echo ""
-        echo "show_tools            Show all modern CLI tools"
-        echo "alias_search <term>   Search aliases by keyword"
-        ;;
-    7)
-        echo "📋 All Available Aliases"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        alias | sort | nl
-        ;;
-    *)
-        echo "Invalid choice. Please select 1-7."
-        ;;
+        1) alias_help ls ;;
+        2) alias_help git ;;
+        3) alias_help docker ;;
+        4) alias_help tmux ;;
+        5) alias_help myip ;;
+        6)
+            echo "🔧 Development Tool Functions"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "take <path>           Create directory and enter it"
+            echo "take <git-url>        Clone repo and enter it"
+            echo "take <archive-url>    Download, extract and enter"
+            echo ""
+            echo "kill_by_port <port>   Kill processes on port"
+            echo "kill_by_port -d <port>  Dry run (show what would be killed)"
+            echo ""
+            echo "show_tools            Show all modern CLI tools"
+            echo "alias_search <term>   Search aliases by keyword"
+            ;;
+        7)
+            echo "📋 All Available Aliases"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            alias | sort | nl
+            ;;
+        *)
+            echo "Invalid choice. Please select 1-7."
+            ;;
     esac
 }
 
@@ -1389,142 +1389,142 @@ remove_dotfiles_tool() {
     echo ""
 
     case "$tool_name" in
-    "nvm")
-        echo "Removing NVM configuration..."
-        # Comment out NVM section in .zshrc using more robust pattern matching
-        if grep -q "^# Lazy load NVM" "$dotfiles_dir/zsh/.zshrc"; then
-            sed -i.bak '/^# Lazy load NVM/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-            echo "✅ NVM configuration commented out in .zshrc"
-        else
-            echo "ℹ️ NVM configuration not found or already removed"
-        fi
-        ;;
+        "nvm")
+            echo "Removing NVM configuration..."
+            # Comment out NVM section in .zshrc using more robust pattern matching
+            if grep -q "^# Lazy load NVM" "$dotfiles_dir/zsh/.zshrc"; then
+                sed -i.bak '/^# Lazy load NVM/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
+                echo "✅ NVM configuration commented out in .zshrc"
+            else
+                echo "ℹ️ NVM configuration not found or already removed"
+            fi
+            ;;
 
-    "sdkman")
-        echo "Removing SDKMAN configuration..."
-        if grep -q "Lazy load SDKMAN" "$dotfiles_dir/zsh/.zshrc"; then
-            sed -i.bak '/# Lazy load SDKMAN/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-            echo "✅ SDKMAN configuration commented out in .zshrc"
-        else
-            echo "ℹ️ SDKMAN configuration not found or already removed"
-        fi
-        ;;
+        "sdkman")
+            echo "Removing SDKMAN configuration..."
+            if grep -q "Lazy load SDKMAN" "$dotfiles_dir/zsh/.zshrc"; then
+                sed -i.bak '/# Lazy load SDKMAN/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
+                echo "✅ SDKMAN configuration commented out in .zshrc"
+            else
+                echo "ℹ️ SDKMAN configuration not found or already removed"
+            fi
+            ;;
 
-    "rbenv")
-        echo "Removing rbenv configuration..."
-        if grep -q "_rbenv_lazy_load" "$dotfiles_dir/zsh/.zshrc"; then
-            sed -i.bak '/# Lazy load rbenv/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-            echo "✅ rbenv configuration commented out in .zshrc"
-        else
-            echo "ℹ️ rbenv configuration not found or already removed"
-        fi
-        ;;
+        "rbenv")
+            echo "Removing rbenv configuration..."
+            if grep -q "_rbenv_lazy_load" "$dotfiles_dir/zsh/.zshrc"; then
+                sed -i.bak '/# Lazy load rbenv/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
+                echo "✅ rbenv configuration commented out in .zshrc"
+            else
+                echo "ℹ️ rbenv configuration not found or already removed"
+            fi
+            ;;
 
-    "pyenv")
-        echo "Removing pyenv configuration..."
-        if grep -q "_pyenv_lazy_load" "$dotfiles_dir/zsh/.zshrc"; then
-            sed -i.bak '/# Lazy load pyenv/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-            echo "✅ pyenv configuration commented out in .zshrc"
-        else
-            echo "ℹ️ pyenv configuration not found or already removed"
-        fi
-        ;;
+        "pyenv")
+            echo "Removing pyenv configuration..."
+            if grep -q "_pyenv_lazy_load" "$dotfiles_dir/zsh/.zshrc"; then
+                sed -i.bak '/# Lazy load pyenv/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
+                echo "✅ pyenv configuration commented out in .zshrc"
+            else
+                echo "ℹ️ pyenv configuration not found or already removed"
+            fi
+            ;;
 
-    "oh-my-posh" | "starship")
-        echo "Removing $tool_name configuration..."
-        if grep -qi "$tool_name" "$dotfiles_dir/zsh/.zshrc"; then
-            sed -i.bak "/# Initialize $tool_name/,/^fi$/s/^/# REMOVED: /" "$dotfiles_dir/zsh/.zshrc"
-            echo "✅ $tool_name configuration commented out in .zshrc"
-        else
-            echo "ℹ️ $tool_name configuration not found or already removed"
-        fi
+        "oh-my-posh" | "starship")
+            echo "Removing $tool_name configuration..."
+            if grep -qi "$tool_name" "$dotfiles_dir/zsh/.zshrc"; then
+                sed -i.bak "/# Initialize $tool_name/,/^fi$/s/^/# REMOVED: /" "$dotfiles_dir/zsh/.zshrc"
+                echo "✅ $tool_name configuration commented out in .zshrc"
+            else
+                echo "ℹ️ $tool_name configuration not found or already removed"
+            fi
 
-        # Cleanup instructions
-        echo ""
-        echo "To fully remove $tool_name:"
-        echo "  brew uninstall $tool_name"
-        if [ "$tool_name" = "oh-my-posh" ]; then
-            echo "  rm -rf ~/.config/ohmyposh ~/.cache/zsh/omp_cache.zsh"
-        else
-            echo "  rm -rf ~/.config/starship.toml"
-        fi
-        ;;
+            # Cleanup instructions
+            echo ""
+            echo "To fully remove $tool_name:"
+            echo "  brew uninstall $tool_name"
+            if [ "$tool_name" = "oh-my-posh" ]; then
+                echo "  rm -rf ~/.config/ohmyposh ~/.cache/zsh/omp_cache.zsh"
+            else
+                echo "  rm -rf ~/.config/starship.toml"
+            fi
+            ;;
 
-    "atuin")
-        echo "Removing Atuin configuration..."
-        if grep -q "_atuin_lazy_load" "$dotfiles_dir/zsh/.zshrc"; then
-            sed -i.bak '/# Lazy load atuin/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-            echo "✅ Atuin configuration commented out in .zshrc"
-        fi
-        # Also remove from aliases
-        if grep -q "atuin" "$dotfiles_dir/zsh/.aliases.sh"; then
-            sed -i.bak '/# Atuin shell history aliases/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.aliases.sh"
-            echo "✅ Atuin aliases commented out in .aliases.sh"
-        fi
-        ;;
+        "atuin")
+            echo "Removing Atuin configuration..."
+            if grep -q "_atuin_lazy_load" "$dotfiles_dir/zsh/.zshrc"; then
+                sed -i.bak '/# Lazy load atuin/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
+                echo "✅ Atuin configuration commented out in .zshrc"
+            fi
+            # Also remove from aliases
+            if grep -q "atuin" "$dotfiles_dir/zsh/.aliases.sh"; then
+                sed -i.bak '/# Atuin shell history aliases/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.aliases.sh"
+                echo "✅ Atuin aliases commented out in .aliases.sh"
+            fi
+            ;;
 
-    "direnv")
-        echo "Removing direnv configuration..."
-        if grep -q "_direnv_lazy_load" "$dotfiles_dir/zsh/.zshrc"; then
-            sed -i.bak '/# Lazy load direnv/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-            echo "✅ direnv configuration commented out in .zshrc"
-        else
-            echo "ℹ️ direnv configuration not found or already removed"
-        fi
-        ;;
+        "direnv")
+            echo "Removing direnv configuration..."
+            if grep -q "_direnv_lazy_load" "$dotfiles_dir/zsh/.zshrc"; then
+                sed -i.bak '/# Lazy load direnv/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
+                echo "✅ direnv configuration commented out in .zshrc"
+            else
+                echo "ℹ️ direnv configuration not found or already removed"
+            fi
+            ;;
 
-    "google-cloud-sdk")
-        echo "ℹ️ Google Cloud SDK is now managed via packages.json (gcp category)"
-        echo "   Set 'enabled: true' in packages.json under categories.gcp to enable"
-        echo "   gcloud is disabled by default and no longer part of core dotfiles"
-        echo ""
-        echo "   To uninstall gcloud completely, run:"
-        echo "   brew uninstall --cask google-cloud-sdk"
-        return 0
-        ;;
+        "google-cloud-sdk")
+            echo "ℹ️ Google Cloud SDK is now managed via packages.json (gcp category)"
+            echo "   Set 'enabled: true' in packages.json under categories.gcp to enable"
+            echo "   gcloud is disabled by default and no longer part of core dotfiles"
+            echo ""
+            echo "   To uninstall gcloud completely, run:"
+            echo "   brew uninstall --cask google-cloud-sdk"
+            return 0
+            ;;
 
-    "legacy-java-tools")
-        echo "Removing legacy Java tools (Maven, Tomcat, Ant, MySQL)..."
-        if [ -f "$dotfiles_dir/zsh/.paths.sh" ]; then
-            # Comment out legacy tool sections
-            sed -i.bak '/# Legacy tool paths/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.paths.sh"
-            echo "✅ Legacy Java tools commented out in .paths.sh"
-        else
-            echo "ℹ️ .paths.sh not found"
-        fi
-        ;;
+        "legacy-java-tools")
+            echo "Removing legacy Java tools (Maven, Tomcat, Ant, MySQL)..."
+            if [ -f "$dotfiles_dir/zsh/.paths.sh" ]; then
+                # Comment out legacy tool sections
+                sed -i.bak '/# Legacy tool paths/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.paths.sh"
+                echo "✅ Legacy Java tools commented out in .paths.sh"
+            else
+                echo "ℹ️ .paths.sh not found"
+            fi
+            ;;
 
-    "jmeter")
-        echo "Removing JMeter configuration..."
-        if grep -q "JMeter" "$dotfiles_dir/zsh/.paths.sh"; then
-            sed -i.bak '/# JMeter/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.paths.sh"
-            echo "✅ JMeter configuration commented out in .paths.sh"
-        else
-            echo "ℹ️ JMeter configuration not found or already removed"
-        fi
-        ;;
+        "jmeter")
+            echo "Removing JMeter configuration..."
+            if grep -q "JMeter" "$dotfiles_dir/zsh/.paths.sh"; then
+                sed -i.bak '/# JMeter/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.paths.sh"
+                echo "✅ JMeter configuration commented out in .paths.sh"
+            else
+                echo "ℹ️ JMeter configuration not found or already removed"
+            fi
+            ;;
 
-    "docker")
-        echo "Removing Docker aliases..."
-        if grep -q "docker" "$dotfiles_dir/zsh/.aliases.sh"; then
-            sed -i.bak '/# Docker aliases/,/alias dprune/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.aliases.sh"
-            echo "✅ Docker aliases commented out in .aliases.sh"
-        else
-            echo "ℹ️ Docker aliases not found or already removed"
-        fi
-        ;;
+        "docker")
+            echo "Removing Docker aliases..."
+            if grep -q "docker" "$dotfiles_dir/zsh/.aliases.sh"; then
+                sed -i.bak '/# Docker aliases/,/alias dprune/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.aliases.sh"
+                echo "✅ Docker aliases commented out in .aliases.sh"
+            else
+                echo "ℹ️ Docker aliases not found or already removed"
+            fi
+            ;;
 
-    *)
-        echo "❌ Unknown tool: $tool_name"
-        echo ""
-        echo "Available tools to remove:"
-        echo "• nvm, sdkman, rbenv, pyenv"
-        echo "• starship, atuin, direnv"
-        echo "• docker"
-        echo "• legacy-java-tools (maven, tomcat, ant, mysql)"
-        echo "• jmeter"
-        return 1
-        ;;
+        *)
+            echo "❌ Unknown tool: $tool_name"
+            echo ""
+            echo "Available tools to remove:"
+            echo "• nvm, sdkman, rbenv, pyenv"
+            echo "• starship, atuin, direnv"
+            echo "• docker"
+            echo "• legacy-java-tools (maven, tomcat, ant, mysql)"
+            echo "• jmeter"
+            return 1
+            ;;
     esac
 
     echo ""
@@ -1543,42 +1543,42 @@ install_lazygit_latest() {
     local action="${1:-install}"
 
     case "$action" in
-    install)
-        echo "🚀 Installing lazygit from official tap..."
-        if ! brew tap | grep -q "jesseduffield/lazygit"; then
-            echo "Adding jesseduffield/lazygit tap..."
-            brew tap jesseduffield/lazygit
-        fi
-        brew install jesseduffield/lazygit/lazygit
-        ;;
-    update)
-        echo "🔄 Updating lazygit from official tap..."
-        brew upgrade jesseduffield/lazygit/lazygit
-        ;;
-    check)
-        echo "🔍 Checking lazygit installation..."
-        if command -v lazygit >/dev/null 2>&1; then
-            local version
-            version=$(lazygit --version 2>/dev/null | head -n 1)
-            echo "✅ lazygit is installed: $version"
-            return 0
-        else
-            echo "❌ lazygit is not installed"
+        install)
+            echo "🚀 Installing lazygit from official tap..."
+            if ! brew tap | grep -q "jesseduffield/lazygit"; then
+                echo "Adding jesseduffield/lazygit tap..."
+                brew tap jesseduffield/lazygit
+            fi
+            brew install jesseduffield/lazygit/lazygit
+            ;;
+        update)
+            echo "🔄 Updating lazygit from official tap..."
+            brew upgrade jesseduffield/lazygit/lazygit
+            ;;
+        check)
+            echo "🔍 Checking lazygit installation..."
+            if command -v lazygit >/dev/null 2>&1; then
+                local version
+                version=$(lazygit --version 2>/dev/null | head -n 1)
+                echo "✅ lazygit is installed: $version"
+                return 0
+            else
+                echo "❌ lazygit is not installed"
+                return 1
+            fi
+            ;;
+        *)
+            echo "Usage: install_lazygit_latest [install|update|check]"
+            echo ""
+            echo "Examples:"
+            echo "  install_lazygit_latest          # Install from official tap"
+            echo "  install_lazygit_latest install  # Install from official tap"
+            echo "  install_lazygit_latest update   # Update to latest version"
+            echo "  install_lazygit_latest check    # Check current installation"
+            echo ""
+            echo "💡 Using official jesseduffield tap for frequent updates"
             return 1
-        fi
-        ;;
-    *)
-        echo "Usage: install_lazygit_latest [install|update|check]"
-        echo ""
-        echo "Examples:"
-        echo "  install_lazygit_latest          # Install from official tap"
-        echo "  install_lazygit_latest install  # Install from official tap"
-        echo "  install_lazygit_latest update   # Update to latest version"
-        echo "  install_lazygit_latest check    # Check current installation"
-        echo ""
-        echo "💡 Using official jesseduffield tap for frequent updates"
-        return 1
-        ;;
+            ;;
     esac
 }
 
