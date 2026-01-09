@@ -3,7 +3,10 @@
 # Common Commands
 
 # Smart clear: clears terminal while preserving scrollback history
-c() { yes "" 2>/dev/null | head -n ${LINES:-50}; printf '\x0c'; }
+c() {
+    yes "" 2>/dev/null | head -n ${LINES:-50}
+    printf '\x0c'
+}
 alias cls="clear;ls"
 alias mk="mkdir -p "
 alias cp="cp -riv"

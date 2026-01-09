@@ -36,8 +36,8 @@ path_dedupe() {
         while [ -n "$old_path" ]; do
             local x="${old_path%%:*}"
             case ":$new_path:" in
-            *:"$x":*) ;;
-            *) new_path="$new_path:$x" ;;
+                *:"$x":*) ;;
+                *) new_path="$new_path:$x" ;;
             esac
             old_path="${old_path#*:}"
         done
