@@ -390,7 +390,11 @@ install_terminal_apps() {
                                     log_success "Installed $package_name"
                                 fi
                             else
-                                brew install "$package_name" && log_success "Installed $package_name" || log_warning "Failed to install $package_name"
+                                if brew install "$package_name"; then
+                                    log_success "Installed $package_name"
+                                else
+                                    log_warning "Failed to install $package_name"
+                                fi
                             fi
                         else
                             log_info "Skipped $package_name"
