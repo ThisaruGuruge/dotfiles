@@ -1,9 +1,6 @@
 #!/bin/bash
 
-# Dotfiles Initialization Script
-# This script sets up the complete development environment with dependency checking
-
-set -e # Exit on any error
+set -e
 
 # Ensure script is run from ~/.dotfiles directory
 basename_dir="$(basename "$PWD")"
