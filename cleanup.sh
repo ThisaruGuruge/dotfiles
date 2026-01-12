@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Dotfiles Cleanup Script
-# Removes symlinks created by Stow
-
 STOW_DIRS=(
     "zsh"
     "git"
@@ -18,7 +15,6 @@ if ! command -v stow >/dev/null 2>&1; then
     exit 1
 fi
 
-# Function to unstow a package
 unstow_package() {
     local package="$1"
     echo "Removing symlinks for $package..."
@@ -29,7 +25,6 @@ unstow_package() {
     fi
 }
 
-# Main execution
 if [ -n "$1" ]; then
     # Unstow specific package if argument provided
     unstow_package "$1"
