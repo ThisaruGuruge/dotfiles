@@ -9,7 +9,8 @@ generate_message() {
     local original="$3"
 
     # Extract first line as subject
-    local subject=$(echo "$original" | head -1 | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
+    local subject
+    subject=$(echo "$original" | head -1 | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
 
     # Remove trailing periods
     subject=$(echo "$subject" | sed -E 's/\.+$//')
@@ -26,7 +27,8 @@ generate_message() {
     # LICENSE, Ballerina, SDKMAN, macOS, Homebrew, Zsh, iTerm, CI, OSS, GPL, MIT, SSH, GPG
     if [[ ! "$subject" =~ ^(GitHub|WezTerm|NeoVim|Neovim|Vim|Starship|CHANGELOG|README|LICENSE|Ballerina|SDKMAN|VS\ Code|macOS|Homebrew|Zsh|iTerm|CI|OSS|GPL|MIT|SSH|GPG|API|URL|HTTP|HTTPS|JSON|YAML|XML|SQL|CONTRIBUTING|SECURITY|CODE_OF_CONDUCT) ]]; then
         # Use tr to lowercase first character (portable)
-        local first_char=$(echo "${subject:0:1}" | tr '[:upper:]' '[:lower:]')
+        local first_char
+        first_char=$(echo "${subject:0:1}" | tr '[:upper:]' '[:lower:]')
         local rest="${subject:1}"
         subject="${first_char}${rest}"
     fi

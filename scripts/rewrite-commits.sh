@@ -37,7 +37,8 @@ source "$SCRIPT_DIR/lib/message-generator.sh"
 # Processing function for dry-run (reads from stdin)
 process_commit_message_from_arg() {
     local commit_hash="$1"
-    local original_msg=$(cat)
+    local original_msg
+    original_msg=$(cat)
 
     # Skip if already in conventional format (preserve the 5 existing ones)
     if [[ "$original_msg" =~ ^(feat|fix|docs|style|refactor|perf|test|chore|ci)(\(.*\))?:\ .+ ]]; then
@@ -54,8 +55,10 @@ process_commit_message_from_arg() {
     fi
 
     # Determine scope and type
-    local scope=$(determine_scope "$files")
-    local type=$(determine_type "$original_msg" "$commit_hash" "$scope")
+    local scope
+    scope=$(determine_scope "$files")
+    local type
+    type=$(determine_type "$original_msg" "$commit_hash" "$scope")
 
     # Generate new message
     generate_message "$type" "$scope" "$original_msg"
@@ -63,8 +66,10 @@ process_commit_message_from_arg() {
 
 # Main processing function for filter-branch
 process_commit_message() {
-    local original_msg=$(cat)
-    local commit_hash=$(git rev-parse HEAD 2>/dev/null || echo "HEAD")
+    local original_msg
+    original_msg=$(cat)
+    local commit_hash
+    commit_hash=$(git rev-parse HEAD 2>/dev/null || echo "HEAD")
 
     # Skip if already in conventional format (preserve the 5 existing ones)
     if [[ "$original_msg" =~ ^(feat|fix|docs|style|refactor|perf|test|chore|ci)(\(.*\))?:\ .+ ]]; then
@@ -81,8 +86,10 @@ process_commit_message() {
     fi
 
     # Determine scope and type
-    local scope=$(determine_scope "$files")
-    local type=$(determine_type "$original_msg" "$commit_hash" "$scope")
+    local scope
+    scope=$(determine_scope "$files")
+    local type
+    type=$(determine_type "$original_msg" "$commit_hash" "$scope")
 
     # Generate new message
     generate_message "$type" "$scope" "$original_msg"
@@ -124,12 +131,14 @@ main() {
         fi
 
         # Create recovery tag
-        local tag_name="pre-conventional-commits-$(date +%Y%m%d)"
+        local tag_name
+        tag_name="pre-conventional-commits-$(date +%Y%m%d)"
         echo "Creating recovery tag: $tag_name"
         git tag "$tag_name" || echo "Warning: Tag already exists"
 
         # Export commit metadata
-        local export_file="commits-backup-$(date +%Y%m%d-%H%M%S).txt"
+        local export_file
+        export_file="commits-backup-$(date +%Y%m%d-%H%M%S).txt"
         echo "Exporting commit metadata to: $export_file"
         git log --all --format="%H|||%an|||%ae|||%ad|||%s|||%b" > "$export_file"
 
@@ -156,7 +165,8 @@ main() {
             local msg="${line#*|||}"
 
             # Process message (close stdin to prevent reading from pipe)
-            local new_msg=$(echo "$msg" | process_commit_message_from_arg "$hash")
+            local new_msg
+            new_msg=$(echo "$msg" | process_commit_message_from_arg "$hash")
             if [[ "$msg" != "$new_msg" ]]; then
                 echo "WOULD CHANGE:"
                 echo "  Hash: ${hash:0:7}"
@@ -167,7 +177,7 @@ main() {
             else
                 ((unchanged_count++))
             fi
-        done < <(git log $commit_list --format="%H|||%s")
+        done < <(git log "$commit_list" --format="%H|||%s")
 
         echo "=== Summary ==="
         echo "Would change: $changed_count commits"

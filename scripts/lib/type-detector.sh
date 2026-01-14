@@ -5,10 +5,11 @@
 
 determine_type() {
     local original_msg="$1"
-    local commit_hash="$2"
+    # local commit_hash="$2"  # Reserved for future use
     local scope="$3"
 
-    local msg_lower=$(echo "$original_msg" | tr '[:upper:]' '[:lower:]')
+    local msg_lower
+    msg_lower=$(echo "$original_msg" | tr '[:upper:]' '[:lower:]')
 
     # Check if already in conventional format
     if [[ "$original_msg" =~ ^(feat|fix|docs|style|refactor|perf|test|chore|ci)(\(.*\))?:\ .+ ]]; then
