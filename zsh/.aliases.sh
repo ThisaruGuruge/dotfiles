@@ -40,7 +40,6 @@ alias -s yaml='jless'
 alias -s yml='jless'
 
 alias -s py="\$EDITOR"
-alias -s sh="\$EDITOR"
 alias -s bash="\$EDITOR"
 alias -s zsh="\$EDITOR"
 alias -s bal="\$EDITOR"
