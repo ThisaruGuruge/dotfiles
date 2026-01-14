@@ -7,18 +7,30 @@ determine_scope() {
     local files="$1"
 
     # Count matches per scope to handle multi-scope commits
-    local ci_count=$(echo "$files" | grep -c '\.github/workflows/' || true)
-    local docs_count=$(echo "$files" | grep -cE '^(CHANGELOG\.md|CONTRIBUTING\.md|README\.md|docs/|\.github/(CODE_OF_CONDUCT|ISSUE_TEMPLATE|PULL_REQUEST|SUPPORT))' || true)
-    local init_count=$(echo "$files" | grep -c '^init\.sh' || true)
-    local zsh_count=$(echo "$files" | grep -c '^zsh/' || true)
-    local git_count=$(echo "$files" | grep -cE '^(git/|config/\.config/lazygit)' || true)
-    local vim_count=$(echo "$files" | grep -cE '^(vim/|config/\.config/nvim)' || true)
-    local tmux_count=$(echo "$files" | grep -c '^tmux/' || true)
-    local prompt_count=$(echo "$files" | grep -c 'starship' || true)
-    local packages_count=$(echo "$files" | grep -cE '^(Brewfile|packages\.json|packages/)' || true)
-    local security_count=$(echo "$files" | grep -cE '\.(env|age)|SECURITY\.md|edit_secrets|sops' || true)
-    local wezterm_count=$(echo "$files" | grep -c 'wezterm' || true)
-    local bin_count=$(echo "$files" | grep -c '^bin/' || true)
+    local ci_count
+    ci_count=$(echo "$files" | grep -c '\.github/workflows/' || true)
+    local docs_count
+    docs_count=$(echo "$files" | grep -cE '^(CHANGELOG\.md|CONTRIBUTING\.md|README\.md|docs/|\.github/(CODE_OF_CONDUCT|ISSUE_TEMPLATE|PULL_REQUEST|SUPPORT))' || true)
+    local init_count
+    init_count=$(echo "$files" | grep -c '^init\.sh' || true)
+    local zsh_count
+    zsh_count=$(echo "$files" | grep -c '^zsh/' || true)
+    local git_count
+    git_count=$(echo "$files" | grep -cE '^(git/|config/\.config/lazygit)' || true)
+    local vim_count
+    vim_count=$(echo "$files" | grep -cE '^(vim/|config/\.config/nvim)' || true)
+    local tmux_count
+    tmux_count=$(echo "$files" | grep -c '^tmux/' || true)
+    local prompt_count
+    prompt_count=$(echo "$files" | grep -c 'starship' || true)
+    local packages_count
+    packages_count=$(echo "$files" | grep -cE '^(Brewfile|packages\.json|packages/)' || true)
+    local security_count
+    security_count=$(echo "$files" | grep -cE '\.(env|age)|SECURITY\.md|edit_secrets|sops' || true)
+    local wezterm_count
+    wezterm_count=$(echo "$files" | grep -c 'wezterm' || true)
+    local bin_count
+    bin_count=$(echo "$files" | grep -c '^bin/' || true)
 
     # Find dominant scope (highest count)
     local max=0
