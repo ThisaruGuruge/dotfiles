@@ -183,18 +183,17 @@ main() {
     echo ""
 
     # Use filter-branch to rewrite commit messages
+    # The msg-filter needs to call the function directly since it reads from stdin
     if [[ -n "$TARGET_BRANCH" ]]; then
-        FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --msg-filter '
-            original_msg=$(cat)
-            commit_hash=$(git rev-parse HEAD 2>/dev/null || echo "HEAD")
-            process_commit_message "$original_msg" "$commit_hash"
-        ' "$TARGET_BRANCH"
+        FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --msg-filter \
+            'process_commit_message' \
+            "$TARGET_BRANCH"
     else
-        FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --msg-filter '
-            original_msg=$(cat)
-            commit_hash=$(git rev-parse HEAD 2>/dev/null || echo "HEAD")
-            process_commit_message "$original_msg" "$commit_hash"
-        ' -- --all
+        # Rewrite all branches except the backup branch
+        FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --msg-filter \
+            'process_commit_message' \
+            -- --branches --tags --remotes \
+            --not refs/heads/"$BACKUP_BRANCH" --not refs/remotes/origin/"$BACKUP_BRANCH"
     fi
 
     echo ""
