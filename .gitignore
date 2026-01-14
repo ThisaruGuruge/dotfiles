@@ -28,3 +28,4 @@ lazy-lock.json
 
 # Session Artifacts
 dotfiles_analysis_report.md
+commits-backup-*.txt
