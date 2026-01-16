@@ -55,9 +55,7 @@ if command -v direnv >/dev/null 2>&1; then
     }
 fi
 
-# Initialize atuin with caching
+# Initialize atuin with caching - handles Ctrl+R and up-arrow for history
 if command -v atuin >/dev/null 2>&1; then
-    _cache_tool_init "atuin" "atuin init zsh --disable-up-arrow --disable-ctrl-r"
-    # Bind Ctrl+Alt+R to Atuin search (avoid Warp conflicts)
-    bindkey '^[^R' _atuin_search_widget
+    _cache_tool_init "atuin" "atuin init zsh"
 fi
