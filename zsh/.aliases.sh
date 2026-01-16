@@ -18,7 +18,7 @@ alias ag='ag --silent --hidden'
 alias todo='todo.sh'
 
 alias ls='eza --icons --git'
-alias ll='eza -l --icons --git --header --group'
+alias ll='eza -l --icons --git --header --no-user'
 alias la='eza -la --icons --git --header --group'
 alias lt='eza --tree --level=2 --icons --git'
 alias ls_x='eza -l --sort=extension --icons --git'
@@ -176,6 +176,7 @@ alias dstop='docker stop'
 alias drm='docker rm'
 alias drmi='docker rmi'
 alias dprune='docker system prune -f'
+alias lzd='lazydocker'
 
 # Network utilities
 alias myip='curl -s ifconfig.me'
