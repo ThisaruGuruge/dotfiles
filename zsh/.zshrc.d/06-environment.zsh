@@ -100,7 +100,7 @@ if [ -d "$HOME/.local/bin" ] && [ -f "$HOME/.local/bin/env" ]; then
     source "$HOME/.local/bin/env"
 fi
 
-# Force command hash rebuild at the end (fixes Warp terminal command discovery)
+# Force command hash rebuild at the end (ensures new PATH entries are discoverable)
 # Only run if we added new paths that might need discovery
 if [[ -n "$ZSH_VERSION" ]]; then
     rehash
