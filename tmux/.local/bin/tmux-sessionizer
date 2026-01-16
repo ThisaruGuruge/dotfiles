@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# TMux Sessionizer - Fuzzy find projects and switch to named sessions
+# Inspired by ThePrimeagen's sessionizer
+
+# Configuration
+PROJECTS_DIR="$HOME/Projects"
+SEARCH_DEPTH=2  # Search 2 levels deep in Projects (for category/project structure)
+EXTRA_DIRS=(
+    "$HOME/dotfiles"
+)
+
+# Get selected directory
+get_selected() {
+    # Build the list of directories
+    local dirs=""
+
+    # Add projects (2 levels deep to get past category folders)
+    if [[ -d "$PROJECTS_DIR" ]]; then
+        dirs=$(find "$PROJECTS_DIR" -mindepth "$SEARCH_DEPTH" -maxdepth "$SEARCH_DEPTH" -type d 2>/dev/null)
+    fi
+
+    # Add extra directories
+    for dir in "${EXTRA_DIRS[@]}"; do
+        if [[ -d "$dir" ]]; then
+            dirs="$dirs"$'\n'"$dir"
+        fi
+    done
+
+    # Remove empty lines and pass to fzf
+    echo "$dirs" | grep -v '^$' | fzf --height=40% --reverse --border --prompt="Project > "
+}
+
+# If argument provided, use it directly
+if [[ $# -eq 1 ]]; then
+    selected=$1
+else
+    selected=$(get_selected)
+fi
+
+# Exit if nothing selected
+if [[ -z "$selected" ]]; then
+    exit 0
+fi
+
+# Create session name from directory name (replace dots with underscores for tmux)
+selected_name=$(basename "$selected" | tr '.' '_')
+
+# Check if tmux is running
+tmux_running=$(pgrep tmux)
+
+# If not in tmux and tmux is not running, start new session
+if [[ -z "$TMUX" ]] && [[ -z "$tmux_running" ]]; then
+    tmux new-session -s "$selected_name" -c "$selected"
+    exit 0
+fi
+
+# If session doesn't exist, create it (detached)
+if ! tmux has-session -t="$selected_name" 2>/dev/null; then
+    tmux new-session -ds "$selected_name" -c "$selected"
+fi
+
+# Switch to the session
+if [[ -z "$TMUX" ]]; then
+    tmux attach-session -t "$selected_name"
+else
+    tmux switch-client -t "$selected_name"
+fi
