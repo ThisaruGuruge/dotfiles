@@ -1,91 +1,68 @@
-## where to store your database, default is your system data directory
-## linux/mac: ~/.local/share/atuin/history.db
-## windows: %USERPROFILE%/.local/share/atuin/history.db
-# db_path = "~/.history.db"
+# ============================================================================
+# Atuin Configuration - Enhanced Shell History
+# ============================================================================
 
-## where to store your encryption key, default is your system data directory
-## linux/mac: ~/.local/share/atuin/key
-## windows: %USERPROFILE%/.local/share/atuin/key
-# key_path = "~/.key"
+## Database and key paths (using defaults)
+# db_path = "~/.local/share/atuin/history.db"
+# key_path = "~/.local/share/atuin/key"
+# session_path = "~/.local/share/atuin/session"
 
-## where to store your auth session token, default is your system data directory
-## linux/mac: ~/.local/share/atuin/session
-## windows: %USERPROFILE%/.local/share/atuin/session
-# session_path = "~/.session"
+## Date format: "us" (MM/DD) or "uk" (DD/MM)
+dialect = "us"
 
-## date format used, either "us" or "uk"
-# dialect = "us"
+## Timezone for displaying time
+timezone = "local"
 
-## default timezone to use when displaying time
-## either "l", "local" to use the system's current local timezone, or an offset
-## from UTC in the format of "<+|->H[H][:M[M][:S[S]]]"
-## for example: "+9", "-05", "+03:30", "-01:23:45", etc.
-# timezone = "local"
-
-## enable or disable automatic sync
+## Sync settings (enable if you want cross-machine history)
 # auto_sync = true
-
-## enable or disable automatic update checks
-# update_check = true
-
-## address of the sync server
 # sync_address = "https://api.atuin.sh"
-
-## how often to sync history. note that this is only triggered when a command
-## is ran, so sync intervals may well be longer
-## set it to 0 to sync after every command
 # sync_frequency = "10m"
 
-## which search mode to use
-## possible values: prefix, fulltext, fuzzy, skim
-# search_mode = "fuzzy"
+## Update check
+update_check = true
 
-## which filter mode to use by default
-## possible values: "global", "host", "session", "directory", "workspace"
-## consider using search.filters to customize the enablement and order of filter modes
-# filter_mode = "global"
+# ============================================================================
+# Search Configuration
+# ============================================================================
 
-## With workspace filtering enabled, Atuin will filter for commands executed
-## in any directory within a git repository tree (default: false).
-##
-## To use workspace mode by default when available, set this to true and
-## set filter_mode to "workspace" or leave it unspecified and 
-## set search.filters to include "workspace" before other filter modes.
-# workspaces = false
+## Search mode: prefix, fulltext, fuzzy, skim
+## fuzzy is recommended for most flexible matching
+search_mode = "fuzzy"
 
-## which filter mode to use when atuin is invoked from a shell up-key binding
-## the accepted values are identical to those of "filter_mode"
-## leave unspecified to use same mode set in "filter_mode"
-# filter_mode_shell_up_key_binding = "global"
+## Default filter mode: global, host, session, directory, workspace
+## global searches all history, directory is great for project-specific commands
+filter_mode = "global"
 
-## which search mode to use when atuin is invoked from a shell up-key binding
-## the accepted values are identical to those of "search_mode"
-## leave unspecified to use same mode set in "search_mode"
-# search_mode_shell_up_key_binding = "fuzzy"
+## Enable workspace filtering (filter within git repository trees)
+## Great for project-specific command recall
+workspaces = true
 
-## which style to use
-## possible values: auto, full, compact
-# style = "auto"
+## Up-arrow behavior: use prefix search for intuitive command recall
+## This shows matching commands as you type the beginning of a command
+filter_mode_shell_up_key_binding = "host"
+search_mode_shell_up_key_binding = "prefix"
 
-## the maximum number of lines the interface should take up
-## set it to 0 to always go full screen
-# inline_height = 0
+# ============================================================================
+# UI Configuration
+# ============================================================================
 
-## the maximum number of lines the interface should take up
-## when atuin is invoked from a shell up-key binding
-## the accepted values are identical to those of "inline_height"
-# inline_height_shell_up_key_binding = 0
+## Style: auto, full, compact
+style = "auto"
 
-## Invert the UI - put the search bar at the top , Default to `false`
-# invert = false
+## Inline height (0 = full screen, or set a specific height)
+inline_height = 0
 
-## enable or disable showing a preview of the selected command
-## useful when the command is longer than the terminal width and is cut off
-# show_preview = true
+## Up-arrow uses compact inline view
+inline_height_shell_up_key_binding = 40
 
-## what to do when the escape key is pressed when searching
-## possible values: return-original, return-query
-# exit_mode = "return-original"
+## Invert UI (search bar at top)
+invert = false
+
+## Show command preview (useful for long commands)
+show_preview = true
+
+## What to do on escape: return-original or return-query
+exit_mode = "return-original"
 
 ## possible values: emacs, subl
 # word_jump_mode = "emacs"
@@ -181,39 +158,33 @@ enter_accept = true
 # prefers_reduced_motion = false
 
 [stats]
-## Set commands where we should consider the subcommand for statistics. Eg, kubectl get vs just kubectl
-# common_subcommands = [
-#   "apt",
-#   "cargo",
-#   "composer",
-#   "dnf",
-#   "docker",
-#   "git",
-#   "go",
-#   "ip",
-#   "jj",
-#   "kubectl",
-#   "nix",
-#   "nmcli",
-#   "npm",
-#   "pecl",
-#   "pnpm",
-#   "podman",
-#   "port",
-#   "systemctl",
-#   "tmux",
-#   "yarn",
-# ]
+## Track subcommands for better statistics (e.g., "git commit" vs just "git")
+common_subcommands = [
+  "bal",
+  "brew",
+  "cargo",
+  "docker",
+  "git",
+  "go",
+  "gradle",
+  "kubectl",
+  "npm",
+  "pnpm",
+  "tmux",
+  "yarn",
+]
 
-## Set commands that should be totally stripped and ignored from stats
-# common_prefix = ["sudo"]
+## Strip these prefixes when computing stats
+common_prefix = ["sudo"]
 
-## Set commands that will be completely ignored from stats
-# ignored_commands = [
-#   "cd",
-#   "ls",
-#   "vi"
-# ]
+## Ignore these trivial commands from stats
+ignored_commands = [
+  "cd",
+  "ls",
+  "ll",
+  "clear",
+  "exit",
+]
 
 [keys]
 # Defaults to true. If disabled, using the up/down key won't exit the TUI when scrolled past the first/last entry.
@@ -274,7 +245,7 @@ records = true
 # debug = true
 
 [search]
-## The list of enabled filter modes, in order of priority.
-## The "workspace" mode is skipped when not in a workspace or workspaces = false.
-## Default filter mode can be overridden with the filter_mode setting.
-# filters = [ "global", "host", "session", "workspace", "directory" ]
+## Filter modes in order (Tab to cycle through them)
+## workspace: commands in current git repo; directory: current dir only
+## Putting workspace/directory first makes project context easily accessible
+filters = [ "global", "host", "session", "directory", "workspace" ]
