@@ -4,9 +4,9 @@ A macOS-focused developer workstation built around Zsh, Starship, modern CLI too
 
 ## Highlights
 
-- **Fast Zsh environment** – zinit-managed plugins, fzf-tab completion, syntax highlighting, autosuggestions, zoxide (via `z` command), Atuin history (Ctrl+Alt+R), and WezTerm/iTerm compatible key bindings
+- **Fast Zsh environment** – zinit-managed plugins, fzf-tab completion, syntax highlighting, autosuggestions, zoxide (via `z` command), Atuin history (Ctrl+R and up-arrow), and WezTerm compatible key bindings
 - **Starship prompt** – contextual Git state, Java/Node/Python/Ballerina indicators, battery/time segments, and sub-second rendering (see `PROMPT_GUIDE.md` for visuals)
-- **Modern CLI stack** – eza, bat, ripgrep, fd, jless, lazygit, tmux, direnv, atuin, gh, git-delta, git-flow, and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
+- **Modern CLI stack** – eza, bat, ripgrep, fd, jless, lazygit, lazydocker, tmux, direnv, atuin, gh, git-delta, git-flow, and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
 - **Smart aliases** – Single-letter shortcuts for modern tools (`v` for bat, `g` for ripgrep, `f` for fd, `z` for zoxide) while keeping original commands for scripts
 - **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → bat, `.json`/`.yaml` → jless, `.py`/`.sh`/`.bal` → $EDITOR)
 - **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina with lazy-loading shell glue so heavy managers don't slow startup
@@ -45,7 +45,7 @@ The script is interactive; it will:
 - Read enabled packages from `packages.json` and install them with Brew
 - Offer opt-in categories (development, databases, terminals, editors, etc.)
 - Install SDKMAN + Java 21 (optional) and brew-based Ballerina
-- Configure Atuin, direnv, tmux, git delta, lazygit, aliases, and helper functions
+- Configure Atuin, direnv, tmux, git delta, lazygit, lazydocker, aliases, and helper functions
 - Generate/restore encrypted `.env` with SOPS + age (keys stored at `~/.config/sops/age/keys.txt`)
 - Create Nerd Font + terminal integrations
 - Back up existing dotfiles and symlink everything via Stow
@@ -92,7 +92,7 @@ manage_packages enable-category editors # Toggle an entire category
 
 ### Categories available
 
-- `core` – starship, zoxide, eza, bat, ripgrep, lazygit, tmux, direnv, atuin, gh, etc.
+- `core` – starship, zoxide, eza, bat, ripgrep, lazygit, lazydocker, tmux, direnv, atuin, gh, etc.
 - `security` – sops + age for encrypted secrets (always enabled)
 - `development` – pyenv, rbenv, nvm (optional)
 - `database` – PostgreSQL 16, Redis
@@ -156,7 +156,9 @@ edit_secrets                              # Safely edit encrypted ~/.env via SOP
 take my-service && code .                 # Smart project bootstrap / clone helper
 kill_by_port 3000                         # Kill whatever binds to port 3000
 lg                                         # Launch lazygit with our config
-Ctrl+Alt+R                                 # Atuin search UI (history across terminals)
+lzd                                        # Launch lazydocker for Docker management
+Ctrl+R                                     # Atuin search UI (fuzzy search all history)
+Up arrow                                   # Atuin prefix search (as you type)
 ```
 
 ## Suffix Aliases

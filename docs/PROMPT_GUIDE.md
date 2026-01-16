@@ -108,18 +108,28 @@ Atuin replaces your shell history with a smart, searchable, syncable database.
 
 | Key | Command | Description |
 |-----|---------|-------------|
-| `Ctrl+Alt+R` | Search history | Opens Atuin TUI |
-| `↑` | Previous command | Native zsh (atuin disabled for this) |
-| `↓` | Next command | Native zsh |
+| `Ctrl+R` | Search history | Opens Atuin interactive search |
+| `↑` | Prefix search | Atuin shows matches as you type |
+| `↓` | Next in history | Navigate forward in history |
+| `Tab` | Edit command | Copy to command line for editing |
+| `Enter` | Execute | Run the selected command |
 
-**Note:** We disabled Atuin's up-arrow override to avoid conflicts with Warp terminal.
+### Using Atuin Search (Ctrl+R)
 
-### Using Atuin Search (Ctrl+Alt+R)
+1. Press `Ctrl+R` to open interactive search
+2. Type to filter commands (fuzzy matching)
+3. Use arrow keys to navigate results
+4. Press `Tab` to copy to command line (for editing)
+5. Press `Enter` to execute directly
 
-1. Press `Ctrl+Alt+R` to open search
-2. Type to filter commands
-3. Use arrow keys to navigate
-4. Press `Enter` to select and execute
+### Filter Modes (press Tab in search to cycle)
+
+| Mode | Description |
+|------|-------------|
+| `global` | Search all history (default) |
+| `host` | Search history from this machine only |
+| `session` | Search current terminal session only |
+| `directory` | Search commands run in current directory |
 
 ### Atuin Commands
 
@@ -132,19 +142,13 @@ hstats                  # alias for: atuin stats
 
 # Sync history (if configured)
 hsync                   # alias for: atuin sync
-
-# Navigate history
-hup                     # Go up in history
-hdown                   # Go down in history
 ```
 
-### Search Modes
+### Pro Tips
 
-Atuin supports multiple search modes (press `Ctrl+R` while in search to cycle):
-
-1. **Fuzzy** - Match anywhere in command (default)
-2. **Exact** - Exact substring match
-3. **Prefix** - Match start of command
+- **Directory context**: Use `directory` filter mode when you want commands specific to current project
+- **Statistics**: Run `hstats` to see your most used commands and patterns
+- **Secrets**: Atuin automatically filters out commands containing secrets (AWS keys, tokens, etc.)
 
 ---
 

@@ -83,6 +83,18 @@ This configuration follows standard Vim/Neovim conventions:
 | `<leader>tt` | Toggle terminal | plugins/editor.lua:169 |
 | `<C-\>` | Toggle terminal (alt) | plugins/editor.lua:174 |
 
+## TMux Integration (vim-tmux-navigator)
+
+Seamless navigation between NeoVim splits and TMux panes.
+
+| Key | Action | Source |
+|-----|--------|--------|
+| `<C-h>` | Navigate left (NeoVim/TMux) | plugins/tmux.lua:14 |
+| `<C-j>` | Navigate down (NeoVim/TMux) | plugins/tmux.lua:15 |
+| `<C-k>` | Navigate up (NeoVim/TMux) | plugins/tmux.lua:16 |
+| `<C-l>` | Navigate right (NeoVim/TMux) | plugins/tmux.lua:17 |
+| `<C-\>` | Navigate to previous pane | plugins/tmux.lua:18 |
+
 ## Completion (nvim-cmp)
 
 | Key | Action | Source |
