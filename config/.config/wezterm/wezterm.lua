@@ -120,36 +120,60 @@ config.keys = {
 			mods = "CTRL",
 		}),
 	},
+	-- TMux pane splitting (sends prefix + split key)
+	-- Ctrl+a is the TMux prefix (\x01)
 	{
 		key = "d",
 		mods = "CMD",
-		action = wezterm.action.SplitHorizontal({ domain = "CurrentPaneDomain" }),
+		action = wezterm.action.SendString("\x01|"), -- TMux: split right
 	},
 	{
 		key = "d",
 		mods = "CMD|SHIFT",
-		action = wezterm.action.SplitVertical({ domain = "CurrentPaneDomain" }),
+		action = wezterm.action.SendString("\x01-"), -- TMux: split down
 	},
+	-- TMux pane navigation
 	{
 		key = "[",
 		mods = "CMD",
-		action = wezterm.action.ActivatePaneDirection("Prev"),
+		action = wezterm.action.SendString("\x01p"), -- TMux: previous window
 	},
 	{
 		key = "]",
 		mods = "CMD",
-		action = wezterm.action.ActivatePaneDirection("Next"),
+		action = wezterm.action.SendString("\x01n"), -- TMux: next window
+	},
+	{
+		key = "h",
+		mods = "CMD",
+		action = wezterm.action.SendString("\x01h"), -- TMux: pane left
+	},
+	{
+		key = "j",
+		mods = "CMD",
+		action = wezterm.action.SendString("\x01j"), -- TMux: pane down
+	},
+	{
+		key = "k",
+		mods = "CMD|SHIFT", -- CMD+k alone is clear, so use CMD+SHIFT+k
+		action = wezterm.action.SendString("\x01k"), -- TMux: pane up
+	},
+	{
+		key = "l",
+		mods = "CMD|SHIFT", -- CMD+l alone is clear, so use CMD+SHIFT+l
+		action = wezterm.action.SendString("\x01l"), -- TMux: pane right
 	},
 	{
 		key = "w",
 		mods = "CMD",
-		action = wezterm.action.CloseCurrentPane({ confirm = true }),
+		action = wezterm.action.CloseCurrentPane({ confirm = true }), -- WezTerm: close pane/tab
 	},
 	{
 		key = "t",
 		mods = "CMD",
-		action = wezterm.action.SpawnTab("CurrentPaneDomain"),
+		action = wezterm.action.SpawnTab("CurrentPaneDomain"), -- WezTerm: new tab
 	},
+	-- WezTerm tab switching (Cmd+1-9)
 	{
 		key = "1",
 		mods = "CMD",
