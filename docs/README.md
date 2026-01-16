@@ -7,6 +7,9 @@ This directory contains all documentation for the dotfiles repository.
 ### Neovim (`nvim/`)
 - [keybindings_cheat_sheet.md](nvim/keybindings_cheat_sheet.md) - Complete Neovim keybindings reference
 
+### TMux
+- [TMUX_KEYBINDINGS.md](TMUX_KEYBINDINGS.md) - TMux keybindings and sessionizer guide
+
 ### AI Assistant Guides
 - [Claude.md](Claude.md) - Claude AI assistant guide
 - [PROMPT_GUIDE.md](PROMPT_GUIDE.md) - Prompting best practices
