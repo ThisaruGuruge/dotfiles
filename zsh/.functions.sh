@@ -697,11 +697,16 @@ function takedir() {
 
 function takegit() {
     local repo_url="$1"
+    local category="$2"
     local repo_name
+    local target_dir
+    local projects_dir="${PROJECTS_DIR:-$HOME/Projects}"
 
     # Validate input
     if [ -z "$repo_url" ]; then
         echo "Error: Repository URL is required"
+        echo "Usage: take <git-url> [category]"
+        echo "  e.g., take https://github.com/user/repo Ballerina"
         return 1
     fi
 
@@ -719,16 +724,26 @@ function takegit() {
         repo_name="repository"
     fi
 
-    # Check if directory already exists
-    if [ -d "$repo_name" ]; then
-        echo "Error: Directory '$repo_name' already exists"
-        echo "Consider: rm -rf '$repo_name' or choose a different location"
-        return 1
+    # Determine target directory
+    if [ -n "$category" ]; then
+        target_dir="$projects_dir/$category"
+        mkdir -p "$target_dir"
+        target_dir="$target_dir/$repo_name"
+    else
+        target_dir="$repo_name"
     fi
 
-    echo "Cloning $repo_url into $repo_name..."
-    if git clone "$repo_url" "$repo_name" 2>/dev/null; then
-        cd "$repo_name" || return
+    # Check if directory already exists
+    if [ -d "$target_dir" ]; then
+        echo "Project already exists: $target_dir"
+        echo "Entering existing project..."
+        cd "$target_dir" || return
+        return 0
+    fi
+
+    echo "Cloning $repo_url into $target_dir..."
+    if git clone "$repo_url" "$target_dir"; then
+        cd "$target_dir" || return
         echo "Successfully cloned and entered $repo_name"
     else
         echo "Failed to clone repository: $repo_url"
