@@ -83,6 +83,33 @@ TMux automatically starts when you open a terminal, except in:
 - Non-interactive shells
 - When already inside TMux
 
+## Auto Project Sessions
+
+When you `cd` into certain directories, TMux automatically creates or switches to a project-specific session.
+
+**Triggers:**
+- Any **git repository root** (directory containing `.git`)
+- Directories listed in **`~/.tmux-directories`**
+
+**Session naming:** Uses the folder name (e.g., `cd ~/projects/my-app` → session named `my-app`)
+
+**Config file example (`~/.tmux-directories`):**
+```
+# One path per line, comments start with #
+~/Documents/notes
+~/work/important-project
+/opt/my-tools
+```
+
+**Workflow:**
+```
+Terminal opens     → "main" session
+cd ~/projects/foo  → switches to "foo" session (created if needed)
+cd ~/projects/bar  → switches to "bar" session (foo stays alive)
+Ctrl+a, d          → detach (all sessions persist)
+tmux ls            → shows: main, foo, bar
+```
+
 ## Project Sessionizer
 
 Press `Ctrl+f` anywhere in TMux to:
