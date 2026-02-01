@@ -68,7 +68,8 @@ Before submitting a pull request, test your changes:
 
 # Test shell syntax
 zsh -n zsh/.zshrc
-bash -n zsh/.functions.sh
+zsh -n zsh/.zshrc.d/*.zsh
+zsh -n zsh/.functions.d/*.zsh
 bash -n zsh/.aliases.sh
 
 # Run shellcheck on modified scripts
@@ -108,7 +109,7 @@ All pull requests are automatically validated through GitHub Actions:
 
 - **Shellcheck**: Validates shell script syntax and best practices
 - **shfmt**: Checks shell script formatting
-- **JSON validation**: Validates packages.json and config files
+- **JSON validation**: Validates JSON config files
 - **Security scanning**: Checks for hardcoded paths and secrets
 - **macOS testing**: Tests on macOS environment
 
@@ -205,14 +206,16 @@ For Python utilities (bin/manage-packages, bin/generate-brewfile):
 Use scopes to indicate which part of the codebase is affected:
 
 - `(init)` - init.sh installation script
-- `(zsh)` - Zsh configuration (.zshrc, .aliases.sh, .functions.sh)
+- `(zsh)` - Zsh configuration (.zshrc, .zshrc.d/, .aliases.sh)
+- `(functions)` - Shell functions (.functions.d/)
 - `(ci)` - GitHub Actions workflows
 - `(docs)` - Documentation (README, CONTRIBUTING, etc.)
-- `(packages)` - Package management (packages.json, Brewfile)
+- `(packages)` - Package management (Brewfile, packages/)
 - `(security)` - Secret management and security features
 - `(prompt)` - Starship prompt configuration
 - `(git)` - Git configuration
-- `(vim)` - Vim configuration
+- `(nvim)` - Neovim configuration
+- `(wezterm)` - WezTerm configuration
 - `(tmux)` - Tmux configuration
 
 ### Examples
@@ -380,31 +383,22 @@ git config --local commit.template ~/.gitmessage
 
 To add a new package to the dotfiles:
 
-### 1. Update packages.json
+### 1. Update Brewfile
 
-Add the package to the appropriate category:
+Add the package to the main `Brewfile` for core packages, or to the appropriate category file in `packages/`:
 
-```json
-{
-  "categories": {
-    "core": {
-      "packages": {
-        "your-package": {
-          "enabled": true,
-          "type": "brew",
-          "description": "Description of your package",
-          "required": false
-        }
-      }
-    }
-  }
-}
+```ruby
+# In Brewfile (core packages)
+brew "your-package"  # Description of your package
+
+# Or in packages/development.brewfile (optional category)
+brew "your-dev-tool"
 ```
 
-### 2. Regenerate Brewfile
+### 2. Test Installation
 
 ```bash
-./bin/generate-brewfile
+brew bundle --file=Brewfile
 ```
 
 ### 3. Update init.sh (if needed)

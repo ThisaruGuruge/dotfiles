@@ -9,7 +9,7 @@ tap "jesseduffield/lazygit"    # Official lazygit tap for frequent updates
 tap "jesseduffield/lazydocker" # Official lazydocker tap
 
 # Essential tools required for dotfiles functionality
-brew "stow"                         # Symlink farm manager (with known directory symlink bug - see init.sh workaround)
+brew "stow"                         # Symlink farm manager (use --no-folding for reliable symlinks)
 brew "starship"                     # Fast, modern shell prompt written in Rust
 brew "fzf"                          # Fuzzy finder
 brew "zoxide"                       # Smart cd command

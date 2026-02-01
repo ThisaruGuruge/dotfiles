@@ -11,7 +11,7 @@ A macOS-focused developer workstation built around Zsh, Starship, modern CLI too
 - **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → bat, `.json`/`.yaml` → jless, `.py`/`.sh`/`.bal` → $EDITOR)
 - **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina with lazy-loading shell glue so heavy managers don't slow startup
 - **Secrets handled correctly** – SOPS + age encryption, `edit_secrets` workflow, and automatic `.env` handling inside `init.sh`
-- **Single source of truth** – `packages.json` powers the installer, `manage_packages` CLI, and the generated `Brewfile`
+- **Brewfile-driven** – Curated `Brewfile` with optional category files in `packages/` for modular installation
 - **Validation + profiling** – `test-zsh` integration tests, `profile_startup` quick timing, and `bin/profile-zsh-startup` for deep dives
 
 ## Prerequisites
@@ -42,7 +42,7 @@ cd ~/dotfiles
 The script is interactive; it will:
 
 - Validate macOS + Xcode CLT, install Homebrew, jq, GNU Stow
-- Read enabled packages from `packages.json` and install them with Brew
+- Install core packages from `Brewfile` with Brew
 - Offer opt-in categories (development, databases, terminals, editors, etc.)
 - Install SDKMAN + Java 21 (optional) and brew-based Ballerina
 - Configure Atuin, direnv, tmux, git delta, lazygit, lazydocker, aliases, and helper functions
@@ -61,7 +61,7 @@ cd ~/dotfiles
 brew bundle --file=Brewfile
 
 # Stow the packages you need (add/remove as desired)
-stow zsh git tmux vim direnv .config
+stow --no-folding zsh git tmux vim direnv config
 
 # Copy the env template (will be encrypted later by init/edit_secrets)
 cp zsh/.env.example zsh/.env
@@ -70,24 +70,33 @@ cp zsh/.env.example zsh/.env
 source ~/.zshrc
 ```
 
-Edit `packages.json` or use `manage_packages` (see next section) before running `brew bundle` if you want to toggle packages.
+Edit the `Brewfile` directly or use category Brewfiles in `packages/` before running `brew bundle` if you want to customize packages.
 
 ### Option 3 – Brewfile only
 
-Already have a preferred dotfiles strategy but want the curated tools? Run `brew bundle --file=Brewfile` and manually pick pieces (Starship config, aliases, etc.). The Brewfile is 100% generated from `packages.json`, so edit the JSON + regenerate when you need changes.
+Already have a preferred dotfiles strategy but want the curated tools? Run `brew bundle --file=Brewfile` and manually pick pieces (Starship config, aliases, etc.). Edit the Brewfile directly or use the category files in `packages/` to customize your installation.
 
-## Package Management System
+## Package Management
 
-`packages.json` describes taps, categories, and each package (type, description, enabled flag). It keeps `init.sh`, `manage_packages`, and the Brewfile perfectly in sync.
-
-### CLI helpers
+The main `Brewfile` contains core packages that are always installed. Optional packages are organized into category files in `packages/`:
 
 ```bash
-manage_packages list                    # Show every package and status
-manage_packages categories              # Show categories with counts
-manage_packages enable cursor           # Toggle a single package
-manage_packages enable-category editors # Toggle an entire category
-./bin/generate-brewfile                 # Rebuild Brewfile from JSON
+packages/
+├── cloud.brewfile       # AWS, GCP CLIs
+├── containers.brewfile  # Docker, Rancher Desktop
+├── databases.brewfile   # PostgreSQL, Redis
+├── development.brewfile # pyenv, rbenv, nvm
+├── editors.brewfile     # Cursor, VS Code
+├── productivity.brewfile # Raycast, Rectangle, etc.
+└── terminals.brewfile   # WezTerm, iTerm2
+```
+
+### Installing optional categories
+
+```bash
+brew bundle --file=Brewfile                      # Core packages
+brew bundle --file=packages/development.brewfile # Add dev tools
+brew bundle --file=packages/editors.brewfile     # Add editors
 ```
 
 ### Categories available
@@ -102,19 +111,22 @@ manage_packages enable-category editors # Toggle an entire category
 - `containers` – Docker Desktop, Rancher Desktop
 - `productivity` – Raycast, Rectangle, TablePlus, Alfred, Postman
 
-Disable what you do not need, regenerate the Brewfile, then rerun the installer or `brew bundle`.
+Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 
 ## Repository Layout & Stow Packages
 
 | Path | Notes |
 | --- | --- |
-| `zsh/` | `.zshrc`, aliases, functions, paths, `.env.example` |
-| `.config/` | XDG configs (`starship.toml`, `wezterm`, `lazygit`, `nvim`, `ripgrep`) |
+| `zsh/` | `.zshrc`, `.zshrc.d/` (modular shell config), `.functions.d/` (modular functions), aliases, paths |
+| `zsh/.zshrc.d/` | 7 modules: plugins, completion, keybindings, history, integrations, environment, tmux |
+| `zsh/.functions.d/` | 9 modules: colors, core, navigation, archives, git, system, dotfiles, docs, packages |
+| `config/.config/` | XDG configs (`starship.toml`, `wezterm`, `lazygit`, `nvim`, `ripgrep`) |
 | `git/` | `.gitconfig`, ignore rules, delta settings |
 | `tmux/` | Modern tmux config + keybinds |
 | `direnv/` | Project-specific environment automation |
-| `bin/` | Helper scripts (`manage-packages`, `generate-brewfile`, profilers, tests) |
-| `lib/` | Shared shell helpers sourced by scripts |
+| `packages/` | Optional category Brewfiles (cloud, containers, databases, etc.) |
+| `bin/` | Helper scripts (`test-zsh-config`, `profile-zsh-startup`, `audit-configs`, `adopt-config`) |
+| `docs/` | Additional documentation (prompt guide, tmux keybindings, config management) |
 
 ### WezTerm Configuration
 
@@ -122,39 +134,36 @@ WezTerm is configured with:
 - Option key for word navigation (Option+Left/Right)
 - Catppuccin Mocha theme
 - FiraCode Nerd Font with ligatures
-- Comprehensive keyboard shortcuts
-- See `.config/wezterm/README.md` for full details
+- Comprehensive keyboard shortcuts (Cmd+D for split, vim-style copy mode)
+- Tmux integration for pane splitting
 
-### Stow Usage & Known Issues
+### Stow Usage
 
-**Known Bug**: GNU Stow 2.4.1 has a bug where it reports creating directory symlinks but doesn't actually create them for new directories in `.config/`. The `init.sh` script includes a workaround that manually creates these symlinks for `nvim`, `vim`, and `wezterm`.
+This repo uses GNU Stow with the `--no-folding` flag to ensure reliable symlink creation. This prevents directory folding issues where Stow might replace directories with symlinks.
 
 ```bash
-stow zsh              # Shell config
-stow .config          # Starship, lazygit, nvim, wezterm, ripgrep
-stow git tmux direnv  # Git/Tmux/Direnv packages
+stow --no-folding zsh              # Shell config
+stow --no-folding config           # Starship, lazygit, nvim, wezterm, ripgrep
+stow --no-folding git tmux direnv  # Git/Tmux/Direnv packages
 
 # Remove a package
 stow -D zsh
 ```
 
-**Alternative**: Consider migrating to [Chezmoi](./DOTFILE_MANAGER_ALTERNATIVES.md) for a more robust dotfile management solution without symlink bugs.
+**Alternative**: For cross-platform dotfile management, consider [Chezmoi](https://www.chezmoi.io/).
 
 ## Quick Start Commands
 
 ```bash
 test-zsh                                   # Full validation (tools, PATH, runtimes)
-profile_startup                            # 3-run average for shell startup time
 ./bin/profile-zsh-startup                  # Deep component timing (Starship, zinit, SDKMAN, etc.)
-help                                      # Alias documentation entry point
-docs                                      # Interactive alias browser (alias_docs)
-show_tools                                # Overview of installed CLI upgrades
-alias_search git                          # Search for aliases by keyword
-manage_packages list                      # Review package enablement
-manage_packages enable-category development
-edit_secrets                              # Safely edit encrypted ~/.env via SOPS
-take my-service && code .                 # Smart project bootstrap / clone helper
-kill_by_port 3000                         # Kill whatever binds to port 3000
+help                                       # Alias documentation entry point
+docs                                       # Interactive alias browser (alias_docs)
+show_tools                                 # Overview of installed CLI upgrades
+alias_search git                           # Search for aliases by keyword
+edit_secrets                               # Safely edit encrypted ~/.env via SOPS
+take my-service && code .                  # Smart project bootstrap / clone helper
+kill_by_port 3000                          # Kill whatever binds to port 3000
 lg                                         # Launch lazygit with our config
 lzd                                        # Launch lazydocker for Docker management
 Ctrl+R                                     # Atuin search UI (fuzzy search all history)
@@ -233,12 +242,11 @@ The config already includes directory substitutions, repo-root formatting, and a
 
 ## Validation, Performance & Troubleshooting
 
-- `test-zsh` – Runs syntax checks, ensures required tools exist (driven by `packages.json`), inspects PATH/env vars, and prints a summary with pass/warn/fail counts
-- `profile_startup` – Calls `zsh -i -c exit` three times and reports average startup time with recommendations
+- `test-zsh` – Runs syntax checks, ensures required tools exist, inspects PATH/env vars, and prints a summary with pass/warn/fail counts
 - `./bin/profile-zsh-startup` – Detailed profiler that times individual components (Homebrew shellenv, Starship init, zinit plugins, SDKMAN, pyenv, compinit, sourcing files)
 - `zsh -n ~/.zshrc` – Quick syntax validation if you edit the config
 - `starship explain` – Debug what each segment is doing if the prompt looks odd
-- `manage_packages list` – Confirm Brew dependencies match what you expect before running Bundle again
+- `brew bundle check` – Confirm Brew dependencies match Brewfile before running Bundle again
 
 Common fixes:
 
@@ -257,10 +265,9 @@ Fonts missing? Re-open the terminal and ensure your profile uses a Nerd Font. Pr
 ```bash
 cd ~/dotfiles
 git pull origin main
-manage_packages list   # adjust packages if necessary
-./bin/generate-brewfile
-brew bundle --file=Brewfile
-test-zsh               # sanity check after upgrades
+brew bundle --file=Brewfile  # Install any new packages
+test-zsh                     # Sanity check after upgrades
+source ~/.zshrc              # Reload shell config
 ```
 
 Remember to `stow -D` packages you no longer want and re-run `stow` after pulling to ensure new configs are linked.

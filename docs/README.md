@@ -1,22 +1,21 @@
 # Documentation
 
-This directory contains all documentation for the dotfiles repository.
+This directory contains additional documentation for the dotfiles repository.
 
-## Structure
+## Contents
+
+### Shell Configuration
+- [CONFIG_MANAGEMENT.md](CONFIG_MANAGEMENT.md) - Managing configs with Stow, adopting new configs
+
+### Prompt
+- [PROMPT_GUIDE.md](PROMPT_GUIDE.md) - Starship prompt customization and troubleshooting
+
+### TMux
+- [TMUX_KEYBINDINGS.md](TMUX_KEYBINDINGS.md) - TMux keybindings and session management
 
 ### Neovim (`nvim/`)
 - [keybindings_cheat_sheet.md](nvim/keybindings_cheat_sheet.md) - Complete Neovim keybindings reference
-
-### TMux
-- [TMUX_KEYBINDINGS.md](TMUX_KEYBINDINGS.md) - TMux keybindings and sessionizer guide
-
-### AI Assistant Guides
-- [Claude.md](Claude.md) - Claude AI assistant guide
-- [PROMPT_GUIDE.md](PROMPT_GUIDE.md) - Prompting best practices
-- [claude-audit-report/](claude-audit-report/) - Audit reports
-
-### Analysis
-- [dotfiles_analysis_report.md](dotfiles_analysis_report.md) - Dotfiles analysis
+- [ADDING_KEYBINDINGS.md](nvim/ADDING_KEYBINDINGS.md) - How to add custom keybindings
 
 ## Main Documentation
 
