@@ -77,6 +77,7 @@ fi
 # ============================================================================
 # Files in .zshrc.d/ are sourced in alphabetical order (numbered for control)
 
+
 for config_file in "$HOME/.zshrc.d/"*.zsh(N); do
     source "$config_file"
 done

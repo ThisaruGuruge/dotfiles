@@ -2,5 +2,5 @@
 export EDITOR="nvim"
 export VISUAL="$EDITOR"
 
-source "/Users/thisaru/.rover/env"
-export PATH="/Users/thisaru/Setup/flutter/bin:$PATH"
+[ -f "$HOME/.rover/env" ] && source "$HOME/.rover/env"
+[ -d "$HOME/Setup/flutter/bin" ] && export PATH="$HOME/Setup/flutter/bin:$PATH"

@@ -5,7 +5,12 @@
 
 # Source the personal configs
 source "$HOME/.aliases.sh"
-source "$HOME/.functions.sh"
+
+# Source modular functions from .functions.d/
+for file in "$HOME/.functions.d"/*.zsh; do
+    [[ -r "$file" ]] && source "$file"
+done
+
 source "$HOME/.paths.sh"
 
 # Configure SOPS age key location
@@ -92,7 +97,7 @@ if command -v pyenv >/dev/null 2>&1; then
 fi
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-export PATH="/Users/thisaru/.rd/bin:$PATH"
+[ -d "$HOME/.rd/bin" ] && export PATH="$HOME/.rd/bin:$PATH"
 ### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
 
 # Source local environment if it exists
