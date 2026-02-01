@@ -765,7 +765,7 @@ stow_packages() {
 
             # Use stow to create symlinks
             # Note: Exclusions are managed via .stow-local-ignore files in each package
-            local stow_args=(-t "$HOME" "$package")
+            local stow_args=(--no-folding -t "$HOME" "$package")
 
             # First, try a dry-run to detect conflicts
             local stow_output

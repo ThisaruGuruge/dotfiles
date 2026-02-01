@@ -20,35 +20,25 @@ return {
 					"rust",
 					"python",
 				},
-				highlight = { enable = true },
-				indent = { enable = true },
-				incremental_selection = {
-					enable = true,
-					keymaps = {
-						init_selection = "<CR>",
-						node_incremental = "<CR>",
-						scope_incremental = "<S-CR>",
-						node_decremental = "<BS>",
-					},
-				},
 			})
 
-			-- Fix Python query file after updates: remove "except*" which is not a valid node type
-			-- The tree-sitter-python grammar uses token(*) within except_clause instead
-			vim.api.nvim_create_autocmd("User", {
-				pattern = "LazyDone",
+			-- Enable treesitter-based highlighting and indentation
+			vim.api.nvim_create_autocmd("FileType", {
 				callback = function()
-					local query_file = vim.fn.stdpath("data") .. "/lazy/nvim-treesitter/queries/python/highlights.scm"
-					if vim.fn.filereadable(query_file) == 1 then
-						local content = table.concat(vim.fn.readfile(query_file), "\n")
-						-- Remove "except*" from the keyword.exception list
-						local new_content = content:gsub('(%[%s*"try"%s*"except"%s*)"except%*"(%s*"raise")', "%1%2")
-						if content ~= new_content then
-							vim.fn.writefile(vim.split(new_content, "\n"), query_file)
-						end
-					end
+					pcall(vim.treesitter.start)
 				end,
 			})
+
+			-- Incremental selection keymaps
+			vim.keymap.set("n", "<CR>", function()
+				require("nvim-treesitter.incremental_selection").init_selection()
+			end, { desc = "Init treesitter selection" })
+			vim.keymap.set("x", "<CR>", function()
+				require("nvim-treesitter.incremental_selection").node_incremental()
+			end, { desc = "Increment treesitter selection" })
+			vim.keymap.set("x", "<BS>", function()
+				require("nvim-treesitter.incremental_selection").node_decremental()
+			end, { desc = "Decrement treesitter selection" })
 		end,
 	},
 
