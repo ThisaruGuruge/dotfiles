@@ -39,33 +39,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests all tools, runtimes, environment variables, and PATH configuration
 - Beautiful colored output with pass/fail/warning states
 - Performance testing with 3-sample averages (~0.6s startup time)
-- Dynamic testing based on packages.json configuration
+- Dynamic testing based on Brewfile configuration
 - GitHub Actions CI/CD with shellcheck, shfmt, JSON validation, and security scanning
 
 #### Package Management System
 
-- **Centralized package configuration** in packages.json as single source of truth
-- Automated Brewfile generation from packages.json
-- `manage_packages` interactive tool for package configuration
-- Category-based organization (core, security, development, database, etc.)
-- Enable/disable individual packages or entire categories
-- Perfect consistency between init.sh and Brewfile
+- **Brewfile-based package management** with optional category files
+- Category-based organization in `packages/` (cloud, containers, databases, etc.)
+- Core packages in main Brewfile, optional packages in category files
+- Modular installation: install only what you need
 
 #### Performance Optimizations
 
 - **Fast shell startup** (~0.6s) with lazy loading strategies
 - NVM lazy loading - PATH added immediately, full NVM loads on demand
-- Oh My Posh caching (~/.cache/zsh/omp_cache.zsh)
 - Zinit turbo mode for non-essential plugins
 - PATH deduplication to prevent slow lookups
 - Performance profiling tool (bin/profile-startup)
 
-#### Custom Oh My Posh Theme
+#### Starship Prompt
 
 - **Context-aware prompt** with language runtime indicators
 - Java, Node.js, Python, Ballerina version display
 - Git status with file changes, staged files, stash count
-- Path truncation (max 3 levels) for clean display
+- Path truncation with git-aware display
 - Multi-language project support
 - Upstream tracking (ahead/behind/diverged indicators)
 
@@ -302,15 +299,14 @@ None - This is the initial stable release (v1.0.0)
 
 ---
 
-## [Unreleased]
+## Roadmap
 
-### Planned Features
+Potential future enhancements:
 
 - Cross-platform support (Linux, WSL)
 - Automated testing for custom functions
 - IDE integration (VSCode, Cursor settings sync)
 - Additional language support (Rust, Go, Deno)
-- Cloud provider tools (AWS CLI, GCP SDK, Azure CLI)
 
 ---
 

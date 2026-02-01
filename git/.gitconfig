@@ -3,3 +3,5 @@
 
 [include]
     path = ~/.gitconfig.local
+[init]
+	  defaultBranchName = main
