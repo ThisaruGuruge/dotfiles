@@ -18,6 +18,7 @@ list_dotfiles_tools() {
     echo "📁 FILE & NAVIGATION TOOLS:"
     echo "   eza              - Modern ls replacement"
     echo "   bat              - Enhanced cat with syntax highlighting"
+    echo "   glow             - Terminal markdown viewer"
     echo "   ripgrep (rg)     - Fast grep replacement"
     echo "   fzf              - Fuzzy finder"
     echo "   zoxide           - Smart cd replacement"

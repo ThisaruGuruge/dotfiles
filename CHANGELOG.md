@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `glow` for terminal markdown rendering (Brewfile, suffix aliases, test suite)
+- New suffix aliases for `.markdown` and `.mdx` extensions
+- `md` alias for quick markdown viewing with glow
+- `readme` function to view README in current directory
+- `mdp` function for fzf-powered markdown file browsing with live preview
+
 ### Changed
 
 - Replaced the legacy Oh My Posh prompt with the current Starship configuration, including new docs and tooling updates

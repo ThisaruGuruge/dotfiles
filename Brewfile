@@ -36,6 +36,9 @@ brew "age"                          # Simple file encryption
 brew "jq"                           # JSON processor for scripts
 brew "jless"                        # Interactive JSON/YAML viewer
 
+# Markdown viewing
+brew "glow"                         # Terminal markdown viewer with paging
+
 # AI/Development Tools
 cask "antigravity"                  # AI Agent
 

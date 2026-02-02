@@ -35,6 +35,8 @@ fi
 
 # Suffix Aliases for File Types
 alias -s md='glow -p'
+alias -s markdown='glow -p'
+alias -s mdx='glow -p'
 alias -s json='jless'
 alias -s yaml='jless'
 alias -s yml='jless'
@@ -158,6 +160,31 @@ alias gcleanup='git cleanup'
 # Modern file viewing and search tools
 if command -v bat &>/dev/null; then
     alias v='bat'
+fi
+
+if command -v glow &>/dev/null; then
+    alias md='glow -p'
+    # View README in current directory
+    readme() {
+        local file
+        file=$(find . -maxdepth 1 -iname 'readme*' -type f 2>/dev/null | head -1)
+        if [[ -n "$file" ]]; then
+            glow -p "$file"
+        else
+            echo "No README found in current directory"
+            return 1
+        fi
+    }
+    # Browse markdown files with fzf preview
+    mdp() {
+        if ! command -v fzf &>/dev/null; then
+            echo "fzf required for mdp"
+            return 1
+        fi
+        local file
+        file=$(fd -e md -e markdown -e mdx 2>/dev/null | fzf --preview 'glow -s dark {}' --preview-window=right:60%)
+        [[ -n "$file" ]] && glow -p "$file"
+    }
 fi
 
 if command -v rg &>/dev/null; then

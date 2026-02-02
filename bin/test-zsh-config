@@ -308,6 +308,9 @@ print_header "Development Tools"
 # Claude Code (critical for this workflow!)
 test_tool "Claude Code" "claude" "claude --version"
 
+# Glow (markdown viewer)
+test_tool "Glow" "glow" "glow --version"
+
 # Git
 test_tool "Git" "git" "git --version"
 
