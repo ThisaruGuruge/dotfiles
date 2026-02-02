@@ -8,7 +8,7 @@ A macOS-focused developer workstation built around Zsh, Starship, modern CLI too
 - **Starship prompt** – contextual Git state, Java/Node/Python/Ballerina indicators, battery/time segments, and sub-second rendering (see `PROMPT_GUIDE.md` for visuals)
 - **Modern CLI stack** – eza, bat, ripgrep, fd, jless, lazygit, lazydocker, tmux, direnv, atuin, gh, git-delta, git-flow, and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
 - **Smart aliases** – Single-letter shortcuts for modern tools (`v` for bat, `g` for ripgrep, `f` for fd, `z` for zoxide) while keeping original commands for scripts
-- **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → bat, `.json`/`.yaml` → jless, `.py`/`.sh`/`.bal` → $EDITOR)
+- **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → glow, `.json`/`.yaml` → jless, `.py`/`.sh`/`.bal` → $EDITOR)
 - **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina with lazy-loading shell glue so heavy managers don't slow startup
 - **Secrets handled correctly** – SOPS + age encryption, `edit_secrets` workflow, and automatic `.env` handling inside `init.sh`
 - **Brewfile-driven** – Curated `Brewfile` with optional category files in `packages/` for modular installation
@@ -175,8 +175,8 @@ Up arrow                                   # Atuin prefix search (as you type)
 Zsh suffix aliases automatically open files based on their extension. Just type the filename and press Enter:
 
 ```bash
-# Viewing files (read-only, syntax-highlighted)
-README.md                                  # Opens in bat with Markdown highlighting
+# Viewing files (rendered markdown)
+README.md                                  # Opens in glow with rendered Markdown
 data.json                                  # Opens in jless (interactive JSON viewer)
 config.yaml                                # Opens in jless (interactive YAML viewer)
 
@@ -191,7 +191,7 @@ app.conf                                   # Opens config files in nvim
 
 | Extension | Tool | Purpose |
 |-----------|------|---------|
-| `.md` | `bat` | View Markdown with syntax highlighting |
+| `.md` | `glow` | View rendered Markdown with paging |
 | `.json` | `jless` | Interactive JSON browsing with folding |
 | `.yaml`, `.yml` | `jless` | Interactive YAML browsing |
 | `.py` | `$EDITOR` | Edit Python files |

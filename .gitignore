@@ -4,8 +4,11 @@
 
 # IDE and editor
 .vscode
-.claudeignore
+
+# AI agent context (local only)
 .claude
+.claudeignore
+CLAUDE.md
 
 # macOS
 .DS_Store
