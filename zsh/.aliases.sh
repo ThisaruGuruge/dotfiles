@@ -34,7 +34,7 @@ if ! command -v eza &>/dev/null; then
 fi
 
 # Suffix Aliases for File Types
-alias -s md='bat'
+alias -s md='glow -p'
 alias -s json='jless'
 alias -s yaml='jless'
 alias -s yml='jless'
@@ -104,7 +104,6 @@ alias 9='cd -9'
 # Editors
 alias vi="nvim"
 alias vim="nvim"
-alias v="nvim"
 
 # Devlopment
 alias editHosts='sudo nvim /etc/hosts'

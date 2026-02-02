@@ -4,27 +4,36 @@ return {
 		build = ":TSUpdate",
 		event = { "BufReadPost", "BufNewFile" },
 		config = function()
-			require("nvim-treesitter.configs").setup({
-				ensure_installed = {
-					"lua",
-					"vim",
-					"vimdoc",
-					"bash",
-					"json",
-					"yaml",
-					"markdown",
-					"markdown_inline",
-					"typescript",
-					"javascript",
-					"go",
-					"rust",
-					"python",
-				},
-			})
+			-- Install parsers (run :TSInstall manually or use this list)
+			local parsers = {
+				"lua",
+				"vim",
+				"vimdoc",
+				"bash",
+				"json",
+				"yaml",
+				"markdown",
+				"markdown_inline",
+				"typescript",
+				"javascript",
+				"go",
+				"rust",
+				"python",
+			}
 
-			-- Enable treesitter-based highlighting and indentation
+			-- Auto-install missing parsers when entering a buffer
 			vim.api.nvim_create_autocmd("FileType", {
 				callback = function()
+					local ft = vim.bo.filetype
+					local lang = vim.treesitter.language.get_lang(ft) or ft
+					if vim.tbl_contains(parsers, lang) then
+						pcall(function()
+							if not pcall(vim.treesitter.language.inspect, lang) then
+								vim.cmd("TSInstall " .. lang)
+							end
+						end)
+					end
+					-- Enable treesitter highlighting
 					pcall(vim.treesitter.start)
 				end,
 			})
@@ -121,10 +130,8 @@ return {
 				{ "<leader>fk", "<cmd>Telescope keymaps<cr>", desc = "Find Keymaps", icon = "" },
 				{
 					"<leader>fs",
-					function()
-						require("telescope.builtin").grep_string({ search = vim.fn.input("Grep > ") })
-					end,
-					desc = "Search String (prompt)",
+					"<cmd>Telescope current_buffer_fuzzy_find<cr>",
+					desc = "Search in Buffer",
 					icon = "",
 				},
 
