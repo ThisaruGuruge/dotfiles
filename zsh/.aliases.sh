@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 # Common Commands
 
@@ -27,7 +27,7 @@ alias ls_t='eza -l --sort=modified --icons --git'
 alias ls_old='eza -l --sort=oldest --icons --git'
 
 # Fallback to traditional ls if eza not available
-if ! command -v eza &>/dev/null; then
+if ! (( $+commands[eza] )); then
     alias ls='ls --color=auto'
     alias ll='ls -lah'
     alias la='ls -la'
@@ -158,11 +158,11 @@ alias gamend='git amend'
 alias gcleanup='git cleanup'
 
 # Modern file viewing and search tools
-if command -v bat &>/dev/null; then
+if (( $+commands[bat] )); then
     alias v='bat'
 fi
 
-if command -v glow &>/dev/null; then
+if (( $+commands[glow] )); then
     alias md='glow -p'
     # View README in current directory
     readme() {
@@ -187,7 +187,7 @@ if command -v glow &>/dev/null; then
     }
 fi
 
-if command -v rg &>/dev/null; then
+if (( $+commands[rg] )); then
     alias g='rg'
 fi
 
@@ -214,11 +214,11 @@ alias psg='ps aux | grep'
 alias top='htop'
 
 # Modern alternatives
-if command -v fd &>/dev/null; then
+if (( $+commands[fd] )); then
     alias f='fd'
 fi
 
-if command -v dust &>/dev/null; then
+if (( $+commands[dust] )); then
     alias d='dust'
 fi
 
@@ -260,7 +260,7 @@ alias grepbal='rg --type ballerina'
 alias searchbal='rg --type bal'
 
 # Atuin shell history aliases
-if command -v atuin >/dev/null 2>&1; then
+if (( $+commands[atuin] )); then
     alias hs='atuin search'
     alias hstats='atuin stats'
     alias hsync='atuin sync'

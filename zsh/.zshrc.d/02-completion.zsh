@@ -3,9 +3,9 @@
 # ============================================================================
 # Optimized completion with caching for faster startup
 
-# Add Homebrew completions to fpath and exclude broken paths
-if type brew &>/dev/null; then
-  FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
+# Add Homebrew completions to fpath (hardcoded prefix for performance)
+if [[ -d "${HOMEBREW_PREFIX:-/opt/homebrew}/share/zsh/site-functions" ]]; then
+  FPATH="${HOMEBREW_PREFIX:-/opt/homebrew}/share/zsh/site-functions:${FPATH}"
 fi
 
 # Optimized completion system - regenerate dump only once per day
@@ -27,24 +27,19 @@ fi
 
 # NVM - Optimized loading for faster startup
 export NVM_DIR="$HOME/.nvm"
-if [ -d "$NVM_DIR/versions/node" ]; then
-    # Quickly add current/default node version to PATH without loading full NVM
-    # This makes global npm packages (like claude) available immediately
-    latest_node_version="$(ls -t "$NVM_DIR/versions/node" 2>/dev/null | head -1)"
-
-    if [ -n "$latest_node_version" ]; then
-        default_node_path="$NVM_DIR/versions/node/$latest_node_version/bin"
-        if [ -d "$default_node_path" ]; then
-            export PATH="$default_node_path:$PATH"
-        fi
+if [[ -d "$NVM_DIR/versions/node" ]]; then
+    # Add highest installed node version to PATH (sorted by version, no subprocess)
+    local -a node_versions=("$NVM_DIR"/versions/node/v*(N/On))
+    if [[ -n "${node_versions[1]}" ]] && [[ -d "${node_versions[1]}/bin" ]]; then
+        export PATH="${node_versions[1]}/bin:$PATH"
     fi
 
     # Lazy load NVM only when actually needed
-    if [ -s "/opt/homebrew/opt/nvm/nvm.sh" ]; then
+    if [[ -s "/opt/homebrew/opt/nvm/nvm.sh" ]]; then
         _load_nvm() {
             unset -f nvm node npm npx yarn _load_nvm
             \. "/opt/homebrew/opt/nvm/nvm.sh"
-            [ -n "$PS1" ] && [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+            [[ -n "$PS1" ]] && [[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
         }
         nvm() { _load_nvm; nvm "$@"; }
     fi
@@ -52,11 +47,20 @@ fi
 
 zinit cdreplay -q
 
-# SDKMAN initialization (must be before completion styling)
+# SDKMAN - lazy-loaded for faster startup (saves ~1s)
 if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
-    # Source SDKMAN directly (caching doesn't work well with SDKMAN's complexity)
-    setopt localoptions nolocaltraps
-    source "$HOME/.sdkman/bin/sdkman-init.sh" 2>/dev/null || true
+    export SDKMAN_DIR="$HOME/.sdkman"
+    # Add current candidates to PATH immediately (without full init)
+    for candidate_dir in "$SDKMAN_DIR"/candidates/*/current/bin(N); do
+        [[ -d "$candidate_dir" ]] && export PATH="$candidate_dir:$PATH"
+    done
+    # Lazy-load full SDKMAN on first use
+    sdk() {
+        unset -f sdk
+        setopt localoptions nolocaltraps
+        source "$SDKMAN_DIR/bin/sdkman-init.sh" 2>/dev/null || true
+        sdk "$@"
+    }
 fi
 
 # Completion styling

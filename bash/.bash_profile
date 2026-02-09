@@ -4,8 +4,7 @@ export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 [ -f "$HOME/.rover/env" ] && source "$HOME/.rover/env"
 
-### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-[ -d "$HOME/.rd/bin" ] && export PATH="$HOME/.rd/bin:$PATH"
-### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
+# Rancher Desktop
+[[ -d "$HOME/.rd/bin" ]] && export PATH="$HOME/.rd/bin:$PATH"
 
 . "$HOME/.local/bin/env"

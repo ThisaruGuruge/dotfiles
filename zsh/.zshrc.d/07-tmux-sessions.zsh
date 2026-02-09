@@ -6,7 +6,7 @@
 #   - Pre-configured directories listed in ~/.tmux-directories
 
 # Only load if tmux is available
-command -v tmux &>/dev/null || return
+(( $+commands[tmux] )) || return
 
 # Config file for pre-configured directories (one path per line)
 TMUX_DIRECTORIES_FILE="${TMUX_DIRECTORIES_FILE:-$HOME/.tmux-directories}"
@@ -37,13 +37,20 @@ function _tmux_auto_project_session() {
     # Only run if inside tmux
     [[ -z "$TMUX" ]] && return
 
-    # Check if this directory should trigger a session
+    # Fast check: is this a project directory?
     _is_tmux_project_directory || return
 
     # Get project name from directory (sanitize for tmux session name)
-    # Replace dots with dashes (tmux doesn't like dots in session names)
-    local project_name=$(basename "$PWD" | tr '.' '-')
-    local current_session=$(tmux display-message -p '#S')
+    local project_name="${PWD:t:gs/./-/}"
+
+    # Fast check: use cached session name if available (avoids tmux command)
+    if [[ -n "$_TMUX_CURRENT_SESSION" && "$_TMUX_CURRENT_SESSION" == "$project_name" ]]; then
+        return
+    fi
+
+    # Get current session (slow - only when needed)
+    local current_session=$(tmux display-message -p '#S' 2>/dev/null)
+    _TMUX_CURRENT_SESSION="$current_session"
 
     # Don't switch if already in a session for this project
     [[ "$current_session" == "$project_name" ]] && return
@@ -51,16 +58,19 @@ function _tmux_auto_project_session() {
     # Switch to existing session or create new one
     if tmux has-session -t "=$project_name" 2>/dev/null; then
         tmux switch-client -t "=$project_name"
+        _TMUX_CURRENT_SESSION="$project_name"
     else
         # Create new session for this project (detached), then switch
         tmux new-session -d -s "$project_name" -c "$PWD"
         tmux switch-client -t "$project_name"
+        _TMUX_CURRENT_SESSION="$project_name"
     fi
 }
 
-# Register the hook to run after every directory change
-autoload -U add-zsh-hook
-add-zsh-hook chpwd _tmux_auto_project_session
-
-# Also check on shell startup (in case terminal opens directly in a project)
-_tmux_auto_project_session
+# Register the hook to run after every directory change (only if in tmux)
+# Note: We skip the startup check to keep shell initialization fast.
+# Session switching happens on first `cd` to a project directory.
+if [[ -n "$TMUX" ]]; then
+    autoload -U add-zsh-hook
+    add-zsh-hook chpwd _tmux_auto_project_session
+fi

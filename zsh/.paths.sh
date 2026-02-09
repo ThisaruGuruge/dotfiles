@@ -10,6 +10,10 @@ export DOCKER_DEFAULT_PLATFORM=linux/amd64
 
 [ -n "$JAVA_HOME" ] && export PATH="$JAVA_HOME/bin:$PATH"
 
+# Go - set GOPATH and add bin to PATH
+export GOPATH="${GOPATH:-$HOME/go}"
+[ -d "$GOPATH/bin" ] && export PATH="$GOPATH/bin:$PATH"
+
 # Ballerina - Always set BALLERINA_HOME (required for IDE extensions)
 if [ -d "/Library/Ballerina" ]; then
     export BALLERINA_HOME=/Library/Ballerina

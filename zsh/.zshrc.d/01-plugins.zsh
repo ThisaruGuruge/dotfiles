@@ -34,7 +34,7 @@ zinit ice wait"2" lucid
 zinit snippet OMZP::sudo
 
 # Homebrew command-not-found integration (updated)
-if ! command -v brew >/dev/null; then return; fi
+if ! (( $+commands[brew] )); then return; fi
 
 homebrew_command_not_found_handle() {
   local cmd="$1"

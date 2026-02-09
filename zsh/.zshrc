@@ -52,7 +52,7 @@ fi
 #   - SSH session (let user decide on remote)
 #   - No TTY attached (e.g., IDE env detection via "zsh -i -c env")
 
-if command -v tmux &>/dev/null && \
+if (( $+commands[tmux] )) && \
    [[ -z "$TMUX" ]] && \
    [[ -z "$VSCODE_INJECTION" ]] && \
    [[ "$TERM_PROGRAM" != "vscode" ]] && \
@@ -87,6 +87,10 @@ done
 # ============================================================================
 # Initialize starship prompt at the end for proper integration
 
-if command -v starship &>/dev/null; then
+# Initialize starship prompt (eval required - caching breaks zle/promptsubst)
+if (( $+commands[starship] )); then
     eval "$(starship init zsh)"
 fi
+
+# Rancher Desktop
+[[ -d "$HOME/.rd/bin" ]] && export PATH="$HOME/.rd/bin:$PATH"
