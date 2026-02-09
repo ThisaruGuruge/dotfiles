@@ -11,8 +11,8 @@ _cache_tool_init() {
 
     [[ ! -d "$HOME/.cache/zsh" ]] && mkdir -p "$HOME/.cache/zsh"
 
-    # Check if cache exists and is newer than the tool binary
-    local tool_path=$(command -v "$tool" 2>/dev/null)
+    # Use zsh's $commands hash for fast path lookup (no subprocess)
+    local tool_path="${commands[$tool]}"
     if [[ -f "$cache_file" ]] && [[ -n "$tool_path" ]] && [[ "$cache_file" -nt "$tool_path" ]]; then
         source "$cache_file"
     else
@@ -22,7 +22,7 @@ _cache_tool_init() {
 }
 
 # Initialize fzf with caching
-if command -v fzf >/dev/null 2>&1; then
+if (( $+commands[fzf] )); then
     _cache_tool_init "fzf" "fzf --zsh"
 fi
 
@@ -34,12 +34,12 @@ export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git --exclude
 
 # Initialize zoxide with caching - using 'z' command instead of overriding 'cd'
 # This keeps 'cd' working normally for scripts and tools
-if command -v zoxide >/dev/null 2>&1; then
+if (( $+commands[zoxide] )); then
     _cache_tool_init "zoxide" "zoxide init --cmd z zsh"
 fi
 
 # Lazy load direnv - initialize only when entering directory with .envrc
-if command -v direnv >/dev/null 2>&1; then
+if (( $+commands[direnv] )); then
     _direnv_lazy_load() {
         eval "$(direnv hook zsh)"
         unset -f _direnv_lazy_load
@@ -56,6 +56,6 @@ if command -v direnv >/dev/null 2>&1; then
 fi
 
 # Initialize atuin with caching - handles Ctrl+R and up-arrow for history
-if command -v atuin >/dev/null 2>&1; then
+if (( $+commands[atuin] )); then
     _cache_tool_init "atuin" "atuin init zsh"
 fi

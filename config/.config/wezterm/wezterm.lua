@@ -245,11 +245,6 @@ config.keys = {
 		mods = "CMD",
 		action = wezterm.action.Search({ CaseSensitiveString = "" }),
 	},
-	{
-		key = "Enter",
-		mods = "SHIFT",
-		action = wezterm.action({ SendString = "\x1b\r" }),
-	},
 }
 
 -- ============================================================================

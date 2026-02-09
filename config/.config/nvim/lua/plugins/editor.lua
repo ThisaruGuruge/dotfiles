@@ -38,15 +38,46 @@ return {
 				end,
 			})
 
-			-- Incremental selection keymaps
+			-- Incremental selection keymaps using built-in treesitter API
+			local function get_node_range(node)
+				local sr, sc, er, ec = node:range()
+				return sr, sc, er, ec
+			end
+
+			local function select_node(node)
+				if not node then return end
+				local sr, sc, er, ec = get_node_range(node)
+				vim.api.nvim_buf_set_mark(0, "<", sr + 1, sc, {})
+				vim.api.nvim_buf_set_mark(0, ">", er + 1, ec - 1, {})
+				vim.cmd("normal! gv")
+			end
+
+			local selection_stack = {}
+
 			vim.keymap.set("n", "<CR>", function()
-				require("nvim-treesitter.incremental_selection").init_selection()
+				local node = vim.treesitter.get_node()
+				if node then
+					selection_stack = { node }
+					select_node(node)
+				end
 			end, { desc = "Init treesitter selection" })
+
 			vim.keymap.set("x", "<CR>", function()
-				require("nvim-treesitter.incremental_selection").node_incremental()
+				local current = selection_stack[#selection_stack]
+				if current then
+					local parent = current:parent()
+					if parent then
+						table.insert(selection_stack, parent)
+						select_node(parent)
+					end
+				end
 			end, { desc = "Increment treesitter selection" })
+
 			vim.keymap.set("x", "<BS>", function()
-				require("nvim-treesitter.incremental_selection").node_decremental()
+				if #selection_stack > 1 then
+					table.remove(selection_stack)
+					select_node(selection_stack[#selection_stack])
+				end
 			end, { desc = "Decrement treesitter selection" })
 		end,
 	},

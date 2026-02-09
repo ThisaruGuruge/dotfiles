@@ -32,7 +32,7 @@ if [ -f "$HOME/.env" ]; then
         # Check if file is encrypted (starts with #ENC)
         if head -1 "$env_file" | grep -q "^#ENC\["; then
             # Encrypted - decrypt and cache
-            if command -v sops >/dev/null 2>&1; then
+            if (( $+commands[sops] )); then
                 if sops_output=$(sops -d "$env_file" 2>/dev/null); then
                     echo "$sops_output" >"$env_cache_file"
                     # Safely source only lines matching export KEY="VALUE" or KEY='VALUE' pattern
@@ -84,16 +84,34 @@ export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
 # Homebrew settings
 export HOMEBREW_AUTO_UPDATE_SECS=86400
 
-# Initialize rbenv with caching
-if command -v rbenv >/dev/null 2>&1; then
-    _cache_tool_init "rbenv" "rbenv init - zsh"
+# Initialize rbenv (lightweight - skip rehash on startup)
+if (( $+commands[rbenv] )); then
+    export PATH="$HOME/.rbenv/shims:${PATH}"
+    export RBENV_SHELL=zsh
+    rbenv() {
+        local command="${1:-}"
+        [ "$#" -gt 0 ] && shift
+        case "$command" in
+        rehash|shell) eval "$(command rbenv "sh-$command" "$@")" ;;
+        *) command rbenv "$command" "$@" ;;
+        esac
+    }
 fi
 
-# Initialize pyenv with caching
+# Initialize pyenv (lightweight - skip rehash and bash subprocess on startup)
 export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
-if command -v pyenv >/dev/null 2>&1; then
-    _cache_tool_init "pyenv" "pyenv init -"
+if (( $+commands[pyenv] )); then
+    export PATH="$HOME/.pyenv/shims:${PATH}"
+    export PYENV_SHELL=zsh
+    pyenv() {
+        local command="${1:-}"
+        [ "$#" -gt 0 ] && shift
+        case "$command" in
+        rehash|shell) eval "$(command pyenv "sh-$command" "$@")" ;;
+        *) command pyenv "$command" "$@" ;;
+        esac
+    }
 fi
 
 ### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
