@@ -1,10 +1,16 @@
 return {
     {
         "nvim-telescope/telescope.nvim",
-        dependencies = { "nvim-lua/plenary.nvim" },
+        dependencies = {
+            "nvim-lua/plenary.nvim",
+            "nvim-telescope/telescope-live-grep-args.nvim",
+        },
         cmd = "Telescope",
         config = function()
-            require("telescope").setup({
+            local telescope = require("telescope")
+            local lga_actions = require("telescope-live-grep-args.actions")
+
+            telescope.setup({
                 defaults = {
                     mappings = {
                         i = {
@@ -19,7 +25,21 @@ return {
                         },
                     },
                 },
+                extensions = {
+                    live_grep_args = {
+                        auto_quoting = true,
+                        mappings = {
+                            i = {
+                                ["<C-k>"] = lga_actions.quote_prompt(),
+                                ["<C-i>"] = lga_actions.quote_prompt({ postfix = " --iglob " }),
+                                ["<C-t>"] = lga_actions.quote_prompt({ postfix = " -t " }),
+                            },
+                        },
+                    },
+                },
             })
+
+            telescope.load_extension("live_grep_args")
         end,
     },
 }
