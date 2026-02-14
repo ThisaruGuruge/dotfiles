@@ -153,7 +153,14 @@ return {
 
 				-- Find/Telescope mappings (with commands)
 				{ "<leader>ff", "<cmd>Telescope find_files<cr>", desc = "Find Files", icon = "" },
-				{ "<leader>fg", "<cmd>Telescope live_grep<cr>", desc = "Live Grep", icon = "" },
+				{
+					"<leader>fg",
+					function()
+						require("telescope").extensions.live_grep_args.live_grep_args()
+					end,
+					desc = "Live Grep (with args)",
+					icon = "",
+				},
 				{ "<leader>fb", "<cmd>Telescope buffers<cr>", desc = "Find Buffers", icon = "" },
 				{ "<leader>fh", "<cmd>Telescope help_tags<cr>", desc = "Find Help", icon = "" },
 				{ "<leader>fr", "<cmd>Telescope oldfiles<cr>", desc = "Recent Files", icon = "" },
@@ -166,20 +173,9 @@ return {
 					icon = "",
 				},
 
-				-- File explorer (direct actions)
-				{ "<leader>e", "<cmd>Neotree toggle<cr>", desc = " Toggle File Explorer", icon = "" },
-				{
-					"<leader>o",
-					function()
-						if vim.bo.filetype == "neo-tree" then
-							vim.cmd("wincmd p")
-						else
-							vim.cmd("Neotree focus")
-						end
-					end,
-					desc = " Focus File Explorer",
-					icon = "",
-				},
+				-- File explorer (yazi)
+				{ "<leader>e", "<cmd>Yazi cwd<cr>", desc = " File Explorer (cwd)", icon = "" },
+				{ "<leader>o", "<cmd>Yazi<cr>", desc = " File Explorer (current file)", icon = "" },
 
 				-- Ctrl mappings
 				{ "<C-p>", "<cmd>Telescope git_files<cr>", desc = "Find Git Files", icon = "" },
@@ -206,6 +202,7 @@ return {
 
 				-- Toggle mappings
 				{ "<leader>tt", desc = "Toggle Terminal", icon = "" },
+				{ "<leader>u", desc = "Toggle Undotree", icon = "" },
 
 				-- Navigation group (g prefix)
 				{ "g", group = " Go to / Navigate..." },

@@ -40,22 +40,25 @@ This configuration follows standard Vim/Neovim conventions:
 
 ---
 
-## File Navigation
+## File Navigation (Yazi)
 
 | Key | Mode | Action |
 |:----|:-----|:-------|
-| `<Space>e` | `n` | Toggle Neo-tree |
-| `<Space>o` | `n` | Focus Neo-tree |
+| `<Space>e` | `n` | Open yazi in working directory |
+| `<Space>o` | `n` | Open yazi at current file |
+| `<Space>-` | `n` | Open yazi at current file |
+| `<Space>cw` | `n` | Open yazi in working directory |
+| `<C-Up>` | `n` | Resume last yazi session |
 
-**Inside Neo-tree:**
-- `<Enter>` - Open file/folder
-- `a` - Add new file/folder
-- `d` - Delete
-- `r` - Rename
-- `y` - Copy
-- `x` - Cut
-- `p` - Paste
-- `q` - Close
+Yazi opens as a floating terminal file manager. Inside the floating window:
+- `<C-v>` - Open in vertical split
+- `<C-x>` - Open in horizontal split
+- `<C-t>` - Open in new tab
+- `<C-q>` - Send to quickfix list
+- `<C-s>` - Search directory (Telescope)
+- `<C-y>` - Copy relative file paths
+
+See `docs/YAZI_KEYBINDINGS.md` for the full yazi keybinding reference.
 
 ---
 
@@ -138,6 +141,12 @@ This configuration follows standard Vim/Neovim conventions:
 | `<BS>` | `v` | Decrement selection |
 
 ---
+
+## Undo History
+
+| Key | Mode | Action |
+|:----|:-----|:-------|
+| `<Space>u` | `n` | Toggle Undotree (visual undo history) |
 
 ## Terminal
 

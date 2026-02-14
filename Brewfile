@@ -32,6 +32,16 @@ brew "git-flow-avh"                 # Git branching model extension
 brew "sops"                         # Secrets OPerationS
 brew "age"                          # Simple file encryption
 
+# Authentication
+brew "pam-reattach"                 # Reattach to user namespace (Touch ID in tmux)
+
+# File management
+brew "yazi"                         # Terminal file manager (used in Neovim via yazi.nvim)
+brew "ffmpegthumbnailer"            # Video thumbnail previews (yazi)
+brew "poppler"                      # PDF preview (yazi)
+brew "imagemagick"                  # SVG/font preview (yazi)
+brew "unar"                         # Archive preview (yazi)
+
 # JSON/YAML processing and viewing
 brew "jq"                           # JSON processor for scripts
 brew "jless"                        # Interactive JSON/YAML viewer

@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added `undotree` Neovim plugin for visual undo history navigation (`<leader>u`)
+- Added Touch ID for sudo authentication via `/etc/pam.d/sudo_local` (persists across macOS updates)
+- Added `pam-reattach` to Brewfile for Touch ID support inside tmux sessions
+- Added Touch ID validation checks to `test-zsh-config`
+- Added `yazi` terminal file manager with full configuration (`yazi.toml`, `keymap.toml`, `theme.toml`, `init.lua`)
+- Added `yazi.nvim` as the Neovim file explorer (replaces Neo-tree)
+- Added `y()` shell wrapper for yazi with cd-on-exit support
+- Added yazi plugins: smart-enter, smart-filter, smart-paste, full-border, git, chmod, diff, jump-to-char, mactag, mime-ext
+- Added yazi preview dependencies to Brewfile (ffmpegthumbnailer, poppler, imagemagick, unar)
+- Added yazi file-type open rules for common extensions (md, json, yaml, sh, lua, bal, java, py, js, ts, etc.)
+- Added `reveal` opener for Reveal in Finder (macOS)
+- Added rose-pine flavor for yazi (matches Neovim theme)
+- Added tmux `allow-passthrough` for yazi image preview support
+- Added `docs/YAZI_KEYBINDINGS.md` with full keybinding reference
 - Added `glow` for terminal markdown rendering (Brewfile, suffix aliases, test suite)
 - New suffix aliases for `.markdown` and `.mdx` extensions
 - `md` alias for quick markdown viewing with glow
@@ -17,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Replaced Neo-tree with yazi.nvim for file exploration in Neovim (`<leader>e`, `<leader>o`, `<leader>-`, `<leader>cw`)
 - Replaced the legacy Oh My Posh prompt with the current Starship configuration, including new docs and tooling updates
 
 ### Documentation

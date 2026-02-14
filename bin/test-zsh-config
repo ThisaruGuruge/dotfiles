@@ -311,6 +311,9 @@ test_tool "Claude Code" "claude" "claude --version"
 # Glow (markdown viewer)
 test_tool "Glow" "glow" "glow --version"
 
+# Yazi (terminal file manager)
+test_tool "Yazi" "yazi" "yazi --version"
+
 # Git
 test_tool "Git" "git" "git --version"
 
@@ -381,6 +384,23 @@ if [[ -f "$PACKAGES_JSON" ]]; then
     print_test "packages.json" "pass" "Found at $PACKAGES_JSON"
 else
     print_test "packages.json" "warn" "Not found"
+fi
+
+# ============================================================================
+# TOUCH ID FOR SUDO
+# ============================================================================
+print_header "Touch ID for sudo"
+
+if [[ -f /etc/pam.d/sudo_local ]] && grep -q "pam_tid.so" /etc/pam.d/sudo_local 2>/dev/null; then
+    print_test "Touch ID for sudo" "pass" "Enabled via /etc/pam.d/sudo_local"
+
+    if grep -q "pam_reattach.so" /etc/pam.d/sudo_local 2>/dev/null; then
+        print_test "Touch ID in tmux (pam_reattach)" "pass" "Configured"
+    else
+        print_test "Touch ID in tmux (pam_reattach)" "warn" "Not configured (Touch ID won't work in tmux)"
+    fi
+else
+    print_test "Touch ID for sudo" "warn" "Not enabled (run init.sh to configure)"
 fi
 
 # ============================================================================

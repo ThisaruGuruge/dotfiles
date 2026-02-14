@@ -4,6 +4,16 @@
 # ============================================================================
 # Smart directory/project navigation: take(), takedir(), takegit(), takeurl()
 
+# Yazi shell wrapper — cd to the directory yazi was in when you quit (q)
+function y() {
+    local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+    command yazi "$@" --cwd-file="$tmp"
+    if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+        builtin cd -- "$cwd"
+    fi
+    rm -f -- "$tmp"
+}
+
 function take() {
     if [ -z "$1" ]; then
         echo "Usage: take <directory|git-repo|archive-url>"

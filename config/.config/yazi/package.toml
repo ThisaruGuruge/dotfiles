@@ -1,0 +1,17 @@
+# Yazi plugin/flavor manifest — managed by `ya pkg`
+# Install all: ya pkg install
+
+[plugin]
+"yazi-rs/plugins:smart-enter"  = {}
+"yazi-rs/plugins:smart-filter" = {}
+"yazi-rs/plugins:smart-paste"  = {}
+"yazi-rs/plugins:full-border"  = {}
+"yazi-rs/plugins:git"          = {}
+"yazi-rs/plugins:chmod"        = {}
+"yazi-rs/plugins:diff"         = {}
+"yazi-rs/plugins:jump-to-char" = {}
+"yazi-rs/plugins:mactag"       = {}
+"yazi-rs/plugins:mime-ext"     = {}
+
+[flavor]
+"rose-pine/yazi" = {}

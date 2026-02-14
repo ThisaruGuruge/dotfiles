@@ -1,0 +1,57 @@
+# Yazi configuration
+# Only overrides are listed here — yazi merges these with built-in defaults.
+
+[mgr]
+ratio          = [1, 4, 3]
+sort_by        = "natural"
+sort_dir_first = true
+linemode       = "size"
+show_hidden    = false
+show_symlink   = true
+scrolloff      = 5
+title_format   = "Yazi: {cwd}"
+
+[preview]
+wrap       = "no"
+tab_size   = 2
+max_width  = 600
+max_height = 900
+
+[opener]
+edit = [
+    { run = 'nvim "$@"', block = true, desc = "Neovim", for = "unix" },
+]
+open = [
+    { run = 'open "$@"', desc = "System default", for = "macos" },
+]
+reveal = [
+    { run = 'open -R "$@"', desc = "Reveal in Finder", for = "macos" },
+]
+
+[open]
+prepend_rules = [
+    { name = "*.md",       use = ["edit", "open"] },
+    { name = "*.json",     use = ["edit", "open"] },
+    { name = "*.yaml",     use = ["edit", "open"] },
+    { name = "*.yml",      use = ["edit", "open"] },
+    { name = "*.toml",     use = ["edit", "open"] },
+    { name = "*.sh",       use = ["edit", "open"] },
+    { name = "*.zsh",      use = ["edit", "open"] },
+    { name = "*.lua",      use = ["edit", "open"] },
+    { name = "*.bal",      use = ["edit", "open"] },
+    { name = "*.java",     use = ["edit", "open"] },
+    { name = "*.py",       use = ["edit", "open"] },
+    { name = "*.js",       use = ["edit", "open"] },
+    { name = "*.ts",       use = ["edit", "open"] },
+    { name = "*.go",       use = ["edit", "open"] },
+    { name = "*.rs",       use = ["edit", "open"] },
+    { name = "*.conf",     use = ["edit", "open"] },
+    { name = "*.ini",      use = ["edit", "open"] },
+    { mime = "application/pdf", use = ["open"] },
+]
+
+[plugin]
+prepend_fetchers = [
+    { id = "git", name = "*",  run = "git" },
+    { id = "git", name = "*/", run = "git" },
+]
