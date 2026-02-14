@@ -16,6 +16,7 @@ list_dotfiles_tools() {
     echo "   tmux             - Terminal multiplexer"
     echo ""
     echo "📁 FILE & NAVIGATION TOOLS:"
+    echo "   yazi             - Terminal file manager (Neovim integration)"
     echo "   eza              - Modern ls replacement"
     echo "   bat              - Enhanced cat with syntax highlighting"
     echo "   glow             - Terminal markdown viewer"

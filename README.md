@@ -6,10 +6,11 @@ A macOS-focused developer workstation built around Zsh, Starship, modern CLI too
 
 - **Fast Zsh environment** – zinit-managed plugins, fzf-tab completion, syntax highlighting, autosuggestions, zoxide (via `z` command), Atuin history (Ctrl+R and up-arrow), and WezTerm compatible key bindings
 - **Starship prompt** – contextual Git state, Java/Node/Python/Ballerina indicators, battery/time segments, and sub-second rendering (see `PROMPT_GUIDE.md` for visuals)
-- **Modern CLI stack** – eza, bat, ripgrep, fd, jless, lazygit, lazydocker, tmux, direnv, atuin, gh, git-delta, git-flow, and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
+- **Modern CLI stack** – eza, bat, ripgrep, fd, yazi, jless, lazygit, lazydocker, tmux, direnv, atuin, gh, git-delta, git-flow, and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
 - **Smart aliases** – Single-letter shortcuts for modern tools (`v` for bat, `g` for ripgrep, `f` for fd, `z` for zoxide) while keeping original commands for scripts
 - **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → glow, `.json`/`.yaml` → jless, `.py`/`.sh`/`.bal` → $EDITOR)
 - **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina with lazy-loading shell glue so heavy managers don't slow startup
+- **Touch ID for sudo** – Use your fingerprint instead of typing passwords in the terminal (works inside tmux too via `pam-reattach`)
 - **Secrets handled correctly** – SOPS + age encryption, `edit_secrets` workflow, and automatic `.env` handling inside `init.sh`
 - **Brewfile-driven** – Curated `Brewfile` with optional category files in `packages/` for modular installation
 - **Validation + profiling** – `test-zsh` integration tests, `profile_startup` quick timing, and `bin/profile-zsh-startup` for deep dives
@@ -45,6 +46,7 @@ The script is interactive; it will:
 - Install core packages from `Brewfile` with Brew
 - Offer opt-in categories (development, databases, terminals, editors, etc.)
 - Install SDKMAN + Java 21 (optional) and brew-based Ballerina
+- Enable Touch ID for sudo (with tmux support via `pam-reattach`)
 - Configure Atuin, direnv, tmux, git delta, lazygit, lazydocker, aliases, and helper functions
 - Generate/restore encrypted `.env` with SOPS + age (keys stored at `~/.config/sops/age/keys.txt`)
 - Create Nerd Font + terminal integrations
@@ -120,7 +122,7 @@ Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 | `zsh/` | `.zshrc`, `.zshrc.d/` (modular shell config), `.functions.d/` (modular functions), aliases, paths |
 | `zsh/.zshrc.d/` | 7 modules: plugins, completion, keybindings, history, integrations, environment, tmux |
 | `zsh/.functions.d/` | 9 modules: colors, core, navigation, archives, git, system, dotfiles, docs, packages |
-| `config/.config/` | XDG configs (`starship.toml`, `wezterm`, `lazygit`, `nvim`, `ripgrep`) |
+| `config/.config/` | XDG configs (`starship.toml`, `wezterm`, `lazygit`, `nvim`, `yazi`, `ripgrep`) |
 | `git/` | `.gitconfig`, ignore rules, delta settings |
 | `tmux/` | Modern tmux config + keybinds |
 | `direnv/` | Project-specific environment automation |
@@ -213,6 +215,29 @@ The default editor is set to `nvim` via the `$EDITOR` environment variable in `.
   export SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt
   ```
 - The template at `zsh/.env.example` is copied when you first run `init.sh`; extend it if you need new keys for future machines.
+
+## Touch ID for sudo
+
+The installer configures macOS to accept Touch ID (fingerprint) for `sudo` prompts in the terminal. This uses `/etc/pam.d/sudo_local`, which persists across macOS system updates (unlike editing `/etc/pam.d/sudo` directly).
+
+**tmux support**: The `pam-reattach` brew package is included so Touch ID also works inside tmux sessions — without it, macOS cannot reach the biometric sensor from a reattached session.
+
+After running `init.sh`, any `sudo` command will show the Touch ID prompt first and fall back to password if dismissed.
+
+To enable manually (without `init.sh`):
+
+```bash
+brew install pam-reattach
+
+# Create /etc/pam.d/sudo_local (requires sudo)
+sudo tee /etc/pam.d/sudo_local <<'EOF'
+# sudo_local: local config for sudo (persists across macOS updates)
+auth       optional       /opt/homebrew/lib/pam/pam_reattach.so
+auth       sufficient     pam_tid.so
+EOF
+```
+
+> **Note**: On Intel Macs, replace `/opt/homebrew/lib/pam/pam_reattach.so` with `/usr/local/lib/pam/pam_reattach.so`.
 
 ## Starship Prompt
 

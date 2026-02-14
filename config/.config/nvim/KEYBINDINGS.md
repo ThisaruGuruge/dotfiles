@@ -34,12 +34,23 @@ This configuration follows standard Vim/Neovim conventions:
 | `<leader>fs` | Search string (prompt) | plugins/telescope.lua:17 |
 | `<C-p>` | Find git files | plugins/telescope.lua:15 |
 
-## File Explorer (Neo-tree)
+## File Explorer (yazi.nvim)
 
 | Key | Action | Source |
 |-----|--------|--------|
-| `<leader>e` | Toggle file explorer | plugins/file-explorer.lua:12 |
-| `<leader>o` | Focus file explorer | plugins/file-explorer.lua:13 |
+| `<leader>e` | Open yazi in working directory | plugins/editor.lua |
+| `<leader>o` | Open yazi at current file | plugins/editor.lua |
+| `<leader>-` | Open yazi at current file | plugins/yazi.lua |
+| `<leader>cw` | Open yazi in working directory | plugins/yazi.lua |
+| `<C-Up>` | Resume last yazi session | plugins/yazi.lua |
+
+Inside yazi.nvim floating window:
+
+| Key | Action |
+|-----|--------|
+| `<C-v>` | Open in vertical split |
+| `<C-x>` | Open in horizontal split |
+| `<C-t>` | Open in new tab |
 
 ## LSP
 
@@ -75,6 +86,12 @@ This configuration follows standard Vim/Neovim conventions:
 | `<leader>gg` | LazyGit | plugins/git.lua:93 |
 | `<leader>gw` | Switch Git Worktree | plugins/git.lua:106 |
 | `<leader>gW` | Create Git Worktree | plugins/git.lua:112 |
+
+## Undo History
+
+| Key | Action | Source |
+|-----|--------|--------|
+| `<leader>u` | Toggle Undotree | plugins/undotree.lua |
 
 ## Terminal
 

@@ -1,0 +1,6 @@
+# Yazi theme
+# Install the flavor first:  ya pkg install
+
+[flavor]
+dark  = "rose-pine"
+light = "rose-pine-dawn"
