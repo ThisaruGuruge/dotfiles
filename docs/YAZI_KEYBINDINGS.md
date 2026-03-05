@@ -56,15 +56,85 @@ Inside the yazi.nvim floating window:
 | `gc` | Go to `~/.config` |
 | `gD` | Go to `~/dotfiles` |
 
-## Jump / Search / Filter
+## Search, Find & Filter
+
+Yazi has multiple layers of search — from quick inline find to recursive deep search.
+
+### Find (inline, current directory only)
+
+Incremental filename matching within the current directory. As you type, the
+cursor jumps to the first match. Does **not** recurse into subdirectories.
 
 | Key | Action |
 |-----|--------|
-| `/` | Search by filename (uses fd) |
-| `?` | Search by file content (uses rg) |
-| `F` | Smart filter (stays active, auto-enters single matches) |
-| `z` | Jump with zoxide |
-| `Z` | Jump with fzf |
+| `/` | Find forward (smart case) |
+| `?` | Find backward (smart case) |
+| `n` | Jump to next find match |
+| `N` | Jump to previous find match |
+
+> **Smart case**: case-insensitive unless your query contains an uppercase letter.
+
+### Filter (current directory only)
+
+Filter **hides** non-matching files from the listing in real time (unlike find,
+which only moves the cursor). Clearing the filter restores all files.
+
+| Key | Action |
+|-----|--------|
+| `F` | Smart filter — stays active while navigating, auto-enters single-match dirs (smart-filter plugin) |
+
+> The built-in `filter` default (`f`) is remapped to `jump-to-char` in this config.
+
+### Search (recursive, uses external tools)
+
+Recursive search from the current working directory using `fd` or `rg`. Results
+replace the file listing with a flat view of all matches across subdirectories.
+
+| Key | Action | Tool |
+|-----|--------|------|
+| `s` | Search by **filename** (recursive) | `fd` |
+| `S` | Search by **file content** (recursive) | `rg` (ripgrep) |
+| `Ctrl+s` | Cancel ongoing search | — |
+
+After results appear, navigate them like a normal file list — press `l`/`Enter`
+to open, `Esc` to return to the regular directory view.
+
+**Tips**:
+- `s` is great for finding deeply nested files by name (e.g., type `*.toml` to find all TOML files)
+- `S` is like a recursive grep — search for a string inside files, then open the match
+- Both support regex patterns
+- `fd` and `rg` respect `.gitignore` by default
+
+### Fuzzy Jump (recursive)
+
+| Key | Action | Tool |
+|-----|--------|------|
+| `z` | Fuzzy-find files/dirs in current subtree | `fzf` |
+| `Z` | Jump to a frequently visited directory | `zoxide` + `fzf` |
+
+- **`z` (fzf)**: Searches all files and directories under the current working
+  directory. If the result is a file, Yazi reveals it in its parent directory.
+  If it's a directory, Yazi navigates into it.
+- **`Z` (zoxide)**: Opens an interactive fuzzy search over your zoxide history
+  (directories you've visited before across all shells). Great for jumping to
+  project roots or frequently used paths.
+
+### Sorting
+
+Change how files are sorted in the current directory. Lowercase = ascending,
+uppercase = descending.
+
+| Key | Sort by | Linemode |
+|-----|---------|----------|
+| `,n` / `,N` | Natural (1 < 2 < 10) | — |
+| `,a` / `,A` | Alphabetical (1 < 10 < 2) | — |
+| `,s` / `,S` | Size | size |
+| `,m` / `,M` | Modified time | mtime |
+| `,b` / `,B` | Created time | btime |
+| `,e` / `,E` | Extension | — |
+| `,r` | Random | — |
+
+Default sort: `natural`, directories first (configured in `yazi.toml`).
 
 ---
 
@@ -126,8 +196,7 @@ Inside the yazi.nvim floating window:
 
 | Key | Action |
 |-----|--------|
-| `,` | Cycle linemode (size, mtime, permissions, none) |
-| `;` | Cycle sort by (name, size, modified, extension) |
+| `.` | Toggle hidden files |
 | `w` | Open task manager (view progress of copy/move operations) |
 | `<C-z>` | Suspend yazi (return to shell, `fg` to resume) |
 

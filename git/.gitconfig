@@ -5,3 +5,5 @@
     path = ~/.gitconfig.local
 [init]
 	  defaultBranchName = main
+[url "https://github.com/"]
+	insteadOf = git@github.com:

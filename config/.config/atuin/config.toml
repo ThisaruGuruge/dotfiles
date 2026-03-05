@@ -30,15 +30,15 @@ update_check = true
 search_mode = "fuzzy"
 
 ## Default filter mode: global, host, session, directory, workspace
-## global searches all history, directory is great for project-specific commands
-filter_mode = "global"
+## directory is safe in any context (git or not); workspace auto-applies in git repos
+filter_mode = "directory"
 
 ## Enable workspace filtering (filter within git repository trees)
 ## Great for project-specific command recall
 workspaces = true
 
-## Up-arrow behavior: use prefix search for intuitive command recall
-## This shows matching commands as you type the beginning of a command
+## Up-arrow behavior: broad scope so prefix-typed commands (e.g. ./gradlew) match
+## across all directories on this machine — essential for commands reused across projects
 filter_mode_shell_up_key_binding = "host"
 search_mode_shell_up_key_binding = "prefix"
 
@@ -245,7 +245,7 @@ records = true
 # debug = true
 
 [search]
-## Filter modes in order (Tab to cycle through them)
-## workspace: commands in current git repo; directory: current dir only
-## Putting workspace/directory first makes project context easily accessible
-filters = [ "global", "host", "session", "directory", "workspace" ]
+## Filter modes in order (Ctrl+R cycles through them narrow → broad)
+## workspace: git repo tree; directory: current dir; host: this machine; global: everything
+## workspace is skipped automatically when not in a git repo
+filters = [ "workspace", "directory", "host", "session", "global" ]

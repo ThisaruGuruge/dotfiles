@@ -55,12 +55,18 @@ function _tmux_auto_project_session() {
     # Don't switch if already in a session for this project
     [[ "$current_session" == "$project_name" ]] && return
 
+    # Prompt before switching or creating a session
+    local reply
+    echo -n "Open '$project_name' in a separate session? [y/N] "
+    read -k 1 reply
+    echo
+    [[ "$reply" != "y" && "$reply" != "Y" ]] && return
+
     # Switch to existing session or create new one
     if tmux has-session -t "=$project_name" 2>/dev/null; then
         tmux switch-client -t "=$project_name"
         _TMUX_CURRENT_SESSION="$project_name"
     else
-        # Create new session for this project (detached), then switch
         tmux new-session -d -s "$project_name" -c "$PWD"
         tmux switch-client -t "$project_name"
         _TMUX_CURRENT_SESSION="$project_name"

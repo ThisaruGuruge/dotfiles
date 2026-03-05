@@ -58,4 +58,13 @@ fi
 # Initialize atuin with caching - handles Ctrl+R and up-arrow for history
 if (( $+commands[atuin] )); then
     _cache_tool_init "atuin" "atuin init zsh"
+
+    # Override atuin's autosuggestion strategy to use host-wide history.
+    # Atuin injects _zsh_autosuggest_strategy_atuin which inherits filter_mode
+    # from config.toml — but inline suggestions should always search across all
+    # directories on this machine, not just the current one.
+    _zsh_autosuggest_strategy_atuin() {
+        suggestion=$(ATUIN_QUERY="$1" atuin search --cmd-only --limit 1 \
+            --search-mode prefix --filter-mode host 2>/dev/null)
+    }
 fi

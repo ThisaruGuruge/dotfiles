@@ -12,6 +12,19 @@ This configuration follows standard Vim/Neovim conventions:
 - **`<leader>f*`** - Find/Search operations (Telescope)
 - **`[` / `]`** - Jump to previous/next (diagnostics, git hunks, etc.)
 
+## Dashboard (alpha-nvim)
+
+| Key | Action | Source |
+|-----|--------|--------|
+| `f` | Find File (from dashboard) | plugins/dashboard.lua |
+| `r` | Recent Files (from dashboard) | plugins/dashboard.lua |
+| `g` | Live Grep (from dashboard) | plugins/dashboard.lua |
+| `e` | File Explorer (from dashboard) | plugins/dashboard.lua |
+| `l` | Open Lazy (from dashboard) | plugins/dashboard.lua |
+| `q` | Quit (from dashboard) | plugins/dashboard.lua |
+
+> Dashboard buttons are only active on the start screen (when Neovim opens without arguments).
+
 ## General
 
 | Key | Action | Source |
@@ -32,6 +45,7 @@ This configuration follows standard Vim/Neovim conventions:
 | `<leader>fw` | Find word under cursor | plugins/telescope.lua:13 |
 | `<leader>fk` | Find keymaps | plugins/telescope.lua:14 |
 | `<leader>fs` | Search string (prompt) | plugins/telescope.lua:17 |
+| `<leader>fy` | Clipboard history | plugins/clipboard.lua |
 | `<C-p>` | Find git files | plugins/telescope.lua:15 |
 
 ## File Explorer (yazi.nvim)
@@ -87,6 +101,28 @@ Inside yazi.nvim floating window:
 | `<leader>gw` | Switch Git Worktree | plugins/git.lua:106 |
 | `<leader>gW` | Create Git Worktree | plugins/git.lua:112 |
 
+## Code Outline (aerial.nvim)
+
+| Key | Action | Source |
+|-----|--------|--------|
+| `<leader>a` | Toggle outline sidebar | plugins/aerial.lua |
+| `{` | Previous symbol | plugins/aerial.lua |
+| `}` | Next symbol | plugins/aerial.lua |
+
+## Clipboard History (neoclip.nvim)
+
+Open with `<leader>fy` to browse yank history in a Telescope picker.
+
+| Key (in picker) | Mode | Action |
+|-----------------|------|--------|
+| `<CR>` | insert / normal | Select (put in register, ready to paste) |
+| `<C-p>` | insert | Paste after cursor |
+| `<C-k>` | insert | Paste before cursor |
+| `<C-d>` | insert | Delete entry from history |
+| `p` | normal | Paste after cursor |
+| `P` | normal | Paste before cursor |
+| `dd` | normal | Delete entry from history |
+
 ## Undo History
 
 | Key | Action | Source |
@@ -124,6 +160,13 @@ Seamless navigation between NeoVim splits and TMux panes.
 | `<Tab>` | Next item / Jump snippet | plugins/editor.lua:106 |
 | `<S-Tab>` | Previous item / Jump snippet back | plugins/editor.lua:115 |
 
+## Line Movement (Visual Mode)
+
+| Key | Action | Source |
+|-----|--------|--------|
+| `J` | Move selected lines down | plugins/editor.lua |
+| `K` | Move selected lines up | plugins/editor.lua |
+
 ## Treesitter Text Objects
 
 | Key | Action | Source |
@@ -131,6 +174,50 @@ Seamless navigation between NeoVim splits and TMux panes.
 | `<CR>` | Init/Increment selection | plugins/editor.lua:28-29 |
 | `<S-CR>` | Scope increment | plugins/editor.lua:30 |
 | `<BS>` | Node decrement | plugins/editor.lua:31 |
+
+## Trouble (Diagnostics Panel)
+
+| Key | Action | Source |
+|-----|--------|--------|
+| `<leader>xx` | Toggle workspace diagnostics | plugins/trouble.lua |
+| `<leader>xX` | Toggle buffer diagnostics | plugins/trouble.lua |
+| `<leader>xs` | Toggle symbols | plugins/trouble.lua |
+| `<leader>xr` | Toggle LSP references | plugins/trouble.lua |
+| `<leader>xl` | Toggle location list | plugins/trouble.lua |
+| `<leader>xq` | Toggle quickfix list | plugins/trouble.lua |
+
+## Text Objects (mini.ai)
+
+mini.ai extends Vim's built-in `a` (around) and `i` (inside) text object prefixes with smarter, more powerful identifiers.
+
+**Syntax**: `{operator}{a|i}{identifier}` — e.g. `daf`, `ciq`, `via`
+
+| Identifier | Meaning | Example |
+|------------|---------|---------|
+| `f` | Function call | `daf` = delete around function call |
+| `a` | Argument/parameter | `dia` = delete inside argument |
+| `b` | Any bracket (`()`, `[]`, `{}`) | `dib` = delete inside nearest bracket |
+| `q` | Any quote (`"`, `'`, `` ` ``) | `ciq` = change inside nearest quote |
+| `t` | HTML/XML tag | `dit` = delete inside tag |
+| `(`, `)` | Parentheses | `vi(` = select inside parens |
+| `[`, `]` | Square brackets | `ca]` = change around brackets |
+| `{`, `}` | Curly braces | `yi{` = yank inside braces |
+| `"`, `'`, `` ` `` | Specific quote type | `ci"` = change inside double quotes |
+| `?` | Interactive (prompted) | Type any pair to use as text object |
+
+> Works with any operator: `d` (delete), `c` (change), `y` (yank), `v` (visual), `=` (format), etc.
+> Also works with counts: `2daf` deletes around the 2nd enclosing function call.
+
+## Flash (Jump/Motion)
+
+| Key | Mode | Action | Source |
+|-----|------|--------|--------|
+| `s` | `n`, `x`, `o` | Flash Jump (type chars to jump) | plugins/flash.lua |
+| `S` | `n`, `x`, `o` | Flash Treesitter (select node) | plugins/flash.lua |
+| `r` | `o` | Remote Flash | plugins/flash.lua |
+| `R` | `o`, `x` | Treesitter Search | plugins/flash.lua |
+
+> Flash also enhances `/` and `?` search with jump labels, and `f`/`t`/`F`/`T` character motions.
 
 ## Which-Key Groups
 
@@ -140,6 +227,7 @@ Seamless navigation between NeoVim splits and TMux panes.
 | `<leader>g` | Git | plugins/editor.lua:70 |
 | `<leader>t` | Toggle | plugins/editor.lua:71 |
 | `<leader>l` | LSP | plugins/editor.lua:72 |
+| `<leader>x` | Trouble/Diagnostics | plugins/editor.lua |
 
 ---
 

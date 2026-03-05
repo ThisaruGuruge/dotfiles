@@ -14,7 +14,7 @@ config.font = wezterm.font_with_fallback({
 	"JetBrains Mono",
 	"Menlo",
 })
-config.font_size = 13.0
+config.font_size = 14.0
 
 -- Use INTEGRATED_BUTTONS|RESIZE for native fullscreen with menu bar on hover
 config.window_decorations = "INTEGRATED_BUTTONS|RESIZE"

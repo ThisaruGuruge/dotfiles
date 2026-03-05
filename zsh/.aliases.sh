@@ -104,8 +104,8 @@ alias 8='cd -8'
 alias 9='cd -9'
 
 # Editors
-alias vi="nvim"
 alias vim="nvim"
+alias n="nvim"
 
 # Devlopment
 alias editHosts='sudo nvim /etc/hosts'

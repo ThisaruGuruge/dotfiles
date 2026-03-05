@@ -24,11 +24,11 @@ return {
         dependencies = {
             "williamboman/mason.nvim",
             "neovim/nvim-lspconfig",
-            "hrsh7th/cmp-nvim-lsp",
+            "saghen/blink.cmp",
         },
         lazy = false,
         config = function()
-            local capabilities = require("cmp_nvim_lsp").default_capabilities()
+            local capabilities = require("blink.cmp").get_lsp_capabilities()
 
             require("mason-lspconfig").setup({
                 ensure_installed = {
@@ -116,6 +116,26 @@ return {
                             end,
                         })
                     end,
+                    -- Go-specific settings
+                    ["gopls"] = function()
+                        require("lspconfig").gopls.setup({
+                            capabilities = capabilities,
+                            settings = {
+                                gopls = {
+                                    analyses = {
+                                        unusedparams = true,
+                                        unusedvariable = true,
+                                        shadow = true,
+                                        nilness = true,
+                                    },
+                                    staticcheck = true,
+                                    gofumpt = true,
+                                    usePlaceholders = true,
+                                    completeUnimported = true,
+                                },
+                            },
+                        })
+                    end,
                     -- Java-specific settings
                     ["jdtls"] = function()
                         local jdtls_path = require("mason-registry").get_package("jdtls"):get_install_path()
@@ -175,6 +195,12 @@ return {
                     enabled = true, -- Enable neodev for all lua files
                     plugins = true, -- Include plugin definitions
                 },
+            })
+
+            -- Set blink.cmp capabilities globally so native-API servers
+            -- (e.g. ballerina) inherit them without extra per-server config.
+            vim.lsp.config("*", {
+                capabilities = require("blink.cmp").get_lsp_capabilities(),
             })
 
             -- LSP keybindings using LspAttach autocmd (Neovim 0.11+)
