@@ -12,10 +12,6 @@ return {
                 },
             })
 
-            -- Integration with nvim-cmp
-            local cmp_autopairs = require("nvim-autopairs.completion.cmp")
-            local cmp = require("cmp")
-            cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
         end,
     },
 
@@ -47,6 +43,7 @@ return {
                     yaml = { "prettierd", "prettier", stop_after_first = true },
                     markdown = { "prettierd", "prettier", stop_after_first = true },
                     go = { "gofmt", "goimports" },
+                    java = { "google_java_format" },
                     rust = { "rustfmt" },
                     sh = { "shfmt" },
                 },

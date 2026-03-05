@@ -11,8 +11,23 @@ This configuration follows standard Vim/Neovim conventions:
 | `g*` | Navigation (go to...) | `gd` (definition), `gr` (references), `gi` (implementation) |
 | `<Space>g*` | Git operations | `<Space>gs` (stage), `<Space>gp` (preview), `<Space>gg` (LazyGit) |
 | `<Space>l*` | LSP actions | `<Space>lr` (rename), `<Space>la` (actions), `<Space>lf` (format) |
-| `<Space>f*` | Find/Search | `<Space>ff` (files), `<Space>fg` (grep), `<Space>fb` (buffers) |
+| `<Space>f*` | Find/Search | `<Space>ff` (files), `<Space>fg` (grep), `<Space>fb` (buffers), `<Space>fy` (clipboard history) |
 | `[` / `]` | Previous/Next | `[d` (prev diagnostic), `]c` (next git hunk) |
+
+---
+
+## Dashboard (Start Screen)
+
+The dashboard appears when opening Neovim without arguments. Press the shortcut key to jump to an action:
+
+| Key | Action |
+|:----|:-------|
+| `f` | Find File |
+| `r` | Recent Files |
+| `g` | Live Grep |
+| `e` | File Explorer |
+| `l` | Open Lazy (plugin manager) |
+| `q` | Quit |
 
 ---
 
@@ -132,6 +147,25 @@ See `docs/YAZI_KEYBINDINGS.md` for the full yazi keybinding reference.
 
 ---
 
+## Code Outline (aerial.nvim)
+
+| Key | Mode | Action |
+|:----|:-----|:-------|
+| `<Space>a` | `n` | Toggle outline sidebar |
+| `{` | `n` | Jump to previous symbol |
+| `}` | `n` | Jump to next symbol |
+
+---
+
+## Line Movement
+
+| Key | Mode | Action |
+|:----|:-----|:-------|
+| `J` | `v` | Move selected lines down |
+| `K` | `v` | Move selected lines up |
+
+---
+
 ## Treesitter (Selection)
 
 | Key | Mode | Action |
@@ -162,6 +196,60 @@ See `docs/YAZI_KEYBINDINGS.md` for the full yazi keybinding reference.
 | Key | Mode | Action |
 |:----|:-----|:-------|
 | `<Space>vg` | `n` | VimBeGood (practice) |
+
+---
+
+## Trouble (Diagnostics Panel)
+
+| Key | Mode | Action |
+|:----|:-----|:-------|
+| `<Space>xx` | `n` | Toggle workspace diagnostics |
+| `<Space>xX` | `n` | Toggle buffer diagnostics |
+| `<Space>xs` | `n` | Toggle symbols |
+| `<Space>xr` | `n` | Toggle LSP references |
+| `<Space>xl` | `n` | Toggle location list |
+| `<Space>xq` | `n` | Toggle quickfix list |
+
+---
+
+## Text Objects (mini.ai)
+
+mini.ai extends `a` (around) and `i` (inside) with smarter text object identifiers.
+
+**Syntax**: `{operator}{a|i}{id}` — works with `d`, `c`, `y`, `v`, `=`, etc.
+
+| Identifier | Targets | Common usage |
+|:-----------|:--------|:-------------|
+| `f` | Function call | `daf` delete around fn, `cif` change inside fn |
+| `a` | Argument | `dia` delete arg, `via` select arg |
+| `b` | Any bracket `()[]{}` | `dib` delete inside, `cab` change around |
+| `q` | Any quote `"'`` ` `` | `ciq` change inside, `yaq` yank around |
+| `t` | HTML/XML tag | `dit` delete inside tag |
+| `(`, `[`, `{` | Specific bracket | `ci(` change inside parens |
+| `"`, `'`, `` ` `` | Specific quote | `ci"` change inside double quotes |
+| `?` | Interactive pair | Prompted — type any pair |
+
+**Tip**: Add a count to target outer scopes — `2daf` deletes the 2nd enclosing function.
+
+---
+
+## Flash (Jump/Motion)
+
+| Key | Mode | Action |
+|:----|:-----|:-------|
+| `s` + type chars | `n`, `x`, `o` | Flash Jump — type 2+ chars, pick a label to jump |
+| `S` | `n`, `x`, `o` | Flash Treesitter — select treesitter node |
+| `r` | `o` | Remote Flash (operator-pending) |
+| `R` | `o`, `x` | Treesitter Search |
+
+Flash also enhances:
+- `/` and `?` search — jump labels appear on matches
+- `f`, `t`, `F`, `T` — character motions get labels when multiple matches exist
+
+**Common combos:**
+- `s` + `gr` + label → jump to the word "green"
+- `d` + `s` + `gr` + label → delete from cursor to the word "green"
+- Jump first with `s`, then `diw` to delete the word under cursor
 
 ---
 

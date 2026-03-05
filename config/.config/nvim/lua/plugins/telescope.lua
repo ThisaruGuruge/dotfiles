@@ -8,6 +8,7 @@ return {
         cmd = "Telescope",
         config = function()
             local telescope = require("telescope")
+            local actions = require("telescope.actions")
             local lga_actions = require("telescope-live-grep-args.actions")
 
             telescope.setup({
@@ -16,6 +17,9 @@ return {
                         i = {
                             ["<C-u>"] = false,
                             ["<C-d>"] = false,
+                        },
+                        n = {
+                            ["q"] = actions.close,
                         },
                     },
                     file_ignore_patterns = { "node_modules", ".git/", "%.lock" },

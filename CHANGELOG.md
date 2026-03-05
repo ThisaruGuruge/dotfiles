@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added `mini.ai` for enhanced text objects: smarter `a`/`i` with identifiers for function calls (`f`), arguments (`a`), any bracket (`b`), any quote (`q`), HTML tags (`t`), and interactive pairs (`?`)
+- Added `nvim-neoclip.lua` for clipboard/yank history: browse and paste from history via Telescope (`<leader>fy`)
+- Replaced `nvim-cmp` with `blink.cmp` for completions: faster Rust-based fuzzy matching, built-in signature help (auto-shows parameter info when typing inside function args), and auto-show documentation popup alongside completions
+- Added `trouble.nvim` diagnostics panel (`<leader>xx` for workspace diagnostics, `<leader>xs` for symbols, `<leader>xr` for LSP references)
+- Added aerial.nvim breadcrumb component to lualine statusline (shows current function/symbol path)
+- Added `flash.nvim` for lightning-fast jump/motion navigation (`s` to jump, `S` for treesitter select, enhances `/` search and `f`/`t` motions with labels)
+- Added `alpha-nvim` dashboard as Neovim start screen with quick-action buttons (Find File, Recent Files, Grep, Explorer, Lazy)
+- Added `aerial.nvim` code outline sidebar (`<leader>a` to toggle, `{`/`}` to navigate symbols)
+- Added Ballerina language support: tree-sitter syntax highlighting (`tree-sitter-ballerina`) and LSP via `bal start-language-server`
+- Improved Neovim lualine: relative file path, git diff stats, LSP diagnostics, LSP server name, search count, encoding/format, macro recording indicator, indent style, word count (markdown/text), file size, Lazy update count
+- Improved tmux status bar: prefix indicator, git branch, zoom indicator, pane count, CPU/memory, Wi-Fi/network status, VPN status, battery (moved from starship prompt)
+- Added tmux status helper scripts: `bin/tmux-status-network`, `bin/tmux-status-vpn`, `bin/tmux-status-sysinfo`
+- Added tmux quality-of-life settings: `detach-on-destroy off`, OSC 52 clipboard, 50k scrollback, faster status refresh
+- Added tmux keybindings: quick window/session toggle, pane swapping, break-pane, lazygit popup
+- Added tmux plugins: `tmux-open` (open files/URLs from copy mode), `tmux-sessionist` (session management), `tmux-fzf` (fuzzy finder)
 - Added `undotree` Neovim plugin for visual undo history navigation (`<leader>u`)
 - Added Touch ID for sudo authentication via `/etc/pam.d/sudo_local` (persists across macOS updates)
 - Added `pam-reattach` to Brewfile for Touch ID support inside tmux sessions
