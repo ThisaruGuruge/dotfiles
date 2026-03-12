@@ -1,0 +1,3 @@
+# Files in dotfiles/bin that should not be symlinked into ~/bin
+^README\.md$
+^\.stow-local-ignore$
