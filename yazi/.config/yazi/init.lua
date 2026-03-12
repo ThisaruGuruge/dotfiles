@@ -7,7 +7,7 @@ require("full-border"):setup()
 require("git"):setup()
 
 -- Faster MIME detection via file extension (skip `file` command)
-require("mime-ext"):setup({
+require("mime-ext.local"):setup({
     -- Fallback to the default `file` command if extension is unknown
-    with_files = true,
+    fallback_file1 = true,
 })

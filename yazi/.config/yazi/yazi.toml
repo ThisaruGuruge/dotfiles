@@ -52,6 +52,8 @@ prepend_rules = [
 
 [plugin]
 prepend_fetchers = [
-    { id = "git", name = "*",  run = "git" },
-    { id = "git", name = "*/", run = "git" },
+    { id = "mime", name = "*",  run = "mime-ext.local",  prio = "high" },
+    { id = "mime", name = "*",  run = "mime-ext.remote", prio = "high" },
+    { id = "git",  name = "*",  run = "git" },
+    { id = "git",  name = "*/", run = "git" },
 ]

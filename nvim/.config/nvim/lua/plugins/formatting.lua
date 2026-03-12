@@ -46,6 +46,7 @@ return {
                     java = { "google_java_format" },
                     rust = { "rustfmt" },
                     sh = { "shfmt" },
+                    ["*"] = { "trim_whitespace" },
                 },
                 format_on_save = {
                     timeout_ms = 3000,

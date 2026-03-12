@@ -18,8 +18,8 @@ timezone = "local"
 # sync_address = "https://api.atuin.sh"
 # sync_frequency = "10m"
 
-## Update check
-update_check = true
+## Update check — disabled to avoid network round-trip on every invocation
+update_check = false
 
 # ============================================================================
 # Search Configuration

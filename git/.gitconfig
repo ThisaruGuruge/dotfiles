@@ -7,3 +7,6 @@
 	  defaultBranchName = main
 [url "https://github.com/"]
 	insteadOf = git@github.com:
+[core]
+	untrackedCache = true
+	fsmonitor = true
