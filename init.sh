@@ -897,6 +897,15 @@ stow_packages() {
             log_info "  - $skipped"
         done
     fi
+
+    # Stow bin scripts into ~/bin (separate target from $HOME)
+    log_info "Stowing bin scripts into ~/bin..."
+    mkdir -p "$HOME/bin"
+    if stow --no-folding -t "$HOME/bin" bin 2>/dev/null; then
+        log_success "Stowed bin scripts into ~/bin"
+    else
+        log_warning "Could not stow bin scripts (may already be stowed)"
+    fi
 }
 
 # Test installation
