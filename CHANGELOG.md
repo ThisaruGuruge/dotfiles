@@ -7,8 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Performance
+
+- **Migrated shell prompt from Starship to Powerlevel10k**: eliminates the ~200-280ms per-render cost of spawning a binary process on every prompt draw. p10k is pure Zsh with no subprocess overhead per render
+- **Enabled p10k instant prompt**: cached prompt renders immediately on shell startup while the rest of `.zshrc` loads in the background — visually instant shell open
+- **Fixed atuin 1-2 second delay on up-arrow**: disabled `update_check` in atuin config to stop the network round-trip that occurred on every atuin invocation
+- **Enabled `git core.fsmonitor` and `core.untrackedCache` globally**: reduced `git status` from ~268ms to ~37ms (7× speedup) via macOS FSEvents daemon
+
 ### Added
 
+- Added **Powerlevel10k** as the shell prompt (replaces Starship); loaded as the first zinit plugin for correct instant-prompt initialization
+- Added `zsh/.p10k.zsh` — full Catppuccin Mocha themed prompt config with Catppuccin Mocha palette matching the tmux status bar
+- Added Go version segment (`go_version`) to the prompt — only appears inside Go projects
+- Added custom Ballerina segment (`p10k_ballerina`) — reads version from `~/.ballerina/ballerina-version` using zsh builtins only (zero subprocesses), shows only when `Ballerina.toml` is present in `$PWD`
+- Added **transient prompt** (`POWERLEVEL9K_TRANSIENT_PROMPT=always`): previous prompts collapse to a single `❯` in scrollback, keeping the terminal history clean
+- Added `bin/tmux-status-sysinfo` — lightweight tmux helper that reports 1-minute load average and RAM usage (`used/total`) using `sysctl` + `vm_stat`
+- Added `bin/tmux-status-battery` — smart battery script with per-level Nerd Font icons and charging indicator, using a single `pmset` call
 - Added `mini.ai` for enhanced text objects: smarter `a`/`i` with identifiers for function calls (`f`), arguments (`a`), any bracket (`b`), any quote (`q`), HTML tags (`t`), and interactive pairs (`?`)
 - Added `nvim-neoclip.lua` for clipboard/yank history: browse and paste from history via Telescope (`<leader>fy`)
 - Replaced `nvim-cmp` with `blink.cmp` for completions: faster Rust-based fuzzy matching, built-in signature help (auto-shows parameter info when typing inside function args), and auto-show documentation popup alongside completions
@@ -19,8 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `aerial.nvim` code outline sidebar (`<leader>a` to toggle, `{`/`}` to navigate symbols)
 - Added Ballerina language support: tree-sitter syntax highlighting (`tree-sitter-ballerina`) and LSP via `bal start-language-server`
 - Improved Neovim lualine: relative file path, git diff stats, LSP diagnostics, LSP server name, search count, encoding/format, macro recording indicator, indent style, word count (markdown/text), file size, Lazy update count
-- Improved tmux status bar: prefix indicator, git branch, zoom indicator, pane count, CPU/memory, Wi-Fi/network status, VPN status, battery (moved from starship prompt)
-- Added tmux status helper scripts: `bin/tmux-status-network`, `bin/tmux-status-vpn`, `bin/tmux-status-sysinfo`
 - Added tmux quality-of-life settings: `detach-on-destroy off`, OSC 52 clipboard, 50k scrollback, faster status refresh
 - Added tmux keybindings: quick window/session toggle, pane swapping, break-pane, lazygit popup
 - Added tmux plugins: `tmux-open` (open files/URLs from copy mode), `tmux-sessionist` (session management), `tmux-fzf` (fuzzy finder)
@@ -46,16 +58,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Redesigned tmux status bar** for harmony with the new prompt:
+  - Removed git branch from status-right (it lives in the prompt — no duplication, no polling subprocess)
+  - Replaced ad-hoc battery logic with `bin/tmux-status-battery` (single `pmset` call, smart icons)
+  - Replaced ad-hoc sysinfo with `bin/tmux-status-sysinfo` (load avg + RAM, zsh+awk, no Python)
+  - Changed date format to `%a %d %b` (e.g. `Thu 13 Mar`) — more human-readable than `%Y-%m-%d`
+  - Reduced `status-right-length` from 250 to 120
+- **Prompt information architecture**: prompt shows command context (dir, git, language, duration); tmux shows session context (session name, pane count, sysinfo, battery, time) — no duplication between layers
+- VCS segment always uses blue background regardless of dirty/clean state — dirty state is shown via icons (`!+?`) rather than a jarring colour change
 - Replaced Neo-tree with yazi.nvim for file exploration in Neovim (`<leader>e`, `<leader>o`, `<leader>-`, `<leader>cw`)
 - Replaced the legacy Oh My Posh prompt with the current Starship configuration, including new docs and tooling updates
 
 ### Documentation
 
+- Updated `README.md`: replaced Starship prompt section with Powerlevel10k, updated tool stack, troubleshooting commands, and stow package references
+- Updated `bin/test-zsh-config`: replaced Starship validation with Powerlevel10k checks
 - Rewrote `README.md` to describe the Starship prompt, SOPS workflow, and package manager updates
 - Updated helper scripts and contribution guidelines to point to the Starship config instead of the removed Oh My Posh theme
 
 ### Removed
 
+- Removed `node_version` from prompt (Node.js is not a primary language in this stack)
+- Removed time/clock from the prompt (it lives in the tmux status bar — no duplication)
 - Removed the old `config/ohmyposh/zen.json` theme files in favor of `.config/starship.toml`
 
 ## [1.0.0] - 2025-10-03

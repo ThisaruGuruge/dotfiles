@@ -11,7 +11,7 @@ list_dotfiles_tools() {
     echo ""
     echo "📺 SHELL & TERMINAL ENHANCEMENT:"
     echo "   zsh              - Shell"
-    echo "   starship         - Fast prompt (Rust)"
+    echo "   powerlevel10k    - Fast prompt (pure Zsh)"
     echo "   zinit            - Plugin manager"
     echo "   tmux             - Terminal multiplexer"
     echo ""
@@ -25,50 +25,34 @@ list_dotfiles_tools() {
     echo "   zoxide           - Smart cd replacement"
     echo "   fd               - Fast find replacement"
     echo "   dust             - Modern du replacement"
-    echo "   duf              - Modern df replacement"
     echo "   htop             - Better top"
     echo ""
     echo "🔧 DEVELOPMENT TOOLS:"
     echo "   git + lazygit    - Version control"
-    echo "   vim              - Text editor"
-    echo "   direnv           - Environment variable management"
+    echo "   git-delta        - Enhanced git diff viewer"
+    echo "   gh               - GitHub CLI"
+    echo "   lazydocker       - Docker TUI"
+    echo "   nvim             - Text editor"
+    echo "   direnv           - Directory-specific environments"
     echo "   atuin            - Enhanced shell history"
+    echo "   jq               - JSON processor"
+    echo "   jless            - Interactive JSON/YAML viewer"
     echo ""
     echo "📋 LANGUAGE & RUNTIME MANAGEMENT:"
-    echo "   NVM              - Node.js version manager"
-    echo "   SDKMAN           - Java ecosystem manager"
-    echo "   rbenv            - Ruby version manager"
-    echo "   pyenv            - Python version manager"
-    echo ""
-    echo "💻 PROGRAMMING LANGUAGES & FRAMEWORKS:"
-    echo "   Node.js          - JavaScript runtime (via NVM)"
-    echo "   Java/JVM         - Java platform (via SDKMAN)"
-    echo "   Gradle           - Build tool"
-    echo "   Maven            - Build tool"
-    echo "   Python           - Programming language (via pyenv)"
-    echo "   Ruby             - Programming language (via rbenv)"
-    echo "   Ballerina        - Programming language"
-    echo ""
-    echo "🏛️ LEGACY/SPECIFIC TOOLS:"
-    echo "   Apache Tomcat    - Version 9.0.8"
-    echo "   Apache Maven     - Version 3.5.3"
-    echo "   Apache Ant       - Version 1.10.3"
-    echo "   JMeter           - Load testing tool"
-    echo "   MySQL            - Version 5.7"
-    echo ""
-    echo "☁️ CLOUD & DEVOPS:"
-    echo "   Docker           - Containerization"
-    echo "   Google Cloud SDK - GCP tools"
-    echo "   Rancher Desktop  - Container management"
+    echo "   NVM              - Node.js version manager (lazy-loaded)"
+    echo "   SDKMAN           - Java ecosystem manager (lazy-loaded)"
+    echo "   rbenv            - Ruby version manager (optional)"
+    echo "   pyenv            - Python version manager (optional)"
+    echo "   Ballerina        - Cloud-native programming language"
     echo ""
     echo "🔐 SECURITY & SECRETS:"
     echo "   SOPS             - Secret management"
-    echo "   Age              - Encryption"
+    echo "   Age              - File encryption"
+    echo "   pam-reattach     - Touch ID in tmux"
     echo ""
     echo "⚙️ SYSTEM TOOLS:"
     echo "   Homebrew         - Package manager"
-    echo "   ag               - The Silver Searcher"
-    echo "   todo.sh          - Todo management"
+    echo "   stow             - Symlink farm manager"
     echo ""
     echo "💡 Usage: remove_dotfiles_tool <tool_name>"
     echo "   Example: remove_dotfiles_tool rbenv"
@@ -83,7 +67,7 @@ remove_dotfiles_tool() {
         echo ""
         echo "Available tools to remove:"
         echo "• nvm, sdkman, rbenv, pyenv"
-        echo "• starship, atuin, direnv"
+        echo "• atuin, direnv"
         echo "• docker"
         echo "• legacy-java-tools (maven, tomcat, ant, mysql)"
         echo "• jmeter"
@@ -109,10 +93,10 @@ remove_dotfiles_tool() {
     case "$tool_name" in
         "nvm")
             echo "Removing NVM configuration..."
-            # Comment out NVM section in .zshrc using more robust pattern matching
-            if grep -q "^# Lazy load NVM" "$dotfiles_dir/zsh/.zshrc"; then
-                sed -i.bak '/^# Lazy load NVM/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-                echo "✅ NVM configuration commented out in .zshrc"
+            local nvm_file="$dotfiles_dir/zsh/.zshrc.d/02-completion.zsh"
+            if [ -f "$nvm_file" ] && grep -q "NVM" "$nvm_file"; then
+                sed -i.bak '/# Lazy load NVM/,/^fi$/s/^/# REMOVED: /' "$nvm_file"
+                echo "✅ NVM configuration commented out in $(basename "$nvm_file")"
             else
                 echo "ℹ️ NVM configuration not found or already removed"
             fi
@@ -120,9 +104,10 @@ remove_dotfiles_tool() {
 
         "sdkman")
             echo "Removing SDKMAN configuration..."
-            if grep -q "Lazy load SDKMAN" "$dotfiles_dir/zsh/.zshrc"; then
-                sed -i.bak '/# Lazy load SDKMAN/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-                echo "✅ SDKMAN configuration commented out in .zshrc"
+            local sdkman_file="$dotfiles_dir/zsh/.zshrc.d/02-completion.zsh"
+            if [ -f "$sdkman_file" ] && grep -q "SDKMAN" "$sdkman_file"; then
+                sed -i.bak '/# Lazy load SDKMAN/,/^fi$/s/^/# REMOVED: /' "$sdkman_file"
+                echo "✅ SDKMAN configuration commented out in $(basename "$sdkman_file")"
             else
                 echo "ℹ️ SDKMAN configuration not found or already removed"
             fi
@@ -130,9 +115,10 @@ remove_dotfiles_tool() {
 
         "rbenv")
             echo "Removing rbenv configuration..."
-            if grep -q "_rbenv_lazy_load" "$dotfiles_dir/zsh/.zshrc"; then
-                sed -i.bak '/# Lazy load rbenv/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-                echo "✅ rbenv configuration commented out in .zshrc"
+            local rbenv_file="$dotfiles_dir/zsh/.zshrc.d/06-environment.zsh"
+            if [ -f "$rbenv_file" ] && grep -q "rbenv" "$rbenv_file"; then
+                sed -i.bak '/# Initialize rbenv/,/^fi$/s/^/# REMOVED: /' "$rbenv_file"
+                echo "✅ rbenv configuration commented out in $(basename "$rbenv_file")"
             else
                 echo "ℹ️ rbenv configuration not found or already removed"
             fi
@@ -140,39 +126,21 @@ remove_dotfiles_tool() {
 
         "pyenv")
             echo "Removing pyenv configuration..."
-            if grep -q "_pyenv_lazy_load" "$dotfiles_dir/zsh/.zshrc"; then
-                sed -i.bak '/# Lazy load pyenv/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-                echo "✅ pyenv configuration commented out in .zshrc"
+            local pyenv_file="$dotfiles_dir/zsh/.zshrc.d/06-environment.zsh"
+            if [ -f "$pyenv_file" ] && grep -q "pyenv" "$pyenv_file"; then
+                sed -i.bak '/# Initialize pyenv/,/^fi$/s/^/# REMOVED: /' "$pyenv_file"
+                echo "✅ pyenv configuration commented out in $(basename "$pyenv_file")"
             else
                 echo "ℹ️ pyenv configuration not found or already removed"
             fi
             ;;
 
-        "oh-my-posh" | "starship")
-            echo "Removing $tool_name configuration..."
-            if grep -qi "$tool_name" "$dotfiles_dir/zsh/.zshrc"; then
-                sed -i.bak "/# Initialize $tool_name/,/^fi$/s/^/# REMOVED: /" "$dotfiles_dir/zsh/.zshrc"
-                echo "✅ $tool_name configuration commented out in .zshrc"
-            else
-                echo "ℹ️ $tool_name configuration not found or already removed"
-            fi
-
-            # Cleanup instructions
-            echo ""
-            echo "To fully remove $tool_name:"
-            echo "  brew uninstall $tool_name"
-            if [ "$tool_name" = "oh-my-posh" ]; then
-                echo "  rm -rf ~/.config/ohmyposh ~/.cache/zsh/omp_cache.zsh"
-            else
-                echo "  rm -rf ~/.config/starship.toml"
-            fi
-            ;;
-
         "atuin")
             echo "Removing Atuin configuration..."
-            if grep -q "_atuin_lazy_load" "$dotfiles_dir/zsh/.zshrc"; then
-                sed -i.bak '/# Lazy load atuin/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-                echo "✅ Atuin configuration commented out in .zshrc"
+            local atuin_file="$dotfiles_dir/zsh/.zshrc.d/05-shell-integrations.zsh"
+            if [ -f "$atuin_file" ] && grep -q "atuin" "$atuin_file"; then
+                sed -i.bak '/# Atuin/,/^fi$/s/^/# REMOVED: /' "$atuin_file"
+                echo "✅ Atuin configuration commented out in $(basename "$atuin_file")"
             fi
             # Also remove from aliases
             if grep -q "atuin" "$dotfiles_dir/zsh/.aliases.sh"; then
@@ -183,19 +151,17 @@ remove_dotfiles_tool() {
 
         "direnv")
             echo "Removing direnv configuration..."
-            if grep -q "_direnv_lazy_load" "$dotfiles_dir/zsh/.zshrc"; then
-                sed -i.bak '/# Lazy load direnv/,/^fi$/s/^/# REMOVED: /' "$dotfiles_dir/zsh/.zshrc"
-                echo "✅ direnv configuration commented out in .zshrc"
+            local direnv_file="$dotfiles_dir/zsh/.zshrc.d/05-shell-integrations.zsh"
+            if [ -f "$direnv_file" ] && grep -q "direnv" "$direnv_file"; then
+                sed -i.bak '/# Direnv/,/^fi$/s/^/# REMOVED: /' "$direnv_file"
+                echo "✅ direnv configuration commented out in $(basename "$direnv_file")"
             else
                 echo "ℹ️ direnv configuration not found or already removed"
             fi
             ;;
 
         "google-cloud-sdk")
-            echo "ℹ️ Google Cloud SDK is now managed via packages.json (gcp category)"
-            echo "   Set 'enabled: true' in packages.json under categories.gcp to enable"
-            echo "   gcloud is disabled by default and no longer part of core dotfiles"
-            echo ""
+            echo "ℹ️ Google Cloud SDK is managed via optional Brewfiles (packages/cloud.brewfile)"
             echo "   To uninstall gcloud completely, run:"
             echo "   brew uninstall --cask google-cloud-sdk"
             return 0
@@ -237,7 +203,7 @@ remove_dotfiles_tool() {
             echo ""
             echo "Available tools to remove:"
             echo "• nvm, sdkman, rbenv, pyenv"
-            echo "• starship, atuin, direnv"
+            echo "• atuin, direnv"
             echo "• docker"
             echo "• legacy-java-tools (maven, tomcat, ant, mysql)"
             echo "• jmeter"

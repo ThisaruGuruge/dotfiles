@@ -43,6 +43,9 @@ if (( $+commands[direnv] )); then
     _direnv_lazy_load() {
         eval "$(direnv hook zsh)"
         unset -f _direnv_lazy_load
+        # Remove our check hook now that direnv's own hook is active
+        chpwd_functions=(${chpwd_functions:#_direnv_check})
+        unset -f _direnv_check
         # Re-trigger the hook
         _direnv_hook
     }

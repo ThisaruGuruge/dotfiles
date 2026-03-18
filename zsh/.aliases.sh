@@ -11,23 +11,22 @@ alias cls="clear;ls"
 alias mk="mkdir -p "
 alias cp="cp -riv"
 alias mv="mv -iv"
-alias rm="rm -r"
+alias rm="rm -rI"
 alias qfind="find . -name "
 
 alias ag='ag --silent --hidden'
 alias todo='todo.sh'
 
-alias ls='eza --icons --git'
-alias ll='eza -l --icons --git --header --no-user'
-alias la='eza -la --icons --git --header --group'
-alias lt='eza --tree --level=2 --icons --git'
-alias ls_x='eza -l --sort=extension --icons --git'
-alias ls_k='eza -l --sort=size --icons --git'
-alias ls_t='eza -l --sort=modified --icons --git'
-alias ls_old='eza -l --sort=oldest --icons --git'
-
-# Fallback to traditional ls if eza not available
-if ! (( $+commands[eza] )); then
+if (( $+commands[eza] )); then
+    alias ls='eza --icons --git'
+    alias ll='eza -l --icons --git --header --no-user'
+    alias la='eza -la --icons --git --header --group'
+    alias lt='eza --tree --level=2 --icons --git'
+    alias ls-ext='eza -l --sort=extension --icons --git'
+    alias ls-size='eza -l --sort=size --icons --git'
+    alias ls-time='eza -l --sort=modified --icons --git'
+    alias ls-old='eza -l --sort=oldest --icons --git'
+else
     alias ls='ls --color=auto'
     alias ll='ls -lah'
     alias la='ls -la'
@@ -69,7 +68,7 @@ alias reload="source ~/.zshrc"
 # Edit shell configuration files
 alias edit-zsh="nvim ~/.zshrc"
 alias edit-aliases="nvim ~/.aliases.sh"
-alias edit-functions="nvim ~/.functions.sh"
+alias edit-functions="nvim ~/.functions.d/"
 alias edit-paths="nvim ~/.paths.sh"
 
 # Edit other configuration files
@@ -77,7 +76,7 @@ alias edit-git="nvim ~/.gitconfig"
 alias edit-wezterm="nvim ~/.config/wezterm/wezterm.lua"
 alias edit-nvim="nvim ~/.config/nvim/init.lua"
 alias edit-vim="nvim ~/.vimrc"
-alias edit-starship="nvim ~/.config/starship.toml"
+alias edit-p10k="nvim ~/.p10k.zsh"
 alias edit-tmux="nvim ~/.tmux.conf"
 alias edit-lazygit="nvim ~/.config/lazygit/config.yml"
 alias edit-ripgrep="nvim ~/.config/ripgrep/config"
@@ -119,7 +118,7 @@ alias gwt='./gradlew test'
 alias gwb='./gradlew build'
 
 # Python server
-alias start_file_server='python -m SimpleHTTPServer 8000'
+alias start_file_server='python3 -m http.server 8000'
 
 # Python3
 alias p3='python3'
@@ -222,12 +221,6 @@ if (( $+commands[dust] )); then
     alias d='dust'
 fi
 
-# Quick edit configs
-alias edit_zsh='nvim ~/.zshrc'
-alias edit_aliases='nvim ~/.aliases.sh'
-alias edit_functions='nvim ~/.functions.sh'
-alias edit_git='nvim ~/.gitconfig'
-alias edit_tmux='nvim ~/.tmux.conf'
 
 # Documentation system
 alias help='alias_help'

@@ -8,7 +8,7 @@ This directory contains additional documentation for the dotfiles repository.
 - [CONFIG_MANAGEMENT.md](CONFIG_MANAGEMENT.md) - Managing configs with Stow, adopting new configs
 
 ### Prompt
-- [PROMPT_GUIDE.md](PROMPT_GUIDE.md) - Starship prompt customization and troubleshooting
+- [PROMPT_GUIDE.md](PROMPT_GUIDE.md) - Powerlevel10k prompt customization and troubleshooting
 
 ### TMux
 - [TMUX_KEYBINDINGS.md](TMUX_KEYBINDINGS.md) - TMux keybindings and session management

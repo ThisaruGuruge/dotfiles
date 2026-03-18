@@ -26,7 +26,7 @@ time_command() {
     local min=999999
     local max=0
 
-    for i in {1..$iterations}; do
+    for ((i=1; i<=iterations; i++)); do
         local start=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time * 1000000')
         eval "$command" >/dev/null 2>&1
         local end=$(perl -MTime::HiRes=time -e 'printf "%.0f\n", time * 1000000')
@@ -63,11 +63,12 @@ echo ""
 
 # Test individual components
 time_command "Homebrew shellenv" "eval \"\$(/opt/homebrew/bin/brew shellenv)\""
-if command -v starship >/dev/null 2>&1; then
-    time_command "Starship init script" "starship init zsh --print-full-init >/dev/null"
-    time_command "Starship prompt render" "starship prompt >/dev/null"
+# Powerlevel10k is loaded via zinit as a plugin, not via an init command.
+# Timing its presence check and config load instead.
+if [[ -d "${HOME}/.local/share/zinit/plugins/romkatv---powerlevel10k" ]]; then
+    time_command "Powerlevel10k plugin dir stat" "stat ${HOME}/.local/share/zinit/plugins/romkatv---powerlevel10k >/dev/null"
 else
-    echo "Starship not installed - skipping prompt timing"
+    echo "Powerlevel10k plugin not found - skipping prompt timing"
 fi
 time_command "Zinit load completions" "zinit light zsh-users/zsh-completions"
 time_command "Zinit load fzf-tab" "zinit light Aloxaf/fzf-tab"
@@ -96,17 +97,22 @@ echo "--------------------------------------------------------------"
 time_command "Complete zsh startup (new shell)" "zsh -i -c exit" 3
 
 echo ""
-echo "Prompt Diagnostics:"
+echo "Prompt Diagnostics (Powerlevel10k):"
 echo "--------------------------------------------------------------"
-if command -v starship >/dev/null 2>&1; then
-    echo "Starship version: $(starship --version)"
-    if [ -f ~/.config/starship.toml ]; then
-        echo "Config file: ~/.config/starship.toml"
-    else
-        echo "Config file: Not found (using Starship defaults)"
-    fi
+local p10k_plugin="${HOME}/.local/share/zinit/plugins/romkatv---powerlevel10k"
+if [[ -d "$p10k_plugin" ]]; then
+    local p10k_version
+    p10k_version=$(head -n 1 "$p10k_plugin/powerlevel10k.zsh-theme" 2>/dev/null | grep -o 'v[0-9][^ ]*' || echo "unknown")
+    echo "Powerlevel10k: Installed via zinit ($p10k_version)"
 else
-    echo "Starship is not installed"
+    echo "Powerlevel10k: Plugin not found at $p10k_plugin"
+fi
+if [[ -f ~/.p10k.zsh ]] || [[ -L ~/.p10k.zsh ]]; then
+    local p10k_real
+    p10k_real=$(readlink ~/.p10k.zsh 2>/dev/null || echo ~/.p10k.zsh)
+    echo "Config file: $p10k_real"
+else
+    echo "Config file: ~/.p10k.zsh not found"
 fi
 
 echo ""

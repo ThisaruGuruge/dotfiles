@@ -128,11 +128,11 @@ edit_dotfiles() {
     echo ""
     echo "  1) Shell Configuration (.zshrc)"
     echo "  2) Aliases (.aliases.sh)"
-    echo "  3) Functions (.functions.sh)"
+    echo "  3) Functions (.functions.d/)"
     echo "  4) Paths (.paths.sh)"
     echo "  5) Git Config (.gitconfig)"
     echo "  6) Vim Config (.vimrc)"
-    echo "  7) Starship Prompt (starship.toml)"
+    echo "  7) Powerlevel10k Prompt (.p10k.zsh)"
     echo "  8) Environment Template (.env.example)"
     echo "  9) Brewfile (package list)"
     echo " 10) Init Script (init.sh)"
@@ -157,7 +157,7 @@ edit_dotfiles() {
             description="Command Aliases"
             ;;
         3)
-            file_to_edit="$dotfiles_dir/zsh/.functions.sh"
+            file_to_edit="$dotfiles_dir/zsh/.functions.d/"
             description="Custom Functions"
             ;;
         4)
@@ -173,8 +173,8 @@ edit_dotfiles() {
             description="Vim Configuration"
             ;;
         7)
-            file_to_edit="$dotfiles_dir/.config/starship.toml"
-            description="Starship Prompt"
+            file_to_edit="$dotfiles_dir/zsh/.p10k.zsh"
+            description="Powerlevel10k Prompt"
             ;;
         8)
             file_to_edit="$dotfiles_dir/zsh/.env.example"
@@ -213,9 +213,9 @@ edit_dotfiles() {
             ;;
     esac
 
-    # Verify file exists
-    if [ ! -f "$file_to_edit" ]; then
-        echo "❌ File not found: $file_to_edit"
+    # Verify file/directory exists
+    if [ ! -e "$file_to_edit" ]; then
+        echo "❌ Not found: $file_to_edit"
         return 1
     fi
 
@@ -235,9 +235,17 @@ edit_dotfiles() {
 
         # Test syntax for shell files
         case "$file_to_edit" in
-            *.sh | */.zshrc)
+            *.zsh | */.zshrc)
                 echo "🔍 Testing syntax..."
-                if bash -n "$file_to_edit" 2>/dev/null; then
+                if zsh -n "$file_to_edit" 2>/dev/null; then
+                    echo "✅ Syntax check passed"
+                else
+                    echo "⚠️  Syntax check failed - please review your changes"
+                fi
+                ;;
+            *.sh)
+                echo "🔍 Testing syntax..."
+                if zsh -n "$file_to_edit" 2>/dev/null; then
                     echo "✅ Syntax check passed"
                 else
                     echo "⚠️  Syntax check failed - please review your changes"
@@ -258,7 +266,7 @@ edit_dotfiles() {
         echo ""
         echo "💡 Next steps:"
         case "$file_to_edit" in
-            */.zshrc | */.aliases.sh | */.functions.sh | */.paths.sh)
+            */.zshrc | */.aliases.sh | */.functions.d/* | */.paths.sh)
                 echo "   • Restart terminal or run: source ~/.zshrc"
                 ;;
             */zen.json)
@@ -413,7 +421,7 @@ update_dotfiles() {
     echo "💡 Next steps:"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-    if echo "$changed_files" | grep -q -E "\.(zshrc|aliases\.sh|functions\.sh|paths\.sh)$"; then
+    if echo "$changed_files" | grep -q -E "\.(zshrc|aliases\.sh|paths\.sh)$|functions\.d/"; then
         echo "   🔄 Shell configuration updated"
         if confirm "Reload shell configuration now?"; then
             echo "🔄 Reloading shell configuration..."
@@ -435,7 +443,7 @@ update_dotfiles() {
         fi
     fi
 
-    if echo "$changed_files" | grep -q "config/starship.toml"; then
+    if echo "$changed_files" | grep -q "\.p10k\.zsh"; then
         echo "   🎨 Prompt config updated"
         echo "   💡 Restart terminal to see prompt changes"
     fi
@@ -490,8 +498,11 @@ adopt-config() {
 
     # Stow it back
     echo "🔗 Stowing config..."
-    cd "$HOME/dotfiles" || return
-    stow --no-folding config
-
-    echo "✅ $config_name adopted and stowed!"
+    if (cd "$HOME/dotfiles" && stow --no-folding config); then
+        echo "✅ $config_name adopted and stowed!"
+    else
+        echo "❌ Stow failed — restoring original file..."
+        mv -v "$dotfiles_config_dir/$config_name" "$target"
+        return 1
+    fi
 }
