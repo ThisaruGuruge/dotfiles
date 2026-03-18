@@ -2,7 +2,6 @@
 
 # Test script for zsh configuration
 # Validates that all tools and environment are working correctly after zshrc changes
-# Reads package configuration from packages.json
 
 # Color codes for beautiful output
 RED='\033[0;31m'
@@ -32,8 +31,6 @@ DOTFILES_DIR="${HOME}/dotfiles"
 if [ ! -d "$DOTFILES_DIR" ]; then
     DOTFILES_DIR="${HOME}/.dotfiles"
 fi
-
-PACKAGES_JSON="$DOTFILES_DIR/packages.json"
 
 # Print section header
 print_header() {
@@ -143,135 +140,59 @@ test_env_var "SDKMAN_DIR"
 test_env_var "JAVA_HOME"
 
 # ============================================================================
-# PACKAGES FROM packages.json
+# CORE PACKAGES (from Brewfile)
 # ============================================================================
+print_header "Core Packages"
 
-# Check if packages.json exists and is readable
-if [[ ! -f "$PACKAGES_JSON" ]]; then
-    print_header "Package Configuration"
-    print_test "packages.json" "warn" "Not found at $PACKAGES_JSON, using manual tests"
-    USE_MANUAL_TESTS=true
+test_tool "stow" "stow" "stow --version | head -1"
+test_tool "fzf" "fzf" "fzf --version"
+test_tool "zoxide" "zoxide" "zoxide --version"
+test_tool "bat" "bat" "bat --version | head -1"
+test_tool "eza" "eza" "eza --version | head -1"
+test_tool "ripgrep" "rg" "rg --version | head -1"
+test_tool "fd" "fd" "fd --version"
+test_tool "git-delta" "delta" "delta --version"
+test_tool "lazygit" "lazygit" "lazygit --version | head -1"
+test_tool "tmux" "tmux" "tmux -V"
+test_tool "htop" "htop" "htop --version | head -1"
+test_tool "direnv" "direnv" "direnv --version"
+test_tool "atuin" "atuin" "atuin --version"
+test_tool "gh" "gh" "gh --version | head -1"
+test_tool "jq" "jq" "jq --version"
+test_tool "jless" "jless" "jless --version" "true"
+test_tool "glow" "glow" "glow --version"
+test_tool "yazi" "yazi" "yazi --version"
+test_tool "lazydocker" "lazydocker" "lazydocker --version | head -1" "true"
+
+# ============================================================================
+# SECURITY TOOLS
+# ============================================================================
+print_header "Security Tools"
+
+test_tool "sops" "sops" "sops --version"
+test_tool "age" "age" "age --version"
+
+if [[ -f "$HOME/.config/sops/age/keys.txt" ]]; then
+    print_test "Age Keys" "pass" "Found at $HOME/.config/sops/age/keys.txt"
 else
-    # Check if jq is available for JSON parsing
-    if ! command -v jq >/dev/null 2>&1; then
-        print_header "Package Configuration"
-        print_test "jq (JSON parser)" "warn" "Not installed, using manual tests"
-        USE_MANUAL_TESTS=true
-    else
-        USE_MANUAL_TESTS=false
+    print_test "Age Keys" "warn" "Not found (required for encrypted secrets)"
+fi
 
-        # Test packages from packages.json
-        print_header "Core Packages (from packages.json)"
+# ============================================================================
+# SPECIAL INSTALLATIONS
+# ============================================================================
+print_header "Special Installations"
 
-        # Get all enabled packages from core category
-        local core_packages
-        core_packages=$(jq -r '.categories.core.packages | to_entries[] | select(.value.enabled == true) | .key' "$PACKAGES_JSON" 2>/dev/null)
+if [[ -d "$HOME/.sdkman" ]]; then
+    print_test "SDKMAN" "pass" "Installed at $HOME/.sdkman"
+else
+    print_test "SDKMAN" "warn" "Not found (optional)"
+fi
 
-        if [[ -n "$core_packages" ]]; then
-            while IFS= read -r package; do
-                local required
-                required=$(jq -r ".categories.core.packages.\"$package\".required" "$PACKAGES_JSON" 2>/dev/null)
-
-                # Map package names to commands
-                local cmd="$package"
-                case "$package" in
-                    "starship") cmd="starship"; version_cmd="starship --version" ;;
-                    "git-delta") cmd="delta"; version_cmd="delta --version" ;;
-                    "git-flow-avh") cmd="git-flow"; version_cmd="git flow version" ;;
-                    "lazygit") cmd="lazygit"; version_cmd="lazygit --version" ;;
-                    "ripgrep") cmd="rg"; version_cmd="rg --version | head -1" ;;
-                    *) version_cmd="$cmd --version" ;;
-                esac
-
-                local optional="false"
-                [[ "$required" == "false" ]] && optional="true"
-
-                test_tool "$package" "$cmd" "$version_cmd" "$optional"
-            done <<< "$core_packages"
-        fi
-
-        # Test security packages
-        print_header "Security Tools (from packages.json)"
-
-        local security_packages
-        security_packages=$(jq -r '.categories.security.packages | to_entries[] | select(.value.enabled == true) | .key' "$PACKAGES_JSON" 2>/dev/null)
-
-        if [[ -n "$security_packages" ]]; then
-            while IFS= read -r package; do
-                local required
-                required=$(jq -r ".categories.security.packages.\"$package\".required" "$PACKAGES_JSON" 2>/dev/null)
-                local optional="false"
-                [[ "$required" == "false" ]] && optional="true"
-
-                test_tool "$package" "$package" "$package --version" "$optional"
-            done <<< "$security_packages"
-        fi
-
-        # Check age keys if sops is enabled
-        if [[ -f "$HOME/.config/sops/age/keys.txt" ]]; then
-            print_test "Age Keys" "pass" "Found at $HOME/.config/sops/age/keys.txt"
-        else
-            print_test "Age Keys" "warn" "Not found (required for encrypted secrets)"
-        fi
-
-        # Test development packages
-        local dev_enabled
-        dev_enabled=$(jq -r '.categories.development.enabled' "$PACKAGES_JSON" 2>/dev/null)
-
-        if [[ "$dev_enabled" == "true" ]]; then
-            print_header "Development Tools (from packages.json)"
-
-            local dev_packages
-            dev_packages=$(jq -r '.categories.development.packages | to_entries[] | select(.value.enabled == true) | .key' "$PACKAGES_JSON" 2>/dev/null)
-
-            if [[ -n "$dev_packages" ]]; then
-                while IFS= read -r package; do
-                    case "$package" in
-                        "nvm")
-                            if command -v nvm >/dev/null 2>&1 || type nvm >/dev/null 2>&1; then
-                                local nvm_version
-                                nvm_version=$(nvm --version 2>&1)
-                                print_test "NVM" "pass" "v$nvm_version"
-                            else
-                                print_test "NVM" "warn" "Not loaded"
-                            fi
-                            ;;
-                        "pyenv")
-                            test_tool "pyenv" "pyenv" "pyenv --version" "true"
-                            ;;
-                        "rbenv")
-                            test_tool "rbenv" "rbenv" "rbenv --version" "true"
-                            ;;
-                    esac
-                done <<< "$dev_packages"
-            fi
-        fi
-
-        # Test special installations
-        print_header "Special Installations (from packages.json)"
-
-        local sdkman_enabled
-        sdkman_enabled=$(jq -r '.special_installations.sdkman.enabled' "$PACKAGES_JSON" 2>/dev/null)
-
-        if [[ "$sdkman_enabled" == "true" ]]; then
-            if [[ -d "$HOME/.sdkman" ]]; then
-                print_test "SDKMAN" "pass" "Installed at $HOME/.sdkman"
-            else
-                print_test "SDKMAN" "warn" "Not found"
-            fi
-        fi
-
-        local zinit_enabled
-        zinit_enabled=$(jq -r '.special_installations.zinit.enabled' "$PACKAGES_JSON" 2>/dev/null)
-
-        if [[ "$zinit_enabled" == "true" ]]; then
-            if [[ -d "${HOME}/.local/share/zinit/zinit.git" ]]; then
-                print_test "Zinit Plugin Manager" "pass" "Installed"
-            else
-                print_test "Zinit Plugin Manager" "warn" "Not found"
-            fi
-        fi
-    fi
+if [[ -d "${HOME}/.local/share/zinit/zinit.git" ]]; then
+    print_test "Zinit Plugin Manager" "pass" "Installed"
+else
+    print_test "Zinit Plugin Manager" "warn" "Not found"
 fi
 
 # ============================================================================
@@ -349,24 +270,28 @@ else
     print_test "Zinit Plugin Manager" "warn" "Not found"
 fi
 
-# Test Starship prompt configuration
-if command -v starship >/dev/null 2>&1; then
-    local starship_config="$HOME/.config/starship.toml"
-    if [[ -f "$starship_config" ]] || [[ -L "$starship_config" ]]; then
-        # Test if starship can be initialized
-        if starship init zsh >/dev/null 2>&1; then
-            print_test "Starship Config" "pass" "starship.toml loads correctly"
-        else
-            print_test "Starship Config" "fail" "Initialization errors in starship.toml"
-        fi
-
-        # Show config location
-        print_test "Starship Location" "pass" "Config at $starship_config"
+# Test Powerlevel10k prompt configuration
+local p10k_config="$HOME/.p10k.zsh"
+if [[ -f "$p10k_config" ]] || [[ -L "$p10k_config" ]]; then
+    # Validate syntax without sourcing (safe in subshell)
+    if zsh -n "$p10k_config" 2>/dev/null; then
+        print_test "Powerlevel10k Config" "pass" "~/.p10k.zsh syntax OK"
     else
-        print_test "Starship Config" "fail" "starship.toml not found at $starship_config"
+        print_test "Powerlevel10k Config" "fail" "Syntax errors in ~/.p10k.zsh"
     fi
+    local p10k_real
+    p10k_real=$(readlink "$p10k_config" 2>/dev/null || echo "$p10k_config")
+    print_test "Powerlevel10k Location" "pass" "Config at $p10k_real"
 else
-    print_test "Starship" "warn" "Not installed"
+    print_test "Powerlevel10k Config" "fail" "~/.p10k.zsh not found"
+fi
+
+# Check p10k plugin installed via zinit
+local zinit_p10k="${HOME}/.local/share/zinit/plugins/romkatv---powerlevel10k"
+if [[ -d "$zinit_p10k" ]]; then
+    print_test "Powerlevel10k Plugin" "pass" "Installed via zinit"
+else
+    print_test "Powerlevel10k Plugin" "warn" "Not found at $zinit_p10k"
 fi
 
 # ============================================================================
@@ -378,12 +303,6 @@ if [[ -f "$HOME/.env" ]]; then
     print_test "Environment File" "pass" "Found at $HOME/.env"
 else
     print_test "Environment File" "warn" "Not found at $HOME/.env"
-fi
-
-if [[ -f "$PACKAGES_JSON" ]]; then
-    print_test "packages.json" "pass" "Found at $PACKAGES_JSON"
-else
-    print_test "packages.json" "warn" "Not found"
 fi
 
 # ============================================================================
@@ -495,12 +414,6 @@ echo -e "  ${BOLD}Total:    ${total_tests}${RESET}"
 echo -e "  ${BOLD}Pass Rate: ${pass_rate}%${RESET}"
 echo ""
 
-# Show configuration source
-if [[ "$USE_MANUAL_TESTS" == "false" ]]; then
-    echo -e "${CYAN}  ${INFO} Package tests loaded from: ${PACKAGES_JSON}${RESET}"
-else
-    echo -e "${YELLOW}  ${WARN} Using manual package tests (packages.json or jq not available)${RESET}"
-fi
 echo ""
 
 # Overall status

@@ -1,7 +1,5 @@
 # Thisaru's Dotfiles Brewfile
-# Generated automatically from packages.json
-# Configuration version: 1.0.0
-# Generated on: 2025-10-08 17:59:34
+# Single source of truth for core packages
 # Install with: brew bundle
 
 # Homebrew taps
@@ -10,7 +8,6 @@ tap "jesseduffield/lazydocker" # Official lazydocker tap
 
 # Essential tools required for dotfiles functionality
 brew "stow"                         # Symlink farm manager (use --no-folding for reliable symlinks)
-brew "starship"                     # Fast, modern shell prompt written in Rust
 brew "fzf"                          # Fuzzy finder
 brew "zoxide"                       # Smart cd command
 brew "tree"                         # Directory tree viewer
@@ -26,7 +23,6 @@ brew "htop"                         # System monitor
 brew "direnv"                       # Directory-specific environments
 brew "atuin"                        # Shell history with sync
 brew "gh"                           # GitHub CLI
-brew "git-flow-avh"                 # Git branching model extension
 
 # Tools for managing secrets and encryption
 brew "sops"                         # Secrets OPerationS

@@ -42,6 +42,10 @@ if [[ -d "$NVM_DIR/versions/node" ]]; then
             [[ -n "$PS1" ]] && [[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
         }
         nvm() { _load_nvm; nvm "$@"; }
+        node() { _load_nvm; node "$@"; }
+        npm() { _load_nvm; npm "$@"; }
+        npx() { _load_nvm; npx "$@"; }
+        yarn() { _load_nvm; yarn "$@"; }
     fi
 fi
 

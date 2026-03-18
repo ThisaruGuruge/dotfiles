@@ -58,7 +58,7 @@ This will:
 - Shell configs (fish, zsh)
 - Editor configs (nvim, vim)
 - Terminal configs (wezterm, alacritty)
-- CLI tool configs (git, htop, ripgrep, starship)
+- CLI tool configs (git, htop, ripgrep)
 - Development tool configs (lazygit)
 
 ### Exclude (Credentials/Generated)

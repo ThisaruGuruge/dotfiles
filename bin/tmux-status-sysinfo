@@ -1,0 +1,22 @@
+#!/usr/bin/env zsh
+# tmux-status-sysinfo — CPU load average + RAM usage for tmux status bar
+# Runs in the background every status-interval seconds; output is cached by tmux.
+# Uses a single sysctl + vm_stat call pair to minimise subprocess overhead.
+
+# 1-minute load average via sysctl (single subprocess)
+load=$(sysctl vm.loadavg | awk '{printf "%.1f", $3}')
+
+# RAM: total bytes from sysctl, used = total - (free + inactive) pages
+total=$(sysctl -n hw.memsize)
+mem=$(vm_stat | awk -v total="$total" '
+    /page size of ([0-9]+) bytes/ { pg = $8 + 0 }
+    /Pages free:/                 { free = $3 + 0 }
+    /Pages inactive:/             { inactive = $3 + 0 }
+    END {
+        used_gb = (total - (free + inactive) * pg) / 1073741824
+        tot_gb  = total / 1073741824
+        printf "%dG/%dG", used_gb, tot_gb
+    }
+')
+
+print "󰻠 ${load}  ${mem}"

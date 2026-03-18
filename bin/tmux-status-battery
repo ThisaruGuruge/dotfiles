@@ -1,0 +1,24 @@
+#!/usr/bin/env zsh
+# tmux-status-battery — battery level + charging state for tmux status bar
+# Single pmset call, parsed in awk. Gracefully silent on desktops (no battery).
+
+pmset -g batt 2>/dev/null | awk '
+    /[0-9]+%/ {
+        match($0, /[0-9]+%/)
+        pct = substr($0, RSTART, RLENGTH - 1) + 0
+
+        charging = ($0 ~ /charging|AC Power/)
+
+        if (charging)       icon = "⚡"
+        else if (pct < 10)  icon = "󰂎"
+        else if (pct < 20)  icon = "󰁺"
+        else if (pct < 40)  icon = "󰁼"
+        else if (pct < 60)  icon = "󰁾"
+        else if (pct < 80)  icon = "󰂀"
+        else if (pct < 95)  icon = "󰂂"
+        else                icon = "󰁹"
+
+        printf "%s %d%%", icon, pct
+        exit
+    }
+'

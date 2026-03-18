@@ -1,12 +1,12 @@
 # Thisaru's Dotfiles
 
-A macOS-focused developer workstation built around Zsh, Starship, modern CLI tools, and battle-tested automation. Everything is wired together with GNU Stow, encrypted secrets, and a centralized package manifest so each new machine behaves exactly like the last one.
+A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CLI tools, and battle-tested automation. Everything is wired together with GNU Stow, encrypted secrets, and a centralized package manifest so each new machine behaves exactly like the last one.
 
 ## Highlights
 
 - **Fast Zsh environment** – zinit-managed plugins, fzf-tab completion, syntax highlighting, autosuggestions, zoxide (via `z` command), Atuin history (Ctrl+R and up-arrow), and WezTerm compatible key bindings
-- **Starship prompt** – contextual Git state, Java/Node/Python/Ballerina indicators, battery/time segments, and sub-second rendering (see `PROMPT_GUIDE.md` for visuals)
-- **Modern CLI stack** – eza, bat, ripgrep, fd, yazi, jless, lazygit, lazydocker, tmux, direnv, atuin, gh, git-delta, git-flow, and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
+- **Powerlevel10k prompt** – pure-Zsh rendering (no binary subprocess per draw), instant prompt on startup, contextual Git state, Go/Java/Python/Ballerina indicators, transient prompt for clean scrollback, full Catppuccin Mocha theme matching the tmux status bar
+- **Modern CLI stack** – eza, bat, ripgrep, fd, yazi, jless, lazygit, lazydocker, tmux, direnv, atuin, gh, git-delta, and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
 - **Smart aliases** – Single-letter shortcuts for modern tools (`v` for bat, `g` for ripgrep, `f` for fd, `z` for zoxide) while keeping original commands for scripts
 - **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → glow, `.json`/`.yaml` → jless, `.py`/`.sh`/`.bal` → $EDITOR)
 - **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina with lazy-loading shell glue so heavy managers don't slow startup
@@ -24,7 +24,7 @@ A macOS-focused developer workstation built around Zsh, Starship, modern CLI too
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
    ```
 4. **Terminal** – WezTerm (recommended and configured), iTerm2, or Terminal.app all work
-5. **Nerd Font** – Needed for icons in Starship/lazygit:
+5. **Nerd Font** – Needed for icons in Powerlevel10k/lazygit:
    ```bash
    brew install --cask font-fira-code-nerd-font
    ```
@@ -76,7 +76,7 @@ Edit the `Brewfile` directly or use category Brewfiles in `packages/` before run
 
 ### Option 3 – Brewfile only
 
-Already have a preferred dotfiles strategy but want the curated tools? Run `brew bundle --file=Brewfile` and manually pick pieces (Starship config, aliases, etc.). Edit the Brewfile directly or use the category files in `packages/` to customize your installation.
+Already have a preferred dotfiles strategy but want the curated tools? Run `brew bundle --file=Brewfile` and manually pick pieces (aliases, functions, etc.). Edit the Brewfile directly or use the category files in `packages/` to customize your installation.
 
 ## Package Management
 
@@ -103,7 +103,7 @@ brew bundle --file=packages/editors.brewfile     # Add editors
 
 ### Categories available
 
-- `core` – starship, zoxide, eza, bat, ripgrep, lazygit, lazydocker, tmux, direnv, atuin, gh, etc.
+- `core` – powerlevel10k, zoxide, eza, bat, ripgrep, lazygit, lazydocker, tmux, direnv, atuin, gh, etc.
 - `security` – sops + age for encrypted secrets (always enabled)
 - `development` – pyenv, rbenv, nvm (optional)
 - `database` – PostgreSQL 16, Redis
@@ -122,7 +122,8 @@ Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 | `zsh/` | `.zshrc`, `.zshrc.d/` (modular shell config), `.functions.d/` (modular functions), aliases, paths |
 | `zsh/.zshrc.d/` | 7 modules: plugins, completion, keybindings, history, integrations, environment, tmux |
 | `zsh/.functions.d/` | 9 modules: colors, core, navigation, archives, git, system, dotfiles, docs, packages |
-| `config/.config/` | XDG configs (`starship.toml`, `wezterm`, `lazygit`, `nvim`, `yazi`, `ripgrep`) |
+| `config/.config/` | XDG configs (`wezterm`, `lazygit`, `nvim`, `yazi`, `ripgrep`) |
+| `zsh/.p10k.zsh` | Powerlevel10k prompt config (Catppuccin Mocha, stowed to `~/.p10k.zsh`) |
 | `git/` | `.gitconfig`, ignore rules, delta settings |
 | `tmux/` | Modern tmux config + keybinds |
 | `direnv/` | Project-specific environment automation |
@@ -144,8 +145,8 @@ WezTerm is configured with:
 This repo uses GNU Stow with the `--no-folding` flag to ensure reliable symlink creation. This prevents directory folding issues where Stow might replace directories with symlinks.
 
 ```bash
-stow --no-folding zsh              # Shell config
-stow --no-folding config           # Starship, lazygit, nvim, wezterm, ripgrep
+stow --no-folding zsh              # Shell config (includes .p10k.zsh)
+stow --no-folding config           # lazygit, nvim, wezterm, ripgrep, yazi
 stow --no-folding git tmux direnv  # Git/Tmux/Direnv packages
 
 # Remove a package
@@ -158,7 +159,7 @@ stow -D zsh
 
 ```bash
 test-zsh                                   # Full validation (tools, PATH, runtimes)
-./bin/profile-zsh-startup                  # Deep component timing (Starship, zinit, SDKMAN, etc.)
+./bin/profile-zsh-startup                  # Deep component timing (zinit plugins, SDKMAN, p10k, etc.)
 help                                       # Alias documentation entry point
 docs                                       # Interactive alias browser (alias_docs)
 show_tools                                 # Overview of installed CLI upgrades
@@ -207,7 +208,7 @@ The default editor is set to `nvim` via the `$EDITOR` environment variable in `.
 
 - Keys live at `~/.config/sops/age/keys.txt` and are created by `init.sh`. Backup that file somewhere safe.
 - Secrets live in `~/.env` (ignored by git). They remain encrypted on disk and are transparently decrypted by the shell when sourced.
-- Use `edit_secrets` (wrapper defined in `.functions.sh`) to decrypt, open your `$EDITOR`, and re-encrypt on save.
+- Use `edit_secrets` (wrapper defined in `.functions.d/06-dotfiles.zsh`) to decrypt, open your `$EDITOR`, and re-encrypt on save.
 - Manual commands:
   ```bash
   sops -d ~/.env | less            # View decrypted env
@@ -239,38 +240,41 @@ EOF
 
 > **Note**: On Intel Macs, replace `/opt/homebrew/lib/pam/pam_reattach.so` with `/usr/local/lib/pam/pam_reattach.so`.
 
-## Starship Prompt
+## Powerlevel10k Prompt
 
-Sample prompt:
+Sample prompt (top line + prompt character on line 2):
 
 ```
-~/dotfiles on main [!2 +1] via JAVA 21.0.5 NODE v22.2.0 PY 3.12 BAL 2201 at 18:08
->
+ ~/dotfiles  main !+   Go 1.23.4
+❯
 ```
 
 What you see:
 
-- **Directory** – Git-aware truncation (repo root highlighted, read-only indicator for unwritable dirs)
-- **Git branch/status** – Ahead/behind arrows, modified/staged counts (`!`, `+`, `?`, stash indicator)
-- **Runtime indicators** – Java, Node.js, Python, and Ballerina only appear inside matching projects
-- **Battery/Time** – Battery icons colored by percentage and a 24h clock
-- **Prompt character** – Green `>` on success, red on failure, yellow `<` in vim mode
+- **Directory** – truncated to last component, lock icon for read-only dirs
+- **Git branch/status** – always blue; dirty state shown by icons (`!` modified, `+` staged, `?` untracked, `*` stash, `⇣⇡` ahead/behind) — no colour change on dirty, no blocking git subprocess
+- **Runtime indicators** – Go, Java, Python, and Ballerina only appear inside matching projects; all read versions via async gitstatus-style checks, never blocking the prompt
+- **Command duration** – shown on the right only when the previous command took > 2 seconds
+- **Prompt character** – `❯` green on success, red on failure; `❮` in Vim normal mode
+- **Transient prompt** – after a command runs, the previous prompt collapses to just `❯` in scrollback
 
-Customize Starship at `~/.config/starship.toml` (stowed from `.config/starship.toml`):
+**Design principle**: The prompt shows *command context* (where you are, git state, language). The tmux status bar shows *session context* (session name, sysinfo, battery, time). Nothing is duplicated between the two layers.
+
+Customize the prompt at `~/.p10k.zsh` (stowed from `zsh/.p10k.zsh`):
 
 ```bash
-code ~/.config/starship.toml      # or vim/nvim
-starship explain                  # Inspect how segments render for current dir
+nvim ~/dotfiles/zsh/.p10k.zsh     # Edit directly — hot-reloads automatically
+p10k configure                    # Interactive wizard (overwrites the file)
 ```
 
-The config already includes directory substitutions, repo-root formatting, and a custom Ballerina detector that stops walking at depth 5 for speed. See `PROMPT_GUIDE.md` for screenshots, troubleshooting steps, and tips on fzf-tab + Atuin integrations.
+The Catppuccin Mocha palette used by the prompt matches the tmux status bar exactly — same background (`#1e1e2e`), same blue (`#89b4fa`), same green (`#a6e3a1`), same accent colors throughout.
 
 ## Validation, Performance & Troubleshooting
 
 - `test-zsh` – Runs syntax checks, ensures required tools exist, inspects PATH/env vars, and prints a summary with pass/warn/fail counts
-- `./bin/profile-zsh-startup` – Detailed profiler that times individual components (Homebrew shellenv, Starship init, zinit plugins, SDKMAN, pyenv, compinit, sourcing files)
+- `./bin/profile-zsh-startup` – Detailed profiler that times individual components (Homebrew shellenv, zinit plugins, SDKMAN, pyenv, compinit, sourcing files)
 - `zsh -n ~/.zshrc` – Quick syntax validation if you edit the config
-- `starship explain` – Debug what each segment is doing if the prompt looks odd
+- `zsh -n ~/.p10k.zsh` – Validate prompt config syntax without sourcing it
 - `brew bundle check` – Confirm Brew dependencies match Brewfile before running Bundle again
 
 Common fixes:
@@ -278,12 +282,11 @@ Common fixes:
 ```bash
 source ~/.zshrc                               # Reload everything after edits
 rm -rf ~/.local/share/zinit && bash -c "$(curl -fsSL https://raw.githubusercontent.com/zdharma-continuum/zinit/HEAD/scripts/install.sh)"  # Reinstall zinit if plugins fail
-starship --version                            # Verify Starship is installed
-which starship fzf zoxide atuin direnv        # Confirm core binaries are on PATH
-defaults write com.googlecode.iterm2 PrefsCustomFolder -string "$HOME" # Re-apply terminal font settings if needed
+which fzf zoxide atuin direnv                 # Confirm core binaries are on PATH
+p10k configure                                # Re-run the interactive prompt wizard
 ```
 
-Fonts missing? Re-open the terminal and ensure your profile uses a Nerd Font. Prompt misaligned? Run `starship explain` or `starship prompt` to inspect errors (most often caused by missing fonts or malformed config).
+Fonts missing? Re-open the terminal and ensure your profile uses a Nerd Font. Icons rendering as boxes means the font doesn't include Nerd Font glyphs — install a patched font (e.g. FiraCode Nerd Font) and set it in your terminal profile.
 
 ## Keeping Dotfiles Updated
 
@@ -299,6 +302,6 @@ Remember to `stow -D` packages you no longer want and re-run `stow` after pullin
 
 ## Contributing
 
-Bug reports and PRs are welcome! Please run `test-zsh` plus any relevant profilers before opening a pull request. See `CONTRIBUTING.md` for commit conventions, scopes (including `prompt` for Starship changes), and validation expectations.
+Bug reports and PRs are welcome! Please run `test-zsh` plus any relevant profilers before opening a pull request. See `CONTRIBUTING.md` for commit conventions, scopes (including `prompt` for p10k changes), and validation expectations.
 
 Happy hacking!

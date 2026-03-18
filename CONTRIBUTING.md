@@ -212,7 +212,7 @@ Use scopes to indicate which part of the codebase is affected:
 - `(docs)` - Documentation (README, CONTRIBUTING, etc.)
 - `(packages)` - Package management (Brewfile, packages/)
 - `(security)` - Secret management and security features
-- `(prompt)` - Starship prompt configuration
+- `(prompt)` - Powerlevel10k prompt configuration
 - `(git)` - Git configuration
 - `(nvim)` - Neovim configuration
 - `(wezterm)` - WezTerm configuration
@@ -237,7 +237,7 @@ Reordered installation steps to ensure dependencies are met.
 
 docs(readme): update troubleshooting section
 
-Add solutions for common Starship glyph/font rendering issues.
+Add solutions for common Powerlevel10k glyph/font rendering issues.
 
 perf(zsh): optimize NVM lazy loading
 
@@ -245,7 +245,7 @@ Reduce shell startup time from 1.2s to 0.6s by deferring full NVM initialization
 
 chore(packages): update Homebrew package versions
 
-Bump lazygit to 0.55.1, starship to 1.20.0
+Bump lazygit to 0.55.1, atuin to 18.4.0
 ```
 
 **Bad commit messages** (avoid these):
@@ -265,8 +265,8 @@ For breaking changes, add `BREAKING CHANGE:` in the footer or use `!` after type
 ```bash
 feat(zsh)!: change default shell theme to minimal
 
-BREAKING CHANGE: The default Starship prompt layout has changed (old configs may need updates).
-Users can restore the previous theme by setting THEME=zen in .env
+BREAKING CHANGE: The default Powerlevel10k prompt layout has changed (old p10k configs may need updates).
+Users can reconfigure by running: p10k configure
 ```
 
 ### Commit Message Template

@@ -1,50 +1,42 @@
-# Starship Prompt & Terminal Guide
+# Powerlevel10k Prompt Guide
 
-## Understanding Your New Prompt
+## Understanding Your Prompt
 
 ### What You See
 
 ```
-~/dotfiles on  main [STASH:2 !6 ?3] BAT:65% at 18:08
->
+ ~/dotfiles  main !+   Go 1.23.4
+❯
 ```
 
 **Breakdown:**
-- `~/dotfiles` - Current directory (cyan, truncated to 3 levels)
-- `on  main` - Git branch (purple, only in git repos)
-- `[STASH:2 !6 ?3]` - Git status (red, see legend below)
-- `BAT:65%` - Battery status (color changes based on %)
-- `at 18:08` - Current time (24h format)
-- `>` - Prompt symbol (green = success, red = error)
+- ` ~/dotfiles` – Current directory (truncated, lock icon for read-only dirs)
+- ` main` – Git branch (only shown inside git repos)
+- `!+` – Git status icons (see legend below)
+- `Go 1.23.4` – Language version (only shown inside matching projects)
+- `❯` – Prompt character (green = success, red = error; `❮` in Vim normal mode)
 
 ### Git Status Icons
 
-| Icon | Meaning | Example |
-|------|---------|---------|
-| `?3` | 3 untracked files | New files not in git |
-| `!6` | 6 modified files | Changed files |
-| `+2` | 2 staged files | Ready to commit |
-| `STASH:2` | 2 stashed changes | Saved for later |
-| `X1` | 1 deleted file | Removed files |
-| `UP:2` | 2 commits ahead | Push needed |
-| `DOWN:1` | 1 commit behind | Pull needed |
-| `CONFLICT` | Merge conflict | Needs resolution |
+| Icon | Meaning |
+|------|---------|
+| `!`  | Modified files |
+| `+`  | Staged files |
+| `?`  | Untracked files |
+| `*`  | Stashed changes |
+| `⇣`  | Commits behind remote |
+| `⇡`  | Commits ahead of remote |
 
 ### Language Version Indicators
 
-These **only show when in relevant projects**:
+These **only show when inside relevant projects**:
 
-| Icon | Language | Shows When |
-|------|----------|------------|
-| `JAVA 21.0.5` | Java | In dir with pom.xml, build.gradle, etc. |
-| `NODE v22.2.0` | Node.js | In dir with package.json, node_modules, etc. |
-| `PY 3.11` | Python | In dir with .py files, requirements.txt, etc. |
-| `BAL 2201.10.0` | Ballerina | In dir with Ballerina.toml |
-
-**Why they don't always show:**
-- Starship only shows language versions when you're in a project that uses that language
-- This keeps the prompt clean and fast
-- No more "8 8 2" - that was a config bug, now fixed!
+| Language | Shows When |
+|----------|------------|
+| Go       | Dir contains `go.mod` or `*.go` files |
+| Java     | Dir contains `pom.xml`, `build.gradle`, etc. |
+| Python   | Dir contains `.python-version`, `pyproject.toml`, etc. |
+| Ballerina | Dir contains `Ballerina.toml` |
 
 ---
 
@@ -67,7 +59,6 @@ These **only show when in relevant projects**:
 
 3. **Navigate groups:**
    - `<` and `>` to switch between completion groups
-   - Useful when multiple types match (files, dirs, commands)
 
 ### Keybindings
 
@@ -80,109 +71,87 @@ These **only show when in relevant projects**:
 | `Esc` or `Ctrl-C` | Cancel |
 | `<` / `>` | Switch groups |
 
-### Examples
-
-```bash
-# Navigate to directory
-cd pro<TAB>              # Shows "Projects" with preview
-
-# Git commands
-git checkout fea<TAB>    # Shows feature branches
-
-# Kill process
-kill <TAB>               # Shows running processes
-
-# Environment variables
-echo $HO<TAB>            # Shows $HOME, $HOSTNAME, etc.
-```
-
 ---
 
 ## Atuin - Smart Shell History
 
-### What is Atuin?
-
-Atuin replaces your shell history with a smart, searchable, syncable database.
-
 ### Keybindings
 
-| Key | Command | Description |
-|-----|---------|-------------|
-| `Ctrl+R` | Search history | Opens Atuin interactive search |
-| `↑` | Prefix search | Atuin shows matches as you type |
-| `↓` | Next in history | Navigate forward in history |
-| `Tab` | Edit command | Copy to command line for editing |
-| `Enter` | Execute | Run the selected command |
+| Key | Description |
+|-----|-------------|
+| `Ctrl+R` | Open Atuin interactive search |
+| `↑` | Atuin prefix search as you type |
+| `Tab` | Copy selected command to command line |
+| `Enter` | Execute selected command |
 
-### Using Atuin Search (Ctrl+R)
-
-1. Press `Ctrl+R` to open interactive search
-2. Type to filter commands (fuzzy matching)
-3. Use arrow keys to navigate results
-4. Press `Tab` to copy to command line (for editing)
-5. Press `Enter` to execute directly
-
-### Filter Modes (press Tab in search to cycle)
+### Filter Modes (Tab in search to cycle)
 
 | Mode | Description |
 |------|-------------|
 | `global` | Search all history (default) |
-| `host` | Search history from this machine only |
-| `session` | Search current terminal session only |
-| `directory` | Search commands run in current directory |
+| `host` | This machine only |
+| `session` | Current terminal session only |
+| `directory` | Commands run in current directory |
 
-### Atuin Commands
+### Atuin Aliases
 
 ```bash
-# Search history interactively
-hs                      # alias for: atuin search
-
-# View statistics
-hstats                  # alias for: atuin stats
-
-# Sync history (if configured)
-hsync                   # alias for: atuin sync
+hs        # atuin search
+hstats    # atuin stats
+hsync     # atuin sync
 ```
-
-### Pro Tips
-
-- **Directory context**: Use `directory` filter mode when you want commands specific to current project
-- **Statistics**: Run `hstats` to see your most used commands and patterns
-- **Secrets**: Atuin automatically filters out commands containing secrets (AWS keys, tokens, etc.)
 
 ---
 
-## Performance Tips
+## Performance
 
-### Current Speed
-
-- **Prompt render:** ~30-50ms (was 4000ms with Oh My Posh!)
+- **Prompt render:** ~1ms (pure Zsh, no subprocess per draw)
 - **Shell startup:** ~500ms
 - **Tab completion:** Instant with fzf-tab
 
-### Why It's Fast
+Powerlevel10k uses gitstatus (a compiled daemon) for instant, non-blocking git state — no shell subprocess is spawned per prompt draw.
 
-1. **Starship** - Written in Rust, compiled
-2. **Context-aware** - Only shows relevant info
-3. **Caching** - Tool init scripts cached
-4. **Smart detection** - Doesn't check for tools in every dir
+---
+
+## Customization
+
+### Edit Prompt Config
+
+```bash
+nvim ~/dotfiles/zsh/.p10k.zsh     # Edit directly — hot-reloads automatically
+p10k configure                    # Interactive wizard (overwrites the file)
+```
+
+The config is stowed from `zsh/.p10k.zsh` to `~/.p10k.zsh`.
+
+### Transient Prompt
+
+After a command runs, the previous prompt collapses to just `❯` in scrollback. This is configured in `.p10k.zsh` under `POWERLEVEL9K_TRANSIENT_PROMPT`.
+
+### Adding/Removing Segments
+
+Edit `POWERLEVEL9K_LEFT_PROMPT_ELEMENTS` and `POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS` in `~/.p10k.zsh`.
 
 ---
 
 ## Troubleshooting
 
-### Prompt looks wrong
+### Prompt looks wrong or shows boxes
 
 ```bash
 # Restart shell
 source ~/.zshrc
 
-# Check Starship config
-starship config
+# Re-run the interactive wizard
+p10k configure
 
-# Test prompt manually
-starship prompt
+# Check font - ensure your terminal uses a Nerd Font
+# Recommended: FiraCode Nerd Font
 ```
+
+### Icons not rendering
+
+Make sure your terminal profile uses **FiraCode Nerd Font** (or another Nerd Font). Boxes instead of icons = font missing Nerd Font glyphs.
 
 ### Tab completion not working
 
@@ -197,83 +166,27 @@ autoload -Uz compinit && compinit
 exec zsh
 ```
 
-### Ballerina not showing
+### Ballerina segment not showing
 
 Make sure you're in a directory with `Ballerina.toml`:
 
 ```bash
 cd your-ballerina-project
-touch Ballerina.toml  # Create if needed
+ls Ballerina.toml    # Must exist
 ```
 
-### Language versions showing when they shouldn't
+### Language version shows when it shouldn't
 
-This is normal! Starship shows versions when:
-- You have the relevant files in current/parent directories
-- OR you're in a git repo that uses that language
-
-To hide a language completely, edit `~/.config/starship.toml`:
-
-```toml
-[nodejs]
-disabled = true  # Never show Node version
-```
-
----
-
-## Customization
-
-### Edit Starship Config
-
-```bash
-vim ~/.config/starship.toml
-```
-
-### Common Customizations
-
-**Change prompt symbol:**
-```toml
-[character]
-success_symbol = "[>](bold green)"
-error_symbol = "[x](bold red)"
-```
-
-**Change directory truncation:**
-```toml
-[directory]
-truncation_length = 5  # Show more levels
-```
-
-**Add more languages:**
-```toml
-[rust]
-disabled = false
-format = "via [$symbol($version)]($style) "
-```
-
-**Change git status icons:**
-```toml
-[git_status]
-modified = "M"  # Use 'M' instead of '!'
-untracked = "U" # Use 'U' instead of '?'
-```
-
-### Apply Changes
-
-```bash
-# Changes take effect immediately in new prompts
-# OR restart shell
-source ~/.zshrc
-```
+Powerlevel10k shows language segments based on file detection in the current directory tree. To disable a segment entirely, comment it out in `POWERLEVEL9K_LEFT_PROMPT_ELEMENTS` inside `~/.p10k.zsh`.
 
 ---
 
 ## Resources
 
-- **Starship Docs:** https://starship.rs/config/
+- **Powerlevel10k Docs:** https://github.com/romkatv/powerlevel10k
 - **Atuin Docs:** https://github.com/atuinsh/atuin
 - **fzf-tab:** https://github.com/Aloxaf/fzf-tab
-- **Your Config:** `~/.config/starship.toml`
+- **Your p10k Config:** `~/.p10k.zsh` (stowed from `zsh/.p10k.zsh`)
 
 ---
 
@@ -283,7 +196,7 @@ source ~/.zshrc
 # See all aliases
 aliases
 
-# Get help on specific alias category
+# Get help on a specific alias category
 help git
 
 # List all dotfiles tools

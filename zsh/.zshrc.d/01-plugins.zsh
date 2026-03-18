@@ -15,6 +15,11 @@ fi
 
 # ZSH Plugins - Essential plugins load immediately, others use turbo mode
 
+# Powerlevel10k theme — must be the very first plugin.
+# Loaded synchronously so the theme is active before other plugins initialise.
+zinit ice depth=1
+zinit light romkatv/powerlevel10k
+
 # Load completions immediately (needed for tab completion)
 zinit light zsh-users/zsh-completions
 

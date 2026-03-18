@@ -35,6 +35,7 @@ if [ -f "$HOME/.env" ]; then
             if (( $+commands[sops] )); then
                 if sops_output=$(sops -d "$env_file" 2>/dev/null); then
                     echo "$sops_output" >"$env_cache_file"
+                    chmod 600 "$env_cache_file"
                     # Safely source only lines matching export KEY="VALUE" or KEY='VALUE' pattern
                     # This validates the export statement structure to prevent code injection
                     # Pattern explanation:
@@ -114,17 +115,8 @@ if (( $+commands[pyenv] )); then
     }
 fi
 
-### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-[ -d "$HOME/.rd/bin" ] && export PATH="$HOME/.rd/bin:$PATH"
-### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
-
 # Source local environment if it exists
 if [ -d "$HOME/.local/bin" ] && [ -f "$HOME/.local/bin/env" ]; then
     source "$HOME/.local/bin/env"
 fi
 
-# Force command hash rebuild at the end (ensures new PATH entries are discoverable)
-# Only run if we added new paths that might need discovery
-if [[ -n "$ZSH_VERSION" ]]; then
-    rehash
-fi

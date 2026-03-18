@@ -923,15 +923,25 @@ test_installation() {
     fi
 
     # Test function files
-    if bash -n "$HOME/.functions.sh" >/dev/null 2>&1; then
-        log_success "Functions file syntax is valid"
+    local func_errors=0
+    if [ -d "$HOME/.functions.d" ]; then
+        for func_file in "$HOME/.functions.d"/*.zsh; do
+            if [ -f "$func_file" ] && ! zsh -n "$func_file" >/dev/null 2>&1; then
+                log_error "Syntax error in $(basename "$func_file")"
+                ((func_errors++))
+            fi
+        done
+        if [ "$func_errors" -eq 0 ]; then
+            log_success "Function files syntax is valid"
+        else
+            ((errors += func_errors))
+        fi
     else
-        log_error "Functions file has syntax errors"
-        ((errors++))
+        log_warning "Functions directory ~/.functions.d not found"
     fi
 
     # Test aliases file
-    if bash -n "$HOME/.aliases.sh" >/dev/null 2>&1; then
+    if zsh -n "$HOME/.aliases.sh" >/dev/null 2>&1; then
         log_success "Aliases file syntax is valid"
     else
         log_error "Aliases file has syntax errors"
@@ -939,7 +949,7 @@ test_installation() {
     fi
 
     # Test command availability
-    local commands=("starship" "fzf" "zoxide" "yazi")
+    local commands=("fzf" "zoxide" "yazi")
     for cmd in "${commands[@]}"; do
         if command_exists "$cmd"; then
             log_success "$cmd is available"
@@ -948,22 +958,13 @@ test_installation() {
         fi
     done
 
-    # Verify Starship configuration
-    if command_exists starship; then
-        if [ -L "$HOME/.config/starship.toml" ] || [ -f "$HOME/.config/starship.toml" ]; then
-            log_success "Starship config found at ~/.config/starship.toml"
-
-            # Test if starship can be initialized
-            if starship init zsh >/dev/null 2>&1; then
-                log_success "Starship initializes correctly"
-            else
-                log_warning "Starship initialization has errors - check config"
-                ((errors++))
-            fi
-        else
-            log_warning "Starship config not found at ~/.config/starship.toml"
-            log_info "Run 'stow config' to create the symlink"
-        fi
+    # Verify Powerlevel10k configuration
+    local p10k_config="$HOME/.p10k.zsh"
+    if [ -L "$p10k_config" ] || [ -f "$p10k_config" ]; then
+        log_success "Powerlevel10k config found at ~/.p10k.zsh"
+    else
+        log_warning "Powerlevel10k config not found at ~/.p10k.zsh"
+        log_info "Run 'stow --no-folding zsh' to create the symlink"
     fi
 
     if [ $errors -eq 0 ]; then
@@ -1061,7 +1062,6 @@ print_final_instructions() {
     echo -e "\n${CYAN}Useful commands to try:${NC}"
     echo -e "• ${BLUE}show_tools${NC} - Discover all modern CLI tools with examples"
     echo -e "• ${BLUE}lg${NC} - Open lazygit for interactive git operations"
-    echo -e "• ${BLUE}gffs feature-name${NC} - Start a new git-flow feature branch"
     echo -e "• ${BLUE}ll${NC} - Enhanced file listing with icons and git status"
     echo -e "• ${BLUE}take my-project${NC} - Create and enter directory"
     echo -e "• ${BLUE}kill_by_port 3000${NC} - Kill processes on port 3000"
@@ -1125,7 +1125,7 @@ main() {
     setup_environment
     setup_secret_management
     backup_existing_files
-    stow_packages
+    stow_packages  # Must run after backup_existing_files
     setup_git_config
     test_installation
 

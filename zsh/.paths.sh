@@ -3,8 +3,6 @@
 # PATH and Environment Configuration
 # This file safely adds tools to PATH only if they exist on the system
 
-export DOCKER_DEFAULT_PLATFORM=linux/amd64
-
 [ -d "$HOME/.local/bin" ] && export PATH="$HOME/.local/bin:$PATH"
 [ -d "$HOME/bin" ] && export PATH="$HOME/bin:$PATH"
 

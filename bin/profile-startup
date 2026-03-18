@@ -22,15 +22,6 @@ echo -e "${BLUE}Shell Startup Performance Profiler${NC}"
 echo "======================================"
 echo ""
 
-# Function to format time output
-format_time() {
-    local time_str="$1"
-    # Extract the total time (last number before 'total')
-    local total_time
-    total_time=$(echo "$time_str" | grep -o '[0-9.]*s.*total' | grep -o '^[0-9.]*')
-    echo "$total_time"
-}
-
 # Function to get performance status
 get_status() {
     local time="$1"
@@ -55,10 +46,12 @@ echo ""
 times=()
 for i in {1..3}; do
     echo -n "Test $i/3: "
-    time_output=$(time zsh -i -c exit 2>&1)
-    formatted_time=$(format_time "$time_output")
-    times+=("$formatted_time")
-    echo "${formatted_time}s"
+    start=$(perl -MTime::HiRes=time -e 'printf "%.6f\n", time')
+    zsh -i -c exit >/dev/null 2>&1
+    end=$(perl -MTime::HiRes=time -e 'printf "%.6f\n", time')
+    elapsed=$(echo "scale=3; $end - $start" | bc -l)
+    times+=("$elapsed")
+    echo "${elapsed}s"
 done
 
 # Calculate average
@@ -110,7 +103,13 @@ echo "Diagnostic Information:"
 echo "---------------------"
 echo "Shell: $(zsh --version)"
 echo "Terminal: ${TERM_PROGRAM:-Unknown}"
-echo "Starship: $(command -v starship >/dev/null && starship --version | head -n1 || echo 'Not installed')"
+if [[ -f ~/.p10k.zsh ]] || [[ -L ~/.p10k.zsh ]]; then
+    echo "Powerlevel10k: Configured (~/.p10k.zsh found)"
+elif [[ -d ~/.local/share/zinit/plugins/romkatv---powerlevel10k ]]; then
+    echo "Powerlevel10k: Plugin installed but ~/.p10k.zsh not found"
+else
+    echo "Powerlevel10k: Not detected"
+fi
 echo "Zinit: $([ -d ~/.local/share/zinit ] && echo 'Installed' || echo 'Not found')"
 
 # Check for common performance issues
@@ -119,10 +118,10 @@ echo "Quick Diagnostics:"
 echo "----------------"
 
 # Check if commonly slow components are present
-if grep -q "starship" ~/.zshrc 2>/dev/null; then
-    echo "• Starship: Configured in .zshrc"
+if grep -q "powerlevel10k\|p10k" ~/.zshrc 2>/dev/null; then
+    echo "• Powerlevel10k: Configured in .zshrc"
 else
-    echo "• Starship: Not detected in .zshrc"
+    echo "• Powerlevel10k: Not detected in .zshrc"
 fi
 
 if [ -d ~/.local/share/zinit ]; then

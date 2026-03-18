@@ -5,6 +5,15 @@
 # This file sources modular configs from .zshrc.d/ in order
 
 # ============================================================================
+# Powerlevel10k Instant Prompt
+# ============================================================================
+# MUST be at the very top of .zshrc — before any output, before zinit, before
+# everything. It shows a cached prompt immediately while the rest of .zshrc loads.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+    source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# ============================================================================
 # IDE Context Detection (Fast Path)
 # ============================================================================
 # Detect when IDEs probe for environment variables (e.g., VS Code Ballerina
@@ -83,18 +92,11 @@ for config_file in "$HOME/.zshrc.d/"*.zsh(N); do
 done
 
 # ============================================================================
-# Prompt Initialization (Starship)
+# Prompt Configuration (Powerlevel10k)
 # ============================================================================
-# Initialize starship prompt at the end for proper integration
-
-# Initialize starship prompt (eval required - caching breaks zle/promptsubst)
-if (( $+commands[starship] )); then
-    eval "$(starship init zsh)"
-fi
+# Source .p10k.zsh after all plugins are loaded. This file is managed by stow
+# (zsh/.p10k.zsh -> ~/.p10k.zsh) and can be regenerated with `p10k configure`.
+[[ -f "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
 
 # Rancher Desktop
 [[ -d "$HOME/.rd/bin" ]] && export PATH="$HOME/.rd/bin:$PATH"
-
-### MANAGED BY RANCHER DESKTOP START (DO NOT EDIT)
-export PATH="/Users/thisaru/.rd/bin:$PATH"
-### MANAGED BY RANCHER DESKTOP END (DO NOT EDIT)
