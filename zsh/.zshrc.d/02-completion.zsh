@@ -26,26 +26,34 @@ else
 fi
 
 # NVM - Optimized loading for faster startup
+# NVM_DIR and node PATH are set in .zshenv for non-interactive shell support.
+# Here we only set up the lazy-load wrappers for the interactive shell.
+# Each stub is self-contained (inlines the load logic) so that tools like
+# Claude Code that snapshot shell functions still work correctly.
 export NVM_DIR="$HOME/.nvm"
 if [[ -d "$NVM_DIR/versions/node" ]]; then
-    # Add highest installed node version to PATH (sorted by version, no subprocess)
-    local -a node_versions=("$NVM_DIR"/versions/node/v*(N/On))
-    if [[ -n "${node_versions[1]}" ]] && [[ -d "${node_versions[1]}/bin" ]]; then
-        export PATH="${node_versions[1]}/bin:$PATH"
-    fi
-
-    # Lazy load NVM only when actually needed
     if [[ -s "/opt/homebrew/opt/nvm/nvm.sh" ]]; then
-        _load_nvm() {
-            unset -f nvm node npm npx yarn _load_nvm
+        nvm() {
+            unset -f nvm node npm npx
             \. "/opt/homebrew/opt/nvm/nvm.sh"
             [[ -n "$PS1" ]] && [[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+            nvm "$@"
         }
-        nvm() { _load_nvm; nvm "$@"; }
-        node() { _load_nvm; node "$@"; }
-        npm() { _load_nvm; npm "$@"; }
-        npx() { _load_nvm; npx "$@"; }
-        yarn() { _load_nvm; yarn "$@"; }
+        node() {
+            unset -f nvm node npm npx
+            \. "/opt/homebrew/opt/nvm/nvm.sh"
+            node "$@"
+        }
+        npm() {
+            unset -f nvm node npm npx
+            \. "/opt/homebrew/opt/nvm/nvm.sh"
+            npm "$@"
+        }
+        npx() {
+            unset -f nvm node npm npx
+            \. "/opt/homebrew/opt/nvm/nvm.sh"
+            npx "$@"
+        }
     fi
 fi
 

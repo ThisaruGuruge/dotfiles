@@ -7,7 +7,7 @@ pmset -g batt 2>/dev/null | awk '
         match($0, /[0-9]+%/)
         pct = substr($0, RSTART, RLENGTH - 1) + 0
 
-        charging = ($0 ~ /charging|AC Power/)
+        charging = ($0 ~ /; charging;|AC Power/)
 
         if (charging)       icon = "⚡"
         else if (pct < 10)  icon = "󰂎"
