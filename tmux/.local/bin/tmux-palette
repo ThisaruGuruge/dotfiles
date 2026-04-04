@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# TMux Command Palette - fuzzy search and execute tmux keybindings
+# Reads entries from tmux-palette-entries, displays via fzf, executes selection
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ENTRIES_FILE="$SCRIPT_DIR/tmux-palette-entries"
+
+if [[ ! -f "$ENTRIES_FILE" ]]; then
+    echo "Error: palette entries file not found at $ENTRIES_FILE"
+    exit 1
+fi
+
+# Parse entries: strip comments for display but keep them searchable via fzf's --with-nth
+# Format each line for display: "category  key  description"
+selection=$(grep -v '^\s*$' "$ENTRIES_FILE" | awk -F '|' '
+    /^#/ {
+        # Include comments as section headers (dimmed) — searchable but not selectable
+        gsub(/^# *-* */, "", $0)
+        printf "\033[2m── %s\033[0m|\n", $0
+        next
+    }
+    {
+        # Trim whitespace from fields
+        gsub(/^[ \t]+|[ \t]+$/, "", $1)  # category
+        gsub(/^[ \t]+|[ \t]+$/, "", $2)  # key
+        gsub(/^[ \t]+|[ \t]+$/, "", $3)  # description
+        gsub(/^[ \t]+|[ \t]+$/, "", $4)  # command
+        printf "\033[36m%-12s\033[0m \033[33m%-18s\033[0m %s|%s\n", $1, $2, $3, $4
+    }
+' | fzf --ansi \
+        --delimiter='|' \
+        --with-nth=1 \
+        --header="  TMux Command Palette  (Enter to execute, Esc to cancel)" \
+        --prompt="  " \
+        --reverse \
+        --no-sort \
+        --border=none \
+        --margin=1,2 \
+        --color="header:#89b4fa,prompt:#a6e3a1,pointer:#f38ba8,hl:#f9e2af,hl+:#f9e2af")
+
+# Exit if nothing selected or if it's a section header
+[[ -z "$selection" ]] && exit 0
+
+# Extract the tmux command (after the last |)
+tmux_cmd=$(echo "$selection" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $NF); print $NF}')
+
+# Skip noop entries (display-only bindings like Ctrl+h/j/k/l)
+[[ -z "$tmux_cmd" || "$tmux_cmd" == "noop" ]] && exit 0
+
+# Execute the tmux command
+tmux $tmux_cmd

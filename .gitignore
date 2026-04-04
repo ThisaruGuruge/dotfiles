@@ -1,6 +1,8 @@
 # Environment and secrets
 .env
 .gitconfig.local
+git/.config/git/work.gitconfig
+git/.config/git/personal.gitconfig
 
 # IDE and editor
 .vscode
@@ -29,6 +31,11 @@ analysis
 .nvim-state/
 .local_state/
 lazy-lock.json
+
+# SSH keys (config is tracked, keys are NOT)
+ssh/.ssh/id_*
+ssh/.ssh/known_hosts
+ssh/.ssh/authorized_keys
 
 # Session Artifacts
 dotfiles_analysis_report.md

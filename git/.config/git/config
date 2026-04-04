@@ -1,0 +1,121 @@
+# Git Configuration
+# Personal settings (name, email) are in ~/.gitconfig.local (not tracked)
+
+[include]
+    path = ~/.gitconfig.local
+
+# Work email for Ballerina and WSO2 projects
+[includeIf "gitdir:~/Projects/Ballerina/"]
+    path = ~/.config/git/work.gitconfig
+
+[includeIf "gitdir:~/Projects/WSO2/"]
+    path = ~/.config/git/work.gitconfig
+
+[includeIf "gitdir:~/Projects/BI/"]
+    path = ~/.config/git/work.gitconfig
+
+# Personal email for everything else
+[includeIf "gitdir:~/Projects/Leisure/"]
+    path = ~/.config/git/personal.gitconfig
+
+[init]
+    defaultBranch = dev
+
+[status]
+    branch = true
+    showStash = true
+    short = true
+
+[diff]
+    context = 3
+    renames = copies
+    interHunkContext = 10
+    colorMoved = default
+
+[core]
+    whitespace = trailing-space,space-before-tab
+    preloadindex = true
+    untrackedCache = true
+    fsmonitor = true
+    pager = delta
+
+[interactive]
+    diffFilter = delta --color-only
+
+[delta]
+    navigate = true
+    side-by-side = true
+    line-numbers = true
+    hyperlinks = true
+
+[merge]
+    conflictstyle = zdiff3
+
+[pull]
+    rebase = true
+
+[fetch]
+    prune = true
+
+[push]
+    default = current
+    autoSetupRemote = true
+
+[rebase]
+    autoStash = true
+
+[rerere]
+    enabled = true
+
+[column]
+    ui = auto
+
+[branch]
+    sort = -committerdate
+
+[tag]
+    sort = -version:refname
+
+[log]
+    date = short
+
+[pretty]
+    custom = %C(red)%h%C(reset) -%C(yellow)%d%C(reset) %s %C(green)(%cd) %C(bold blue)<%an>%C(reset)
+
+[color "status"]
+    added = green
+    changed = yellow
+    untracked = red
+    branch = magenta bold
+    header = white dim
+
+[color "branch"]
+    current = magenta bold
+    local = yellow
+    remote = green
+
+[alias]
+    unstage = reset HEAD --
+    undo = reset --soft HEAD~1
+    cleanup = !git branch --merged | grep -v '\\*\\|main\\|dev' | xargs -n 1 git branch -d
+
+[advice]
+    addEmptyPathSpec = false
+    pushFastForward = false
+    statusHints = false
+
+[url "git@github.com:ballerina-platform/"]
+    insteadOf = "bal:"
+
+[url "git@github.com:ThisaruGuruge/"]
+    insteadOf = "me:"
+
+[url "git@github.com:wso2/"]
+    insteadOf = "wso2:"
+
+[url "git@github.com:wso2-enterprise/"]
+    insteadOf = "wso2-e:"
+
+[url "git@github.com:"]
+    insteadOf = "gh:"
+

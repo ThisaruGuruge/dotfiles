@@ -755,7 +755,7 @@ handle_stow_conflict() {
 stow_packages() {
     log_step "Using Stow to manage dotfiles"
 
-    local packages=("zsh" "bash" "vim" "config" "git" "tmux" "direnv")
+    local packages=("zsh" "bash" "vim" "config" "git" "tmux" "direnv" "ssh")
     local stowed_packages=()
     local skipped_files=()
 
