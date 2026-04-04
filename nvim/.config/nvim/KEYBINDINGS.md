@@ -185,6 +185,18 @@ Seamless navigation between NeoVim splits and TMux panes.
 | `<leader>xr` | Toggle LSP references | plugins/trouble.lua |
 | `<leader>xl` | Toggle location list | plugins/trouble.lua |
 | `<leader>xq` | Toggle quickfix list | plugins/trouble.lua |
+| `<leader>xt` | Toggle TODO list | plugins/todo-comments.lua |
+
+## TODO Comments (todo-comments.nvim)
+
+| Key | Action | Source |
+|-----|--------|--------|
+| `]t` | Next TODO comment | plugins/todo-comments.lua |
+| `[t` | Previous TODO comment | plugins/todo-comments.lua |
+| `<leader>ft` | Find TODOs (Telescope) | plugins/todo-comments.lua |
+| `<leader>xt` | TODOs in Trouble panel | plugins/todo-comments.lua |
+
+> Highlights `TODO`, `FIXME`, `HACK`, `NOTE`, `WARN`, `PERF`, `TEST` comments with distinct colors and icons.
 
 ## Text Objects (mini.ai)
 

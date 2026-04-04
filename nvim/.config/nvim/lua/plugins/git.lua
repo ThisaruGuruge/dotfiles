@@ -89,6 +89,20 @@ return {
         dependencies = {
             "nvim-lua/plenary.nvim",
         },
+        config = function()
+            -- Refresh gitsigns after closing lazygit
+            vim.api.nvim_create_autocmd("TermClose", {
+                pattern = "*lazygit*",
+                callback = function()
+                    local ok, gs = pcall(require, "gitsigns")
+                    if ok then
+                        vim.schedule(function()
+                            gs.refresh()
+                        end)
+                    end
+                end,
+            })
+        end,
         keys = {
             { "<leader>gg", "<cmd>LazyGit<cr>", desc = "LazyGit" },
         },

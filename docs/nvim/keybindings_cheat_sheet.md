@@ -209,6 +209,18 @@ See `docs/YAZI_KEYBINDINGS.md` for the full yazi keybinding reference.
 | `<Space>xr` | `n` | Toggle LSP references |
 | `<Space>xl` | `n` | Toggle location list |
 | `<Space>xq` | `n` | Toggle quickfix list |
+| `<Space>xt` | `n` | Toggle TODO list |
+
+## TODO Comments
+
+| Key | Mode | Action |
+|:----|:-----|:-------|
+| `]t` | `n` | Next TODO comment |
+| `[t` | `n` | Previous TODO comment |
+| `<Space>ft` | `n` | Find TODOs (Telescope picker) |
+| `<Space>xt` | `n` | TODOs in Trouble panel |
+
+Highlighted keywords: `TODO`, `FIXME`, `HACK`, `NOTE`, `WARN`, `PERF`, `TEST`
 
 ---
 

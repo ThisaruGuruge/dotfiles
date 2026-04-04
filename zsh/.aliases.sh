@@ -72,7 +72,7 @@ alias edit-functions="nvim ~/.functions.d/"
 alias edit-paths="nvim ~/.paths.sh"
 
 # Edit other configuration files
-alias edit-git="nvim ~/.gitconfig"
+alias edit-git="nvim ~/.config/git/config"
 alias edit-wezterm="nvim ~/.config/wezterm/wezterm.lua"
 alias edit-nvim="nvim ~/.config/nvim/init.lua"
 alias edit-vim="nvim ~/.vimrc"
@@ -123,42 +123,115 @@ alias start_file_server='python3 -m http.server 8000'
 # Python3
 alias p3='python3'
 
-# GIT - Enhanced with modern tools
-alias gits='git status'
+# GIT - Standardized g* prefix convention
+
+# Core
+alias gs='git status'
+alias gd='git diff'
+alias gds='git diff --staged'
+alias gm='git commit -m'
+alias gci='git commit'
+alias gca='git commit --amend --no-edit'
+alias ga='git add'
+alias gaa='git add --all'
+
+# Branches
+alias gb='git branch'
+alias gbd='git branch -d'
+alias gco='git checkout'
+alias gsw='git switch'
+alias gswc='git switch -c'
+
+# Remote
 alias gl='git pull'
 alias glo='git pull origin'
 alias glt='git pull thisaru'
 alias gp='git push'
 alias gpo='git push origin'
 alias gpt='git push thisaru'
-alias gb='git branch'
-alias gbd='git branch -d'
-alias gco='git checkout'
-alias gcp='git cherry-pick'
-alias ga='git add'
-alias gaa='git add --all'
-alias gitd='git diff'
-alias gra='git remote add'
-alias gitm='git commit -m '
-alias gitcan="git commit --amend --no-edit"
-alias git_clean_all='git clean -df; git checkout -- .'
-alias gc='git clone'
 alias gf='git fetch'
-alias grh='git reset'
-alias gr_soft='git reset --soft'
-alias gr_hard='git reset --hard'
+alias gra='git remote add'
+alias gc='git clone'
 
-# Modern Git tools
+# History & inspection
+alias glog='git log --graph --pretty=custom --abbrev-commit'
+alias glast='git show HEAD'
+alias gbl='git blame'
+alias gcp='git cherry-pick'
+
+# Reset
+alias gr='git reset'
+alias grs='git reset --soft'
+
+# Stash
+alias gst='git stash'
+alias gstp='git stash pop'
+alias gstl='git stash list'
+
+# Tools
 alias lg='lazygit'
-alias glog='git log --graph --pretty=format:"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset" --abbrev-commit'
 alias gunstage='git unstage'
 alias gundo='git undo'
-alias gamend='git amend'
 alias gcleanup='git cleanup'
+
+# Dangerous commands (with confirmation)
+function grh() {
+    echo "\e[31mReset --hard to: ${1:-HEAD}\e[0m"
+    echo "This will DISCARD all uncommitted changes."
+    read -q "?Continue? [y/N] " && echo && git reset --hard "$@" || echo
+}
+
+function gcla() {
+    echo "\e[31mThis will DELETE all untracked files and DISCARD all modifications.\e[0m"
+    read -q "?Continue? [y/N] " && echo && git clean -df && git checkout -- . || echo
+}
+
+# Deprecated aliases (runtime warnings — use new g* names)
+function gits() {
+    echo "\e[33m[deprecated] use 'gs' instead of 'gits'\e[0m"
+    git status "$@"
+}
+
+function gitd() {
+    echo "\e[33m[deprecated] use 'gd' instead of 'gitd'\e[0m"
+    git diff "$@"
+}
+
+function gitm() {
+    echo "\e[33m[deprecated] use 'gm' instead of 'gitm'\e[0m"
+    git commit -m "$@"
+}
+
+function gitcan() {
+    echo "\e[33m[deprecated] use 'gca' instead of 'gitcan'\e[0m"
+    git commit --amend --no-edit "$@"
+}
+
+function gr_soft() {
+    echo "\e[33m[deprecated] use 'grs' instead of 'gr_soft'\e[0m"
+    git reset --soft "$@"
+}
+
+function gr_hard() {
+    echo "\e[33m[deprecated] use 'grh' instead of 'gr_hard'\e[0m"
+    grh "$@"
+}
+
+function git_clean_all() {
+    echo "\e[33m[deprecated] use 'gcla' instead of 'git_clean_all'\e[0m"
+    gcla "$@"
+}
 
 # Modern file viewing and search tools
 if (( $+commands[bat] )); then
-    alias v='bat'
+    v() {
+        if (( $+commands[glow] )); then
+            case "${1##*.}" in
+                md|markdown|mdx) glow -p "$@"; return ;;
+            esac
+        fi
+        bat "$@"
+    }
 fi
 
 if (( $+commands[glow] )); then

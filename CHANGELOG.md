@@ -16,6 +16,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added **tmux floating popups** for quick access without leaving context:
+  - `prefix + t` — floating terminal in current directory
+  - `prefix + N` — floating scratchpad (`~/.scratch.md`)
+  - `prefix + S` — new session creator (name + directory prompt)
+  - `prefix + ?` — command palette: fuzzy search and execute any tmux keybinding (fzf-powered)
+  - `Ctrl+f` — upgraded project sessionizer to use popup instead of new window
+- Added `tmux/.local/bin/tmux-session-creator` — interactive script for creating named tmux sessions from a popup
+- Added `tmux/.local/bin/tmux-palette` + `tmux-palette-entries` — fzf-powered command palette for tmux keybindings (fuzzy search, categorized entries with comments, execute on select)
+- Added popup border styling (blue, rounded) matching Catppuccin Mocha theme
+
+### Removed
+
+- Removed **tmux auto-project sessions** (`07-tmux-sessions.zsh`) — the `chpwd` hook that prompted on every `cd` into a git repo is replaced by the intentional `prefix + S` session creator popup
+
+### Added
+
 - Added **Powerlevel10k** as the shell prompt (replaces Starship); loaded as the first zinit plugin for correct instant-prompt initialization
 - Added `zsh/.p10k.zsh` — full Catppuccin Mocha themed prompt config with Catppuccin Mocha palette matching the tmux status bar
 - Added Go version segment (`go_version`) to the prompt — only appears inside Go projects
@@ -28,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced `nvim-cmp` with `blink.cmp` for completions: faster Rust-based fuzzy matching, built-in signature help (auto-shows parameter info when typing inside function args), and auto-show documentation popup alongside completions
 - Added `trouble.nvim` diagnostics panel (`<leader>xx` for workspace diagnostics, `<leader>xs` for symbols, `<leader>xr` for LSP references)
 - Added aerial.nvim breadcrumb component to lualine statusline (shows current function/symbol path)
+- Added `todo-comments.nvim` for highlighted TODO/FIXME/HACK/NOTE comments with Telescope search (`<leader>ft`) and Trouble integration (`<leader>xt`), plus `]t`/`[t` navigation
 - Added `flash.nvim` for lightning-fast jump/motion navigation (`s` to jump, `S` for treesitter select, enhances `/` search and `f`/`t` motions with labels)
 - Added `alpha-nvim` dashboard as Neovim start screen with quick-action buttons (Find File, Recent Files, Grep, Explorer, Lazy)
 - Added `aerial.nvim` code outline sidebar (`<leader>a` to toggle, `{`/`}` to navigate symbols)

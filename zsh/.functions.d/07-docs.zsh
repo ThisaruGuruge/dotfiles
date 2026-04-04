@@ -240,7 +240,15 @@ alias_help() {
             echo "  Ctrl-a c    New window"
             echo "  Ctrl-a d    Detach session"
             echo ""
-            echo "💡 Example: tn myproject → work → Ctrl-a d → ta"
+            echo "Floating Popups (prefix: Ctrl-a):"
+            echo "  Ctrl-a t    Floating terminal (current dir)"
+            echo "  Ctrl-a N    Floating scratchpad (notes)"
+            echo "  Ctrl-a S    New session creator"
+            echo "  Ctrl-a G    Floating lazygit"
+            echo "  Ctrl-a ?    Command palette (search & run any binding)"
+            echo "  Ctrl+f      Project sessionizer (no prefix)"
+            echo ""
+            echo "💡 Example: Ctrl-a t for a quick terminal, Ctrl-a S to start a new session"
             ;;
 
         # Network Operations

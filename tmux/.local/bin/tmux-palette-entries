@@ -1,0 +1,72 @@
+# TMux Command Palette Entries
+# Format: category | key | description | tmux-command
+# Lines starting with # are comments (searchable in fzf for grouping context)
+# The tmux-command field supports: tmux commands, shell commands (prefix with !), or "noop" for display-only
+
+# --- Sessions ---
+# Create, switch, rename, and manage tmux sessions
+Sessions | Ctrl+f       | Sessionizer: fuzzy find and switch projects          | display-popup -E -w 60% -h 50% -T " Sessionizer " "~/.local/bin/tmux-sessionizer"
+Sessions | prefix + S   | Create a new named session                           | display-popup -E -w 50% -h 30% -T " New Session " "~/.local/bin/tmux-session-creator"
+Sessions | prefix + s   | Choose session from tree view                        | choose-tree -Zs
+Sessions | prefix + $   | Rename current session                               | command-prompt -I "#S" "rename-session -- '%%'"
+Sessions | prefix + d   | Detach from current session                          | detach-client
+Sessions | prefix + Tab | Switch to last session                               | switch-client -l
+
+# --- Windows ---
+# Create, navigate, and manage tmux windows (tabs)
+Windows | prefix + c   | Create new window (current directory)                 | new-window -c "#{pane_current_path}"
+Windows | prefix + ,   | Rename current window                                | command-prompt -I "#W" "rename-window -- '%%'"
+Windows | prefix + &   | Close current window                                 | confirm-before -p "Kill window #W? (y/n)" kill-window
+Windows | prefix + n   | Next window                                          | next-window
+Windows | prefix + p   | Previous window                                      | previous-window
+Windows | prefix + 1-9 | Switch to window by number                           | noop
+Windows | prefix + Space | Toggle last window                                 | last-window
+
+# --- Panes ---
+# Split, navigate, resize, and manage panes
+Panes | prefix + |     | Split pane horizontally                               | split-window -h -c "#{pane_current_path}"
+Panes | prefix + -     | Split pane vertically                                 | split-window -v -c "#{pane_current_path}"
+Panes | prefix + x     | Close current pane                                    | confirm-before -p "Kill pane #P? (y/n)" kill-pane
+Panes | prefix + z     | Toggle pane zoom (fullscreen)                         | resize-pane -Z
+Panes | prefix + Enter | Break pane into its own window                        | break-pane
+Panes | prefix + >     | Swap pane down                                        | swap-pane -D
+Panes | prefix + <     | Swap pane up                                          | swap-pane -U
+
+# --- Pane Navigation ---
+# Move between panes (smart: works with NeoVim splits)
+Navigation | Ctrl+h        | Navigate left (tmux pane or nvim split)           | noop
+Navigation | Ctrl+j        | Navigate down (tmux pane or nvim split)           | noop
+Navigation | Ctrl+k        | Navigate up (tmux pane or nvim split)             | noop
+Navigation | Ctrl+l        | Navigate right (tmux pane or nvim split)          | noop
+Navigation | Alt+Arrow     | Switch panes (without prefix)                     | noop
+Navigation | prefix + h/j/k/l | Vim-style pane switching                      | noop
+
+# --- Pane Resizing ---
+# Resize panes in 5-unit increments (repeatable)
+Resizing | prefix + Left  | Resize pane left                                  | resize-pane -L 5
+Resizing | prefix + Right | Resize pane right                                 | resize-pane -R 5
+Resizing | prefix + Up    | Resize pane up                                    | resize-pane -U 5
+Resizing | prefix + Down  | Resize pane down                                  | resize-pane -D 5
+
+# --- Floating Popups ---
+# Overlay windows for quick access without leaving context
+Popups | prefix + t   | Floating terminal (current directory)                  | display-popup -E -w 80% -h 80% -d "#{pane_current_path}" -T " Terminal "
+Popups | prefix + N   | Floating scratchpad (notes)                            | display-popup -E -w 70% -h 70% -T " Scratchpad " "$EDITOR ~/.scratch.md"
+Popups | prefix + G   | Floating lazygit                                       | display-popup -E -w 80% -h 80% -d "#{pane_current_path}" "lazygit"
+Popups | prefix + ?   | This command palette                                   | noop
+
+# --- Copy Mode ---
+# Vi-style copy mode for selecting and copying text
+Copy | prefix + [   | Enter copy mode                                          | copy-mode
+Copy | v            | Begin selection (in copy mode)                            | noop
+Copy | Ctrl+v       | Toggle rectangle selection (in copy mode)                 | noop
+Copy | y            | Copy selection (in copy mode)                             | noop
+Copy | q            | Exit copy mode                                            | noop
+
+# --- Utility ---
+# Config, status bar, plugins
+Utility | prefix + r   | Reload tmux config                                    | source-file ~/.tmux.conf \; display-message "Config reloaded!"
+Utility | prefix + b   | Toggle status bar                                     | set-option status
+Utility | prefix + C-l | Clear screen (send Ctrl+L)                            | send-keys 'C-l'
+Utility | prefix + I   | Install plugins (TPM)                                 | noop
+Utility | prefix + U   | Update plugins (TPM)                                  | noop

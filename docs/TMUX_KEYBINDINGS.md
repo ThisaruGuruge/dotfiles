@@ -10,6 +10,7 @@ Prefix key: `Ctrl+a`
 | `prefix + s` | Choose session from tree |
 | `prefix + $` | Rename session |
 | `prefix + d` | Detach from session |
+| `prefix + ?` | Command palette (fuzzy search & execute any keybinding) |
 
 ## Window Management
 
@@ -64,6 +65,18 @@ Prefix key: `Ctrl+a`
 | `y` | Copy selection |
 | `q` | Exit copy mode |
 
+## Floating Popups
+
+All popups float above the current pane (including NeoVim) and close back to exactly where you were.
+
+| Key | Action |
+|-----|--------|
+| `prefix + t` | Floating terminal (current directory) |
+| `prefix + N` | Floating scratchpad (`~/.scratch.md` in `$EDITOR`) |
+| `prefix + S` | New session creator (prompts for name + directory) |
+| `prefix + G` | Floating lazygit (current directory) |
+| `Ctrl+f` | Project sessionizer (fuzzy find and switch projects) |
+
 ## Utility
 
 | Key | Action |
@@ -83,33 +96,6 @@ TMux automatically starts when you open a terminal, except in:
 - Non-interactive shells
 - When already inside TMux
 
-## Auto Project Sessions
-
-When you `cd` into certain directories, TMux automatically creates or switches to a project-specific session.
-
-**Triggers:**
-- Any **git repository root** (directory containing `.git`)
-- Directories listed in **`~/.tmux-directories`**
-
-**Session naming:** Uses the folder name (e.g., `cd ~/projects/my-app` → session named `my-app`)
-
-**Config file example (`~/.tmux-directories`):**
-```
-# One path per line, comments start with #
-~/Documents/notes
-~/work/important-project
-/opt/my-tools
-```
-
-**Workflow:**
-```
-Terminal opens     → "main" session
-cd ~/projects/foo  → switches to "foo" session (created if needed)
-cd ~/projects/bar  → switches to "bar" session (foo stays alive)
-Ctrl+a, d          → detach (all sessions persist)
-tmux ls            → shows: main, foo, bar
-```
-
 ## Project Sessionizer
 
 Press `Ctrl+f` anywhere in TMux to:
@@ -127,4 +113,4 @@ Each project gets its own persistent session that survives terminal restarts.
 
 ---
 
-**Tip**: Use `prefix + s` to see all sessions, or `Ctrl+f` to fuzzy-find projects!
+**Tip**: Use `prefix + t` for a quick terminal, `Ctrl+f` to fuzzy-find projects, or `prefix + S` to create a new named session!

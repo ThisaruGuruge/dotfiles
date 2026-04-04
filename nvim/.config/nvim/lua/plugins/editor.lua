@@ -325,6 +325,8 @@ return {
         { "]d", desc = "Next Diagnostic", icon = "" },
         { "[c", desc = "Previous Git Hunk", icon = "" },
         { "]c", desc = "Next Git Hunk", icon = "" },
+        { "[t", desc = "Previous TODO Comment", icon = "" },
+        { "]t", desc = "Next TODO Comment", icon = "" },
 
         -- Move selected lines up/down in visual mode
         { "J", ":move '>+1<CR>gv=gv", desc = "Move Selection Down", mode = "v" },

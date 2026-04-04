@@ -66,6 +66,10 @@ if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then
     for candidate_dir in "$SDKMAN_DIR"/candidates/*/current/bin(N); do
         [[ -d "$candidate_dir" ]] && export PATH="$candidate_dir:$PATH"
     done
+    # Set JAVA_HOME from SDKMAN's current symlink so tools (Maven, Gradle) use the right JDK
+    if [[ -d "$SDKMAN_DIR/candidates/java/current" ]]; then
+        export JAVA_HOME="$SDKMAN_DIR/candidates/java/current"
+    fi
     # Lazy-load full SDKMAN on first use
     sdk() {
         unset -f sdk
