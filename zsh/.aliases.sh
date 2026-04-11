@@ -126,7 +126,7 @@ alias p3='python3'
 # GIT - Standardized g* prefix convention
 
 # Core
-alias gs='git status'
+# gs is a function in .functions.d/04-git.zsh
 alias gd='git diff'
 alias gds='git diff --staged'
 alias gm='git commit -m'
