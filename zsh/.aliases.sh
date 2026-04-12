@@ -26,6 +26,7 @@ if (( $+commands[eza] )); then
     alias ls-size='eza -l --sort=size --icons --git'
     alias ls-time='eza -l --sort=modified --icons --git'
     alias ls-old='eza -l --sort=oldest --icons --git'
+    alias tree='eza --tree --icons --git'
 else
     alias ls='ls --color=auto'
     alias ll='ls -lah'
