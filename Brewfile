@@ -5,6 +5,7 @@
 # Homebrew taps
 tap "jesseduffield/lazygit"    # Official lazygit tap for frequent updates
 tap "jesseduffield/lazydocker" # Official lazydocker tap
+tap "gdubw/gng"                # GNG - Gradle run-anywhere tool
 
 # Essential tools required for dotfiles functionality
 brew "stow"                         # Symlink farm manager (use --no-folding for reliable symlinks)
@@ -50,6 +51,7 @@ cask "antigravity"                  # AI Agent
 
 # Language version managers and development tools
 brew "ballerina"                    # Cloud-native programming language
+brew "gdubw/gng/gng"                # Gradle run-anywhere wrapper (gw command)
 
 # Nerd fonts with icons for terminal display
 cask "font-fira-code-nerd-font"     # Nerd font with icons

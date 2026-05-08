@@ -248,14 +248,6 @@ return {
 
         -- Find/Telescope mappings (with commands)
         { "<leader>ff", "<cmd>Telescope find_files<cr>", desc = "Find Files", icon = "" },
-        {
-          "<leader>fg",
-          function()
-            require("telescope").extensions.live_grep_args.live_grep_args()
-          end,
-          desc = "Live Grep (with args)",
-          icon = "",
-        },
         { "<leader>fb", "<cmd>Telescope buffers<cr>", desc = "Find Buffers", icon = "" },
         { "<leader>fh", "<cmd>Telescope help_tags<cr>", desc = "Find Help", icon = "" },
         { "<leader>fr", "<cmd>Telescope oldfiles<cr>", desc = "Recent Files", icon = "" },
@@ -270,8 +262,8 @@ return {
         { "<leader>fy", "<cmd>Telescope neoclip<cr>", desc = "Clipboard History", icon = "" },
 
         -- File explorer (yazi)
-        { "<leader>e", "<cmd>Yazi cwd<cr>", desc = " File Explorer (cwd)", icon = "" },
-        { "<leader>o", "<cmd>Yazi<cr>", desc = " File Explorer (current file)", icon = "" },
+        { "<leader>or", "<cmd>Yazi cwd<cr>", desc = " File Explorer (cwd)", icon = "" },
+        { "<leader>oc", "<cmd>Yazi<cr>", desc = " File Explorer (current file)", icon = "" },
 
         -- Ctrl mappings
         { "<C-p>", "<cmd>Telescope git_files<cr>", desc = "Find Git Files", icon = "" },

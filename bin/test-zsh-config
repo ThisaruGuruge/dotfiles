@@ -241,13 +241,13 @@ test_tool "Git" "git" "git --version"
 # Docker (optional)
 test_tool "Docker" "docker" "docker --version" "true"
 
-# Gradle (check if wrapper exists in current dir, otherwise check system)
-if [[ -f ./gradlew ]]; then
-    print_test "Gradle Wrapper" "pass" "Found in current directory"
+# Gradle (gng provides gw command that finds gradlew anywhere in the project tree)
+if command -v gw >/dev/null 2>&1; then
+    print_test "GNG (gw)" "pass" "Gradle run-anywhere wrapper available"
 elif command -v gradle >/dev/null 2>&1; then
     test_tool "Gradle" "gradle" "gradle --version | head -n 3 | tail -n 1" "true"
 else
-    print_test "Gradle" "warn" "Not in current directory or PATH (optional)"
+    print_test "Gradle/GNG" "warn" "Neither gw nor gradle found (optional)"
 fi
 
 # Maven (optional)
