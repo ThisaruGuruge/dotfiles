@@ -37,6 +37,7 @@ list_dotfiles_tools() {
     echo "   atuin            - Enhanced shell history"
     echo "   jq               - JSON processor"
     echo "   jless            - Interactive JSON/YAML viewer"
+    echo "   gng (gw)         - Gradle run-anywhere wrapper"
     echo ""
     echo "📋 LANGUAGE & RUNTIME MANAGEMENT:"
     echo "   NVM              - Node.js version manager (lazy-loaded)"

@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added **GNG (`gw`)** — Gradle run-anywhere wrapper (`gdubw/gng`): finds `gradlew` anywhere up the directory tree, eliminating the need to `cd` to project root before running Gradle tasks
+  - Removed the old `gw='./gradlew --max-workers=6'` alias that shadowed the binary
+  - Updated `gwb`, `gwc`, `gwt`, `gwcb` aliases to use `gw` so they work from any subdirectory
+
 - Added **tmux floating popups** for quick access without leaving context:
   - `prefix + t` — floating terminal in current directory
   - `prefix + N` — floating scratchpad (`~/.scratch.md`)

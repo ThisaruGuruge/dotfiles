@@ -14,7 +14,6 @@ alias mv="mv -iv"
 alias rm="rm -rI"
 alias qfind="find . -name "
 
-alias ag='ag --silent --hidden'
 alias todo='todo.sh'
 
 if (( $+commands[eza] )); then
@@ -111,12 +110,11 @@ alias n="nvim"
 alias editHosts='sudo nvim /etc/hosts'
 alias cleanupDS="find . -type f -name '*.DS_Store' -ls -delete"
 
-# Gradle wrapper aliases
-alias gw='./gradlew --max-workers=6'
-alias gwcb='./gradlew clean build'
-alias gwc='./gradlew clean'
-alias gwt='./gradlew test'
-alias gwb='./gradlew build'
+# Gradle aliases (gw = GNG: finds gradlew anywhere up the directory tree)
+alias gwb='gw build'
+alias gwc='gw clean'
+alias gwt='gw test'
+alias gwcb='gw clean build'
 
 # Python server
 alias start_file_server='python3 -m http.server 8000'
@@ -288,7 +286,15 @@ alias top='htop'
 
 # Modern alternatives
 if (( $+commands[fd] )); then
-    alias f='fd'
+    alias f='fd'                            # regex search
+    alias fg='fd -g'                        # glob search (e.g. fg "*.json")
+    alias fh='fd --hidden'                  # include hidden files
+    alias fa='fd --hidden --no-ignore'      # include hidden + gitignored files
+fi
+
+if (( $+commands[rg] )); then
+    alias rgh='rg --hidden'                 # search including hidden files
+    alias rga='rg --hidden --no-ignore'     # search everything (no filters)
 fi
 
 if (( $+commands[dust] )); then
@@ -325,6 +331,9 @@ alias bro='bal run --offline'
 # Ballerina-specific search aliases
 alias grepbal='rg --type ballerina'
 alias searchbal='rg --type bal'
+
+# Brew update all
+alias brew_update='brew update && brew upgrade && brew cleanup --prune=all'
 
 # Atuin shell history aliases
 if (( $+commands[atuin] )); then

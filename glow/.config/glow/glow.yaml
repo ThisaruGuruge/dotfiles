@@ -1,3 +1,4 @@
+style: "dracula"
 heading:
   block_suffix: "\n"
   bold: true

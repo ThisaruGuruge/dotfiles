@@ -37,4 +37,6 @@ opt.updatetime = 50
 -- Ruler
 opt.colorcolumn = "80,120"
 
+opt.fixendofline = true
+
 -- Note: All keybindings are now managed by which-key in plugins/editor.lua
