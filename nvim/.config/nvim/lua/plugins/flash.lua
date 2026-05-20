@@ -4,8 +4,7 @@ return {
     event = "VeryLazy",
     opts = {
       modes = {
-        -- Enable flash in search mode (/ and ?)
-        search = { enabled = true },
+        search = { enabled = false },
         -- Enable flash for f, t, F, T motions
         char = { enabled = true },
       },
