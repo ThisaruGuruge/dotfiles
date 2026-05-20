@@ -352,3 +352,7 @@ alias brew-sync='brew bundle dump --force --describe --file=$HOME/dotfiles/Brewf
 alias brew-sync-optional='brew bundle dump --force --describe --file=$HOME/dotfiles/Brewfile.optional'
 alias brew-check='brew bundle check --file=$HOME/dotfiles/Brewfile'
 alias brew-check-optional='brew bundle check --file=$HOME/dotfiles/Brewfile.optional'
+
+# Claude Code account switching
+alias ccp='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude'
+alias cce='CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" claude'
