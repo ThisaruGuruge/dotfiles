@@ -30,30 +30,33 @@ reveal = [
 
 [open]
 prepend_rules = [
-    { name = "*.md",       use = ["edit", "open"] },
-    { name = "*.json",     use = ["edit", "open"] },
-    { name = "*.yaml",     use = ["edit", "open"] },
-    { name = "*.yml",      use = ["edit", "open"] },
-    { name = "*.toml",     use = ["edit", "open"] },
-    { name = "*.sh",       use = ["edit", "open"] },
-    { name = "*.zsh",      use = ["edit", "open"] },
-    { name = "*.lua",      use = ["edit", "open"] },
-    { name = "*.bal",      use = ["edit", "open"] },
-    { name = "*.java",     use = ["edit", "open"] },
-    { name = "*.py",       use = ["edit", "open"] },
-    { name = "*.js",       use = ["edit", "open"] },
-    { name = "*.ts",       use = ["edit", "open"] },
-    { name = "*.go",       use = ["edit", "open"] },
-    { name = "*.rs",       use = ["edit", "open"] },
-    { name = "*.conf",     use = ["edit", "open"] },
-    { name = "*.ini",      use = ["edit", "open"] },
-    { mime = "application/pdf", use = ["open"] },
+    { mime = "text/*",           use = ["edit", "open"] },
+    { mime = "application/json", use = ["edit", "open"] },
+    { mime = "application/pdf",  use = ["open"] },
 ]
 
-[plugin]
-prepend_fetchers = [
-    { id = "mime", name = "*",  run = "mime-ext.local",  prio = "high" },
-    { id = "mime", name = "*",  run = "mime-ext.remote", prio = "high" },
-    { id = "git",  name = "*",  run = "git" },
-    { id = "git",  name = "*/", run = "git" },
-]
+[[plugin.prepend_fetchers]]
+id    = "mime"
+group = "file"
+url   = "local://*"
+run   = "mime-ext.local"
+prio  = "high"
+
+[[plugin.prepend_fetchers]]
+id    = "mime"
+group = "file"
+url   = "remote://*"
+run   = "mime-ext.remote"
+prio  = "high"
+
+[[plugin.prepend_fetchers]]
+id    = "git"
+group = "file"
+url   = "*"
+run   = "git"
+
+[[plugin.prepend_fetchers]]
+id    = "git"
+group = "dir"
+url   = "*/"
+run   = "git"
