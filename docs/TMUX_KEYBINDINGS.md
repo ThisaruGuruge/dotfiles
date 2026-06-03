@@ -6,7 +6,7 @@ Prefix key: `Ctrl+a`
 
 | Key | Action |
 |-----|--------|
-| `Ctrl+f` | Project sessionizer (fuzzy find and switch projects) |
+| `prefix + f` | Project sessionizer (fuzzy find and switch projects) |
 | `prefix + s` | Choose session from tree |
 | `prefix + $` | Rename session |
 | `prefix + d` | Detach from session |
@@ -75,7 +75,7 @@ All popups float above the current pane (including NeoVim) and close back to exa
 | `prefix + N` | Floating scratchpad (`~/.scratch.md` in `$EDITOR`) |
 | `prefix + S` | New session creator (prompts for name + directory) |
 | `prefix + G` | Floating lazygit (current directory) |
-| `Ctrl+f` | Project sessionizer (fuzzy find and switch projects) |
+| `prefix + f` | Project sessionizer (fuzzy find and switch projects) |
 
 ## Utility
 
@@ -98,7 +98,7 @@ TMux automatically starts when you open a terminal, except in:
 
 ## Project Sessionizer
 
-Press `Ctrl+f` anywhere in TMux to:
+Press `prefix + f` anywhere in TMux to:
 1. Fuzzy search through your projects (`~/Projects/**/` and `~/dotfiles`)
 2. Create or switch to a named TMux session for that project
 3. Start in the project directory
@@ -113,4 +113,4 @@ Each project gets its own persistent session that survives terminal restarts.
 
 ---
 
-**Tip**: Use `prefix + t` for a quick terminal, `Ctrl+f` to fuzzy-find projects, or `prefix + S` to create a new named session!
+**Tip**: Use `prefix + t` for a quick terminal, `prefix + f` to fuzzy-find projects, or `prefix + S` to create a new named session!

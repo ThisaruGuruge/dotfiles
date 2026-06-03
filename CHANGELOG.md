@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added **harper-ls** — grammar and spell checker for prose in code comments and Markdown files (offline, Rust-based, via Mason)
+- Added **typos-lsp** — low-false-positive typo detection in identifiers, strings, and comments across all languages (e.g. `getRepsone` → `getResponse`); shown as hints to avoid drowning real errors
+- Added `<leader>z` spell/grammar keybinding group: `<leader>zn` (next), `<leader>zp` (previous), `<leader>zf` (fix menu), `<leader>zu` (add to user/global dictionary), `<leader>zw` (add to workspace/project dictionary)
+- Added `config/.config/typos/_typos.toml` — global user-level typos config (stow-managed, project `_typos.toml` overrides); wired into typos-lsp via `init_options.config`
+- Fixed `<C-f>` clash: tmux project sessionizer moved from `bind-key -n C-f` to `bind-key f` (`prefix + f`) to unblock Neovim's blink.cmp `<C-f>` doc-scroll binding
+
 - Added **GNG (`gw`)** — Gradle run-anywhere wrapper (`gdubw/gng`): finds `gradlew` anywhere up the directory tree, eliminating the need to `cd` to project root before running Gradle tasks
   - Removed the old `gw='./gradlew --max-workers=6'` alias that shadowed the binary
   - Updated `gwb`, `gwc`, `gwt`, `gwcb` aliases to use `gw` so they work from any subdirectory

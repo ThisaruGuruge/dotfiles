@@ -136,6 +136,22 @@ See `docs/YAZI_KEYBINDINGS.md` for the full yazi keybinding reference.
 | `[d`        | `n`  | Previous diagnostic |
 | `]d`        | `n`  | Next diagnostic     |
 
+### Spell & Grammar Checking
+
+Dedicated keybindings that jump only between spell/grammar diagnostics, skipping all code errors and warnings.
+
+| Key          | Mode | Action                                  |
+| :----------- | :--- | :-------------------------------------- |
+| `<Space>zn`  | `n`  | Next spell/typo issue                            |
+| `<Space>zp`  | `n`  | Previous spell/typo issue                        |
+| `<Space>zf`  | `n`  | Fix at cursor (code action menu)                 |
+| `<Space>zu`  | `n`  | Add word to user dictionary (global)             |
+| `<Space>zw`  | `n`  | Add word to workspace dictionary (project)       |
+
+- `harper-ls` — grammar + spell in comments and Markdown (warnings)
+- `typos-lsp` — typos in identifiers/strings/comments, e.g. `getRepsone` → `getResponse` (hints)
+- `<Space>zu` / `<Space>zw` auto-apply without a menu — one keystroke to silence a false positive
+
 ---
 
 ## Completion (Insert Mode)

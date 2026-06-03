@@ -1,0 +1,13 @@
+# Global typos configuration — user-level word exceptions.
+# Project-specific _typos.toml files are merged on top of this and take precedence.
+# Reference: https://github.com/crate-ci/typos/blob/master/docs/reference.md
+#
+# To silence a false positive, declare the word as its own correction:
+#   [default.extend-words]
+#   src = "src"
+#
+# To silence an identifier pattern (regex):
+#   [default.extend-ignore-identifiers-re]
+#   patterns = ["myPattern.*"]
+
+[default.extend-words]

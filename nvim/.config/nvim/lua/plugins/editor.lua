@@ -203,8 +203,7 @@ return {
           marks = true,
           registers = true,
           spelling = {
-            enabled = true,
-            suggestions = 20,
+            enabled = false,
           },
           presets = {
             operators = true,
@@ -243,6 +242,7 @@ return {
         { "<leader>f", group = "󰍉 Find/Search...", icon = "" },
         { "<leader>g", group = " Git...", icon = "" },
         { "<leader>l", group = " LSP...", icon = "" },
+        { "<leader>z", group = " Spell/Grammar...", icon = "" },
         { "<leader>t", group = " Toggle...", icon = "" },
         { "<leader>x", group = " Trouble/Diagnostics...", icon = "" },
 
@@ -288,6 +288,13 @@ return {
         { "<leader>lf", desc = "Format Buffer", icon = "" },
         { "<leader>ld", desc = "Show Diagnostics", icon = "" },
 
+        -- Spell/grammar mappings (set in lsp.lua, registered here for which-key)
+        { "<leader>zn", desc = "Next Spell Issue", icon = "" },
+        { "<leader>zp", desc = "Previous Spell Issue", icon = "" },
+        { "<leader>zf", desc = "Fix Spell/Typo", icon = "" },
+        { "<leader>zu", desc = "Add to User Dictionary", icon = "" },
+        { "<leader>zw", desc = "Add to Workspace Dictionary", icon = "" },
+
         -- Toggle mappings
         { "<leader>tt", desc = "Toggle Terminal", icon = "" },
         { "<leader>u", desc = "Toggle Undotree", icon = "" },
@@ -319,6 +326,10 @@ return {
         { "]c", desc = "Next Git Hunk", icon = "" },
         { "[t", desc = "Previous TODO Comment", icon = "" },
         { "]t", desc = "Next TODO Comment", icon = "" },
+
+        -- Quickfix navigation
+        {"[q", desc = "Previous Quickfix item", icon = ""},
+        {"]q", desc = "Next Quickfix item", icon = ""},
 
         -- Move selected lines up/down in visual mode
         { "J", ":move '>+1<CR>gv=gv", desc = "Move Selection Down", mode = "v" },
