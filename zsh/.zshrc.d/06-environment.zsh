@@ -73,6 +73,9 @@ if [ -f "$HOME/.env" ]; then
     fi
 fi
 
+# Claude Code - default to personal account; cce alias overrides per-invocation
+export CLAUDE_CONFIG_DIR="$HOME/.claude-personal"
+
 # Docker settings
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
 

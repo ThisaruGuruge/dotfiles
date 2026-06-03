@@ -81,6 +81,25 @@ Inside yazi.nvim floating window:
 | `[d`         | Previous diagnostic  | plugins/lsp.lua:82        |
 | `]d`         | Next diagnostic      | plugins/lsp.lua:84        |
 
+### Spell & Grammar Checking
+
+Dedicated keybindings that navigate only spell/grammar diagnostics (from `harper-ls` and `typos-lsp`), ignoring code errors and warnings.
+
+| Key          | Action                                        | Source              |
+| ------------ | --------------------------------------------- | ------------------- |
+| `<leader>zn` | Next spell/typo issue                         | plugins/lsp.lua     |
+| `<leader>zp` | Previous spell/typo issue                     | plugins/lsp.lua     |
+| `<leader>zf` | Fix spell/typo (code action menu)             | plugins/lsp.lua     |
+| `<leader>zu` | Add word to user dictionary (global)          | plugins/lsp.lua     |
+| `<leader>zw` | Add word to workspace dictionary (project)    | plugins/lsp.lua     |
+
+> `harper-ls` — grammar + spell in comments and Markdown (shown as warnings).
+> `typos-lsp` — identifier/string/comment typos like `getRepsone` → `getResponse` (shown as hints).
+>
+> `<leader>zu` maps to harper's "user dictionary" and typos' "configuration file" — both global/user-level.
+> `<leader>zw` maps to harper's "workspace dictionary" and typos' "in the project" — both per-repo.
+> Both auto-apply without a menu when only one matching action exists at the cursor.
+
 ## Git (Gitsigns)
 
 | Key          | Action              | Source              |
@@ -236,8 +255,9 @@ mini.ai extends Vim's built-in `a` (around) and `i` (inside) text object prefixe
 | ----------- | ------------------- | --------------------- |
 | `<leader>f` | Find (Telescope)    | plugins/editor.lua:69 |
 | `<leader>g` | Git                 | plugins/editor.lua:70 |
-| `<leader>t` | Toggle              | plugins/editor.lua:71 |
 | `<leader>l` | LSP                 | plugins/editor.lua:72 |
+| `<leader>z` | Spell/Grammar       | plugins/editor.lua    |
+| `<leader>t` | Toggle              | plugins/editor.lua:71 |
 | `<leader>x` | Trouble/Diagnostics | plugins/editor.lua    |
 
 ---

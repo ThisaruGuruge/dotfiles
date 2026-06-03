@@ -287,9 +287,9 @@ alias top='htop'
 # Modern alternatives
 if (( $+commands[fd] )); then
     alias f='fd'                            # regex search
-    alias fg='fd -g'                        # glob search (e.g. fg "*.json")
-    alias fh='fd --hidden'                  # include hidden files
-    alias fa='fd --hidden --no-ignore'      # include hidden + gitignored files
+    alias fdg='fd -g'                       # glob search (e.g. fdg "*.json")
+    alias fdh='fd --hidden'                 # include hidden files
+    alias fda='fd --hidden --no-ignore'     # include hidden + gitignored files
 fi
 
 if (( $+commands[rg] )); then

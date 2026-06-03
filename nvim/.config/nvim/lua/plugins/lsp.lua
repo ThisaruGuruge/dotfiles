@@ -43,6 +43,8 @@ return {
                     "jsonls",
                     "yamlls",
                     "marksman", -- Markdown LSP
+                    "harper_ls", -- Grammar + spell in comments and markdown
+                    "typos_lsp", -- Typo detection in identifiers, strings, and comments
                 },
                 automatic_installation = true,
                 handlers = {
@@ -133,6 +135,33 @@ return {
                                     usePlaceholders = true,
                                     completeUnimported = true,
                                 },
+                            },
+                        })
+                    end,
+                    -- Harper: grammar + spell in comments and markdown
+                    ["harper_ls"] = function()
+                        require("lspconfig").harper_ls.setup({
+                            capabilities = capabilities,
+                            settings = {
+                                ["harper-ls"] = {
+                                    linters = {
+                                        spell_check = true,
+                                        repeated_words = true,
+                                        sentence_capitalization = false, -- too noisy in code comments
+                                        unclosed_quotes = true,
+                                    },
+                                },
+                            },
+                        })
+                    end,
+                    -- Typos: low-false-positive typo detection in identifiers, strings, and comments
+                    ["typos_lsp"] = function()
+                        require("lspconfig").typos_lsp.setup({
+                            capabilities = capabilities,
+                            init_options = {
+                                diagnosticSeverity = "Hint",
+                                -- Global user-level config; project _typos.toml is merged on top
+                                config = vim.fn.expand("~/.config/typos/_typos.toml"),
                             },
                         })
                     end,
@@ -258,6 +287,81 @@ return {
                     source = "always",
                 },
             })
+
+            -- Spell/grammar navigation: jump between harper-ls and typos-lsp diagnostics only
+            local function goto_spell(forward)
+                local bufnr = vim.api.nvim_get_current_buf()
+                local all = vim.diagnostic.get(bufnr)
+                local spell = vim.tbl_filter(function(d)
+                    local s = (d.source or ""):lower()
+                    return s:find("harper") ~= nil or s:find("typos") ~= nil
+                end, all)
+                if #spell == 0 then
+                    vim.notify("No spell issues in buffer", vim.log.levels.INFO)
+                    return
+                end
+                table.sort(spell, function(a, b)
+                    if a.lnum ~= b.lnum then return a.lnum < b.lnum end
+                    return a.col < b.col
+                end)
+                local cursor = vim.api.nvim_win_get_cursor(0)
+                local row, col = cursor[1] - 1, cursor[2]
+                local target
+                if forward then
+                    for _, d in ipairs(spell) do
+                        if d.lnum > row or (d.lnum == row and d.col > col) then
+                            target = d
+                            break
+                        end
+                    end
+                    target = target or spell[1]
+                else
+                    for i = #spell, 1, -1 do
+                        local d = spell[i]
+                        if d.lnum < row or (d.lnum == row and d.col < col) then
+                            target = d
+                            break
+                        end
+                    end
+                    target = target or spell[#spell]
+                end
+                vim.api.nvim_win_set_cursor(0, { target.lnum + 1, target.col })
+                vim.diagnostic.open_float()
+            end
+
+            vim.keymap.set("n", "<leader>zn", function() goto_spell(true) end,
+                { desc = "Next spell/typo issue", silent = true })
+            vim.keymap.set("n", "<leader>zp", function() goto_spell(false) end,
+                { desc = "Previous spell/typo issue", silent = true })
+            vim.keymap.set("n", "<leader>zf", vim.lsp.buf.code_action,
+                { desc = "Fix spell/typo", silent = true })
+
+            -- Filter code actions by title patterns and auto-apply when unambiguous.
+            -- harper-ls: "Add "word" to the user/workspace/file dictionary."
+            -- typos-lsp: "Ignore `word` in the project / in the configuration file"
+            local function spell_action(patterns)
+                return function()
+                    vim.lsp.buf.code_action({
+                        filter = function(action)
+                            local t = action.title:lower()
+                            for _, p in ipairs(patterns) do
+                                if t:find(p, 1, true) then return true end
+                            end
+                            return false
+                        end,
+                        apply = true,
+                    })
+                end
+            end
+
+            -- User/global: harper "user dictionary" + typos "configuration file"
+            vim.keymap.set("n", "<leader>zu",
+                spell_action({ "user dictionary", "configuration file" }),
+                { desc = "Add to user dictionary", silent = true })
+            -- Workspace/project: harper "workspace dictionary" + typos "in the project"
+            vim.keymap.set("n", "<leader>zw",
+                spell_action({ "workspace dictionary", "in the project" }),
+                { desc = "Add to workspace dictionary", silent = true })
         end,
     },
 }

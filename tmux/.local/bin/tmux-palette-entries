@@ -5,7 +5,7 @@
 
 # --- Sessions ---
 # Create, switch, rename, and manage tmux sessions
-Sessions | Ctrl+f       | Sessionizer: fuzzy find and switch projects          | display-popup -E -w 60% -h 50% -T " Sessionizer " "~/.local/bin/tmux-sessionizer"
+Sessions | prefix + f   | Sessionizer: fuzzy find and switch projects          | display-popup -E -w 60% -h 50% -T " Sessionizer " "~/.local/bin/tmux-sessionizer"
 Sessions | prefix + S   | Create a new named session                           | display-popup -E -w 50% -h 30% -T " New Session " "~/.local/bin/tmux-session-creator"
 Sessions | prefix + s   | Choose session from tree view                        | choose-tree -Zs
 Sessions | prefix + $   | Rename current session                               | command-prompt -I "#S" "rename-session -- '%%'"

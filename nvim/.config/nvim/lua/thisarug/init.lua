@@ -19,7 +19,7 @@ opt.incsearch = true
 -- UI
 opt.termguicolors = true
 opt.signcolumn = "yes"
-opt.scrolloff = 12
+opt.scrolloff = 20
 opt.wrap = false
 
 -- System integration
