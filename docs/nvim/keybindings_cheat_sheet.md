@@ -10,7 +10,7 @@ This configuration follows standard Vim/Neovim conventions:
 | :---------- | :-------------------- | :---------------------------------------------------------------------------------------------- |
 | `g*`        | Navigation (go to...) | `gd` (definition), `gr` (references), `gi` (implementation)                                     |
 | `<Space>g*` | Git operations        | `<Space>gs` (stage), `<Space>gp` (preview), `<Space>gg` (LazyGit)                               |
-| `<Space>l*` | LSP actions           | `<Space>lr` (rename), `<Space>la` (actions), `<Space>lf` (format)                               |
+| `<Space>l*` | LSP actions           | `<Space>lr` (rename), `<Space>la` (actions), `<Space>lf` (format), `<Space>lq` (buf qf), `<Space>lW` (workspace qf) |
 | `<Space>f*` | Find/Search           | `<Space>ff` (files), `<Space>fg` (grep), `<Space>fb` (buffers), `<Space>fy` (clipboard history) |
 | `[` / `]`   | Previous/Next         | `[d` (prev diagnostic), `]c` (next git hunk)                                                    |
 
@@ -133,6 +133,8 @@ See `docs/YAZI_KEYBINDINGS.md` for the full yazi keybinding reference.
 | `<Space>la` | `n`  | Code actions        |
 | `<Space>lf` | `n`  | Format buffer       |
 | `<Space>ld` | `n`  | Show diagnostics    |
+| `<Space>lq` | `n`  | Buffer diagnostics to quickfix (spell excluded, jumps to first) |
+| `<Space>lW` | `n`  | Workspace diagnostics to quickfix (spell excluded, jumps to first) |
 | `[d`        | `n`  | Previous diagnostic |
 | `]d`        | `n`  | Next diagnostic     |
 
@@ -147,10 +149,12 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 | `<Space>zf`  | `n`  | Fix at cursor (code action menu)                 |
 | `<Space>zu`  | `n`  | Add word to user dictionary (global)             |
 | `<Space>zw`  | `n`  | Add word to workspace dictionary (project)       |
+| `<Space>zi`  | `n`  | Ignore this Harper lint (persisted)              |
 
 - `harper-ls` — grammar + spell in comments and Markdown (warnings)
 - `typos-lsp` — typos in identifiers/strings/comments, e.g. `getRepsone` → `getResponse` (hints)
 - `<Space>zu` / `<Space>zw` auto-apply without a menu — one keystroke to silence a false positive
+- `<Space>zi` suppresses a specific harper grammar diagnostic persistently (survives restarts)
 
 ---
 

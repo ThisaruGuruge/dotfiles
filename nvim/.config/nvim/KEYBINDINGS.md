@@ -78,7 +78,9 @@ Inside yazi.nvim floating window:
 | `<leader>la` | Code action          | plugins/lsp.lua:76        |
 | `<leader>lf` | Format buffer        | plugins/formatting.lua:29 |
 | `<leader>ld` | Show diagnostics     | plugins/lsp.lua:80        |
-| `[d`         | Previous diagnostic  | plugins/lsp.lua:82        |
+| `<leader>lq` | Buffer diagnostics to quickfix (spell excluded, jumps to first) | plugins/lsp.lua |
+| `<leader>lW` | Workspace diagnostics to quickfix (spell excluded, jumps to first) | plugins/lsp.lua |
+| `[d`         | Previous diagnostic  | plugins/lsp.lua:86        |
 | `]d`         | Next diagnostic      | plugins/lsp.lua:84        |
 
 ### Spell & Grammar Checking
@@ -92,13 +94,16 @@ Dedicated keybindings that navigate only spell/grammar diagnostics (from `harper
 | `<leader>zf` | Fix spell/typo (code action menu)             | plugins/lsp.lua     |
 | `<leader>zu` | Add word to user dictionary (global)          | plugins/lsp.lua     |
 | `<leader>zw` | Add word to workspace dictionary (project)    | plugins/lsp.lua     |
+| `<leader>zi` | Ignore this Harper lint (persisted)           | plugins/lsp.lua     |
 
 > `harper-ls` — grammar + spell in comments and Markdown (shown as warnings).
 > `typos-lsp` — identifier/string/comment typos like `getRepsone` → `getResponse` (shown as hints).
 >
 > `<leader>zu` maps to harper's "user dictionary" and typos' "configuration file" — both global/user-level.
 > `<leader>zw` maps to harper's "workspace dictionary" and typos' "in the project" — both per-repo.
-> Both auto-apply without a menu when only one matching action exists at the cursor.
+> `<leader>zi` triggers harper's "Ignore Harper error." code action — saves the suppression to the
+> `ignored_lints` file so that specific diagnostic never reappears (even after restarting Neovim).
+> All three auto-apply without a menu when only one matching action exists at the cursor.
 
 ## Git (Gitsigns)
 

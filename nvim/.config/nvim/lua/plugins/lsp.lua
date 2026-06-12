@@ -232,6 +232,28 @@ return {
                 capabilities = require("blink.cmp").get_lsp_capabilities(),
             })
 
+            -- Build a quickfix list from diagnostics, excluding spell/grammar sources,
+            -- then open the window and jump to the first entry.
+            local function is_spell_diag(d)
+                local s = (d.source or ""):lower()
+                return s:find("harper") ~= nil or s:find("typos") ~= nil
+            end
+
+            local function open_diag_qf(bufnr)
+                local diags = vim.tbl_filter(function(d)
+                    return not is_spell_diag(d)
+                end, vim.diagnostic.get(bufnr))
+                local items = vim.diagnostic.toqflist(diags)
+                vim.fn.setqflist({}, "r", {
+                    title = bufnr and "Buffer Diagnostics" or "Workspace Diagnostics",
+                    items = items,
+                })
+                vim.cmd("copen")
+                if #items > 0 then
+                    vim.cmd("cfirst")
+                end
+            end
+
             -- LSP keybindings using LspAttach autocmd (Neovim 0.11+)
             vim.api.nvim_create_autocmd("LspAttach", {
                 callback = function(args)
@@ -268,6 +290,9 @@ return {
                     -- Formatting is handled by conform.nvim (see formatting.lua)
                     vim.keymap.set("n", "<leader>ld", vim.diagnostic.open_float,
                         vim.tbl_extend("force", opts, { desc = "Show diagnostics" }))
+                    vim.keymap.set("n", "<leader>lq",
+                        function() open_diag_qf(0) end,
+                        vim.tbl_extend("force", opts, { desc = "Buffer diagnostics to quickfix" }))
                     vim.keymap.set("n", "[d", vim.diagnostic.goto_prev,
                         vim.tbl_extend("force", opts, { desc = "Previous diagnostic" }))
                     vim.keymap.set("n", "]d", vim.diagnostic.goto_next,
@@ -287,6 +312,10 @@ return {
                     source = "always",
                 },
             })
+
+            vim.keymap.set("n", "<leader>lW",
+                function() open_diag_qf(nil) end,
+                { noremap = true, silent = true, desc = "Workspace diagnostics to quickfix" })
 
             -- Spell/grammar navigation: jump between harper-ls and typos-lsp diagnostics only
             local function goto_spell(forward)
@@ -362,6 +391,10 @@ return {
             vim.keymap.set("n", "<leader>zw",
                 spell_action({ "workspace dictionary", "in the project" }),
                 { desc = "Add to workspace dictionary", silent = true })
+            -- Ignore lint: harper "Ignore Harper error." → persisted to ignored_lints file
+            vim.keymap.set("n", "<leader>zi",
+                spell_action({ "ignore harper error" }),
+                { desc = "Ignore this Harper lint", silent = true })
         end,
     },
 }

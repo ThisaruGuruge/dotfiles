@@ -1,12 +1,13 @@
 {
-  "theme": "dark",
-  "editorMode": "vim",
-  "autoUpdatesChannel": "stable",
   "env": {
     "BASH_OUTPUT_MAX_LENGTH": "150000"
   },
   "statusLine": {
     "type": "command",
     "command": "bash /Users/thisaru/.claude-enterprise/statusline-command.sh"
-  }
+  },
+  "effortLevel": "xhigh",
+  "autoUpdatesChannel": "stable",
+  "theme": "dark",
+  "editorMode": "vim"
 }

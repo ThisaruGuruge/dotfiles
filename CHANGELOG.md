@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added **ueberzugpp** — image preview renderer for yazi; enables inline image previews inside tmux sessions where native Kitty/iTerm2 protocols are blocked by the multiplexer. Auto-detected by yazi with no extra config; `ueberzug_scale` and `ueberzug_offset` exposed in `yazi.toml` for fine-tuning
+
+### Added
+
 - Added **harper-ls** — grammar and spell checker for prose in code comments and Markdown files (offline, Rust-based, via Mason)
 - Added **typos-lsp** — low-false-positive typo detection in identifiers, strings, and comments across all languages (e.g. `getRepsone` → `getResponse`); shown as hints to avoid drowning real errors
 - Added `<leader>z` spell/grammar keybinding group: `<leader>zn` (next), `<leader>zp` (previous), `<leader>zf` (fix menu), `<leader>zu` (add to user/global dictionary), `<leader>zw` (add to workspace/project dictionary)
