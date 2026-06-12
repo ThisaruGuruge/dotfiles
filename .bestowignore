@@ -1,0 +1,15 @@
+*.brewfile
+.github
+docs
+*.md
+**/*.md
+.claude
+claude*
+.bestowignore
+Brewfile
+VERSION
+.stow-local-ignore
+**/*.brewfile
+.nvim-state
+.git/
+**/*.example

@@ -39,6 +39,7 @@ brew "poppler"                      # PDF preview (yazi)
 brew "imagemagick"                  # SVG/font preview (yazi)
 brew "unar"                         # Archive preview (yazi)
 brew "ueberzugpp"                   # Image previews in yazi (works inside tmux)
+brew "chafa"                        # Image-to-text renderer (yazi image previews in terminal)
 
 # JSON/YAML processing and viewing
 brew "jq"                           # JSON processor for scripts
