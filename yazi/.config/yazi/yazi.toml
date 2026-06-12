@@ -12,10 +12,12 @@ scrolloff      = 5
 title_format   = "Yazi: {cwd}"
 
 [preview]
-wrap       = "no"
-tab_size   = 2
-max_width  = 600
-max_height = 900
+wrap            = "no"
+tab_size        = 2
+max_width       = 600
+max_height      = 900
+ueberzug_scale  = 1
+ueberzug_offset = [0, 0, 0, 0]
 
 [opener]
 edit = [

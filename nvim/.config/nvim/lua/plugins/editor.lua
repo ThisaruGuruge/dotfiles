@@ -287,6 +287,8 @@ return {
         { "<leader>la", desc = "Code Action", icon = "" },
         { "<leader>lf", desc = "Format Buffer", icon = "" },
         { "<leader>ld", desc = "Show Diagnostics", icon = "" },
+        { "<leader>lq", desc = "Buffer Diagnostics to Quickfix", icon = "" },
+        { "<leader>lW", desc = "Workspace Diagnostics to Quickfix", icon = "" },
 
         -- Spell/grammar mappings (set in lsp.lua, registered here for which-key)
         { "<leader>zn", desc = "Next Spell Issue", icon = "" },
@@ -294,6 +296,7 @@ return {
         { "<leader>zf", desc = "Fix Spell/Typo", icon = "" },
         { "<leader>zu", desc = "Add to User Dictionary", icon = "" },
         { "<leader>zw", desc = "Add to Workspace Dictionary", icon = "" },
+        { "<leader>zi", desc = "Ignore this Harper Lint", icon = "" },
 
         -- Toggle mappings
         { "<leader>tt", desc = "Toggle Terminal", icon = "" },

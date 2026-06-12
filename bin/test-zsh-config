@@ -162,6 +162,7 @@ test_tool "jq" "jq" "jq --version"
 test_tool "jless" "jless" "jless --version" "true"
 test_tool "glow" "glow" "glow --version"
 test_tool "yazi" "yazi" "yazi --version"
+test_tool "ueberzugpp" "ueberzugpp" "ueberzugpp --version" "true"
 test_tool "lazydocker" "lazydocker" "lazydocker --version | head -1" "true"
 
 # ============================================================================
@@ -234,6 +235,7 @@ test_tool "Glow" "glow" "glow --version"
 
 # Yazi (terminal file manager)
 test_tool "Yazi" "yazi" "yazi --version"
+test_tool "ueberzugpp" "ueberzugpp" "ueberzugpp --version" "true"
 
 # Git
 test_tool "Git" "git" "git --version"

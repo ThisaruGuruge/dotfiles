@@ -6,7 +6,7 @@ A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CL
 
 - **Fast Zsh environment** – zinit-managed plugins, fzf-tab completion, syntax highlighting, autosuggestions, zoxide (via `z` command), Atuin history (Ctrl+R and up-arrow), and WezTerm compatible key bindings
 - **Powerlevel10k prompt** – pure-Zsh rendering (no binary subprocess per draw), instant prompt on startup, contextual Git state, Go/Java/Python/Ballerina indicators, transient prompt for clean scrollback, full Catppuccin Mocha theme matching the tmux status bar
-- **Modern CLI stack** – eza, bat, ripgrep, fd, yazi, jless, lazygit, lazydocker, tmux, direnv, atuin, gh, git-delta, gng (`gw`), and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
+- **Modern CLI stack** – eza, bat, ripgrep, fd, yazi (with image previews via ueberzugpp), jless, lazygit, lazydocker, tmux, direnv, atuin, gh, git-delta, gng (`gw`), and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
 - **Smart aliases** – Single-letter shortcuts for modern tools (`v` for bat, `g` for ripgrep, `f` for fd, `z` for zoxide) while keeping original commands for scripts
 - **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → glow, `.json`/`.yaml` → jless, `.py`/`.sh`/`.bal` → $EDITOR)
 - **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina with lazy-loading shell glue so heavy managers don't slow startup

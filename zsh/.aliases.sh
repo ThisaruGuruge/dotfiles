@@ -356,3 +356,7 @@ alias brew-check-optional='brew bundle check --file=$HOME/dotfiles/Brewfile.opti
 # Claude Code account switching
 alias ccp='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude'
 alias cce='CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" claude'
+alias ccpr='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude --resume'
+alias ccer='CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" claude --resume'
+alias ccpc='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude --continue'
+alias ccec='CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" claude --continue'
