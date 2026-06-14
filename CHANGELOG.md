@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added **ueberzugpp** — image preview renderer for yazi; enables inline image previews inside tmux sessions where native Kitty/iTerm2 protocols are blocked by the multiplexer. Auto-detected by yazi with no extra config; `ueberzug_scale` and `ueberzug_offset` exposed in `yazi.toml` for fine-tuning
+- Added **chafa** — image-to-text/sixel renderer used by yazi as a fallback image preview backend for terminals that don't support the Kitty or iTerm2 inline image protocols. Native protocols (Kitty in WezTerm, iTerm2 in iTerm2) are preferred and work through tmux via the existing `allow-passthrough on` tmux config
 
 ### Added
 

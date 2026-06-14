@@ -17,7 +17,7 @@ list_dotfiles_tools() {
     echo ""
     echo "📁 FILE & NAVIGATION TOOLS:"
     echo "   yazi             - Terminal file manager (Neovim integration, image previews)"
-    echo "   ueberzugpp       - Image preview renderer for yazi (works inside tmux)"
+    echo "   chafa            - Image-to-text renderer (yazi image preview fallback)"
     echo "   eza              - Modern ls replacement"
     echo "   bat              - Enhanced cat with syntax highlighting"
     echo "   glow             - Terminal markdown viewer"
