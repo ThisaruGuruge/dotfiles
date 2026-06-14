@@ -11,7 +11,6 @@ alias cls="clear;ls"
 alias mk="mkdir -p "
 alias cp="cp -riv"
 alias mv="mv -iv"
-alias rm="rm -rI"
 alias qfind="find . -name "
 
 alias todo='todo.sh'
@@ -63,7 +62,7 @@ alias dock_add_space='defaults write com.apple.dock persistent-apps -array-add "
 alias sudo='sudo '
 
 # Shell Configuration Management
-alias reload="source ~/.zshrc"
+alias reload="exec zsh"
 
 # Edit shell configuration files
 alias edit-zsh="nvim ~/.zshrc"
