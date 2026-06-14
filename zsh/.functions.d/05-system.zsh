@@ -2,7 +2,14 @@
 # ============================================================================
 # System Functions
 # ============================================================================
-# System utilities: checkPort(), kill_by_port()
+# System utilities: rm(), checkPort(), kill_by_port()
+
+rm() {
+    if [[ -o interactive ]] && [[ -t 0 ]]; then
+        confirm "Remove files/directories?" || return 1
+    fi
+    command rm -r "$@"
+}
 
 checkPort() {
     lsof -i:"$1"
