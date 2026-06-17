@@ -1,15 +1,32 @@
-*.brewfile
+# Ignore files
+.gitignore
+.bestowignore
+
+# Directories
 .github
+.claude
 docs
+.git
+packages
+
+# Files
+VERSION
+LICENSE
+Brewfile
+init.sh
+cleanup.sh
+.DS_Store
+
+# Globs
+*.brewfile
 *.md
 **/*.md
-.claude
 claude*
-.bestowignore
-Brewfile
-VERSION
 .stow-local-ignore
 **/*.brewfile
 .nvim-state
-.git/
 **/*.example
+*.swp
+*.bak
+*~
+lazy-lock.json
