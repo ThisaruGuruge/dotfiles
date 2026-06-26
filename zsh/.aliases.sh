@@ -167,7 +167,7 @@ alias gstp='git stash pop'
 alias gstl='git stash list'
 
 # Tools
-alias lg='lazygit'
+alias lg='lazygit; printf "\033(B\033[m"'
 alias gunstage='git unstage'
 alias gundo='git undo'
 alias gcleanup='git cleanup'
