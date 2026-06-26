@@ -44,6 +44,9 @@ git:
     order: topo-order
     showGraph: always
     showWholeGraph: false
+os:
+  editPreset: "nvim-remote"
+  open: '[ -n "$NVIM" ] && nvim --server "$NVIM" --remote-tab {{filename}} || open {{filename}}'
 # Don't confirm on quit
 confirmOnQuit: false
 # Refresh intervals
