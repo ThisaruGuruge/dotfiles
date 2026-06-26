@@ -54,7 +54,6 @@ This configuration follows standard Vim/Neovim conventions:
 | ------------ | ----------------------------------- | ------------------ |
 | `<leader>or` | Open yazi in working root directory | plugins/editor.lua |
 | `<leader>oc` | Open yazi at current file           | plugins/editor.lua |
-| `<leader>cw` | Open yazi in working directory      | plugins/yazi.lua   |
 | `<C-Up>`     | Resume last yazi session            | plugins/yazi.lua   |
 
 Inside yazi.nvim floating window:
@@ -198,6 +197,22 @@ Seamless navigation between NeoVim splits and TMux panes.
 | `<S-CR>` | Scope increment          | plugins/editor.lua:30    |
 | `<BS>`   | Node decrement           | plugins/editor.lua:31    |
 
+## Folding (treesitter-based)
+
+Works for any language treesitter understands: JSON objects/arrays, functions, classes, blocks, etc.
+
+| Key  | Action                               |
+| ---- | ------------------------------------ |
+| `za` | Toggle fold under cursor             |
+| `zo` | Open fold under cursor               |
+| `zc` | Close fold under cursor              |
+| `zO` | Open all folds recursively           |
+| `zC` | Close all folds recursively          |
+| `zR` | Open every fold in the file          |
+| `zM` | Close every fold in the file         |
+| `zj` | Jump to next fold                    |
+| `zk` | Jump to previous fold                |
+
 ## Trouble (Diagnostics Panel)
 
 | Key          | Action                       | Source                    |
@@ -254,10 +269,19 @@ mini.ai extends Vim's built-in `a` (around) and `i` (inside) text object prefixe
 
 > Flash also enhances `/` and `?` search with jump labels, and `f`/`t`/`F`/`T` character motions.
 
+## Copy File Info
+
+| Key          | Action                             | Source             |
+| ------------ | ---------------------------------- | ------------------ |
+| `<leader>cy` | Copy relative path (to clipboard)  | plugins/editor.lua |
+| `<leader>cY` | Copy absolute path (to clipboard)  | plugins/editor.lua |
+| `<leader>cn` | Copy filename only (to clipboard)  | plugins/editor.lua |
+
 ## Which-Key Groups
 
 | Prefix      | Group               | Source                |
 | ----------- | ------------------- | --------------------- |
+| `<leader>c` | Copy                | plugins/editor.lua    |
 | `<leader>f` | Find (Telescope)    | plugins/editor.lua:69 |
 | `<leader>g` | Git                 | plugins/editor.lua:70 |
 | `<leader>l` | LSP                 | plugins/editor.lua:72 |
