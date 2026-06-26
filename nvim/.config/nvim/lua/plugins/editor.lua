@@ -87,6 +87,8 @@ return {
     event = "VeryLazy",
     dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function()
+      local json_path = require("thisarug.json_path")
+
       require("lualine").setup({
         options = {
           icons_enabled = true,
@@ -117,10 +119,15 @@ return {
               symbols = { error = " ", warn = " ", info = " ", hint = "󰌵 " },
             },
           },
-          -- Center: relative file path | aerial breadcrumb
+          -- Center: relative file path | aerial breadcrumb | json path (json files only)
           lualine_c = {
             { "filename", path = 1, symbols = { modified = " [+]", readonly = " [-]", unnamed = "[No Name]" } },
             { "aerial", sep = " › ", depth = 3 },
+            {
+              json_path.get,
+              cond = function() return vim.bo.filetype == "json" end,
+              icon = "{}",
+            },
           },
           -- Right: search count | lsp | indent | word count | file size | encoding | format | filetype
           lualine_x = {
@@ -239,6 +246,7 @@ return {
       -- Register keybindings with which-key (includes both binding and description)
       wk.add({
         -- Leader groups (with clear visual indicators)
+        { "<leader>c", group = " Copy...", icon = "" },
         { "<leader>f", group = "󰍉 Find/Search...", icon = "" },
         { "<leader>g", group = " Git...", icon = "" },
         { "<leader>l", group = " LSP...", icon = "" },
@@ -337,6 +345,38 @@ return {
         -- Move selected lines up/down in visual mode
         { "J", ":move '>+1<CR>gv=gv", desc = "Move Selection Down", mode = "v" },
         { "K", ":move '<-2<CR>gv=gv", desc = "Move Selection Up", mode = "v" },
+
+        -- Copy file path/name
+        {
+          "<leader>cy",
+          function()
+            local path = vim.fn.expand("%:.")
+            vim.fn.setreg("+", path)
+            vim.notify("Copied: " .. path)
+          end,
+          desc = "Copy Relative Path",
+          icon = "",
+        },
+        {
+          "<leader>cY",
+          function()
+            local path = vim.fn.expand("%:p")
+            vim.fn.setreg("+", path)
+            vim.notify("Copied: " .. path)
+          end,
+          desc = "Copy Absolute Path",
+          icon = "",
+        },
+        {
+          "<leader>cn",
+          function()
+            local name = vim.fn.expand("%:t")
+            vim.fn.setreg("+", name)
+            vim.notify("Copied: " .. name)
+          end,
+          desc = "Copy Filename",
+          icon = "",
+        },
 
         -- Other useful mappings
         { "K", desc = "Hover Documentation", icon = "" },
