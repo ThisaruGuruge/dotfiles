@@ -15,5 +15,6 @@
   "theme": "dark",
   "editorMode": "vim",
   "verbose": true,
-  "autocompact_percentage_override": 75
+  "autocompact_percentage_override": 75,
+  "tui": "fullscreen"
 }
