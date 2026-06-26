@@ -29,7 +29,7 @@ confirm() {
     while true; do
         echo ""
         echo -en "  ${YELLOW}$1 (y/n/q): ${NC}"
-        read -r -n 1 -s key # Read single character silently without echo
+        read -rk1 -s key
         echo                # Print newline after keypress
 
         case "$key" in
