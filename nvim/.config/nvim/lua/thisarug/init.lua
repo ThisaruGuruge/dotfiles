@@ -37,6 +37,13 @@ opt.updatetime = 50
 -- Ruler
 opt.colorcolumn = "80,120"
 
+-- Folding (treesitter-based)
+opt.foldmethod = "expr"
+opt.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+opt.foldlevel = 99
+opt.foldlevelstart = 99
+opt.foldenable = true
+
 opt.fixendofline = true
 
 -- Note: All keybindings are now managed by which-key in plugins/editor.lua
