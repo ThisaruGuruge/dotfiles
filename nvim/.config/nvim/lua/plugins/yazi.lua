@@ -3,7 +3,6 @@ return {
         "mikavilpas/yazi.nvim",
         event = "VeryLazy",
         keys = {
-            { "<leader>cw", "<cmd>Yazi cwd<cr>", desc = "Open yazi in working directory" },
             { "<c-up>", "<cmd>Yazi toggle<cr>", desc = "Resume last yazi session" },
         },
         opts = {
