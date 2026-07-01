@@ -1,6 +1,5 @@
 # Ignore files
 .gitignore
-.bestowignore
 
 # Directories
 .github

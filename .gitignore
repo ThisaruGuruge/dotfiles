@@ -3,6 +3,7 @@
 .gitconfig.local
 git/.config/git/work.gitconfig
 git/.config/git/personal.gitconfig
+git/.config/git/allowed_signers
 
 # IDE and editor
 .vscode

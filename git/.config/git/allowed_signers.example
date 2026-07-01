@@ -1,0 +1,8 @@
+# Git SSH allowed signers file
+# Copy to allowed_signers and fill in your real emails and public key.
+# Format: <email> <key-type> <public-key>
+#
+# You can add multiple lines for multiple emails (e.g. personal + work).
+
+your.email@example.com ssh-ed25519 AAAA...your-public-key...
+your.work@company.com ssh-ed25519 AAAA...your-public-key...
