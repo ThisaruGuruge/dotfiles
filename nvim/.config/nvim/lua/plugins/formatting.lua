@@ -32,6 +32,17 @@ return {
         },
         config = function()
             require("conform").setup({
+                formatters = {
+                    prettierd = {
+                        args = function(self, ctx)
+                            local args = { "--stdin-filepath", ctx.filename }
+                            if ctx.filetype == "markdown" then
+                                table.insert(args, 1, "--prose-wrap=preserve")
+                            end
+                            return args
+                        end,
+                    },
+                },
                 formatters_by_ft = {
                     lua = { "stylua" },
                     python = { "isort", "black" },
