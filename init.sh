@@ -755,7 +755,7 @@ handle_stow_conflict() {
 stow_packages() {
     log_step "Using Stow to manage dotfiles"
 
-    local packages=("zsh" "bash" "bin" "config" "nvim" "git" "tmux" "direnv" "ssh" "atuin" "gh" "glow" "htop" "lazygit" "ripgrep" "wezterm" "yazi" "flutter" "noto" "claude")
+    local packages=("zsh" "bash" "bin" "config" "nvim" "git" "tmux" "direnv" "ssh" "atuin" "gh" "htop" "lazygit" "ripgrep" "wezterm" "yazi" "flutter" "noto" "claude")
     local stowed_packages=()
     local skipped_files=()
 

@@ -8,7 +8,7 @@ A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CL
 - **Powerlevel10k prompt** – pure-Zsh rendering (no binary subprocess per draw), instant prompt on startup, contextual Git state, Go/Java/Python/Ballerina indicators, transient prompt for clean scrollback, full Catppuccin Mocha theme matching the tmux status bar
 - **Modern CLI stack** – eza, bat, ripgrep, fd, yazi (with inline image previews in WezTerm/iTerm2, chafa fallback for other terminals), jless, lazygit, lazydocker, tmux, direnv, atuin, gh, git-delta, gng (`gw`), and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
 - **Smart aliases** – Single-letter shortcuts for modern tools (`v` for bat, `g` for ripgrep, `f` for fd, `z` for zoxide) while keeping original commands for scripts
-- **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → glow, `.json`/`.yaml` → jless, `.py`/`.sh`/`.bal` → $EDITOR)
+- **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → mdcat, `.json`/`.yaml` → jless, `.py`/`.sh`/`.bal` → $EDITOR)
 - **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina with lazy-loading shell glue so heavy managers don't slow startup
 - **Touch ID for sudo** – Use your fingerprint instead of typing passwords in the terminal (works inside tmux too via `pam-reattach`)
 - **Secrets handled correctly** – SOPS + age encryption, `edit_secrets` workflow, and automatic `.env` handling inside `init.sh`
@@ -183,7 +183,7 @@ Zsh suffix aliases automatically open files based on their extension. Just type 
 
 ```bash
 # Viewing files (rendered markdown)
-README.md                                  # Opens in glow with rendered Markdown
+README.md                                  # Opens in mdless with rendered Markdown
 data.json                                  # Opens in jless (interactive JSON viewer)
 config.yaml                                # Opens in jless (interactive YAML viewer)
 
@@ -198,7 +198,7 @@ app.conf                                   # Opens config files in nvim
 
 | Extension | Tool | Purpose |
 |-----------|------|---------|
-| `.md` | `glow` | View rendered Markdown with paging |
+| `.md` | `mdcat -p` | View rendered Markdown with paging |
 | `.json` | `jless` | Interactive JSON browsing with folding |
 | `.yaml`, `.yml` | `jless` | Interactive YAML browsing |
 | `.py` | `$EDITOR` | Edit Python files |

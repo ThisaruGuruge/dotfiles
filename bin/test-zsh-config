@@ -160,7 +160,7 @@ test_tool "atuin" "atuin" "atuin --version"
 test_tool "gh" "gh" "gh --version | head -1"
 test_tool "jq" "jq" "jq --version"
 test_tool "jless" "jless" "jless --version" "true"
-test_tool "glow" "glow" "glow --version"
+test_tool "mdcat" "mdcat" "mdcat --version"
 test_tool "yazi" "yazi" "yazi --version"
 test_tool "chafa" "chafa" "chafa --version | head -1"
 test_tool "lazydocker" "lazydocker" "lazydocker --version | head -1" "true"
@@ -230,8 +230,8 @@ print_header "Development Tools"
 # Claude Code (critical for this workflow!)
 test_tool "Claude Code" "claude" "claude --version"
 
-# Glow (markdown viewer)
-test_tool "Glow" "glow" "glow --version"
+# mdcat (markdown renderer)
+test_tool "mdcat" "mdcat" "mdcat --version"
 
 # Yazi (terminal file manager)
 test_tool "Yazi" "yazi" "yazi --version"
