@@ -45,7 +45,7 @@ brew "jq"                           # JSON processor for scripts
 brew "jless"                        # Interactive JSON/YAML viewer
 
 # Markdown viewing
-brew "glow"                         # Terminal markdown viewer with paging
+brew "mdcat"                        # Terminal markdown renderer (mdcat + mdless)
 
 # AI/Development Tools
 cask "antigravity"                  # AI Agent

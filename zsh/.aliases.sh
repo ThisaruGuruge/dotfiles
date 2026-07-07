@@ -32,9 +32,9 @@ else
 fi
 
 # Suffix Aliases for File Types
-alias -s md='glow -p'
-alias -s markdown='glow -p'
-alias -s mdx='glow -p'
+alias -s md='mdcat -p'
+alias -s markdown='mdcat -p'
+alias -s mdx='mdcat -p'
 alias -s json='jless'
 alias -s yaml='jless'
 alias -s yml='jless'
@@ -223,23 +223,23 @@ function git_clean_all() {
 # Modern file viewing and search tools
 if (( $+commands[bat] )); then
     v() {
-        if (( $+commands[glow] )); then
+        if (( $+commands[mdcat] )); then
             case "${1##*.}" in
-                md|markdown|mdx) glow -p "$@"; return ;;
+                md|markdown|mdx) mdcat -p "$@"; return ;;
             esac
         fi
         bat "$@"
     }
 fi
 
-if (( $+commands[glow] )); then
-    alias md='glow -p'
+if (( $+commands[mdcat] )); then
+    alias md='mdcat -p'
     # View README in current directory
     readme() {
         local file
         file=$(find . -maxdepth 1 -iname 'readme*' -type f 2>/dev/null | head -1)
         if [[ -n "$file" ]]; then
-            glow -p "$file"
+            mdcat -p "$file"
         else
             echo "No README found in current directory"
             return 1
@@ -252,8 +252,8 @@ if (( $+commands[glow] )); then
             return 1
         fi
         local file
-        file=$(fd -e md -e markdown -e mdx 2>/dev/null | fzf --preview 'glow -s dark {}' --preview-window=right:60%)
-        [[ -n "$file" ]] && glow -p "$file"
+        file=$(fd -e md -e markdown -e mdx 2>/dev/null | fzf --preview 'mdcat {}' --preview-window=right:60%)
+        [[ -n "$file" ]] && mdcat -p "$file"
     }
 fi
 

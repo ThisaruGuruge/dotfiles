@@ -20,7 +20,7 @@ list_dotfiles_tools() {
     echo "   chafa            - Image-to-text renderer (yazi image preview fallback)"
     echo "   eza              - Modern ls replacement"
     echo "   bat              - Enhanced cat with syntax highlighting"
-    echo "   glow             - Terminal markdown viewer"
+    echo "   mdcat            - Terminal markdown renderer (mdcat + mdless)"
     echo "   ripgrep (rg)     - Fast grep replacement"
     echo "   fzf              - Fuzzy finder"
     echo "   zoxide           - Smart cd replacement"
