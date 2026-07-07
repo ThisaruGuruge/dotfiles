@@ -1,14 +1,17 @@
 #!/bin/sh
 # Claude Code status line — enterprise account (Catppuccin Mocha)
-# Segments: ● E · dir · git branch · model · cost (always) · context bar · tokens · rate limits
+# Segments: ● Work · dir · git branch+counts · model · cost (always) · context bar · tokens · rate limits
 
 input=$(cat)
+
+# ── Autocompact threshold ─────────────────────────────────────────────────────
+AUTOCOMPACT_PCT=75
 
 # ── Directory ────────────────────────────────────────────────────────────────
 cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
 [ -z "$cwd" ] && cwd=$(pwd)
-dir_name=$(basename "$cwd")
 home="$HOME"
+dir_name=$(basename "$cwd")
 [ "$cwd" = "$home" ] && dir_name="~"
 
 # ── Git branch ───────────────────────────────────────────────────────────────
@@ -17,6 +20,18 @@ if git_out=$(GIT_OPTIONAL_LOCKS=0 git -C "$cwd" symbolic-ref --short HEAD 2>/dev
     git_branch="$git_out"
 elif git_out=$(GIT_OPTIONAL_LOCKS=0 git -C "$cwd" rev-parse --short HEAD 2>/dev/null); then
     git_branch="@$git_out"
+fi
+
+# ── Git status counts ─────────────────────────────────────────────────────────
+git_staged=0
+git_unstaged=0
+git_untracked=0
+if [ -n "$git_branch" ]; then
+    if git_status_out=$(GIT_OPTIONAL_LOCKS=0 git -C "$cwd" status --porcelain 2>/dev/null) && [ -n "$git_status_out" ]; then
+        git_staged=$(printf '%s\n' "$git_status_out" | awk '/^[MADRC]/{n++} END{print n+0}')
+        git_unstaged=$(printf '%s\n' "$git_status_out" | awk '/^.[MD]/{n++} END{print n+0}')
+        git_untracked=$(printf '%s\n' "$git_status_out" | awk '/^\?\?/{n++} END{print n+0}')
+    fi
 fi
 
 # ── Model ────────────────────────────────────────────────────────────────────
@@ -35,6 +50,8 @@ tokens_max=$(echo "$input" | jq -r '.context_window.context_window_size // empty
 # ── Rate limits ───────────────────────────────────────────────────────────────
 rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
 rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
+rate_5h_reset=$(echo "$input" | jq -r '.rate_limits.five_hour.reset_at // empty')
+rate_7d_reset=$(echo "$input" | jq -r '.rate_limits.seven_day.reset_at // empty')
 
 # ── Colors (Catppuccin Mocha palette, ANSI true-color) ───────────────────────
 RESET='\033[0m'
@@ -50,6 +67,59 @@ DIM='\033[2m'
 ENTERPRISE_FG='\033[38;2;203;166;247m'
 TOKENS_FG='\033[38;2;147;153;178m'
 
+# ── Helper functions ──────────────────────────────────────────────────────────
+
+_rate_color() {
+    pct=$(printf '%.0f' "$1")
+    if [ "$pct" -lt 50 ]; then
+        printf '%s' "$GREEN_FG"
+    elif [ "$pct" -lt 80 ]; then
+        printf '%s' "$YELLOW_FG"
+    else
+        printf '%s' "$RED_FG"
+    fi
+}
+
+# 10-block bar: fills left-to-right as quota is consumed
+_rate_bar() {
+    used_int=$(printf '%.0f' "$1")
+    filled=$(( used_int * 10 / 100 ))
+    [ $filled -gt 10 ] && filled=10
+    empty=$(( 10 - filled ))
+    bar=""
+    i=0
+    while [ $i -lt $filled ]; do bar="${bar}▓"; i=$((i+1)); done
+    i=0
+    while [ $i -lt $empty ]; do bar="${bar}░"; i=$((i+1)); done
+    printf '%s' "$bar"
+}
+
+_parse_reset_ts() {
+    val="$1"
+    case "$val" in
+        [0-9]*) printf '%s' "$val" ;;
+        *) date -j -f "%Y-%m-%dT%H:%M:%SZ" "$val" +%s 2>/dev/null ;;
+    esac
+}
+
+_format_eta() {
+    reset_ts="$1"
+    now=$(date +%s)
+    diff=$((reset_ts - now))
+    [ $diff -le 0 ] && printf 'now' && return
+    hours=$((diff / 3600))
+    mins=$(( (diff % 3600) / 60 ))
+    if [ $hours -ge 24 ]; then
+        days=$((hours / 24))
+        hrs=$((hours % 24))
+        printf 'in %dd%dh' "$days" "$hrs"
+    elif [ $hours -gt 0 ]; then
+        printf 'in %dh%dm' "$hours" "$mins"
+    else
+        printf 'in %dm' "$mins"
+    fi
+}
+
 # ── Assemble output ───────────────────────────────────────────────────────────
 
 # Account indicator
@@ -58,9 +128,12 @@ printf "${ENTERPRISE_FG}● Work${RESET}"
 # Directory segment
 printf "  ${DIR_BG}${DIR_FG} %s ${RESET}" "$dir_name"
 
-# Git segment
+# Git segment: branch + staged/unstaged/untracked counts
 if [ -n "$git_branch" ]; then
     printf " ${GIT_FG} %s${RESET}" "$git_branch"
+    [ "$git_staged" -gt 0 ]    && printf " ${GREEN_FG}+%d${RESET}"   "$git_staged"
+    [ "$git_unstaged" -gt 0 ]  && printf " ${YELLOW_FG}~%d${RESET}"  "$git_unstaged"
+    [ "$git_untracked" -gt 0 ] && printf " ${TOKENS_FG}?%d${RESET}"  "$git_untracked"
 fi
 
 # Model segment
@@ -73,21 +146,21 @@ cost_val="${cost:-0}"
 cost_fmt=$(printf '$%.2f' "$cost_val")
 printf "  ${COST_FG}%s${RESET}" "$cost_fmt"
 
-# Context bar segment
+# Context bar: 15 blocks with autocompact threshold marker (│)
 if [ -n "$used_pct" ]; then
     pct_int=$(printf '%.0f' "$used_pct")
-    filled=$((pct_int / 10))
-    empty=$((10 - filled))
+    filled=$(( pct_int * 15 / 100 ))
+    thresh_pos=$(( AUTOCOMPACT_PCT * 15 / 100 ))
 
     bar=""
     i=0
-    while [ $i -lt $filled ]; do
-        bar="${bar}▓"
-        i=$((i + 1))
-    done
-    i=0
-    while [ $i -lt $empty ]; do
-        bar="${bar}░"
+    while [ $i -lt 15 ]; do
+        [ $i -eq $thresh_pos ] && bar="${bar}│"
+        if [ $i -lt $filled ]; then
+            bar="${bar}▓"
+        else
+            bar="${bar}░"
+        fi
         i=$((i + 1))
     done
 
@@ -109,29 +182,32 @@ if [ -n "$tokens_used" ] && [ -n "$tokens_max" ]; then
     printf "  ${TOKENS_FG}%dk/%dk${RESET}" "$used_k" "$max_k"
 fi
 
-# Rate limits — show remaining (↓) so green=lots left, red=almost gone
-# _rate_color takes used_pct; green<50 used = 50+% remaining = good
-_rate_color() {
-    pct=$(printf '%.0f' "$1")
-    if [ "$pct" -lt 50 ]; then
-        printf '%s' "$GREEN_FG"
-    elif [ "$pct" -lt 80 ]; then
-        printf '%s' "$YELLOW_FG"
-    else
-        printf '%s' "$RED_FG"
-    fi
-}
+# Rate limits — bar + remaining % + reset ETA when available
 if [ -n "$rate_5h" ]; then
     used_int=$(printf '%.0f' "$rate_5h")
     remaining=$((100 - used_int))
     col=$(_rate_color "$rate_5h")
-    printf "  ${col}5h↓%d%%${RESET}" "$remaining"
+    bar=$(_rate_bar "$rate_5h")
+    printf "  ${col}5h %s %d%%${RESET}" "$bar" "$remaining"
+    if [ -n "$rate_5h_reset" ]; then
+        reset_ts=$(_parse_reset_ts "$rate_5h_reset")
+        if [ -n "$reset_ts" ]; then
+            printf " ${TOKENS_FG}%s${RESET}" "$(_format_eta "$reset_ts")"
+        fi
+    fi
 fi
 if [ -n "$rate_7d" ]; then
     used_int=$(printf '%.0f' "$rate_7d")
     remaining=$((100 - used_int))
     col=$(_rate_color "$rate_7d")
-    printf "  ${col}7d↓%d%%${RESET}" "$remaining"
+    bar=$(_rate_bar "$rate_7d")
+    printf "  ${col}7d %s %d%%${RESET}" "$bar" "$remaining"
+    if [ -n "$rate_7d_reset" ]; then
+        reset_ts=$(_parse_reset_ts "$rate_7d_reset")
+        if [ -n "$reset_ts" ]; then
+            printf " ${TOKENS_FG}%s${RESET}" "$(_format_eta "$reset_ts")"
+        fi
+    fi
 fi
 
 printf "\n"
