@@ -1,0 +1,91 @@
+# =============================================================================
+# Appearance
+# =============================================================================
+
+theme = Catppuccin Mocha
+
+font-family = FiraCode Nerd Font
+font-family = JetBrains Mono
+font-family = Noto Sans Sinhala
+font-family = Menlo
+
+font-size = 14
+
+font-feature = calt
+font-feature = clig
+font-feature = liga
+
+background-opacity = 0.8
+background-blur-radius = 20
+
+background-image = ~/.config/ghostty/resources/backgrounds/background_image.jpg
+background-image-fit = cover
+background-image-position = center
+background-image-opacity = 0.2
+
+macos-titlebar-style = transparent
+
+# Close immediately without confirmation when processes are running
+confirm-close-surface = false
+
+window-padding-x = 8
+window-padding-y = 8
+
+# =============================================================================
+# Cursor
+# =============================================================================
+
+cursor-style = bar
+cursor-style-blink = true
+
+# =============================================================================
+# Behavior
+# =============================================================================
+
+scrollback-limit = 10000
+
+macos-option-as-alt = left
+
+shell-integration = detect
+
+# =============================================================================
+# Keybindings
+# =============================================================================
+
+# Reload config
+keybind = super+shift+r=reload_config
+
+# Fullscreen
+keybind = super+enter=toggle_fullscreen
+
+# Search (added in 1.3.0)
+keybind = super+f=start_search
+
+# Line and word navigation (macOS-style)
+# Home/End sequences pass through tmux transparently; \x01 would be eaten as tmux prefix
+keybind = super+left=text:\x1b[H
+keybind = super+right=text:\x1b[F
+keybind = super+backspace=text:\x15
+keybind = super+delete=text:\x0b
+
+# TMux: window navigation
+keybind = super+[=text:\x01p
+keybind = super+]=text:\x01n
+
+# TMux: pane navigation
+keybind = super+h=text:\x01h
+keybind = super+j=text:\x01j
+keybind = super+shift+k=text:\x01k
+keybind = super+shift+l=text:\x01l
+
+# TMux: window management (overrides Ghostty native tab actions)
+keybind = super+t=text:\x01c
+keybind = super+one=text:\x011
+keybind = super+two=text:\x012
+keybind = super+three=text:\x013
+keybind = super+four=text:\x014
+keybind = super+five=text:\x015
+keybind = super+six=text:\x016
+keybind = super+seven=text:\x017
+keybind = super+eight=text:\x018
+keybind = super+nine=text:\x019

@@ -2,6 +2,15 @@
 export EDITOR="nvim"
 export VISUAL="$EDITOR"
 
+# Make Ghostty's terminfo available to all processes (including the tmux server).
+# The xterm-ghostty terminfo lives inside the app bundle, not in system paths.
+# Without this, tmux cannot render choose-tree and other TUI overlays.
+_ghostty_terminfo="/Applications/Ghostty.app/Contents/Resources/terminfo"
+if [[ -d "$_ghostty_terminfo" && ":${TERMINFO_DIRS}:" != *":${_ghostty_terminfo}:"* ]]; then
+    export TERMINFO_DIRS="${TERMINFO_DIRS:+${TERMINFO_DIRS}:}${_ghostty_terminfo}"
+fi
+unset _ghostty_terminfo
+
 [ -f "$HOME/.rover/env" ] && source "$HOME/.rover/env"
 [ -d "$HOME/Setup/flutter/bin" ] && export PATH="$HOME/Setup/flutter/bin:$PATH"
 
