@@ -57,3 +57,6 @@ brew "gdubw/gng/gng"                # Gradle run-anywhere wrapper (gw command)
 # Nerd fonts with icons for terminal display
 cask "font-fira-code-nerd-font"     # Nerd font with icons
 
+# Terminal emulator
+cask "ghostty"                      # GPU-accelerated terminal (native Metal on macOS)
+
