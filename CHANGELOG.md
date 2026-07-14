@@ -7,52 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-
-- **Tmux session switcher (`prefix + s`)**: moved the inline fzf one-liner into `tmux/.local/bin/tmux-session-switcher` (replaces the built-in `choose-tree`, which was showing a corrupted/empty popup on resurrected sessions). Sessions are now listed oldest-first by creation time (previously alphabetical), and each of the first 9 sessions gets a number shortcut — pressing `1`-`9` jumps straight to that session, mirroring the bracketed shortcut keys `choose-tree` used to show
-- Replaced **glow** with **mdcat** as the terminal markdown renderer: suffix aliases (`.md`, `.markdown`, `.mdx`), `md` alias, `readme()`, and `mdp()` now use `mdcat`/`mdless`; removed the `glow` stow package
-- **Migrated Ballerina support to the [ballerina.nvim](https://github.com/redpierrot/ballerina.nvim) plugin**, replacing the ad hoc `vim-ballerina` + custom `lua/thisarug/ballerina.lua` + `after/ftplugin/ballerina.lua` setup (same package-aware `bal format` and brace/paren `indentexpr` logic, now maintained upstream). Also gains `:BallerinaRun`/`:BallerinaTest`/`:BallerinaBuild` with quickfix-integrated diagnostics, automatic nvim-dap debug configs, and `:checkhealth ballerina`. Added buffer-local keymaps `<leader>br`/`bb`/`bt`/`bf`/`bF` for Run/Build/Test/Format/Format-toggle
-
-### Performance
-
-- **Migrated shell prompt from Starship to Powerlevel10k**: eliminates the ~200-280ms per-render cost of spawning a binary process on every prompt draw. p10k is pure Zsh with no subprocess overhead per render
-- **Enabled p10k instant prompt**: cached prompt renders immediately on shell startup while the rest of `.zshrc` loads in the background — visually instant shell open
-- **Fixed atuin 1-2 second delay on up-arrow**: disabled `update_check` in atuin config to stop the network round-trip that occurred on every atuin invocation
-- **Enabled `git core.fsmonitor` and `core.untrackedCache` globally**: reduced `git status` from ~268ms to ~37ms (7× speedup) via macOS FSEvents daemon
-
-### Added
-
-- Added **[marks.nvim](https://github.com/chentoast/marks.nvim)** — sign-column indicators and extra navigation for Vim's built-in marks: `m,` set next available mark, `m;` toggle mark, `m]`/`m[` next/previous mark, `m:` preview mark, `dm-`/`dm<space>` delete marks on line/buffer
-- Added **treesitter-based code folding**: `za` toggle, `zc`/`zo` close/open, `zM`/`zR` collapse/expand all — works across every treesitter language (JSON objects/arrays, functions, classes, blocks, etc.). Folds start open (`foldlevel = 99`)
-- Added **JSON path display in statusline**: when editing a JSON file, the lualine center section now shows the treesitter-computed path to the element under the cursor (e.g. `root.packages[4].name`), including array indices — implemented as a custom treesitter tree-walker in `lua/thisarug/json_path.lua`
-
-- Added **chafa** — image-to-text/sixel renderer used by yazi as a fallback image preview backend for terminals that don't support the Kitty or iTerm2 inline image protocols. Native protocols (Kitty in WezTerm, iTerm2 in iTerm2) are preferred and work through tmux via the existing `allow-passthrough on` tmux config
-
-### Added
-
-- Added **harper-ls** — grammar and spell checker for prose in code comments and Markdown files (offline, Rust-based, via Mason)
-- Added **typos-lsp** — low-false-positive typo detection in identifiers, strings, and comments across all languages (e.g. `getRepsone` → `getResponse`); shown as hints to avoid drowning real errors
-- Added `<leader>z` spell/grammar keybinding group: `<leader>zn` (next), `<leader>zp` (previous), `<leader>zf` (fix menu), `<leader>zu` (add to user/global dictionary), `<leader>zw` (add to workspace/project dictionary)
-- Added `config/.config/typos/_typos.toml` — global user-level typos config (stow-managed, project `_typos.toml` overrides); wired into typos-lsp via `init_options.config`
-- Fixed `<C-f>` clash: tmux project sessionizer moved from `bind-key -n C-f` to `bind-key f` (`prefix + f`) to unblock Neovim's blink.cmp `<C-f>` doc-scroll binding
-
-- Added **GNG (`gw`)** — Gradle run-anywhere wrapper (`gdubw/gng`): finds `gradlew` anywhere up the directory tree, eliminating the need to `cd` to project root before running Gradle tasks
-  - Removed the old `gw='./gradlew --max-workers=6'` alias that shadowed the binary
-  - Updated `gwb`, `gwc`, `gwt`, `gwcb` aliases to use `gw` so they work from any subdirectory
-
-- Added **tmux floating popups** for quick access without leaving context:
-  - `prefix + t` — floating terminal in current directory
-  - `prefix + N` — floating scratchpad (`~/.scratch.md`)
-  - `prefix + S` — new session creator (name + directory prompt)
-  - `prefix + ?` — command palette: fuzzy search and execute any tmux keybinding (fzf-powered)
-  - `Ctrl+f` — upgraded project sessionizer to use popup instead of new window
-- Added `tmux/.local/bin/tmux-session-creator` — interactive script for creating named tmux sessions from a popup
-- Added `tmux/.local/bin/tmux-palette` + `tmux-palette-entries` — fzf-powered command palette for tmux keybindings (fuzzy search, categorized entries with comments, execute on select)
-- Added popup border styling (blue, rounded) matching Catppuccin Mocha theme
-
-### Removed
-
-- Removed **tmux auto-project sessions** (`07-tmux-sessions.zsh`) — the `chpwd` hook that prompted on every `cd` into a git repo is replaced by the intentional `prefix + S` session creator popup
+## [2.0.0] - 2026-07-14
 
 ### Added
 
@@ -91,11 +46,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added rose-pine flavor for yazi (matches Neovim theme)
 - Added tmux `allow-passthrough` for yazi image preview support
 - Added `docs/YAZI_KEYBINDINGS.md` with full keybinding reference
-- Added `glow` for terminal markdown rendering (Brewfile, suffix aliases, test suite)
+- Added `glow` for terminal markdown rendering (Brewfile, suffix aliases, test suite) — later replaced by mdcat, see Changed
 - New suffix aliases for `.markdown` and `.mdx` extensions
-- `md` alias for quick markdown viewing with glow
+- `md` alias for quick markdown viewing
 - `readme` function to view README in current directory
 - `mdp` function for fzf-powered markdown file browsing with live preview
+- Added **treesitter-based code folding**: `za` toggle, `zc`/`zo` close/open, `zM`/`zR` collapse/expand all — works across every treesitter language (JSON objects/arrays, functions, classes, blocks, etc.). Folds start open (`foldlevel = 99`)
+- Added **JSON path display in statusline**: when editing a JSON file, the lualine center section now shows the treesitter-computed path to the element under the cursor (e.g. `root.packages[4].name`), including array indices — implemented as a custom treesitter tree-walker in `lua/thisarug/json_path.lua`
+- Added **chafa** — image-to-text/sixel renderer used by yazi as a fallback image preview backend for terminals that don't support the Kitty or iTerm2 inline image protocols. Native protocols (Kitty in WezTerm, iTerm2 in iTerm2) are preferred and work through tmux via the existing `allow-passthrough on` tmux config
+- Added **harper-ls** — grammar and spell checker for prose in code comments and Markdown files (offline, Rust-based, via Mason)
+- Added **typos-lsp** — low-false-positive typo detection in identifiers, strings, and comments across all languages (e.g. `getRepsone` → `getResponse`); shown as hints to avoid drowning real errors
+- Added `<leader>z` spell/grammar keybinding group: `<leader>zn` (next), `<leader>zp` (previous), `<leader>zf` (fix menu), `<leader>zu` (add to user/global dictionary), `<leader>zw` (add to workspace/project dictionary)
+- Added `config/.config/typos/_typos.toml` — global user-level typos config (stow-managed, project `_typos.toml` overrides); wired into typos-lsp via `init_options.config`
+- Added **GNG (`gw`)** — Gradle run-anywhere wrapper (`gdubw/gng`): finds `gradlew` anywhere up the directory tree, eliminating the need to `cd` to project root before running Gradle tasks
+  - Removed the old `gw='./gradlew --max-workers=6'` alias that shadowed the binary
+  - Updated `gwb`, `gwc`, `gwt`, `gwcb` aliases to use `gw` so they work from any subdirectory
+- Added **tmux floating popups** for quick access without leaving context:
+  - `prefix + t` — floating terminal in current directory
+  - `prefix + N` — floating scratchpad (`~/.scratch.md`)
+  - `prefix + S` — new session creator (name + directory prompt)
+  - `prefix + ?` — command palette: fuzzy search and execute any tmux keybinding (fzf-powered)
+  - `Ctrl+f` — upgraded project sessionizer to use popup instead of new window
+- Added `tmux/.local/bin/tmux-session-creator` — interactive script for creating named tmux sessions from a popup
+- Added `tmux/.local/bin/tmux-palette` + `tmux-palette-entries` — fzf-powered command palette for tmux keybindings (fuzzy search, categorized entries with comments, execute on select)
+- Added popup border styling (blue, rounded) matching Catppuccin Mocha theme
+- Added **[marks.nvim](https://github.com/chentoast/marks.nvim)** — sign-column indicators and extra navigation for Vim's built-in marks: `m,` set next available mark, `m;` toggle mark, `m]`/`m[` next/previous mark, `m:` preview mark, `dm-`/`dm<space>` delete marks on line/buffer
 
 ### Changed
 
@@ -109,6 +84,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VCS segment always uses blue background regardless of dirty/clean state — dirty state is shown via icons (`!+?`) rather than a jarring colour change
 - Replaced Neo-tree with yazi.nvim for file exploration in Neovim (`<leader>e`, `<leader>o`, `<leader>-`, `<leader>cw`)
 - Replaced the legacy Oh My Posh prompt with the current Starship configuration, including new docs and tooling updates
+- **Tmux session switcher (`prefix + s`)**: moved the inline fzf one-liner into `tmux/.local/bin/tmux-session-switcher` (replaces the built-in `choose-tree`, which was showing a corrupted/empty popup on resurrected sessions). Sessions are now listed oldest-first by creation time (previously alphabetical), and each of the first 9 sessions gets a number shortcut — pressing `1`-`9` jumps straight to that session, mirroring the bracketed shortcut keys `choose-tree` used to show
+- Replaced **glow** with **mdcat** as the terminal markdown renderer: suffix aliases (`.md`, `.markdown`, `.mdx`), `md` alias, `readme()`, and `mdp()` now use `mdcat`/`mdless`; removed the `glow` stow package
+- **Migrated Ballerina support to the [ballerina.nvim](https://github.com/redpierrot/ballerina.nvim) plugin**, replacing the ad hoc `vim-ballerina` + custom `lua/thisarug/ballerina.lua` + `after/ftplugin/ballerina.lua` setup (same package-aware `bal format` and brace/paren `indentexpr` logic, now maintained upstream). Also gains `:BallerinaRun`/`:BallerinaTest`/`:BallerinaBuild` with quickfix-integrated diagnostics, automatic nvim-dap debug configs, and `:checkhealth ballerina`. Added buffer-local keymaps `<leader>br`/`bb`/`bt`/`bf`/`bF` for Run/Build/Test/Format/Format-toggle
+
+### Performance
+
+- **Migrated shell prompt from Starship to Powerlevel10k**: eliminates the ~200-280ms per-render cost of spawning a binary process on every prompt draw. p10k is pure Zsh with no subprocess overhead per render
+- **Enabled p10k instant prompt**: cached prompt renders immediately on shell startup while the rest of `.zshrc` loads in the background — visually instant shell open
+- **Fixed atuin 1-2 second delay on up-arrow**: disabled `update_check` in atuin config to stop the network round-trip that occurred on every atuin invocation
+- **Enabled `git core.fsmonitor` and `core.untrackedCache` globally**: reduced `git status` from ~268ms to ~37ms (7× speedup) via macOS FSEvents daemon
+
+### Fixed
+
+- Fixed `<C-f>` clash: tmux project sessionizer moved from `bind-key -n C-f` to `bind-key f` (`prefix + f`) to unblock Neovim's blink.cmp `<C-f>` doc-scroll binding
+
+### Removed
+
+- Removed **tmux auto-project sessions** (`07-tmux-sessions.zsh`) — the `chpwd` hook that prompted on every `cd` into a git repo is replaced by the intentional `prefix + S` session creator popup
+- Removed `node_version` from prompt (Node.js is not a primary language in this stack)
+- Removed time/clock from the prompt (it lives in the tmux status bar — no duplication)
+- Removed the old `config/ohmyposh/zen.json` theme files in favor of `.config/starship.toml`
 
 ### Documentation
 
@@ -116,12 +112,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `bin/test-zsh-config`: replaced Starship validation with Powerlevel10k checks
 - Rewrote `README.md` to describe the Starship prompt, SOPS workflow, and package manager updates
 - Updated helper scripts and contribution guidelines to point to the Starship config instead of the removed Oh My Posh theme
-
-### Removed
-
-- Removed `node_version` from prompt (Node.js is not a primary language in this stack)
-- Removed time/clock from the prompt (it lives in the tmux status bar — no duplication)
-- Removed the old `config/ohmyposh/zen.json` theme files in favor of `.config/starship.toml`
 
 ## [1.0.0] - 2025-10-03
 
@@ -413,4 +403,5 @@ Potential future enhancements:
 
 ---
 
+[2.0.0]: https://github.com/ThisaruGuruge/dotfiles/releases/tag/v2.0.0
 [1.0.0]: https://github.com/ThisaruGuruge/dotfiles/releases/tag/v1.0.0
