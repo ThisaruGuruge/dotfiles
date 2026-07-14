@@ -216,6 +216,22 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 
 ---
 
+## Ballerina (ballerina.nvim)
+
+Buffer-local — only active in `.bal` files.
+
+| Key         | Mode | Action                             |
+| :---------- | :--- | :---------------------------------- |
+| `<Space>br` | `n`  | Run (`:BallerinaRun`)               |
+| `<Space>bb` | `n`  | Build (`:BallerinaBuild`)           |
+| `<Space>bt` | `n`  | Test (`:BallerinaTest`)             |
+| `<Space>bf` | `n`  | Format (`:BallerinaFormat`)         |
+| `<Space>bF` | `n`  | Toggle format-on-save               |
+
+Standard LSP mappings (`gd`, `K`, `<Space>lr`, etc.) also work here. Diagnostics from Run/Test/Build land in the quickfix list.
+
+---
+
 ## Practice
 
 | Key         | Mode | Action               |
@@ -289,6 +305,22 @@ Flash also enhances:
 - `s` + `gr` + label → jump to the word "green"
 - `d` + `s` + `gr` + label → delete from cursor to the word "green"
 - Jump first with `s`, then `diw` to delete the word under cursor
+
+---
+
+## Marks (marks.nvim)
+
+Adds sign-column indicators and extra navigation on top of Vim's built-in marks. `ma` still sets mark `a`, `` `a `` / `'a` still jump to it, `dma` still deletes it.
+
+| Key          | Mode | Action                              |
+| :----------- | :--- | :----------------------------------- |
+| `m,`         | `n`  | Set next available lowercase mark    |
+| `m;`         | `n`  | Toggle mark on current line          |
+| `dm-`        | `n`  | Delete all marks on current line     |
+| `dm<space>`  | `n`  | Delete all marks in buffer           |
+| `m]`         | `n`  | Jump to next mark                    |
+| `m[`         | `n`  | Jump to previous mark                |
+| `m:`         | `n`  | Preview mark                         |
 
 ---
 
