@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Tmux session switcher (`prefix + s`)**: moved the inline fzf one-liner into `tmux/.local/bin/tmux-session-switcher` (replaces the built-in `choose-tree`, which was showing a corrupted/empty popup on resurrected sessions). Sessions are now listed oldest-first by creation time (previously alphabetical), and each of the first 9 sessions gets a number shortcut — pressing `1`-`9` jumps straight to that session, mirroring the bracketed shortcut keys `choose-tree` used to show
 - Replaced **glow** with **mdcat** as the terminal markdown renderer: suffix aliases (`.md`, `.markdown`, `.mdx`), `md` alias, `readme()`, and `mdp()` now use `mdcat`/`mdless`; removed the `glow` stow package
+- **Migrated Ballerina support to the [ballerina.nvim](https://github.com/redpierrot/ballerina.nvim) plugin**, replacing the ad hoc `vim-ballerina` + custom `lua/thisarug/ballerina.lua` + `after/ftplugin/ballerina.lua` setup (same package-aware `bal format` and brace/paren `indentexpr` logic, now maintained upstream). Also gains `:BallerinaRun`/`:BallerinaTest`/`:BallerinaBuild` with quickfix-integrated diagnostics, automatic nvim-dap debug configs, and `:checkhealth ballerina`. Added buffer-local keymaps `<leader>br`/`bb`/`bt`/`bf`/`bF` for Run/Build/Test/Format/Format-toggle
 
 ### Performance
 
@@ -20,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added **[marks.nvim](https://github.com/chentoast/marks.nvim)** — sign-column indicators and extra navigation for Vim's built-in marks: `m,` set next available mark, `m;` toggle mark, `m]`/`m[` next/previous mark, `m:` preview mark, `dm-`/`dm<space>` delete marks on line/buffer
 - Added **treesitter-based code folding**: `za` toggle, `zc`/`zo` close/open, `zM`/`zR` collapse/expand all — works across every treesitter language (JSON objects/arrays, functions, classes, blocks, etc.). Folds start open (`foldlevel = 99`)
 - Added **JSON path display in statusline**: when editing a JSON file, the lualine center section now shows the treesitter-computed path to the element under the cursor (e.g. `root.packages[4].name`), including array indices — implemented as a custom treesitter tree-walker in `lua/thisarug/json_path.lua`
 
