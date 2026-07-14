@@ -269,6 +269,36 @@ mini.ai extends Vim's built-in `a` (around) and `i` (inside) text object prefixe
 
 > Flash also enhances `/` and `?` search with jump labels, and `f`/`t`/`F`/`T` character motions.
 
+## Marks (marks.nvim)
+
+Adds sign-column indicators and extra navigation on top of Vim's built-in marks (`ma` still sets mark `a`, `` `a `` / `'a` still jump to it).
+
+| Key    | Action                          | Source            |
+| ------ | -------------------------------- | ------------------ |
+| `m,`   | Set next available lowercase mark | plugins/marks.lua |
+| `m;`   | Toggle mark on current line       | plugins/marks.lua |
+| `dm-`  | Delete all marks on current line  | plugins/marks.lua |
+| `dm<space>` | Delete all marks in buffer   | plugins/marks.lua |
+| `m]`   | Jump to next mark                 | plugins/marks.lua |
+| `m[`   | Jump to previous mark             | plugins/marks.lua |
+| `m:`   | Preview mark                      | plugins/marks.lua |
+
+> Set/delete a specific mark the vanilla way: `ma` sets mark `a`, `dma` deletes it.
+
+## Ballerina (ballerina.nvim)
+
+Buffer-local, only active in `.bal` files.
+
+| Key          | Action                       | Source                      |
+| ------------ | ----------------------------- | ---------------------------- |
+| `<leader>br` | Run (`:BallerinaRun`)         | after/ftplugin/ballerina.lua |
+| `<leader>bb` | Build (`:BallerinaBuild`)     | after/ftplugin/ballerina.lua |
+| `<leader>bt` | Test (`:BallerinaTest`)       | after/ftplugin/ballerina.lua |
+| `<leader>bf` | Format (`:BallerinaFormat`)   | after/ftplugin/ballerina.lua |
+| `<leader>bF` | Toggle format-on-save (`:BallerinaFormatToggle`) | after/ftplugin/ballerina.lua |
+
+> Standard LSP mappings (`gd`, `K`, `<leader>lr`, etc.) also work in `.bal` buffers. Run/Test/Build accept CLI args passed after the command; a literal `--` separates plugin options from program arguments.
+
 ## Copy File Info
 
 | Key          | Action                             | Source             |
