@@ -129,7 +129,7 @@ _format_eta() {
 # ── Assemble output ───────────────────────────────────────────────────────────
 
 # Account indicator
-printf '%s● Work%s' "$ENTERPRISE_FG" "$RESET"
+printf '%b● Work%b' "$ENTERPRISE_FG" "$RESET"
 
 # Directory segment
 printf "  ${DIR_BG}${DIR_FG} %s ${RESET}" "$dir_name"

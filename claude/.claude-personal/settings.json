@@ -11,10 +11,11 @@
     "gopls-lsp@claude-plugins-official": true,
     "allium@juxt-plugins": true
   },
+  "autoCompactWindow": 300000,
   "autoUpdatesChannel": "stable",
+  "tui": "fullscreen",
   "theme": "dark",
   "editorMode": "vim",
   "verbose": true,
-  "autocompact_percentage_override": 75,
-  "tui": "fullscreen"
+  "autocompact_percentage_override": 75
 }
