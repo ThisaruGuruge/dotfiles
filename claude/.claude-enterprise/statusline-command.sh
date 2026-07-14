@@ -83,14 +83,20 @@ _rate_color() {
 # 10-block bar: fills left-to-right as quota is consumed
 _rate_bar() {
     used_int=$(printf '%.0f' "$1")
-    filled=$(( used_int * 10 / 100 ))
+    filled=$((used_int * 10 / 100))
     [ $filled -gt 10 ] && filled=10
-    empty=$(( 10 - filled ))
+    empty=$((10 - filled))
     bar=""
     i=0
-    while [ $i -lt $filled ]; do bar="${bar}▓"; i=$((i+1)); done
+    while [ $i -lt $filled ]; do
+        bar="${bar}▓"
+        i=$((i + 1))
+    done
     i=0
-    while [ $i -lt $empty ]; do bar="${bar}░"; i=$((i+1)); done
+    while [ $i -lt $empty ]; do
+        bar="${bar}░"
+        i=$((i + 1))
+    done
     printf '%s' "$bar"
 }
 
@@ -108,7 +114,7 @@ _format_eta() {
     diff=$((reset_ts - now))
     [ $diff -le 0 ] && printf 'now' && return
     hours=$((diff / 3600))
-    mins=$(( (diff % 3600) / 60 ))
+    mins=$(((diff % 3600) / 60))
     if [ $hours -ge 24 ]; then
         days=$((hours / 24))
         hrs=$((hours % 24))
@@ -123,7 +129,7 @@ _format_eta() {
 # ── Assemble output ───────────────────────────────────────────────────────────
 
 # Account indicator
-printf "${ENTERPRISE_FG}● Work${RESET}"
+printf '%s● Work%s' "$ENTERPRISE_FG" "$RESET"
 
 # Directory segment
 printf "  ${DIR_BG}${DIR_FG} %s ${RESET}" "$dir_name"
@@ -131,9 +137,9 @@ printf "  ${DIR_BG}${DIR_FG} %s ${RESET}" "$dir_name"
 # Git segment: branch + staged/unstaged/untracked counts
 if [ -n "$git_branch" ]; then
     printf " ${GIT_FG} %s${RESET}" "$git_branch"
-    [ "$git_staged" -gt 0 ]    && printf " ${GREEN_FG}+%d${RESET}"   "$git_staged"
-    [ "$git_unstaged" -gt 0 ]  && printf " ${YELLOW_FG}~%d${RESET}"  "$git_unstaged"
-    [ "$git_untracked" -gt 0 ] && printf " ${TOKENS_FG}?%d${RESET}"  "$git_untracked"
+    [ "$git_staged" -gt 0 ] && printf " ${GREEN_FG}+%d${RESET}" "$git_staged"
+    [ "$git_unstaged" -gt 0 ] && printf " ${YELLOW_FG}~%d${RESET}" "$git_unstaged"
+    [ "$git_untracked" -gt 0 ] && printf " ${TOKENS_FG}?%d${RESET}" "$git_untracked"
 fi
 
 # Model segment
@@ -149,8 +155,8 @@ printf "  ${COST_FG}%s${RESET}" "$cost_fmt"
 # Context bar: 15 blocks with autocompact threshold marker (│)
 if [ -n "$used_pct" ]; then
     pct_int=$(printf '%.0f' "$used_pct")
-    filled=$(( pct_int * 15 / 100 ))
-    thresh_pos=$(( AUTOCOMPACT_PCT * 15 / 100 ))
+    filled=$((pct_int * 15 / 100))
+    thresh_pos=$((AUTOCOMPACT_PCT * 15 / 100))
 
     bar=""
     i=0

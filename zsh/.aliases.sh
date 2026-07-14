@@ -15,7 +15,7 @@ alias qfind="find . -name "
 
 alias todo='todo.sh'
 
-if (( $+commands[eza] )); then
+if (($+commands[eza])); then
     alias ls='eza --icons --git'
     alias ll='eza -l --icons --git --header --no-user'
     alias la='eza -la --icons --git --header --group'
@@ -221,18 +221,21 @@ function git_clean_all() {
 }
 
 # Modern file viewing and search tools
-if (( $+commands[bat] )); then
+if (($+commands[bat])); then
     v() {
-        if (( $+commands[mdcat] )); then
+        if (($+commands[mdcat])); then
             case "${1##*.}" in
-                md|markdown|mdx) mdcat -p "$@"; return ;;
+                md | markdown | mdx)
+                    mdcat -p "$@"
+                    return
+                    ;;
             esac
         fi
         bat "$@"
     }
 fi
 
-if (( $+commands[mdcat] )); then
+if (($+commands[mdcat])); then
     alias md='mdcat -p'
     # View README in current directory
     readme() {
@@ -257,7 +260,7 @@ if (( $+commands[mdcat] )); then
     }
 fi
 
-if (( $+commands[rg] )); then
+if (($+commands[rg])); then
     alias g='rg'
 fi
 
@@ -284,22 +287,21 @@ alias psg='ps aux | grep'
 alias top='htop'
 
 # Modern alternatives
-if (( $+commands[fd] )); then
-    alias f='fd'                            # regex search
-    alias fdg='fd -g'                       # glob search (e.g. fdg "*.json")
-    alias fdh='fd --hidden'                 # include hidden files
-    alias fda='fd --hidden --no-ignore'     # include hidden + gitignored files
+if (($+commands[fd])); then
+    alias f='fd'                        # regex search
+    alias fdg='fd -g'                   # glob search (e.g. fdg "*.json")
+    alias fdh='fd --hidden'             # include hidden files
+    alias fda='fd --hidden --no-ignore' # include hidden + gitignored files
 fi
 
-if (( $+commands[rg] )); then
-    alias rgh='rg --hidden'                 # search including hidden files
-    alias rga='rg --hidden --no-ignore'     # search everything (no filters)
+if (($+commands[rg])); then
+    alias rgh='rg --hidden'             # search including hidden files
+    alias rga='rg --hidden --no-ignore' # search everything (no filters)
 fi
 
-if (( $+commands[dust] )); then
+if (($+commands[dust])); then
     alias d='dust'
 fi
-
 
 # Documentation system
 alias help='alias_help'
@@ -335,7 +337,7 @@ alias searchbal='rg --type bal'
 alias brew_update='brew update && brew upgrade && brew cleanup --prune=all'
 
 # Atuin shell history aliases
-if (( $+commands[atuin] )); then
+if (($+commands[atuin])); then
     alias hs='atuin search'
     alias hstats='atuin stats'
     alias hsync='atuin sync'

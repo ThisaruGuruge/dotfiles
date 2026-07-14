@@ -2,9 +2,9 @@ name: Validate Dotfiles
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, dev ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, dev ]
 
 jobs:
   validate:
@@ -27,10 +27,10 @@ jobs:
     - name: Validate shell scripts with shellcheck
       run: |
         echo "Checking shell scripts..."
-        find . -name "*.sh" -not -path "./.git/*" -not -name ".functions.sh" | xargs shellcheck -e SC1091,SC2039
+        find . -name "*.sh" -not -path "./.git/*" -not -name ".functions.sh" -not -name ".aliases.sh" | xargs shellcheck -e SC1091,SC2039
 
         echo "Checking other shell config files..."
-        find . -name ".aliases.sh" -o -name ".paths.sh" | xargs shellcheck -e SC1091,SC2039
+        find . -name ".paths.sh" | xargs shellcheck -e SC1091,SC2039
 
         echo "Checking zsh syntax with native zsh parser..."
         if command -v zsh >/dev/null 2>&1; then
@@ -39,6 +39,9 @@ jobs:
 
           echo "  Checking zsh/.functions.sh..."
           zsh -n zsh/.functions.sh && echo "  ✅ zsh/.functions.sh" || exit 1
+
+          echo "  Checking zsh/.aliases.sh..."
+          zsh -n zsh/.aliases.sh && echo "  ✅ zsh/.aliases.sh" || exit 1
 
           echo "  Checking modular zsh configs..."
           if [ -d "zsh/.zshrc.d" ]; then

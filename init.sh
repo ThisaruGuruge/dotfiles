@@ -1032,7 +1032,7 @@ auth       optional       $pam_reattach_lib
 "
 
         # Write the file (requires sudo)
-        echo "$content" | sudo tee "$sudo_local" > /dev/null
+        echo "$content" | sudo tee "$sudo_local" >/dev/null
         log_success "Touch ID for sudo enabled"
         log_info "You can now use your fingerprint when sudo prompts for a password"
 
@@ -1125,7 +1125,7 @@ main() {
     setup_environment
     setup_secret_management
     backup_existing_files
-    stow_packages  # Must run after backup_existing_files
+    stow_packages # Must run after backup_existing_files
     setup_git_config
     test_installation
 
