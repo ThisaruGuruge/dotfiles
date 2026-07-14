@@ -1,0 +1,163 @@
+name: Auto Tag Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: auto-tag-main
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check if release-worthy
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.files.outputs.skip }}
+
+    steps:
+      - name: Determine changed files
+        id: files
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          CHANGED_FILES=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}/files" --paginate --jq '.[].filename')
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Skip tagging a release when a PR only touches plumbing (.github/**)
+          # or docs (*.md) — those don't warrant a release on their own.
+          SKIP=true
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            case "$file" in
+              .github/*|*.md) ;;
+              *) SKIP=false ;;
+            esac
+          done <<< "$CHANGED_FILES"
+
+          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
+          if [ "$SKIP" = "true" ]; then
+            echo "ℹ️ All changed files are plumbing/docs (.github/** or *.md) — skipping release"
+          fi
+
+  tag:
+    name: Tag Release
+    needs: check
+    if: needs.check.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine latest version
+        id: latest
+        run: |
+          LATEST_TAG=$(git tag -l '[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1)
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="0.0.0"
+          fi
+          echo "tag=$LATEST_TAG" >> "$GITHUB_OUTPUT"
+          echo "Latest tag: $LATEST_TAG"
+
+      - name: Determine version bump
+        id: bump
+        run: |
+          LATEST_TAG="${{ steps.latest.outputs.tag }}"
+
+          if git rev-parse "$LATEST_TAG" >/dev/null 2>&1; then
+            RANGE="$LATEST_TAG..HEAD"
+          else
+            RANGE="HEAD"
+          fi
+
+          COMMITS=$(git log $RANGE --format='%B' 2>/dev/null || true)
+
+          # Conventional Commits: feat! / fix(scope)!: / "BREAKING CHANGE:" -> major,
+          # feat: -> minor, everything else (fix/chore/docs/refactor/etc) -> patch.
+          BUMP="patch"
+          if echo "$COMMITS" | grep -qE '^[a-z]+(\([^)]*\))?!:|BREAKING CHANGE:'; then
+            BUMP="major"
+          elif echo "$COMMITS" | grep -qE '^feat(\([^)]*\))?:'; then
+            BUMP="minor"
+          fi
+
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+          echo "Version bump: $BUMP"
+
+      - name: Calculate next version
+        id: next
+        run: |
+          LATEST_TAG="${{ steps.latest.outputs.tag }}"
+          BUMP="${{ steps.bump.outputs.bump }}"
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST_TAG"
+
+          case "$BUMP" in
+            major)
+              MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1)); PATCH=0
+              ;;
+            *)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          NEXT_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "version=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$NEXT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Next version: $NEXT_VERSION"
+
+      - name: Update CHANGELOG.md
+        id: changelog
+        run: |
+          VERSION="${{ steps.next.outputs.version }}"
+          TODAY=$(date +%Y-%m-%d)
+
+          if [ -f CHANGELOG.md ] && grep -q '^## \[Unreleased\]$' CHANGELOG.md; then
+            sed -i "s/^## \[Unreleased\]$/## [Unreleased]\n\n## [${VERSION}] - ${TODAY}/" CHANGELOG.md
+            git add CHANGELOG.md
+            echo "updated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "⚠️ No '## [Unreleased]' section found in CHANGELOG.md, skipping update"
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit CHANGELOG update
+        if: steps.changelog.outputs.updated == 'true'
+        run: |
+          git commit -m "chore(release): ${{ steps.next.outputs.tag }}"
+          git push origin HEAD:main
+
+      - name: Create and push tag
+        run: |
+          NEXT_TAG="${{ steps.next.outputs.tag }}"
+          git tag -a "$NEXT_TAG" -m "Release $NEXT_TAG"
+          git push origin "$NEXT_TAG"
+
+      - name: Summary
+        run: |
+          echo "## 🏷️ Tagged Release" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**PR**: #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Previous tag**: ${{ steps.latest.outputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**New tag**: ${{ steps.next.outputs.tag }} (${{ steps.bump.outputs.bump }} bump)" >> "$GITHUB_STEP_SUMMARY"

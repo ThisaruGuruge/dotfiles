@@ -9,6 +9,7 @@ Thank you for your interest in contributing to this dotfiles repository! This do
 - [Running Tests](#running-tests)
 - [Code Style](#code-style)
 - [Commit Message Guidelines](#commit-message-guidelines)
+- [Release Process](#release-process)
 - [Pull Request Process](#pull-request-process)
 - [Adding New Packages](#adding-new-packages)
 - [Reporting Issues](#reporting-issues)
@@ -307,6 +308,32 @@ EOF
 # Configure git to use the template
 git config --local commit.template ~/.gitmessage
 ```
+
+---
+
+## Release Process
+
+Every PR merged into `main` is automatically tagged and released — there is no manual tagging or batching of changes into a single release.
+
+### How it works
+
+1. **`auto-tag.yml`** runs when a PR is merged into `main`. It:
+   - Skips entirely if every changed file in the PR is plumbing (`.github/**`) or docs (`*.md`) — no release is cut for CI/workflow tweaks or documentation-only changes
+   - Otherwise, reads the commits introduced since the last tag to decide the version bump, following [Semantic Versioning](https://semver.org/):
+     - Any `feat!:`/`fix(scope)!:`/`BREAKING CHANGE:` commit → **major** bump
+     - Any `feat:` commit → **minor** bump
+     - Otherwise (`fix`, `chore`, `refactor`, etc.) → **patch** bump
+   - Renames the `## [Unreleased]` section in `CHANGELOG.md` to the new version (with today's date) and pushes a fresh empty `## [Unreleased]` section above it
+   - Creates and pushes the new `X.Y.Z` tag (no `v` prefix — matches existing tags/releases in this repo)
+2. **`release.yml`** runs when that tag is pushed. It creates the GitHub Release, pulling notes from the versioned `CHANGELOG.md` section and attaching `Brewfile`, `packages.json`, and a source tarball.
+
+### What this means for contributors
+
+- **Keep PRs small and focused.** Each merged PR (that touches actual config/code) becomes its own release, so bundle only the changes that logically belong together.
+- **CI/workflow-only or docs-only PRs don't trigger a release** — mix in even one non-`.github`/non-`.md` file and the PR becomes release-worthy again.
+- **Add your `CHANGELOG.md` entry under `## [Unreleased]`** in your PR — this becomes that release's notes. If you skip it, the release is still created but with auto-generated notes from commit history instead.
+- **Use accurate Conventional Commit types** (see above) — they directly drive the version bump. A `feat:` you meant as a `fix:` will bump minor instead of patch.
+- No manual `git tag` or version bump PRs are needed; don't create them yourself.
 
 ---
 
