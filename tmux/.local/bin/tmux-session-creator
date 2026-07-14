@@ -11,8 +11,8 @@ if [[ -z "$session_name" ]]; then
     exit 0
 fi
 
-# Sanitize session name (replace dots/colons with underscores)
-session_name=$(echo "$session_name" | tr './:' '___')
+# Sanitize session name (replace dots/colons/spaces with underscores)
+session_name=$(echo "$session_name" | tr '.:/ ' '____')
 
 # Check if session already exists
 if tmux has-session -t="$session_name" 2>/dev/null; then
@@ -43,8 +43,11 @@ if [[ -z "$session_dir" ]]; then
     session_dir="$HOME"
 fi
 
-# Create and switch to the new session
+# Create the new session
 tmux new-session -ds "$session_name" -c "$session_dir"
-tmux switch-client -t "$session_name"
 printf "\033[1;32m Created session '%s' in %s\033[0m\n" "$session_name" "$session_dir"
-sleep 0.5
+sleep 0.4
+# Switch must be the last command — popup exits immediately after, matching
+# the pattern used by the 's' switcher. Staying alive after switch-client
+# causes tmux to snap the client back to the session that owned the popup.
+tmux switch-client -t "$session_name"

@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# TMux Session Switcher - fzf popup for switching between sessions
+# Each session gets a number shortcut (1-9); pressing that number jumps
+# straight to the session, matching the bracketed shortcut keys tmux's
+# built-in choose-tree used to show before this switcher moved to fzf.
+# Numbers are assigned once when the popup opens and stay fixed even if
+# the fuzzy filter narrows the visible list.
+
+# Internal mode: print the numbered, tab-delimited session list and exit.
+# Used both for the initial fzf input and for fzf's --bind reload.
+# Sorted oldest-first by creation time (tmux's default list-sessions order
+# is alphabetical by name, which isn't what we want here).
+if [[ "$1" == "--list" ]]; then
+    tmux list-sessions -F "#{session_created}	#{session_name}	#{?session_attached,●,}" | \
+        sort -n -k1,1 | \
+        awk -F'\t' '{
+            num = (NR <= 9) ? NR : " "
+            disp = num "  " $2
+            if ($3 != "") disp = disp "  ●"
+            printf "%s\t%s\t%s\n", $2, $3, disp
+        }'
+    exit 0
+fi
+
+SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+
+# Precompute number -> session-name jump binds from the list as it stands
+# right now, so pressing 1-9 always jumps to that fixed session.
+jump_binds=()
+n=0
+while IFS=$'\t' read -r name _ _; do
+    n=$((n + 1))
+    [[ $n -gt 9 ]] && break
+    jump_binds+=(--bind "${n}:execute-silent(tmux switch-client -t \"${name}\")+abort")
+done < <("$SELF" --list)
+
+"$SELF" --list | fzf --delimiter=$'\t' --with-nth=3 \
+    --reverse --no-sort --cycle --border=none --padding "1,2" \
+    --header-first \
+    --prompt "  " --pointer "❯" --marker "●" \
+    --color "bg:#1e1e2e,bg+:#313244,fg:#cdd6f4,fg+:#cdd6f4,hl:#89b4fa,hl+:#89b4fa,prompt:#cba6f7,pointer:#f38ba8,marker:#a6e3a1,header:#a6e3a1,info:#45475a" \
+    --header " enter: switch · 1-9: jump · ctrl-x: kill" \
+    --bind "ctrl-x:execute-silent(tmux kill-session -t {1})+reload($SELF --list)" \
+    --bind "enter:execute-silent(tmux switch-client -t {1})+abort" \
+    "${jump_binds[@]}" >/dev/null
