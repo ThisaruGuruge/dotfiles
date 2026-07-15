@@ -2,4 +2,4 @@
 brew "aws-vault"
 
 # Google Cloud Platform tools
-cask "google-cloud-sdk"
+cask "gcloud-cli"

@@ -2,3 +2,4 @@
 brew "pyenv"
 brew "rbenv"
 brew "nvm"
+cask "flutter"
