@@ -44,7 +44,7 @@ The script is interactive; it will:
 
 - Validate macOS + Xcode CLT, install Homebrew, jq, GNU Stow
 - Install core packages from `Brewfile` with Brew
-- Offer opt-in categories (development, databases, terminals, editors, etc.)
+- Offer opt-in categories (development, terminals, editors, etc.)
 - Install SDKMAN + Java 21 (optional) and brew-based Ballerina
 - Enable Touch ID for sudo (with tmux support via `pam-reattach`)
 - Configure Atuin, direnv, tmux, git delta, lazygit, lazydocker, aliases, and helper functions
@@ -86,8 +86,7 @@ The main `Brewfile` contains core packages that are always installed. Optional p
 packages/
 ├── cloud.brewfile       # AWS, GCP CLIs
 ├── containers.brewfile  # Docker, Rancher Desktop
-├── databases.brewfile   # PostgreSQL, Redis
-├── development.brewfile # pyenv, rbenv, nvm
+├── development.brewfile # pyenv, rbenv, nvm, flutter
 ├── editors.brewfile     # Cursor, VS Code
 ├── productivity.brewfile # Raycast, Rectangle, etc.
 └── terminals.brewfile   # WezTerm, iTerm2
@@ -105,8 +104,7 @@ brew bundle --file=packages/editors.brewfile     # Add editors
 
 - `core` – powerlevel10k, zoxide, eza, bat, ripgrep, lazygit, lazydocker, tmux, direnv, atuin, gh, etc.
 - `security` – sops + age for encrypted secrets (always enabled)
-- `development` – pyenv, rbenv, nvm (optional)
-- `database` – PostgreSQL 16, Redis
+- `development` – pyenv, rbenv, nvm, flutter (optional)
 - `aws`, `gcp` – cloud CLIs and helpers
 - `editors` – Cursor, VS Code
 - `terminals` – WezTerm, iTerm2 (casks)
@@ -127,7 +125,7 @@ Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 | `git/` | `.gitconfig`, ignore rules, delta settings |
 | `tmux/` | Modern tmux config + keybinds |
 | `direnv/` | Project-specific environment automation |
-| `packages/` | Optional category Brewfiles (cloud, containers, databases, etc.) |
+| `packages/` | Optional category Brewfiles (cloud, containers, development, etc.) |
 | `bin/` | Helper scripts (`test-zsh-config`, `profile-zsh-startup`, `audit-configs`, `adopt-config`) |
 | `docs/` | Additional documentation (prompt guide, tmux keybindings, config management) |
 

@@ -9,6 +9,8 @@ tap "gdubw/gng"                # GNG - Gradle run-anywhere tool
 
 # Essential tools required for dotfiles functionality
 brew "stow"                         # Symlink farm manager (use --no-folding for reliable symlinks)
+brew "git"                          # Version control
+brew "neovim"                       # Text editor (nvim/ package configures it)
 brew "fzf"                          # Fuzzy finder
 brew "zoxide"                       # Smart cd command
 brew "tree"                         # Directory tree viewer
@@ -47,15 +49,23 @@ brew "jless"                        # Interactive JSON/YAML viewer
 # Markdown viewing
 brew "mdcat"                        # Terminal markdown renderer (mdcat + mdless)
 
+# Code formatting & linting (required for nvim format-on-save + CONTRIBUTING workflow)
+brew "shellcheck"                   # Shell script linter (required by CONTRIBUTING.md validation)
+brew "shfmt"                        # Shell script formatter (conform.nvim + CONTRIBUTING.md)
+brew "stylua"                       # Lua formatter (conform.nvim)
+brew "prettier"                     # JS/TS/JSON/YAML/Markdown formatter (conform.nvim)
+
 # AI/Development Tools
 cask "antigravity"                  # AI Agent
+cask "claude-code"                  # Claude Code CLI (claude/ package configures it)
 
 # Language version managers and development tools
 brew "ballerina"                    # Cloud-native programming language
 brew "gdubw/gng/gng"                # Gradle run-anywhere wrapper (gw command)
 
-# Nerd fonts with icons for terminal display
+# Fonts
 cask "font-fira-code-nerd-font"     # Nerd font with icons
+cask "font-noto-sans-sinhala"       # Sinhala fallback font (used by ghostty config)
 
 # Terminal emulator
 cask "ghostty"                      # GPU-accelerated terminal (native Metal on macOS)

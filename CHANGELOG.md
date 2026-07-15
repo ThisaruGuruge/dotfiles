@@ -13,10 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `<leader>fS` for project-wide symbol search (`Telescope lsp_dynamic_workspace_symbols`) — look up a struct/function/class by name across the whole workspace and jump straight to its definition
 - Set `gopls` `symbolScope = "workspace"` — restricts `<leader>fS` in Go projects to the current module's own packages, excluding dependencies and the stdlib
 - Added `render-markdown.nvim` (`plugins/markdown.lua`) for in-buffer markdown rendering (headings, code blocks, tables, bullets) — replaces the terminal-only markdown viewing lost when the `v` alias moved off `bat`/`mdcat`; toggle with `<leader>tm`
+- Added `neovim`, `git`, `shellcheck`, `shfmt`, `stylua`, `prettier` to `Brewfile` — these were already required (nvim config, conform.nvim format-on-save, `CONTRIBUTING.md` validation steps) but were never declared as dependencies
+- Added `cask "claude-code"` to `Brewfile` — the `claude/` package configures it, but the CLI itself wasn't tracked
+- Added `cask "font-noto-sans-sinhala"` to `Brewfile` — fallback font referenced in `ghostty/.config/ghostty/config`, previously installed manually with no package tracking
+- Added `cask "flutter"` to `packages/development.brewfile` — the `flutter/` stow package and `init.sh` already expected it
 
 ### Changed
 
 - Repointed the `v` alias from the `bat`/`mdcat` wrapper function to `nvim` — the wrapper saw little use; `bat` remains available directly under its own name
+- Renamed `cask "google-cloud-sdk"` to `cask "gcloud-cli"` in `packages/cloud.brewfile` — Homebrew renamed the cask; the old token still resolved but pointed at a deprecated alias
+
+### Removed
+
+- Removed `packages/databases.brewfile` (PostgreSQL, Redis) — dropped from the optional-category set
 
 ## [2.0.0] - 2026-07-14
 
