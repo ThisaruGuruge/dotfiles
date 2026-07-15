@@ -45,6 +45,7 @@ This configuration follows standard Vim/Neovim conventions:
 | `<leader>fw` | Find word under cursor | plugins/telescope.lua:13 |
 | `<leader>fk` | Find keymaps           | plugins/telescope.lua:14 |
 | `<leader>fs` | Search string (prompt) | plugins/telescope.lua:17 |
+| `<leader>fS` | Search symbols (workspace) | plugins/editor.lua:266 |
 | `<leader>fy` | Clipboard history      | plugins/clipboard.lua    |
 | `<C-p>`      | Find git files         | plugins/telescope.lua:15 |
 
@@ -103,6 +104,23 @@ Dedicated keybindings that navigate only spell/grammar diagnostics (from `harper
 > `<leader>zi` triggers harper's "Ignore Harper error." code action — saves the suppression to the
 > `ignored_lints` file so that specific diagnostic never reappears (even after restarting Neovim).
 > All three auto-apply without a menu when only one matching action exists at the cursor.
+
+## Quickfix & Location List (built-in)
+
+Built-in Neovim navigation for the quickfix list (global) and location list (per-window, e.g. populated by `gO` for LSP document symbols).
+
+| Key  | Action                       | Source |
+| ---- | ---------------------------- | ------ |
+| `]q` | Next quickfix item           | built-in |
+| `[q` | Previous quickfix item       | built-in |
+| `]Q` | Last quickfix item           | built-in |
+| `[Q` | First quickfix item          | built-in |
+| `]l` | Next location-list item      | plugins/editor.lua:346 |
+| `[l` | Previous location-list item  | plugins/editor.lua:345 |
+| `]L` | Last location-list item      | built-in |
+| `[L` | First location-list item     | built-in |
+
+> `gO` (LSP document symbols) opens a **location list**, not the quickfix list — its window shows `qf` as the filetype (loclist and quickfix share it), but only `]l`/`[l` navigate it, not `]q`/`[q`.
 
 ## Git (Gitsigns)
 

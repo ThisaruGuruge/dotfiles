@@ -267,6 +267,12 @@ return {
           desc = "Search in Buffer",
           icon = "",
         },
+        {
+          "<leader>fS",
+          "<cmd>Telescope lsp_dynamic_workspace_symbols<cr>",
+          desc = "Search Symbols (Workspace)",
+          icon = "",
+        },
         { "<leader>fy", "<cmd>Telescope neoclip<cr>", desc = "Clipboard History", icon = "" },
 
         -- File explorer (yazi)
@@ -341,6 +347,10 @@ return {
         -- Quickfix navigation
         {"[q", desc = "Previous Quickfix item", icon = ""},
         {"]q", desc = "Next Quickfix item", icon = ""},
+
+        -- Location list navigation (e.g. gO document symbols)
+        {"[l", desc = "Previous Location-list item", icon = ""},
+        {"]l", desc = "Next Location-list item", icon = ""},
 
         -- Move selected lines up/down in visual mode
         { "J", ":move '>+1<CR>gv=gv", desc = "Move Selection Down", mode = "v" },

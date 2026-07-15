@@ -134,6 +134,9 @@ return {
                                     gofumpt = true,
                                     usePlaceholders = true,
                                     completeUnimported = true,
+                                    -- Restrict workspace symbol search (<leader>fS) to this module's
+                                    -- own packages, excluding dependencies and the stdlib
+                                    symbolScope = "workspace",
                                 },
                             },
                         })
