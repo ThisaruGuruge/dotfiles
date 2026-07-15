@@ -314,6 +314,7 @@ return {
 
         -- Toggle mappings
         { "<leader>tt", desc = "Toggle Terminal", icon = "" },
+        { "<leader>tm", desc = "Toggle Markdown Render", icon = "" },
         { "<leader>u", desc = "Toggle Undotree", icon = "" },
         { "<leader>a", desc = "Toggle Outline", icon = "" },
 
