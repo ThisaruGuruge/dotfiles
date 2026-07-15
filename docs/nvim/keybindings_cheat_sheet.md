@@ -52,6 +52,7 @@ The dashboard appears when opening Neovim without arguments. Press the shortcut 
 | `<Space>fh` | `n`  | Find help tags            |
 | `<Space>fr` | `n`  | Recent files              |
 | `<Space>fw` | `n`  | Find word under cursor    |
+| `<Space>fS` | `n`  | Search symbols (workspace, e.g. `Engine` struct) |
 
 ---
 
@@ -123,6 +124,7 @@ See `docs/YAZI_KEYBINDINGS.md` for the full yazi keybinding reference.
 | `gD` | `n`  | Go to declaration    |
 | `gr` | `n`  | Find references      |
 | `gi` | `n`  | Go to implementation |
+| `gO` | `n`  | Document symbols (opens in location list) |
 | `K`  | `n`  | Hover documentation  |
 
 ### Actions
@@ -155,6 +157,23 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 - `typos-lsp` — typos in identifiers/strings/comments, e.g. `getRepsone` → `getResponse` (hints)
 - `<Space>zu` / `<Space>zw` auto-apply without a menu — one keystroke to silence a false positive
 - `<Space>zi` suppresses a specific harper grammar diagnostic persistently (survives restarts)
+
+---
+
+## Quickfix & Location List
+
+| Key  | Mode | Action                       |
+| :--- | :--- | :--------------------------- |
+| `]q` | `n`  | Next quickfix item           |
+| `[q` | `n`  | Previous quickfix item       |
+| `]Q` | `n`  | Last quickfix item           |
+| `[Q` | `n`  | First quickfix item          |
+| `]l` | `n`  | Next location-list item      |
+| `[l` | `n`  | Previous location-list item  |
+| `]L` | `n`  | Last location-list item      |
+| `[L` | `n`  | First location-list item     |
+
+`gO` (LSP document symbols) populates the **location list**, not the quickfix list — use `]l`/`[l`, not `]q`/`[q`, to navigate it.
 
 ---
 
