@@ -169,6 +169,12 @@ Open with `<leader>fy` to browse yank history in a Telescope picker.
 | ----------- | --------------- | -------------------- |
 | `<leader>u` | Toggle Undotree | plugins/undotree.lua |
 
+## Markdown Rendering (render-markdown.nvim)
+
+| Key          | Action                    | Source                |
+| ------------ | ------------------------- | --------------------- |
+| `<leader>tm` | Toggle markdown rendering | plugins/markdown.lua  |
+
 ## Terminal
 
 | Key          | Action                | Source                 |

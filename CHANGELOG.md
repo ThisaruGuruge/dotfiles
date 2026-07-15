@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documented built-in `]l`/`[l` (and `]L`/`[L`) location-list navigation, with which-key labels in `plugins/editor.lua` — clarifies that `gO` (LSP document symbols) opens a location list, not the quickfix list, so `]q`/`[q` don't apply to it
 - Added `<leader>fS` for project-wide symbol search (`Telescope lsp_dynamic_workspace_symbols`) — look up a struct/function/class by name across the whole workspace and jump straight to its definition
 - Set `gopls` `symbolScope = "workspace"` — restricts `<leader>fS` in Go projects to the current module's own packages, excluding dependencies and the stdlib
+- Added `render-markdown.nvim` (`plugins/markdown.lua`) for in-buffer markdown rendering (headings, code blocks, tables, bullets) — replaces the terminal-only markdown viewing lost when the `v` alias moved off `bat`/`mdcat`; toggle with `<leader>tm`
 
 ### Changed
 

@@ -226,6 +226,12 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 | :--------- | :--- | :------------------------------------ |
 | `<Space>u` | `n`  | Toggle Undotree (visual undo history) |
 
+## Markdown Rendering (render-markdown.nvim)
+
+| Key         | Mode | Action                    |
+| :---------- | :--- | :------------------------ |
+| `<Space>tm` | `n`  | Toggle markdown rendering |
+
 ## Terminal
 
 | Key         | Mode     | Action          |
