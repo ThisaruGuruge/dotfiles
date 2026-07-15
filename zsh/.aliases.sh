@@ -104,6 +104,7 @@ alias 9='cd -9'
 # Editors
 alias vim="nvim"
 alias n="nvim"
+alias v="nvim"
 
 # Devlopment
 alias editHosts='sudo nvim /etc/hosts'
@@ -219,21 +220,6 @@ function git_clean_all() {
     echo "\e[33m[deprecated] use 'gcla' instead of 'git_clean_all'\e[0m"
     gcla "$@"
 }
-
-# Modern file viewing and search tools
-if (($+commands[bat])); then
-    v() {
-        if (($+commands[mdcat])); then
-            case "${1##*.}" in
-                md | markdown | mdx)
-                    mdcat -p "$@"
-                    return
-                    ;;
-            esac
-        fi
-        bat "$@"
-    }
-fi
 
 if (($+commands[mdcat])); then
     alias md='mdcat -p'
