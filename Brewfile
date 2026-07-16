@@ -16,6 +16,7 @@ brew "zoxide"                       # Smart cd command
 brew "tree"                         # Directory tree viewer
 brew "bat"                          # Cat clone with syntax highlighting
 brew "eza"                          # Modern ls replacement
+brew "dust"                         # Modern du replacement (d alias)
 brew "ripgrep"                      # Fast text search
 brew "fd"                           # Find replacement
 brew "git-delta"                    # Git diff viewer

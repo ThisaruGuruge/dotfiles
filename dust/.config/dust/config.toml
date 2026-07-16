@@ -1,0 +1,7 @@
+# Dust configuration
+# Documentation: https://github.com/bootandy/dust
+# Only overrides are listed here — dust merges these with built-in defaults.
+
+# Show biggest entries at the top of the tree (easier to spot space hogs
+# without scrolling to the bottom)
+reverse = true

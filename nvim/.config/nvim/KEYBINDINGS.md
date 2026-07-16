@@ -35,19 +35,19 @@ This configuration follows standard Vim/Neovim conventions:
 
 ## File Navigation & Search (Telescope)
 
-| Key          | Action                 | Source                   |
-| ------------ | ---------------------- | ------------------------ |
-| `<leader>ff` | Find files             | plugins/telescope.lua:8  |
-| `<leader>fg` | Live grep              | plugins/telescope.lua:9  |
-| `<leader>fb` | Find buffers           | plugins/telescope.lua:10 |
-| `<leader>fh` | Find help              | plugins/telescope.lua:11 |
-| `<leader>fr` | Recent files           | plugins/telescope.lua:12 |
-| `<leader>fw` | Find word under cursor | plugins/telescope.lua:13 |
-| `<leader>fk` | Find keymaps           | plugins/telescope.lua:14 |
-| `<leader>fs` | Search string (prompt) | plugins/telescope.lua:17 |
-| `<leader>fS` | Search symbols (workspace) | plugins/editor.lua:266 |
-| `<leader>fy` | Clipboard history      | plugins/clipboard.lua    |
-| `<C-p>`      | Find git files         | plugins/telescope.lua:15 |
+| Key          | Action                     | Source                   |
+| ------------ | -------------------------- | ------------------------ |
+| `<leader>ff` | Find files                 | plugins/telescope.lua:8  |
+| `<leader>fg` | Live grep                  | plugins/telescope.lua:9  |
+| `<leader>fb` | Find buffers               | plugins/telescope.lua:10 |
+| `<leader>fh` | Find help                  | plugins/telescope.lua:11 |
+| `<leader>fr` | Recent files               | plugins/telescope.lua:12 |
+| `<leader>fw` | Find word under cursor     | plugins/telescope.lua:13 |
+| `<leader>fk` | Find keymaps               | plugins/telescope.lua:14 |
+| `<leader>fs` | Search string (prompt)     | plugins/telescope.lua:17 |
+| `<leader>fS` | Search symbols (workspace) | plugins/editor.lua:266   |
+| `<leader>fy` | Clipboard history          | plugins/clipboard.lua    |
+| `<C-p>`      | Find git files             | plugins/telescope.lua:15 |
 
 ## File Explorer (yazi.nvim)
 
@@ -67,34 +67,34 @@ Inside yazi.nvim floating window:
 
 ## LSP
 
-| Key          | Action               | Source                    |
-| ------------ | -------------------- | ------------------------- |
-| `gd`         | Go to definition     | plugins/lsp.lua:64        |
-| `gD`         | Go to declaration    | plugins/lsp.lua:66        |
-| `gr`         | Find references      | plugins/lsp.lua:68        |
-| `gi`         | Go to implementation | plugins/lsp.lua:70        |
-| `K`          | Hover documentation  | plugins/lsp.lua:72        |
-| `<leader>lr` | Rename symbol        | plugins/lsp.lua:74        |
-| `<leader>la` | Code action          | plugins/lsp.lua:76        |
-| `<leader>lf` | Format buffer        | plugins/formatting.lua:29 |
-| `<leader>ld` | Show diagnostics     | plugins/lsp.lua:80        |
-| `<leader>lq` | Buffer diagnostics to quickfix (spell excluded, jumps to first) | plugins/lsp.lua |
-| `<leader>lW` | Workspace diagnostics to quickfix (spell excluded, jumps to first) | plugins/lsp.lua |
-| `[d`         | Previous diagnostic  | plugins/lsp.lua:86        |
-| `]d`         | Next diagnostic      | plugins/lsp.lua:84        |
+| Key          | Action                                                             | Source                    |
+| ------------ | ------------------------------------------------------------------ | ------------------------- |
+| `gd`         | Go to definition                                                   | plugins/lsp.lua:64        |
+| `gD`         | Go to declaration                                                  | plugins/lsp.lua:66        |
+| `gr`         | Find references                                                    | plugins/lsp.lua:68        |
+| `gi`         | Go to implementation                                               | plugins/lsp.lua:70        |
+| `K`          | Hover documentation                                                | plugins/lsp.lua:72        |
+| `<leader>lr` | Rename symbol                                                      | plugins/lsp.lua:74        |
+| `<leader>la` | Code action                                                        | plugins/lsp.lua:76        |
+| `<leader>lf` | Format buffer                                                      | plugins/formatting.lua:29 |
+| `<leader>ld` | Show diagnostics                                                   | plugins/lsp.lua:80        |
+| `<leader>lq` | Buffer diagnostics to quickfix (spell excluded, jumps to first)    | plugins/lsp.lua           |
+| `<leader>lW` | Workspace diagnostics to quickfix (spell excluded, jumps to first) | plugins/lsp.lua           |
+| `[d`         | Previous diagnostic                                                | plugins/lsp.lua:86        |
+| `]d`         | Next diagnostic                                                    | plugins/lsp.lua:84        |
 
 ### Spell & Grammar Checking
 
 Dedicated keybindings that navigate only spell/grammar diagnostics (from `harper-ls` and `typos-lsp`), ignoring code errors and warnings.
 
-| Key          | Action                                        | Source              |
-| ------------ | --------------------------------------------- | ------------------- |
-| `<leader>zn` | Next spell/typo issue                         | plugins/lsp.lua     |
-| `<leader>zp` | Previous spell/typo issue                     | plugins/lsp.lua     |
-| `<leader>zf` | Fix spell/typo (code action menu)             | plugins/lsp.lua     |
-| `<leader>zu` | Add word to user dictionary (global)          | plugins/lsp.lua     |
-| `<leader>zw` | Add word to workspace dictionary (project)    | plugins/lsp.lua     |
-| `<leader>zi` | Ignore this Harper lint (persisted)           | plugins/lsp.lua     |
+| Key          | Action                                     | Source          |
+| ------------ | ------------------------------------------ | --------------- |
+| `<leader>zn` | Next spell/typo issue                      | plugins/lsp.lua |
+| `<leader>zp` | Previous spell/typo issue                  | plugins/lsp.lua |
+| `<leader>zf` | Fix spell/typo (code action menu)          | plugins/lsp.lua |
+| `<leader>zu` | Add word to user dictionary (global)       | plugins/lsp.lua |
+| `<leader>zw` | Add word to workspace dictionary (project) | plugins/lsp.lua |
+| `<leader>zi` | Ignore this Harper lint (persisted)        | plugins/lsp.lua |
 
 > `harper-ls` — grammar + spell in comments and Markdown (shown as warnings).
 > `typos-lsp` — identifier/string/comment typos like `getRepsone` → `getResponse` (shown as hints).
@@ -109,16 +109,16 @@ Dedicated keybindings that navigate only spell/grammar diagnostics (from `harper
 
 Built-in Neovim navigation for the quickfix list (global) and location list (per-window, e.g. populated by `gO` for LSP document symbols).
 
-| Key  | Action                       | Source |
-| ---- | ---------------------------- | ------ |
-| `]q` | Next quickfix item           | built-in |
-| `[q` | Previous quickfix item       | built-in |
-| `]Q` | Last quickfix item           | built-in |
-| `[Q` | First quickfix item          | built-in |
-| `]l` | Next location-list item      | plugins/editor.lua:346 |
-| `[l` | Previous location-list item  | plugins/editor.lua:345 |
-| `]L` | Last location-list item      | built-in |
-| `[L` | First location-list item     | built-in |
+| Key  | Action                      | Source                 |
+| ---- | --------------------------- | ---------------------- |
+| `]q` | Next quickfix item          | built-in               |
+| `[q` | Previous quickfix item      | built-in               |
+| `]Q` | Last quickfix item          | built-in               |
+| `[Q` | First quickfix item         | built-in               |
+| `]l` | Next location-list item     | plugins/editor.lua:346 |
+| `[l` | Previous location-list item | plugins/editor.lua:345 |
+| `]L` | Last location-list item     | built-in               |
+| `[L` | First location-list item    | built-in               |
 
 > `gO` (LSP document symbols) opens a **location list**, not the quickfix list — its window shows `qf` as the filetype (loclist and quickfix share it), but only `]l`/`[l` navigate it, not `]q`/`[q`.
 
@@ -171,9 +171,9 @@ Open with `<leader>fy` to browse yank history in a Telescope picker.
 
 ## Markdown Rendering (render-markdown.nvim)
 
-| Key          | Action                    | Source                |
-| ------------ | ------------------------- | --------------------- |
-| `<leader>tm` | Toggle markdown rendering | plugins/markdown.lua  |
+| Key          | Action                    | Source               |
+| ------------ | ------------------------- | -------------------- |
+| `<leader>tm` | Toggle markdown rendering | plugins/markdown.lua |
 
 ## Terminal
 
@@ -225,17 +225,17 @@ Seamless navigation between NeoVim splits and TMux panes.
 
 Works for any language treesitter understands: JSON objects/arrays, functions, classes, blocks, etc.
 
-| Key  | Action                               |
-| ---- | ------------------------------------ |
-| `za` | Toggle fold under cursor             |
-| `zo` | Open fold under cursor               |
-| `zc` | Close fold under cursor              |
-| `zO` | Open all folds recursively           |
-| `zC` | Close all folds recursively          |
-| `zR` | Open every fold in the file          |
-| `zM` | Close every fold in the file         |
-| `zj` | Jump to next fold                    |
-| `zk` | Jump to previous fold                |
+| Key  | Action                       |
+| ---- | ---------------------------- |
+| `za` | Toggle fold under cursor     |
+| `zo` | Open fold under cursor       |
+| `zc` | Close fold under cursor      |
+| `zO` | Open all folds recursively   |
+| `zC` | Close all folds recursively  |
+| `zR` | Open every fold in the file  |
+| `zM` | Close every fold in the file |
+| `zj` | Jump to next fold            |
+| `zk` | Jump to previous fold        |
 
 ## Trouble (Diagnostics Panel)
 
@@ -297,15 +297,15 @@ mini.ai extends Vim's built-in `a` (around) and `i` (inside) text object prefixe
 
 Adds sign-column indicators and extra navigation on top of Vim's built-in marks (`ma` still sets mark `a`, `` `a `` / `'a` still jump to it).
 
-| Key    | Action                          | Source            |
-| ------ | -------------------------------- | ------------------ |
-| `m,`   | Set next available lowercase mark | plugins/marks.lua |
-| `m;`   | Toggle mark on current line       | plugins/marks.lua |
-| `dm-`  | Delete all marks on current line  | plugins/marks.lua |
-| `dm<space>` | Delete all marks in buffer   | plugins/marks.lua |
-| `m]`   | Jump to next mark                 | plugins/marks.lua |
-| `m[`   | Jump to previous mark             | plugins/marks.lua |
-| `m:`   | Preview mark                      | plugins/marks.lua |
+| Key         | Action                            | Source            |
+| ----------- | --------------------------------- | ----------------- |
+| `m,`        | Set next available lowercase mark | plugins/marks.lua |
+| `m;`        | Toggle mark on current line       | plugins/marks.lua |
+| `dm-`       | Delete all marks on current line  | plugins/marks.lua |
+| `dm<space>` | Delete all marks in buffer        | plugins/marks.lua |
+| `m]`        | Jump to next mark                 | plugins/marks.lua |
+| `m[`        | Jump to previous mark             | plugins/marks.lua |
+| `m:`        | Preview mark                      | plugins/marks.lua |
 
 > Set/delete a specific mark the vanilla way: `ma` sets mark `a`, `dma` deletes it.
 
@@ -313,23 +313,23 @@ Adds sign-column indicators and extra navigation on top of Vim's built-in marks 
 
 Buffer-local, only active in `.bal` files.
 
-| Key          | Action                       | Source                      |
-| ------------ | ----------------------------- | ---------------------------- |
-| `<leader>br` | Run (`:BallerinaRun`)         | after/ftplugin/ballerina.lua |
-| `<leader>bb` | Build (`:BallerinaBuild`)     | after/ftplugin/ballerina.lua |
-| `<leader>bt` | Test (`:BallerinaTest`)       | after/ftplugin/ballerina.lua |
-| `<leader>bf` | Format (`:BallerinaFormat`)   | after/ftplugin/ballerina.lua |
+| Key          | Action                                           | Source                       |
+| ------------ | ------------------------------------------------ | ---------------------------- |
+| `<leader>br` | Run (`:BallerinaRun`)                            | after/ftplugin/ballerina.lua |
+| `<leader>bb` | Build (`:BallerinaBuild`)                        | after/ftplugin/ballerina.lua |
+| `<leader>bt` | Test (`:BallerinaTest`)                          | after/ftplugin/ballerina.lua |
+| `<leader>bf` | Format (`:BallerinaFormat`)                      | after/ftplugin/ballerina.lua |
 | `<leader>bF` | Toggle format-on-save (`:BallerinaFormatToggle`) | after/ftplugin/ballerina.lua |
 
 > Standard LSP mappings (`gd`, `K`, `<leader>lr`, etc.) also work in `.bal` buffers. Run/Test/Build accept CLI args passed after the command; a literal `--` separates plugin options from program arguments.
 
 ## Copy File Info
 
-| Key          | Action                             | Source             |
-| ------------ | ---------------------------------- | ------------------ |
-| `<leader>cy` | Copy relative path (to clipboard)  | plugins/editor.lua |
-| `<leader>cY` | Copy absolute path (to clipboard)  | plugins/editor.lua |
-| `<leader>cn` | Copy filename only (to clipboard)  | plugins/editor.lua |
+| Key          | Action                            | Source             |
+| ------------ | --------------------------------- | ------------------ |
+| `<leader>cy` | Copy relative path (to clipboard) | plugins/editor.lua |
+| `<leader>cY` | Copy absolute path (to clipboard) | plugins/editor.lua |
+| `<leader>cn` | Copy filename only (to clipboard) | plugins/editor.lua |
 
 ## Which-Key Groups
 
@@ -345,4 +345,4 @@ Buffer-local, only active in `.bal` files.
 
 ---
 
-**Tip**: Press `<leader>fk` to search keymaps interactively with Telescope!
+> [!TIP]: Press `<leader>fk` to search keymaps interactively with Telescope!

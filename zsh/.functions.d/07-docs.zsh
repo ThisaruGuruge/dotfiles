@@ -24,6 +24,13 @@ show_tools() {
         echo ""
     fi
 
+    if command -v dust &>/dev/null; then
+        echo "💾 dust (enhanced du):"
+        echo "  d .                - Disk usage tree, biggest at the top"
+        echo "  da .               - Full tree in a pager (d truncates to terminal height)"
+        echo ""
+    fi
+
     if command -v rg &>/dev/null; then
         echo "🔍 ripgrep (fast grep):"
         echo "  grep 'pattern'     - Search with ripgrep"
@@ -57,6 +64,7 @@ show_tools() {
         echo "📊 delta (enhanced git diff):"
         echo "  git diff           - Shows beautiful side-by-side diffs"
         echo "  git log -p         - Log with enhanced diff display"
+        echo "  dif file1 file2    - Compare any two files with delta's rendering"
         echo ""
     fi
 
