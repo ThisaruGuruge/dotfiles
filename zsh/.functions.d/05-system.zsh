@@ -2,10 +2,43 @@
 # ============================================================================
 # System Functions
 # ============================================================================
-# System utilities: checkPort(), kill_by_port()
+# System utilities: checkPort(), kill_by_port(), dif(), da()
 
 checkPort() {
     lsof -i:"$1"
+}
+
+# Compare two files with delta's rendering (side-by-side, line numbers,
+# syntax highlighting) instead of plain diff output. Kept as its own name
+# rather than aliasing `diff` itself, since Claude Code (and other tools
+# that source shell aliases) would otherwise get delta's colorized output
+# instead of plain, parseable diff.
+dif() {
+    if ! command -v delta >/dev/null 2>&1; then
+        echo "Error: delta is not installed" >&2
+        echo "Install with: brew install git-delta" >&2
+        return 1
+    fi
+    diff -u "$@" | delta
+}
+
+# dust's -n/--number-of-lines defaults to the terminal height and silently
+# truncates larger trees with no built-in pager. Raise the cap and pipe
+# through less to get a scrollable full view instead.
+# Output is captured first rather than streamed directly into less: dust
+# (like many Rust CLIs) doesn't reset SIGPIPE to its default disposition, so
+# if less exits early (e.g. -F auto-quitting on output that fits one screen)
+# dust panics with "Broken pipe" instead of exiting quietly. Capturing lets
+# dust always run to completion before less ever reads anything.
+da() {
+    if ! command -v dust >/dev/null 2>&1; then
+        echo "Error: dust is not installed" >&2
+        echo "Install with: brew install dust" >&2
+        return 1
+    fi
+    local output
+    output="$(dust -n 9999 "$@" 2>&1)" || return $?
+    printf '%s\n' "$output" | less -R -F -X
 }
 
 kill_by_port() {

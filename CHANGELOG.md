@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `cask "claude-code"` to `Brewfile` — the `claude/` package configures it, but the CLI itself wasn't tracked
 - Added `cask "font-noto-sans-sinhala"` to `Brewfile` — fallback font referenced in `ghostty/.config/ghostty/config`, previously installed manually with no package tracking
 - Added `cask "flutter"` to `packages/development.brewfile` — the `flutter/` stow package and `init.sh` already expected it
+- Added `dif()` function (`zsh/.functions.d/05-system.zsh`) — compares two arbitrary files through delta's rendering (side-by-side, line numbers, syntax highlighting), for when you just need `diff` instead of `git diff`. Deliberately not aliased to `diff` itself: Claude Code's Bash tool sources shell aliases, so overriding `diff` would silently swap plain, parseable output for delta's colorized formatting in any tool that shells out to it
+- Added `brew "dust"` to `Brewfile` — the `d='dust'` alias in `zsh/.aliases.sh` and `list_dotfiles_tools()` already referenced it, but it was never actually installed or tracked as a dependency
+- Added `dust/.config/dust/config.toml` (new stow package) with `reverse = true` — biggest entries print at the top of the tree instead of the bottom
+- Added `da()` function (`zsh/.functions.d/05-system.zsh`) — `d`/`dust` truncates its tree to the terminal height with no built-in pager, so `da` raises `-n`/`--number-of-lines` and pipes through `less -R` for a full scrollable view. Output is captured before being handed to `less` rather than streamed directly: dust doesn't reset `SIGPIPE` to its default disposition, so `less` exiting early (e.g. `-F` auto-quitting on output that fits one screen) makes dust panic with "Broken pipe" instead of exiting quietly
 
 ### Changed
 

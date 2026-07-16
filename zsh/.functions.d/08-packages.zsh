@@ -25,7 +25,7 @@ list_dotfiles_tools() {
     echo "   fzf              - Fuzzy finder"
     echo "   zoxide           - Smart cd replacement"
     echo "   fd               - Fast find replacement"
-    echo "   dust             - Modern du replacement"
+    echo "   dust             - Modern du replacement (d, da for full paged view)"
     echo "   htop             - Better top"
     echo ""
     echo "🔧 DEVELOPMENT TOOLS:"
