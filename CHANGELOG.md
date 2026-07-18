@@ -36,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `packages/databases.brewfile` (PostgreSQL, Redis) — dropped from the optional-category set
 - Removed GNU Stow (`brew "stow"`, `.stow-local-ignore` files) — fully replaced by bestow (see Changed)
 
+### Fixed
+
+- Fixed `.github/workflows/auto-tag.yml` pushing the CHANGELOG release commit directly to `main`, which a repository ruleset now rejects (`refs/heads/main` requires changes via PR) — the workflow now opens a PR for that commit and merges it itself before tagging. Also added a `workflow_dispatch` trigger so a release can be run manually if the automatic PR-triggered run fails
+
 ## [2.0.0] - 2026-07-14
 
 ### Added
