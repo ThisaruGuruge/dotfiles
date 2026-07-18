@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-18
+
 ### Added
 
 - Added `overrideGpg: true` to `lazygit/.config/lazygit/config.yml` — with `commit.gpgsign = true` and a passphrase agent (gpg-agent) caching the passphrase, lazygit otherwise blocks commit/amend actions with "Feature not available for users using GPG" since it can't tell whether a signing action will need an interactive terminal prompt
