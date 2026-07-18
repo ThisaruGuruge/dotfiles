@@ -50,8 +50,8 @@ tokens_max=$(echo "$input" | jq -r '.context_window.context_window_size // empty
 # ── Rate limits ───────────────────────────────────────────────────────────────
 rate_5h=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
 rate_7d=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
-rate_5h_reset=$(echo "$input" | jq -r '.rate_limits.five_hour.reset_at // empty')
-rate_7d_reset=$(echo "$input" | jq -r '.rate_limits.seven_day.reset_at // empty')
+rate_5h_reset=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
+rate_7d_reset=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
 # ── Colors (Catppuccin Mocha palette, ANSI true-color) ───────────────────────
 RESET='\033[0m'
@@ -105,8 +105,8 @@ _rate_bar() {
 _parse_reset_ts() {
     val="$1"
     case "$val" in
-        [0-9]*) printf '%s' "$val" ;;
-        *) date -j -f "%Y-%m-%dT%H:%M:%SZ" "$val" +%s 2>/dev/null ;;
+        *[!0-9]*) date -j -f "%Y-%m-%dT%H:%M:%SZ" "$val" +%s 2>/dev/null ;;
+        *) printf '%s' "$val" ;;
     esac
 }
 
