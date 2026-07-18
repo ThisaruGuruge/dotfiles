@@ -72,7 +72,7 @@ alias edit-paths="nvim ~/.paths.sh"
 
 # Edit other configuration files
 alias edit-git="nvim ~/.config/git/config"
-alias edit-wezterm="nvim ~/.config/wezterm/wezterm.lua"
+alias edit-ghostty="nvim ~/.config/ghostty/config"
 alias edit-nvim="nvim ~/.config/nvim/init.lua"
 alias edit-vim="nvim ~/.vimrc"
 alias edit-p10k="nvim ~/.p10k.zsh"

@@ -241,4 +241,4 @@ These are installed via Brewfile and enable richer previews:
 | imagemagick       | SVG and font preview     |
 | unar              | Archive content preview  |
 
-Image preview works natively in WezTerm, iTerm2, and Kitty. For tmux, `allow-passthrough` is enabled in `.tmux.conf`.
+Image preview works natively in Ghostty, iTerm2, and Kitty. For tmux, `allow-passthrough` is enabled in `.tmux.conf`.

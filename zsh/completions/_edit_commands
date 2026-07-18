@@ -1,4 +1,4 @@
-#compdef edit-zsh edit-aliases edit-functions edit-paths edit-git edit-wezterm edit-nvim edit-vim edit-p10k edit-tmux edit-lazygit edit-ripgrep
+#compdef edit-zsh edit-aliases edit-functions edit-paths edit-git edit-ghostty edit-nvim edit-vim edit-p10k edit-tmux edit-lazygit edit-ripgrep
 
 # ZSH completion function for edit-* commands
 # This provides descriptions when using TAB completion
@@ -11,7 +11,7 @@ edit_commands=(
   'edit-functions:Edit shell functions'
   'edit-paths:Edit PATH configuration'
   'edit-git:Edit Git configuration (.gitconfig)'
-  'edit-wezterm:Edit WezTerm terminal configuration'
+  'edit-ghostty:Edit Ghostty terminal configuration'
   'edit-nvim:Edit NeoVim editor configuration'
   'edit-vim:Edit Vim configuration (.vimrc)'
   'edit-p10k:Edit Powerlevel10k prompt configuration'
