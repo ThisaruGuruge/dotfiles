@@ -134,12 +134,13 @@ Built-in Neovim navigation for the quickfix list (global) and location list (per
 | `<leader>gu` | Undo stage hunk     | plugins/git.lua:64  |
 | `<leader>gR` | Reset buffer        | plugins/git.lua:65  |
 | `<leader>gp` | Preview hunk        | plugins/git.lua:66  |
-| `<leader>gb` | Blame line          | plugins/git.lua:67  |
-| `<leader>gd` | Diff this           | plugins/git.lua:70  |
-| `<leader>gD` | Diff this ~         | plugins/git.lua:71  |
-| `<leader>gg` | LazyGit             | plugins/git.lua:93  |
-| `<leader>gw` | Switch Git Worktree | plugins/git.lua:106 |
-| `<leader>gW` | Create Git Worktree | plugins/git.lua:112 |
+| `<leader>gt` | Toggle deleted lines (inline) | plugins/git.lua:67  |
+| `<leader>gb` | Blame line          | plugins/git.lua:68  |
+| `<leader>gd` | Diff this           | plugins/git.lua:71  |
+| `<leader>gD` | Diff this ~         | plugins/git.lua:72  |
+| `<leader>gg` | LazyGit             | plugins/git.lua:108 |
+| `<leader>gw` | Switch Git Worktree | plugins/git.lua:121 |
+| `<leader>gW` | Create Git Worktree | plugins/git.lua:128 |
 
 ## Code Outline (aerial.nvim)
 

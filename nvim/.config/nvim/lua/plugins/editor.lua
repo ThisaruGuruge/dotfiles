@@ -289,6 +289,7 @@ return {
         { "<leader>gu", desc = "Undo Stage Hunk", icon = "" },
         { "<leader>gR", desc = "Reset Buffer", icon = "" },
         { "<leader>gp", desc = "Preview Hunk", icon = "" },
+        { "<leader>gt", desc = "Toggle Deleted Lines (inline)", icon = "" },
         { "<leader>gb", desc = "Blame Line", icon = "" },
         { "<leader>gd", desc = "Diff This", icon = "" },
         { "<leader>gD", desc = "Diff This ~", icon = "" },

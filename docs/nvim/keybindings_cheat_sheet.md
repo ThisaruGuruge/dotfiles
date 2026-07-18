@@ -108,6 +108,7 @@ See `docs/YAZI_KEYBINDINGS.md` for the full yazi keybinding reference.
 | `<Space>gu` | `n`      | Undo stage hunk |
 | `<Space>gR` | `n`      | Reset buffer    |
 | `<Space>gp` | `n`      | Preview hunk    |
+| `<Space>gt` | `n`      | Toggle deleted lines (inline) |
 | `<Space>gb` | `n`      | Blame line      |
 | `<Space>gd` | `n`      | Diff this       |
 | `<Space>gD` | `n`      | Diff this ~     |

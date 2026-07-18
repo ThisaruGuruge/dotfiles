@@ -23,6 +23,7 @@ gui:
     unstagedChangesColor:
       - red
 git:
+  overrideGpg: true
   pagers:
     - # Use delta for better diffs (if available)
       colorArg: always
