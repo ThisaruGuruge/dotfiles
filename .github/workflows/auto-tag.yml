@@ -9,6 +9,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 concurrency:
   group: auto-tag-main
@@ -181,10 +182,17 @@ jobs:
           git reset --hard origin/main
 
       - name: Create and push tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           NEXT_TAG="${{ steps.next.outputs.tag }}"
           git tag -a "$NEXT_TAG" -m "Release $NEXT_TAG"
           git push origin "$NEXT_TAG"
+
+          # A tag pushed with GITHUB_TOKEN does not trigger other workflows'
+          # `on: push: tags:` listeners (anti-recursion safeguard), so kick
+          # release.yml explicitly instead of relying on that push event.
+          gh workflow run release.yml --ref main -f tag="$NEXT_TAG"
 
       - name: Summary
         env:
