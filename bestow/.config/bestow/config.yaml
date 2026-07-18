@@ -1,0 +1,12 @@
+# Bestow Configurations
+
+# Config File Version
+version: 0.1.0
+
+# Bestow Profiles. Different profiles can have different source and destinations
+profiles:
+  default:
+    # Source Directory (e.g. dotfiles repo)
+    source: /Users/thisaru/dotfiles
+    # Destination Directory (your $HOME directory)
+    destination: /Users/thisaru
