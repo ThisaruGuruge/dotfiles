@@ -216,7 +216,7 @@ Use scopes to indicate which part of the codebase is affected:
 - `(prompt)` - Powerlevel10k prompt configuration
 - `(git)` - Git configuration
 - `(nvim)` - Neovim configuration
-- `(wezterm)` - WezTerm configuration
+- `(ghostty)` - Ghostty configuration
 - `(tmux)` - Tmux configuration
 
 ### Examples

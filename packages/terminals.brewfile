@@ -1,3 +1,2 @@
 # Modern terminal applications
-cask "wezterm"
 cask "iterm2"
