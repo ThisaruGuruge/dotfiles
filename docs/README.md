@@ -5,7 +5,7 @@ This directory contains additional documentation for the dotfiles repository.
 ## Contents
 
 ### Shell Configuration
-- [CONFIG_MANAGEMENT.md](CONFIG_MANAGEMENT.md) - Managing configs with Stow, adopting new configs
+- [CONFIG_MANAGEMENT.md](CONFIG_MANAGEMENT.md) - Managing configs with bestow, adopting new configs
 
 ### Prompt
 - [PROMPT_GUIDE.md](PROMPT_GUIDE.md) - Powerlevel10k prompt customization and troubleshooting

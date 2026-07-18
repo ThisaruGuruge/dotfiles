@@ -8,7 +8,7 @@ tap "jesseduffield/lazydocker" # Official lazydocker tap
 tap "gdubw/gng"                # GNG - Gradle run-anywhere tool
 
 # Essential tools required for dotfiles functionality
-brew "stow"                         # Symlink farm manager (use --no-folding for reliable symlinks)
+brew "go"                           # Go toolchain; required to `go install` bestow, the symlink manager used by init.sh (github.com/redpierrot/bestow)
 brew "git"                          # Version control
 brew "neovim"                       # Text editor (nvim/ package configures it)
 brew "fzf"                          # Fuzzy finder

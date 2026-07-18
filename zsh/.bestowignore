@@ -1,0 +1,4 @@
+# Environment files (managed separately for security; sourced directly from
+# the repo path, not symlinked into $HOME)
+.env
+.env.*

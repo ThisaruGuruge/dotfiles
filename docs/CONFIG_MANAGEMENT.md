@@ -19,22 +19,22 @@ Run this to see what's managed vs unmanaged:
 
 ### Method 1: Add to dotfiles FIRST (recommended for new machines)
 
-1. Create config in dotfiles:
+1. Create config in dotfiles (one top-level package per tool):
    ```bash
-   mkdir -p ~/dotfiles/config/.config/myapp
+   mkdir -p ~/dotfiles/myapp/.config/myapp
    # Create your config files
-   vim ~/dotfiles/config/.config/myapp/config.toml
+   vim ~/dotfiles/myapp/.config/myapp/config.toml
    ```
 
 2. Stow it:
    ```bash
    cd ~/dotfiles
-   stow -R config
+   bestow stow myapp
    ```
 
 3. Commit:
    ```bash
-   git add config/.config/myapp
+   git add myapp/.config/myapp
    git commit -m "Add myapp configuration"
    ```
 
@@ -47,8 +47,8 @@ If you already have a config at `~/.config/myapp`:
 ```
 
 This will:
-- Move `~/.config/myapp` to `~/dotfiles/config/.config/myapp`
-- Create `.stow-local-ignore` to exclude sensitive files
+- Move `~/.config/myapp` to `~/dotfiles/myapp/.config/myapp`
+- Create `.bestowignore` to exclude sensitive files
 - Create a symlink back to the original location
 - Prompt you to review and commit
 
@@ -57,7 +57,7 @@ This will:
 ### Include (User Preferences)
 - Shell configs (fish, zsh)
 - Editor configs (nvim, vim)
-- Terminal configs (wezterm, alacritty)
+- Terminal configs (ghostty, alacritty)
 - CLI tool configs (git, htop, ripgrep)
 - Development tool configs (lazygit)
 
@@ -71,13 +71,14 @@ This will:
 
 ## Protecting Sensitive Data
 
-Each config directory can have a `.stow-local-ignore` file:
+Each package can have a `.bestowignore` file, at the **package root** (`<pkg>/.bestowignore`,
+not nested inside `.config/<pkg>/` — bestow only reads it from the package root):
 
 ```bash
-# Example: config/.config/myapp/.stow-local-ignore
+# Example: myapp/.bestowignore
 *.log
 *.cache
-cache/
+cache/**
 *.token
 *.key
 credentials*
@@ -87,7 +88,12 @@ session*
 *.db-*
 ```
 
-Files matching these patterns won't be symlinked by stow.
+Patterns use glob syntax (`*`, `**`, `?`, `[abc]`, `{a,b}`), matched against either the file's
+full relative path within the package or its basename — not regex, and not gitignore semantics.
+There's no negation (`!pattern`), and only files are ever tested (never directories), so a
+directory-only pattern like `cache/` matches nothing — write `cache/**` to exclude everything
+under it. Files matching any pattern — from the repo-root `.bestowignore`, the global
+`~/.config/bestow/.bestowignore`, or the package's own — won't be symlinked by bestow.
 
 ## Workflow Examples
 
@@ -107,19 +113,19 @@ You install `bat` and want to customize it:
 
 ```bash
 # Create config in dotfiles first
-mkdir -p ~/dotfiles/config/.config/bat
-echo "--theme=TwoDark" > ~/dotfiles/config/.config/bat/config
+mkdir -p ~/dotfiles/bat/.config/bat
+echo "--theme=TwoDark" > ~/dotfiles/bat/.config/bat/config
 
 # Stow it
 cd ~/dotfiles
-stow -R config
+bestow stow bat
 
 # Verify
 ls -la ~/.config/bat
-# Should show: bat -> ../dotfiles/config/.config/bat
+# Should show: bat -> ../dotfiles/bat/.config/bat
 
 # Commit
-git add config/.config/bat
+git add bat/.config/bat
 git commit -m "Add bat configuration"
 git push
 ```
@@ -133,11 +139,11 @@ You've been using `fish` and have configs:
 ./bin/adopt-config fish
 
 # After: ~/.config/fish is a symlink to dotfiles
-# Review the .stow-local-ignore
-vim ~/dotfiles/config/.config/fish/.stow-local-ignore
+# Review the .bestowignore
+vim ~/dotfiles/fish/.bestowignore
 
 # Commit
-git add config/.config/fish
+git add fish/.config/fish fish/.bestowignore
 git commit -m "Adopt fish shell configuration"
 git push
 ```
@@ -146,20 +152,16 @@ git push
 
 ```
 ~/dotfiles/
-  config/                    ← Package name for stow
+  myapp/                     ← Package name for bestow (one per tool)
+    .bestowignore            ← Ignore sensitive files (package root, not nested)
     .config/                 ← Actual .config directory
-      nvim/                  ← Managed app configs
-      wezterm/
-      fish/
       myapp/
-        .stow-local-ignore   ← Ignore sensitive files
         config.toml
 ```
 
-When you run `stow config`, it creates:
+When you run `bestow stow myapp`, it creates:
 ```
-~/.config/nvim -> ../dotfiles/config/.config/nvim
-~/.config/wezterm -> ../dotfiles/config/.config/wezterm
+~/.config/myapp -> ~/dotfiles/myapp/.config/myapp/...  (per-file symlinks)
 ```
 
 ## Troubleshooting
@@ -172,47 +174,49 @@ ls -la ~/.config/myapp
 
 # If not, restow
 cd ~/dotfiles
-stow -R config
+bestow stow myapp
 ```
 
-### Stow conflicts
+### Symlink conflicts
 
 ```bash
 # If you have an existing real directory that conflicts
 ./bin/adopt-config myapp
 
 # Or manually move and restow
-mv ~/.config/myapp ~/dotfiles/config/.config/
+mv ~/.config/myapp ~/dotfiles/myapp/.config/
 cd ~/dotfiles
-stow -R config
+bestow stow myapp
+# Or, to overwrite/back up existing files automatically:
+bestow stow myapp --backup
 ```
 
 ### Accidentally committed sensitive data
 
 ```bash
-# Add to .stow-local-ignore
-echo "secrets.txt" >> ~/dotfiles/config/.config/myapp/.stow-local-ignore
+# Add to .bestowignore (at the package root)
+echo "secrets.txt" >> ~/dotfiles/myapp/.bestowignore
 
 # Remove from git history
 git filter-branch --force --index-filter \
-  'git rm --cached --ignore-unmatch config/.config/myapp/secrets.txt' \
+  'git rm --cached --ignore-unmatch myapp/.config/myapp/secrets.txt' \
   --prune-empty --tag-name-filter cat -- --all
 
 # Or use git-filter-repo (recommended)
-git filter-repo --path config/.config/myapp/secrets.txt --invert-paths
+git filter-repo --path myapp/.config/myapp/secrets.txt --invert-paths
 ```
 
 ## Tools
 
 - `./bin/audit-configs` - Show managed vs unmanaged configs
 - `./bin/adopt-config <app>` - Migrate existing config to dotfiles
-- `stow -R config` - Restow all configs
-- `stow -D config` - Remove all config symlinks
+- `bestow stow <pkg>` - Stow a package (idempotent; safe to re-run)
+- `bestow unstow <pkg>` - Remove a package's symlinks
 
 ## Best Practices
 
 1. **Always review before committing** - Check for passwords, tokens, keys
-2. **Use .stow-local-ignore liberally** - Better safe than sorry
+2. **Use .bestowignore liberally** - Better safe than sorry
 3. **Test on a fresh VM/container** - Ensure `./init.sh` works
 4. **Document dependencies** - Update Brewfile when adding new tools
 5. **Keep secrets separate** - Use SOPS, age, or environment variables

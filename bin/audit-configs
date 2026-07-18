@@ -1,5 +1,11 @@
 #!/bin/bash
 # Audit .config directory to see what's managed vs unmanaged
+#
+# bestow (like stow --no-folding, which this repo always used) never
+# symlinks a whole directory — it creates a real directory and symlinks
+# only the individual files inside it. So "managed" here means "contains
+# at least one file symlinked into the dotfiles repo", not "the directory
+# itself is a symlink".
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -10,30 +16,59 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
+# Count symlinks under $1 that resolve into $DOTFILES_DIR
+count_dotfiles_links() {
+    local dir="$1"
+    local count=0
+    local link target
+    while IFS= read -r link; do
+        target=$(readlink -f "$link" 2>/dev/null)
+        case "$target" in
+            "$DOTFILES_DIR"/*) count=$((count + 1)) ;;
+        esac
+    done < <(find "$dir" -type l 2>/dev/null)
+    echo "$count"
+}
+
 echo -e "${BLUE}=== .config Directory Audit ===${NC}"
 echo ""
 
-echo -e "${GREEN}Managed by dotfiles (symlinks):${NC}"
+echo -e "${GREEN}Managed by dotfiles (contains files symlinked from $DOTFILES_DIR):${NC}"
 for item in ~/.config/*; do
+    [ -e "$item" ] || continue
+    name=$(basename "$item")
+
     if [ -L "$item" ]; then
-        name=$(basename "$item")
+        # Whole-item symlink (unusual under bestow, but handle it)
         target=$(readlink "$item")
         echo -e "  ✓ $name -> $target"
+    elif [ -d "$item" ]; then
+        linked=$(count_dotfiles_links "$item")
+        if [ "$linked" -gt 0 ]; then
+            # -type f alone would miss symlinks (find reports their own
+            # type, not the type of what they point to)
+            total=$(find "$item" \( -type f -o -type l \) 2>/dev/null | wc -l | tr -d ' ')
+            echo -e "  ✓ $name ($linked/$total files symlinked)"
+        fi
     fi
 done
 
 echo ""
-echo -e "${YELLOW}Not managed (real directories):${NC}"
+echo -e "${YELLOW}Not managed (no dotfiles-linked files found):${NC}"
 for item in ~/.config/*; do
     if [ -d "$item" ] && [ ! -L "$item" ]; then
         name=$(basename "$item")
-        size=$(du -sh "$item" 2>/dev/null | awk '{print $1}')
+        linked=$(count_dotfiles_links "$item")
 
-        # Check if it's likely user config (small size, has config files)
-        if [ -f "$item/config" ] || [ -f "$item/config.toml" ] || [ -f "$item/config.yaml" ] || [ -f "$item/config.json" ]; then
-            echo -e "  ${CYAN}→ $name${NC} ($size) ${GREEN}[Likely user config]${NC}"
-        else
-            echo -e "  → $name ($size)"
+        if [ "$linked" -eq 0 ]; then
+            size=$(du -sh "$item" 2>/dev/null | awk '{print $1}')
+
+            # Check if it's likely user config (small size, has config files)
+            if [ -f "$item/config" ] || [ -f "$item/config.toml" ] || [ -f "$item/config.yaml" ] || [ -f "$item/config.json" ]; then
+                echo -e "  ${CYAN}→ $name${NC} ($size) ${GREEN}[Likely user config]${NC}"
+            else
+                echo -e "  → $name ($size)"
+            fi
         fi
     fi
 done

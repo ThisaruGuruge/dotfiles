@@ -158,22 +158,45 @@ setup_homebrew() {
     fi
 }
 
-# Install GNU Stow
-install_stow() {
-    log_step "Installing GNU Stow"
+# Install bestow (Go-based symlink manager, replaces GNU Stow)
+install_bestow() {
+    log_step "Installing bestow"
 
-    if command_exists stow; then
-        log_success "GNU Stow already installed: $(stow --version | head -n 1)"
-    else
-        log_warning "GNU Stow not found"
-        if confirm "Install GNU Stow? (Required for dotfiles management)"; then
-            log_info "Installing GNU Stow..."
-            brew install stow
-            log_success "GNU Stow installed successfully"
-        else
-            log_error "GNU Stow is required for this dotfiles setup. Exiting."
+    if ! command_exists bestow; then
+        log_warning "bestow not found"
+
+        if ! command_exists go; then
+            log_error "Go is required to install bestow (installed via Brewfile earlier in this script, or 'brew install go'). Exiting."
             exit 1
         fi
+
+        if confirm "Install bestow? (Required for dotfiles management)"; then
+            log_info "Installing bestow via 'go install'..."
+            if go install github.com/redpierrot/bestow@latest; then
+                log_success "bestow installed successfully"
+                # Make it available for the rest of this script run, even before
+                # zsh/.paths.sh (which adds $GOPATH/bin to PATH) is stowed
+                export PATH="$(go env GOPATH)/bin:$PATH"
+            else
+                log_error "Failed to install bestow. Exiting."
+                exit 1
+            fi
+        else
+            log_error "bestow is required for this dotfiles setup. Exiting."
+            exit 1
+        fi
+    else
+        log_success "bestow already installed: $(bestow --version 2>&1 | head -n 1)"
+    fi
+
+    # bestow needs its own config file to run at all (source + destination
+    # profile) — bootstrap it if this is a fresh machine
+    local bestow_config_dir="$HOME/.config/bestow"
+    mkdir -p "$bestow_config_dir"
+    if [ ! -f "$bestow_config_dir/config.yaml" ]; then
+        log_info "Bootstrapping bestow config (source: $DOTFILES_DIR, destination: $HOME)..."
+        bestow init --source "$DOTFILES_DIR" --destination "$HOME" >/dev/null 2>&1
+        log_success "bestow config created at $bestow_config_dir/config.yaml"
     fi
 }
 
@@ -692,194 +715,53 @@ EOF
     log_info "  • Direct edit: sops ~/.env"
 }
 
-# Handle stow conflicts for a specific file
-handle_stow_conflict() {
-    local conflict_file="$1"
-    local package="$2"
+# Use bestow to create symlinks (conflict resolution is handled by bestow itself)
+bestow_packages() {
+    log_step "Using bestow to manage dotfiles"
+
+    local packages=("zsh" "bash" "bin" "nvim" "git" "tmux" "direnv" "ssh" "atuin" "gh" "htop" "lazygit" "ripgrep" "yazi" "flutter" "noto" "claude" "typos" "dust" "dlv" "ghostty")
 
     echo ""
-    log_warning "Conflict detected: $conflict_file"
-    log_info "This file already exists in your home directory"
-    echo ""
-    echo -e "${CYAN}Options:${NC}"
-    echo -e "  ${YELLOW}b${NC}) Backup existing file and replace with stow symlink"
-    echo -e "  ${YELLOW}k${NC}) Keep existing file (skip stowing this file)"
-    echo -e "  ${YELLOW}s${NC}) Show diff between existing and dotfiles version"
-    echo -e "  ${YELLOW}q${NC}) Quit installation"
+    echo -e "${CYAN}If a dotfile already exists at the destination, how should it be handled?${NC}"
+    echo -e "  ${YELLOW}b${NC}) Backup existing files (renamed to *.bestow.backup) and symlink"
+    echo -e "  ${YELLOW}k${NC}) Keep existing files as-is (skip only the conflicting files)"
     echo ""
 
+    local conflict_flag=""
     while true; do
-        echo -en "  ${YELLOW}Choose action (b/k/s/q): ${NC}"
+        echo -en "  ${YELLOW}Choose action (b/k): ${NC}"
         read -r -n 1 choice
         echo
-
         case "$choice" in
-            [Bb])
-                local backup_dir
-                backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
-                mkdir -p "$backup_dir"
-                mv "$conflict_file" "$backup_dir/"
-                log_success "Backed up to: $backup_dir/$(basename "$conflict_file")"
-                return 0
-                ;;
-            [Kk])
-                log_info "Keeping existing file: $conflict_file"
-                return 1
-                ;;
-            [Ss])
-                local dotfile_path="$DOTFILES_DIR/$package/${conflict_file#"$HOME"/}"
-                if [ -f "$dotfile_path" ]; then
-                    echo -e "\n${CYAN}=== Diff: Existing (left) vs Dotfiles (right) ===${NC}"
-                    if command -v delta >/dev/null 2>&1; then
-                        diff -u "$conflict_file" "$dotfile_path" | delta
-                    else
-                        diff -u "$conflict_file" "$dotfile_path" || true
-                    fi
-                    echo ""
-                else
-                    log_warning "Could not find dotfile at: $dotfile_path"
-                fi
-                ;;
-            [Qq])
-                log_info "Installation cancelled by user"
-                exit 0
-                ;;
-            *)
-                echo -e "  ${YELLOW}${WARNING} Please press 'b', 'k', 's', or 'q'${NC}"
-                ;;
+            [Bb]) conflict_flag="--backup"; break ;;
+            [Kk]) conflict_flag=""; break ;;
+            *) echo -e "  ${YELLOW}${WARNING} Please press 'b' or 'k'${NC}" ;;
         esac
     done
-}
 
-# Use stow to create symlinks with conflict resolution
-stow_packages() {
-    log_step "Using Stow to manage dotfiles"
-
-    local packages=("zsh" "bash" "bin" "config" "nvim" "git" "tmux" "direnv" "ssh" "atuin" "gh" "htop" "lazygit" "ripgrep" "wezterm" "yazi" "flutter" "noto" "claude")
     local stowed_packages=()
-    local skipped_files=()
+    local failed_packages=()
 
     for package in "${packages[@]}"; do
-        if [ -d "$DOTFILES_DIR/$package" ]; then
-            log_info "Processing $package package..."
-
-            # Use stow to create symlinks
-            # Note: Exclusions are managed via .stow-local-ignore files in each package
-            local stow_args=(--no-folding -t "$HOME" "$package")
-
-            # First, try a dry-run to detect conflicts
-            local stow_output
-            stow_output=$(stow -n "${stow_args[@]}" 2>&1)
-            local stow_status=$?
-
-            if [ $stow_status -eq 0 ]; then
-                # No conflicts, proceed with stowing
-                if stow "${stow_args[@]}" 2>/dev/null; then
-                    log_success "Stowed $package package"
-                    stowed_packages+=("$package")
-                else
-                    log_error "Unexpected error stowing $package package"
-                fi
-            else
-                # Check if it's already stowed
-                if echo "$stow_output" | grep -q "already stowed"; then
-                    log_success "$package package already stowed"
-                    stowed_packages+=("$package")
-                # Check for conflicts
-                elif echo "$stow_output" | grep -q "existing target"; then
-                    log_warning "Conflicts detected in $package package"
-
-                    # Extract conflicting files from stow output
-                    local conflicts
-                    conflicts=$(echo "$stow_output" | grep "existing target" | sed 's/.*existing target is //g' | sed 's/ .*//g')
-
-                    # Ask user how to handle conflicts
-                    echo ""
-                    log_info "Found conflicts in $package package. How would you like to proceed?"
-                    echo ""
-                    echo -e "${CYAN}Options:${NC}"
-                    echo -e "  ${YELLOW}a${NC}) Backup ALL conflicting files and replace with stow symlinks"
-                    echo -e "  ${YELLOW}i${NC}) Handle each conflict individually"
-                    echo -e "  ${YELLOW}k${NC}) Keep all existing files (skip this package)"
-                    echo -e "  ${YELLOW}q${NC}) Quit installation"
-                    echo ""
-
-                    while true; do
-                        echo -en "  ${YELLOW}Choose action (a/i/k/q): ${NC}"
-                        read -r -n 1 bulk_choice
-                        echo
-
-                        case "$bulk_choice" in
-                            [Aa])
-                                # Backup all conflicts
-                                local backup_dir
-                                backup_dir="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
-                                mkdir -p "$backup_dir"
-                                log_info "Creating backup directory: $backup_dir"
-
-                                for conflict in $conflicts; do
-                                    if [ -f "$conflict" ] || [ -d "$conflict" ]; then
-                                        mv "$conflict" "$backup_dir/"
-                                        log_success "Backed up: $(basename "$conflict")"
-                                    fi
-                                done
-
-                                # Now stow should work
-                                if stow "${stow_args[@]}" 2>/dev/null; then
-                                    log_success "Stowed $package package"
-                                    stowed_packages+=("$package")
-                                else
-                                    log_error "Failed to stow $package after backup"
-                                fi
-                                break
-                                ;;
-                            [Ii])
-                                # Handle individually
-                                local can_stow=true
-                                for conflict in $conflicts; do
-                                    if ! handle_stow_conflict "$conflict" "$package"; then
-                                        can_stow=false
-                                        skipped_files+=("$conflict")
-                                    fi
-                                done
-
-                                if [ "$can_stow" = true ]; then
-                                    if stow "${stow_args[@]}" 2>/dev/null; then
-                                        log_success "Stowed $package package"
-                                        stowed_packages+=("$package")
-                                    else
-                                        log_warning "Some files in $package were skipped"
-                                    fi
-                                else
-                                    log_warning "Skipped $package package due to conflicts"
-                                fi
-                                break
-                                ;;
-                            [Kk])
-                                log_info "Skipped $package package"
-                                break
-                                ;;
-                            [Qq])
-                                log_info "Installation cancelled by user"
-                                exit 0
-                                ;;
-                            *)
-                                echo -e "  ${YELLOW}${WARNING} Please press 'a', 'i', 'k', or 'q'${NC}"
-                                ;;
-                        esac
-                    done
-                else
-                    # Some other error, try restowing
-                    if stow -R "${stow_args[@]}" 2>/dev/null; then
-                        log_success "Re-stowed $package package"
-                        stowed_packages+=("$package")
-                    else
-                        log_error "Could not stow $package package"
-                    fi
-                fi
-            fi
-        else
+        if [ ! -d "$DOTFILES_DIR/$package" ]; then
             log_warning "Package directory not found: $package"
+            continue
+        fi
+
+        # bin symlinks into ~/bin, not $HOME directly
+        local dest="$HOME"
+        if [ "$package" = "bin" ]; then
+            dest="$HOME/bin"
+            mkdir -p "$dest"
+        fi
+
+        # shellcheck disable=SC2086 # conflict_flag is intentionally unquoted (empty or a single flag)
+        if bestow stow "$package" -s "$DOTFILES_DIR" -d "$dest" $conflict_flag >/dev/null 2>&1; then
+            log_success "Stowed $package package"
+            stowed_packages+=("$package")
+        else
+            log_error "Failed to stow $package package"
+            failed_packages+=("$package")
         fi
     done
 
@@ -890,21 +772,8 @@ stow_packages() {
         return 1
     fi
 
-    if [ ${#skipped_files[@]} -gt 0 ]; then
-        echo ""
-        log_info "Note: Some files were skipped and kept as-is:"
-        for skipped in "${skipped_files[@]}"; do
-            log_info "  - $skipped"
-        done
-    fi
-
-    # Stow bin scripts into ~/bin (separate target from $HOME)
-    log_info "Stowing bin scripts into ~/bin..."
-    mkdir -p "$HOME/bin"
-    if stow --no-folding -t "$HOME/bin" bin 2>/dev/null; then
-        log_success "Stowed bin scripts into ~/bin"
-    else
-        log_warning "Could not stow bin scripts (may already be stowed)"
+    if [ ${#failed_packages[@]} -gt 0 ]; then
+        log_warning "Some packages had issues: ${failed_packages[*]}"
     fi
 }
 
@@ -964,7 +833,7 @@ test_installation() {
         log_success "Powerlevel10k config found at ~/.p10k.zsh"
     else
         log_warning "Powerlevel10k config not found at ~/.p10k.zsh"
-        log_info "Run 'stow --no-folding zsh' to create the symlink"
+        log_info "Run 'bestow stow zsh' to create the symlink"
     fi
 
     if [ $errors -eq 0 ]; then
@@ -1055,7 +924,7 @@ print_final_instructions() {
     echo -e "4. ${YELLOW}Explore available aliases${NC} with: ${BLUE}alias | grep git${NC}"
 
     echo -e "\n${CYAN}Terminal font configuration:${NC}"
-    echo -e "• ${YELLOW}WezTerm:${NC} Already configured in ~/.config/wezterm/wezterm.lua (FiraCode Nerd Font)"
+    echo -e "• ${YELLOW}Ghostty:${NC} Already configured in ~/.config/ghostty/config (FiraCode Nerd Font)"
     echo -e "• ${YELLOW}iTerm2:${NC} Preferences → Profiles → Text → Font"
     echo -e "• ${YELLOW}Terminal.app:${NC} Preferences → Profiles → Text → Font"
 
@@ -1115,8 +984,8 @@ main() {
     check_macos
     check_xcode_tools
     setup_homebrew
-    install_stow
-    install_core_dependencies
+    install_core_dependencies # Installs Go (via Brewfile), required by install_bestow
+    install_bestow
     setup_touchid_sudo
     install_dev_tools
     install_terminal_apps
@@ -1125,7 +994,7 @@ main() {
     setup_environment
     setup_secret_management
     backup_existing_files
-    stow_packages # Must run after backup_existing_files
+    bestow_packages # Must run after backup_existing_files
     setup_git_config
     test_installation
 

@@ -144,7 +144,8 @@ test_env_var "JAVA_HOME"
 # ============================================================================
 print_header "Core Packages"
 
-test_tool "stow" "stow" "stow --version | head -1"
+test_tool "Go" "go" "go version"
+test_tool "bestow" "bestow" "bestow --version"
 test_tool "fzf" "fzf" "fzf --version"
 test_tool "zoxide" "zoxide" "zoxide --version"
 test_tool "bat" "bat" "bat --version | head -1"
@@ -219,9 +220,6 @@ test_tool "Python" "python3" "python3 --version" "true"
 
 # Ruby (optional)
 test_tool "Ruby" "ruby" "ruby --version" "true"
-
-# Go (optional)
-test_tool "Go" "go" "go version" "true"
 
 # ============================================================================
 # DEVELOPMENT TOOLS

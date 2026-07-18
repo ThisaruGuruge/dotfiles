@@ -26,10 +26,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Repointed the `v` alias from the `bat`/`mdcat` wrapper function to `nvim` — the wrapper saw little use; `bat` remains available directly under its own name
 - Renamed `cask "google-cloud-sdk"` to `cask "gcloud-cli"` in `packages/cloud.brewfile` — Homebrew renamed the cask; the old token still resolved but pointed at a deprecated alias
+- Migrated symlink management from GNU Stow to [`bestow`](https://github.com/redpierrot/bestow) (`go install github.com/redpierrot/bestow@latest`) across `init.sh`, `cleanup.sh`, `bin/reset-dotfiles`, `bin/adopt-config`, and all docs — `init.sh`'s `bestow_packages()` step dropped the old per-file interactive backup/keep/diff conflict loop in favor of bestow's native `--backup`/`--force` flags (asked once per install run, not per file), since that loop existed only to work around GNU stow's clunky conflict reporting. `.stow-local-ignore` files were ported to `.bestowignore` (glob syntax, not regex — note bestow requires the per-package ignore file at the package root, not nested inside `.config/<tool>/`, and has no directory-only match: `**/cache/` needed rewriting to `**/cache/**`). Also fixed two live bugs found during the migration: `~/.config/bestow/config.yaml`'s destination pointed at a stale test path instead of `$HOME`, and the top-level `.bestowignore`'s `claude*` glob accidentally matched the `claude` package directory itself (narrowed to `claude-*`)
+- Corrected several stale-symlink and stale-doc references left over from the earlier `config/` → per-tool-package restructuring (`~/.config/typos/_typos.toml` pointed at the removed `config/` package; README/CLAUDE.md/docs still described that layout)
 
 ### Removed
 
 - Removed `packages/databases.brewfile` (PostgreSQL, Redis) — dropped from the optional-category set
+- Removed GNU Stow (`brew "stow"`, `.stow-local-ignore` files) — fully replaced by bestow (see Changed)
 
 ## [2.0.0] - 2026-07-14
 
