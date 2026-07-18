@@ -64,6 +64,7 @@ return {
                     map("n", "<leader>gu", gs.undo_stage_hunk, { desc = "Undo stage hunk" })
                     map("n", "<leader>gR", gs.reset_buffer, { desc = "Reset buffer" })
                     map("n", "<leader>gp", gs.preview_hunk, { desc = "Preview hunk" })
+                    map("n", "<leader>gt", gs.toggle_deleted, { desc = "Toggle deleted lines (inline)" })
                     map("n", "<leader>gb", function()
                         gs.blame_line({ full = true })
                     end, { desc = "Blame line" })
