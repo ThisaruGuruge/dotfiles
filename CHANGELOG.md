@@ -7,7 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.1.0] - 2026-07-18
+### Fixed
+
+- Fixed `.github/workflows/release.yml` referencing a `packages.json` file removed months ago (commit `629fe27`) — its `Generate release artifacts` step failed on `cp: cannot stat 'packages.json'` for every release, including `2.1.0`, which is why that release's GitHub Release/artifacts had to be published manually
+- Fixed `.github/workflows/auto-tag.yml` tagging a release but never triggering `release.yml` — a tag pushed with the default `GITHUB_TOKEN` doesn't fire other workflows' `push: tags:` listeners (GitHub's anti-recursion safeguard for bot-authored events), so `auto-tag.yml` now explicitly dispatches `release.yml` via `gh workflow run` right after tagging
 
 ### Added
 

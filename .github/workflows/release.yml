@@ -100,7 +100,6 @@ jobs:
 
           # Copy key files
           cp Brewfile release-artifacts/
-          cp packages.json release-artifacts/
 
           # Create a tarball of the dotfiles (excluding .git and other artifacts)
           tar -czf release-artifacts/dotfiles-${{ steps.version.outputs.version }}.tar.gz \
@@ -125,7 +124,6 @@ jobs:
           generate_release_notes: ${{ steps.changelog.outputs.has_notes != 'true' }}
           files: |
             release-artifacts/Brewfile
-            release-artifacts/packages.json
             release-artifacts/dotfiles-${{ steps.version.outputs.version }}.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -139,7 +137,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Release Artifacts" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Brewfile" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ packages.json" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ dotfiles-${{ steps.version.outputs.version }}.tar.gz" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Release Notes" >> $GITHUB_STEP_SUMMARY
