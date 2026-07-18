@@ -157,7 +157,7 @@ The installation script:
 - Installs Homebrew packages from packages.json
 - Creates encrypted environment files
 - Sets up SOPS/age encryption
-- Creates symlinks with GNU Stow
+- Creates symlinks with bestow
 - Does NOT modify existing configs without backup
 - Does NOT download executables from untrusted sources
 - Does NOT require sudo (except for Xcode Command Line Tools)

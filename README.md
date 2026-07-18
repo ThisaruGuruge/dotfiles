@@ -1,12 +1,12 @@
 # Thisaru's Dotfiles
 
-A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CLI tools, and battle-tested automation. Everything is wired together with GNU Stow, encrypted secrets, and a centralized package manifest so each new machine behaves exactly like the last one.
+A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CLI tools, and battle-tested automation. Everything is wired together with [`bestow`](https://github.com/redpierrot/bestow) (a Go-based GNU Stow successor), encrypted secrets, and a centralized package manifest so each new machine behaves exactly like the last one.
 
 ## Highlights
 
-- **Fast Zsh environment** – zinit-managed plugins, fzf-tab completion, syntax highlighting, autosuggestions, zoxide (via `z` command), Atuin history (Ctrl+R and up-arrow), and WezTerm compatible key bindings
+- **Fast Zsh environment** – zinit-managed plugins, fzf-tab completion, syntax highlighting, autosuggestions, zoxide (via `z` command), Atuin history (Ctrl+R and up-arrow), and Ghostty compatible key bindings
 - **Powerlevel10k prompt** – pure-Zsh rendering (no binary subprocess per draw), instant prompt on startup, contextual Git state, Go/Java/Python/Ballerina indicators, transient prompt for clean scrollback, full Catppuccin Mocha theme matching the tmux status bar
-- **Modern CLI stack** – eza, bat, dust, ripgrep, fd, yazi (with inline image previews in WezTerm/iTerm2, chafa fallback for other terminals), jless, lazygit, lazydocker, tmux, direnv, atuin, gh, git-delta, gng (`gw`), and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
+- **Modern CLI stack** – eza, bat, dust, ripgrep, fd, yazi (with inline image previews in Ghostty/iTerm2, chafa fallback for other terminals), jless, lazygit, lazydocker, tmux, direnv, atuin, gh, git-delta, gng (`gw`), and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
 - **Smart aliases** – Single-letter shortcuts for modern tools (`v` for nvim, `g` for ripgrep, `f` for fd, `z` for zoxide) while keeping original commands for scripts
 - **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → mdcat, `.json`/`.yaml` → jless, `.py`/`.sh`/`.bal` → $EDITOR)
 - **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina with lazy-loading shell glue so heavy managers don't slow startup
@@ -23,7 +23,7 @@ A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CL
    ```bash
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
    ```
-4. **Terminal** – WezTerm (recommended and configured), iTerm2, or Terminal.app all work
+4. **Terminal** – Ghostty (recommended and configured), iTerm2, or Terminal.app all work
 5. **Nerd Font** – Needed for icons in Powerlevel10k/lazygit:
    ```bash
    brew install --cask font-fira-code-nerd-font
@@ -42,7 +42,7 @@ cd ~/dotfiles
 
 The script is interactive; it will:
 
-- Validate macOS + Xcode CLT, install Homebrew, jq, GNU Stow
+- Validate macOS + Xcode CLT, install Homebrew, jq, Go (needed to install `bestow`)
 - Install core packages from `Brewfile` with Brew
 - Offer opt-in categories (development, terminals, editors, etc.)
 - Install SDKMAN + Java 21 (optional) and brew-based Ballerina
@@ -50,7 +50,7 @@ The script is interactive; it will:
 - Configure Atuin, direnv, tmux, git delta, lazygit, lazydocker, aliases, and helper functions
 - Generate/restore encrypted `.env` with SOPS + age (keys stored at `~/.config/sops/age/keys.txt`)
 - Create Nerd Font + terminal integrations
-- Back up existing dotfiles and symlink everything via Stow
+- Back up existing dotfiles and symlink everything via `bestow`
 - Test the install with `test-zsh` and show next steps
 
 ### Option 2 – Manual setup
@@ -62,8 +62,14 @@ cd ~/dotfiles
 # Install everything that is currently enabled in Brewfile
 brew bundle --file=Brewfile
 
-# Stow the packages you need (add/remove as desired)
-stow --no-folding zsh git tmux vim direnv config
+# Install bestow (requires Go)
+go install github.com/redpierrot/bestow@latest
+
+# Bootstrap bestow's own config (source: this repo, destination: $HOME)
+bestow init --source ~/dotfiles --destination ~/
+
+# Symlink the packages you need (add/remove as desired)
+bestow stow zsh git tmux direnv bash
 
 # Copy the env template (will be encrypted later by init/edit_secrets)
 cp zsh/.env.example zsh/.env
@@ -89,7 +95,7 @@ packages/
 ├── development.brewfile # pyenv, rbenv, nvm, flutter
 ├── editors.brewfile     # Cursor, VS Code
 ├── productivity.brewfile # Raycast, Rectangle, etc.
-└── terminals.brewfile   # WezTerm, iTerm2
+└── terminals.brewfile   # iTerm2
 ```
 
 ### Installing optional categories
@@ -107,20 +113,20 @@ brew bundle --file=packages/editors.brewfile     # Add editors
 - `development` – pyenv, rbenv, nvm, flutter (optional)
 - `aws`, `gcp` – cloud CLIs and helpers
 - `editors` – Cursor, VS Code
-- `terminals` – WezTerm, iTerm2 (casks)
+- `terminals` – iTerm2 (casks)
 - `containers` – Docker Desktop, Rancher Desktop
 - `productivity` – Raycast, Rectangle, TablePlus, Alfred, Postman
 
 Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 
-## Repository Layout & Stow Packages
+## Repository Layout & Symlink Packages
 
 | Path | Notes |
 | --- | --- |
 | `zsh/` | `.zshrc`, `.zshrc.d/` (modular shell config), `.functions.d/` (modular functions), aliases, paths |
 | `zsh/.zshrc.d/` | 7 modules: plugins, completion, keybindings, history, integrations, environment, tmux |
 | `zsh/.functions.d/` | 9 modules: colors, core, navigation, archives, git, system, dotfiles, docs, packages |
-| `config/.config/` | XDG configs (`wezterm`, `lazygit`, `nvim`, `yazi`, `ripgrep`) |
+| `<tool>/.config/<tool>/` | XDG configs, one stow package per tool (`ghostty`, `lazygit`, `nvim`, `yazi`, `ripgrep`, `typos`) |
 | `zsh/.p10k.zsh` | Powerlevel10k prompt config (Catppuccin Mocha, stowed to `~/.p10k.zsh`) |
 | `git/` | `.gitconfig`, ignore rules, delta settings |
 | `tmux/` | Modern tmux config + keybinds |
@@ -129,27 +135,28 @@ Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 | `bin/` | Helper scripts (`test-zsh-config`, `profile-zsh-startup`, `audit-configs`, `adopt-config`) |
 | `docs/` | Additional documentation (prompt guide, tmux keybindings, config management) |
 
-### WezTerm Configuration
+### Ghostty Configuration
 
-WezTerm is configured with:
+Ghostty is configured with:
 - Option key for word navigation (Option+Left/Right)
 - Catppuccin Mocha theme
 - FiraCode Nerd Font with ligatures
-- Comprehensive keyboard shortcuts (Cmd+D for split, vim-style copy mode)
-- Tmux integration for pane splitting
+- Tmux-aware keybindings for window/pane navigation
 
-### Stow Usage
+### Symlink Management (bestow)
 
-This repo uses GNU Stow with the `--no-folding` flag to ensure reliable symlink creation. This prevents directory folding issues where Stow might replace directories with symlinks.
+Day-to-day package management (adding/removing symlinks after the initial install) uses `bestow` — a Go-based successor to GNU Stow — instead of `stow` directly. It replicates `stow --no-folding` behavior (always on, no flag needed) but is idempotent and conflict-safe with pre-existing absolute symlinks.
 
 ```bash
-stow --no-folding zsh              # Shell config (includes .p10k.zsh)
-stow --no-folding config           # lazygit, nvim, wezterm, ripgrep, yazi
-stow --no-folding git tmux direnv  # Git/Tmux/Direnv packages
+bestow stow zsh                    # Shell config (includes .p10k.zsh)
+bestow stow nvim ghostty lazygit ripgrep yazi typos  # Per-tool packages
+bestow stow git tmux direnv        # Git/Tmux/Direnv packages
 
 # Remove a package
-stow -D zsh
+bestow unstow zsh
 ```
+
+`init.sh` (the fresh-machine installer) still bootstraps with GNU Stow, since `bestow` is a personal Go build not yet packaged for distribution.
 
 **Alternative**: For cross-platform dotfile management, consider [Chezmoi](https://www.chezmoi.io/).
 
@@ -300,7 +307,7 @@ test-zsh                     # Sanity check after upgrades
 source ~/.zshrc              # Reload shell config
 ```
 
-Remember to `stow -D` packages you no longer want and re-run `stow` after pulling to ensure new configs are linked.
+Remember to `bestow unstow` packages you no longer want and re-run `bestow stow` after pulling to ensure new configs are linked.
 
 ## Contributing
 

@@ -1,8 +1,8 @@
 # Ignore sensitive and generated files
 *.log
 *.cache
-**/cache/
-**/Cache/
+**/cache/**
+**/Cache/**
 *.token
 *.key
 credentials*

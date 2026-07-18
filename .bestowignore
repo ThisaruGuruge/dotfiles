@@ -1,5 +1,6 @@
 # Ignore files
 .gitignore
+.bestowignore
 
 # Directories
 .github
@@ -20,8 +21,7 @@ cleanup.sh
 *.brewfile
 *.md
 **/*.md
-claude*
-.stow-local-ignore
+claude-*
 **/*.brewfile
 .nvim-state
 **/*.example

@@ -68,36 +68,25 @@ echo -e "${BLUE}║${NC}  ${PURPLE}Dotfiles Reset/Clean Script${NC}             
 echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-log_warning "This script will remove Stow-managed symlinks from your home directory"
+log_warning "This script will remove bestow-managed symlinks from your home directory"
 echo ""
 
-# Check what will be removed
-log_step "Checking current Stow setup"
-
-PACKAGES=("zsh" "git" "tmux" "direnv" ".config")
-FOUND_PACKAGES=()
-
-for package in "${PACKAGES[@]}"; do
-    if [ -d "$package" ]; then
-        FOUND_PACKAGES+=("$package")
-        log_info "Found package: $package"
-    fi
-done
-
-if [ ${#FOUND_PACKAGES[@]} -eq 0 ]; then
-    log_warning "No Stow packages found in $DOTFILES_DIR"
-    exit 0
+if ! command -v bestow >/dev/null 2>&1; then
+    log_error "bestow is not installed; nothing to check"
+    exit 1
 fi
+
+# Check what will be removed
+log_step "Checking current bestow setup"
 
 echo ""
 log_warning "The following symlinks will be removed:"
 echo ""
-
-# Show what stow would unstow (dry run)
-for package in "${FOUND_PACKAGES[@]}"; do
-    echo -e "${CYAN}Package: $package${NC}"
-    stow -n -D -t "$HOME" "$package" 2>&1 | grep -E "UNLINK:" | sed 's/UNLINK: /  - ~\//' || true
-done
+bestow unstow --dry-run -v 2>/dev/null | grep -E "REMOVE:" | sed -E 's/.*REMOVE: //' | sed 's/^/  - /'
+# bin/ symlinks into ~/bin, not $HOME, so it needs a separate destination
+if [ -d "$DOTFILES_DIR/bin" ]; then
+    bestow unstow bin -d "$HOME/bin" --dry-run -v 2>/dev/null | grep -E "REMOVE:" | sed -E 's/.*REMOVE: //' | sed 's/^/  - /'
+fi
 
 echo ""
 if ! confirm "Do you want to proceed with removing these symlinks?" "n"; then
@@ -105,16 +94,22 @@ if ! confirm "Do you want to proceed with removing these symlinks?" "n"; then
     exit 0
 fi
 
-# Remove Stow symlinks
-log_step "Removing Stow symlinks"
+# Remove bestow symlinks
+log_step "Removing bestow symlinks"
 
-for package in "${FOUND_PACKAGES[@]}"; do
-    if stow -D -t "$HOME" "$package" 2>&1; then
-        log_success "Removed symlinks for $package"
+if bestow unstow 2>&1; then
+    log_success "Removed all bestow-managed symlinks"
+else
+    log_error "Failed to remove some symlinks"
+fi
+
+if [ -d "$DOTFILES_DIR/bin" ]; then
+    if bestow unstow bin -d "$HOME/bin" 2>&1; then
+        log_success "Removed bin package symlinks from ~/bin"
     else
-        log_error "Failed to remove symlinks for $package"
+        log_error "Failed to remove bin package symlinks"
     fi
-done
+fi
 
 # Additional cleanup
 log_step "Additional cleanup"

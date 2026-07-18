@@ -29,9 +29,9 @@ Migrate an existing config from `~/.config/<app>` into your dotfiles repo.
 **What it does:**
 1. Checks if config exists and isn't already a symlink
 2. Shows size and warns about sensitive data
-3. Moves config to `~/dotfiles/config/.config/<app>`
-4. Creates `.stow-local-ignore` for sensitive files
-5. Restows to create symlink back
+3. Moves config to `~/dotfiles/<app>/.config/<app>` (a new top-level bestow package)
+4. Creates `.bestowignore` for sensitive files
+5. Stows the package to create the symlink back
 6. Prompts you to review and commit
 
 **Example:**
@@ -40,10 +40,10 @@ Migrate an existing config from `~/.config/<app>` into your dotfiles repo.
 ./bin/adopt-config fish
 
 # Review the ignore file
-vim ~/dotfiles/config/.config/fish/.stow-local-ignore
+vim ~/dotfiles/fish/.bestowignore
 
 # Commit
-git add config/.config/fish
+git add fish/.config/fish fish/.bestowignore
 git commit -m "Adopt fish shell configuration"
 ```
 
@@ -75,17 +75,17 @@ Update your Brewfile with all currently installed Homebrew packages.
 brew install bat
 
 # 2. Configure it
-mkdir -p ~/dotfiles/config/.config/bat
-echo "--theme=TwoDark" > ~/dotfiles/config/.config/bat/config
+mkdir -p ~/dotfiles/bat/.config/bat
+echo "--theme=TwoDark" > ~/dotfiles/bat/.config/bat/config
 
 # 3. Stow it
-cd ~/dotfiles && stow -R config
+cd ~/dotfiles && bestow stow bat
 
 # 4. Update Brewfile
 ./bin/sync-brewfile
 
 # 5. Commit everything
-git add config/.config/bat Brewfile
+git add bat/.config/bat Brewfile
 git commit -m "Add bat with custom config"
 git push
 ```
@@ -101,7 +101,7 @@ git push
 ./bin/adopt-config sops
 
 # 3. Review and commit
-git add config/.config/fish config/.config/sops
+git add fish/.config/fish sops/.config/sops
 git commit -m "Adopt fish and sops configurations"
 git push
 ```
@@ -120,5 +120,5 @@ cd ~/dotfiles
 
 - Run `./bin/audit-configs` periodically to catch new configs
 - Use `./bin/sync-brewfile` after installing new tools
-- Always review `.stow-local-ignore` files before committing
+- Always review `.bestowignore` files before committing
 - Test your init.sh on a fresh VM/container periodically

@@ -7,7 +7,7 @@ set -e
 APP_NAME="$1"
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONFIG_SOURCE="$HOME/.config/$APP_NAME"
-CONFIG_DEST="$DOTFILES_DIR/config/.config/$APP_NAME"
+CONFIG_DEST="$DOTFILES_DIR/$APP_NAME/.config/$APP_NAME"
 
 # Colors
 RED='\033[0;31m'
@@ -46,7 +46,7 @@ echo ""
 if grep -r -i -E "(token|password|key|secret|credential)" "$CONFIG_SOURCE" 2>/dev/null | head -5; then
     echo ""
     echo -e "${YELLOW}⚠️  Warning: This config may contain sensitive data!${NC}"
-    echo -e "${YELLOW}Make sure to add appropriate .stow-local-ignore entries${NC}"
+    echo -e "${YELLOW}Make sure to add appropriate .bestowignore entries${NC}"
     echo ""
 fi
 
@@ -60,17 +60,21 @@ fi
 
 # Move to dotfiles
 echo "Moving $CONFIG_SOURCE to $CONFIG_DEST..."
+mkdir -p "$(dirname "$CONFIG_DEST")"
 mv "$CONFIG_SOURCE" "$CONFIG_DEST"
 
-# Create .stow-local-ignore if needed
-if [ ! -f "$CONFIG_DEST/.stow-local-ignore" ]; then
-    echo "Creating .stow-local-ignore..."
-    cat > "$CONFIG_DEST/.stow-local-ignore" <<'EOF'
+# Create .bestowignore if needed (must live at the package root, i.e.
+# $APP_NAME/.bestowignore, not nested inside .config/$APP_NAME — bestow
+# silently ignores per-package ignore files placed anywhere else)
+PACKAGE_ROOT="$DOTFILES_DIR/$APP_NAME"
+if [ ! -f "$PACKAGE_ROOT/.bestowignore" ]; then
+    echo "Creating .bestowignore..."
+    cat > "$PACKAGE_ROOT/.bestowignore" <<'EOF'
 # Ignore sensitive and generated files
 *.log
 *.cache
-**/cache/
-**/Cache/
+**/cache/**
+**/Cache/**
 *.token
 *.key
 credentials*
@@ -78,14 +82,14 @@ secrets*
 EOF
 fi
 
-# Restow to create symlink
+# Stow to create the symlink
 cd "$DOTFILES_DIR"
-stow -R config
+bestow stow "$APP_NAME"
 
 echo -e "${GREEN}✓ Successfully adopted $APP_NAME${NC}"
 echo -e "${GREEN}✓ Symlink created: $CONFIG_SOURCE -> $CONFIG_DEST${NC}"
 echo ""
 echo "Next steps:"
-echo "1. Review $CONFIG_DEST/.stow-local-ignore"
+echo "1. Review $PACKAGE_ROOT/.bestowignore"
 echo "2. Git commit the new config"
 echo "3. Test that the application still works"
