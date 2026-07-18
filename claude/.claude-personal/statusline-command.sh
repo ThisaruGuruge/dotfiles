@@ -34,6 +34,9 @@ if [ -n "$git_branch" ]; then
     fi
 fi
 
+# ── Vim mode ─────────────────────────────────────────────────────────────────
+vim_mode=$(echo "$input" | jq -r '.vim.mode // empty')
+
 # ── Model ────────────────────────────────────────────────────────────────────
 model=$(echo "$input" | jq -r '.model.display_name // empty')
 
@@ -66,6 +69,7 @@ RED_FG='\033[38;2;243;139;168m'
 DIM='\033[2m'
 PERSONAL_FG='\033[38;2;137;180;250m'
 TOKENS_FG='\033[38;2;147;153;178m'
+BLUE_FG='\033[38;2;137;180;250m'
 
 # ── Helper functions ──────────────────────────────────────────────────────────
 
@@ -133,6 +137,18 @@ _format_eta() {
 
 # Account indicator
 printf '%b● PERSONAL%b' "$PERSONAL_FG" "$RESET"
+
+# Vim mode segment
+if [ -n "$vim_mode" ]; then
+    case "$vim_mode" in
+        NORMAL) VIM_FG="$BLUE_FG"; vim_label="NORMAL" ;;
+        INSERT) VIM_FG="$GREEN_FG"; vim_label="INSERT" ;;
+        "VISUAL LINE") VIM_FG="$YELLOW_FG"; vim_label="V-LINE" ;;
+        VISUAL) VIM_FG="$YELLOW_FG"; vim_label="VISUAL" ;;
+        *) VIM_FG="$TOKENS_FG"; vim_label="$vim_mode" ;;
+    esac
+    printf "  ${VIM_FG}%s${RESET}" "$vim_label"
+fi
 
 # Directory segment
 printf "  ${DIR_BG}${DIR_FG} %s ${RESET}" "$dir_name"
