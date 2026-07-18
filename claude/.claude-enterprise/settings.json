@@ -9,5 +9,6 @@
   "effortLevel": "xhigh",
   "autoUpdatesChannel": "stable",
   "theme": "dark",
-  "editorMode": "vim"
+  "editorMode": "vim",
+  "hideVimModeIndicator": true
 }
