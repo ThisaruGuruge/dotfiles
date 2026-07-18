@@ -176,7 +176,9 @@ install_bestow() {
                 log_success "bestow installed successfully"
                 # Make it available for the rest of this script run, even before
                 # zsh/.paths.sh (which adds $GOPATH/bin to PATH) is stowed
-                export PATH="$(go env GOPATH)/bin:$PATH"
+                local gopath_bin
+                gopath_bin="$(go env GOPATH)/bin"
+                export PATH="$gopath_bin:$PATH"
             else
                 log_error "Failed to install bestow. Exiting."
                 exit 1
@@ -733,8 +735,14 @@ bestow_packages() {
         read -r -n 1 choice
         echo
         case "$choice" in
-            [Bb]) conflict_flag="--backup"; break ;;
-            [Kk]) conflict_flag=""; break ;;
+            [Bb])
+                conflict_flag="--backup"
+                break
+                ;;
+            [Kk])
+                conflict_flag=""
+                break
+                ;;
             *) echo -e "  ${YELLOW}${WARNING} Please press 'b' or 'k'${NC}" ;;
         esac
     done
