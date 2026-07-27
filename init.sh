@@ -721,7 +721,7 @@ EOF
 bestow_packages() {
     log_step "Using bestow to manage dotfiles"
 
-    local packages=("zsh" "bash" "bin" "nvim" "git" "tmux" "direnv" "ssh" "atuin" "gh" "htop" "lazygit" "ripgrep" "yazi" "flutter" "noto" "claude" "typos" "dust" "dlv" "ghostty")
+    local packages=("zsh" "bash" "bin" "nvim" "git" "tmux" "direnv" "ssh" "atuin" "gh" "htop" "lazygit" "ripgrep" "yazi" "flutter" "noto" "claude" "typos" "dust" "dlv" "ghostty" "hammerspoon")
 
     echo ""
     echo -e "${CYAN}If a dotfile already exists at the destination, how should it be handled?${NC}"

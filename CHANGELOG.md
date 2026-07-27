@@ -14,12 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added `hammerspoon` stow package (`hammerspoon/.hammerspoon/init.lua`) and `cask "hammerspoon"` to `Brewfile` — loads `ControlEscape.spoon` so Caps Lock taps send Escape and holds act as Control. The Spoon itself is installed manually (`git clone` into `~/.hammerspoon/Spoons/`), not by `init.sh` — it's third-party code with its own git history.
 - Added `overrideGpg: true` to `lazygit/.config/lazygit/config.yml` — with `commit.gpgsign = true` and a passphrase agent (gpg-agent) caching the passphrase, lazygit otherwise blocks commit/amend actions with "Feature not available for users using GPG" since it can't tell whether a signing action will need an interactive terminal prompt
 - Added `<leader>gt` for `gitsigns.toggle_deleted()` — toggles an inline, in-buffer view of removed lines directly at the hunk (virtual text, strikethrough-style), as an alternative to the floating-window `<leader>gp` preview. Pair with the existing `<leader>gr`/`<leader>gR` (reset hunk/buffer) to discard the change once you've seen what's missing
 - Documented built-in `]l`/`[l` (and `]L`/`[L`) location-list navigation, with which-key labels in `plugins/editor.lua` — clarifies that `gO` (LSP document symbols) opens a location list, not the quickfix list, so `]q`/`[q` don't apply to it
 - Added `<leader>fS` for project-wide symbol search (`Telescope lsp_dynamic_workspace_symbols`) — look up a struct/function/class by name across the whole workspace and jump straight to its definition
 - Set `gopls` `symbolScope = "workspace"` — restricts `<leader>fS` in Go projects to the current module's own packages, excluding dependencies and the stdlib
 - Added `render-markdown.nvim` (`plugins/markdown.lua`) for in-buffer markdown rendering (headings, code blocks, tables, bullets) — replaces the terminal-only markdown viewing lost when the `v` alias moved off `bat`/`mdcat`; toggle with `<leader>tm`
+- Overrode `RenderMarkdownCode`/`RenderMarkdownCodeInline`/`RenderMarkdownCodeInfo` highlights in `plugins/markdown.lua` to use rose-pine's `overlay`/`highlight_med`/`iris` palette colors — the plugin's default link (`ColorColumn`) sits too close to rose-pine's background in dark mode, making code blocks hard to spot
 - Added `neovim`, `git`, `shellcheck`, `shfmt`, `stylua`, `prettier` to `Brewfile` — these were already required (nvim config, conform.nvim format-on-save, `CONTRIBUTING.md` validation steps) but were never declared as dependencies
 - Added `cask "claude-code"` to `Brewfile` — the `claude/` package configures it, but the CLI itself wasn't tracked
 - Added `cask "font-noto-sans-sinhala"` to `Brewfile` — fallback font referenced in `ghostty/.config/ghostty/config`, previously installed manually with no package tracking
@@ -40,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed `packages/databases.brewfile` (PostgreSQL, Redis) — dropped from the optional-category set
 - Removed GNU Stow (`brew "stow"`, `.stow-local-ignore` files) — fully replaced by bestow (see Changed)
+- Removed the deprecated 4-char git alias shims (`gits`, `gitd`, `gitm`, `gitcan`, `gr_soft`, `gr_hard`, `git_clean_all`) kept in `zsh/.aliases.sh` for the migration to the `g*` short aliases — each had a matching replacement (`gs`, `gd`, `gm`, `gca`, `grs`, `grh`, `gcla`) in place since that migration; doc lookups in `zsh/.functions.d/07-docs.zsh` referencing `gits` were updated to `gs`
 
 ### Fixed
 

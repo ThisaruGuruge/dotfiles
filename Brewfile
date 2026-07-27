@@ -71,3 +71,6 @@ cask "font-noto-sans-sinhala"       # Sinhala fallback font (used by ghostty con
 # Terminal emulator
 cask "ghostty"                      # GPU-accelerated terminal (native Metal on macOS)
 
+# Keyboard remapping
+cask "hammerspoon"                  # hammerspoon/ package configures Caps Lock: tap for Escape, hold for Control (Karabiner alternative, no system extension)
+

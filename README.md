@@ -11,6 +11,7 @@ A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CL
 - **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → mdcat, `.json`/`.yaml` → jless, `.py`/`.sh`/`.bal` → $EDITOR)
 - **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina with lazy-loading shell glue so heavy managers don't slow startup
 - **Touch ID for sudo** – Use your fingerprint instead of typing passwords in the terminal (works inside tmux too via `pam-reattach`)
+- **Caps Lock remap** – Hammerspoon + `ControlEscape.spoon`: tap Caps Lock for Escape, hold for Control — a Karabiner alternative that needs only Accessibility/Input Monitoring permissions, no blockable system extension
 - **Secrets handled correctly** – SOPS + age encryption, `edit_secrets` workflow, and automatic `.env` handling inside `init.sh`
 - **Brewfile-driven** – Curated `Brewfile` with optional category files in `packages/` for modular installation
 - **Validation + profiling** – `test-zsh` integration tests, `profile_startup` quick timing, and `bin/profile-zsh-startup` for deep dives

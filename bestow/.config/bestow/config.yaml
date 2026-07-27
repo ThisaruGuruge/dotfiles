@@ -10,3 +10,6 @@ profiles:
     source: /Users/thisaru/dotfiles
     # Destination Directory (your $HOME directory)
     destination: /Users/thisaru
+  sandbox:
+    source: /Users/thisaru/dotfiles/
+    destination: /Users/thisaru/Projects/bestow-test/dest/
