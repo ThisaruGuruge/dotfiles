@@ -157,11 +157,11 @@ alias_help() {
             ;;
 
         # Git Operations
-        "git" | "gits" | "gl" | "gp" | "gco" | "gb" | "ga" | "gaa" | "lg" | "glog")
+        "git" | "gs" | "gl" | "gp" | "gco" | "gb" | "ga" | "gaa" | "lg" | "glog")
             echo "🌿 Git Aliases - Enhanced Git Workflow"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Basic Git:"
-            echo "  gits    git status (quick status check)"
+            echo "  gs      git status (quick status check)"
             echo "  ga      git add (stage files)"
             echo "  gaa     git add --all (stage everything)"
             echo "  gb      git branch (list/create branches)"
@@ -305,7 +305,7 @@ alias_help() {
             echo ""
             echo "Available categories:"
             echo "  File operations: ls, ll, cat, grep"
-            echo "  Git workflow: git, gits, lg, glog"
+            echo "  Git workflow: git, gs, lg, glog"
             echo "  Gradle build: gw, gwb, gwc, gwt, gwcb"
             echo "  Docker: docker, dps, dex, dlog"
             echo "  Tmux: tmux, t, ta, tl"
@@ -375,7 +375,7 @@ alias_categories() {
     echo "   grep - Fast text search (ripgrep)"
     echo ""
     echo "🌿 GIT WORKFLOW:"
-    echo "   gits, ga, gaa, gb, gco - Basic git operations"
+    echo "   gs, ga, gaa, gb, gco - Basic git operations"
     echo "   gl, gp, gf - Remote operations"
     echo "   lg, glog, gundo, gamend - Advanced git tools"
     echo ""

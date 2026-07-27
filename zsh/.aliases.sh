@@ -185,42 +185,6 @@ function gcla() {
     read -q "?Continue? [y/N] " && echo && git clean -df && git checkout -- . || echo
 }
 
-# Deprecated aliases (runtime warnings — use new g* names)
-function gits() {
-    echo "\e[33m[deprecated] use 'gs' instead of 'gits'\e[0m"
-    git status "$@"
-}
-
-function gitd() {
-    echo "\e[33m[deprecated] use 'gd' instead of 'gitd'\e[0m"
-    git diff "$@"
-}
-
-function gitm() {
-    echo "\e[33m[deprecated] use 'gm' instead of 'gitm'\e[0m"
-    git commit -m "$@"
-}
-
-function gitcan() {
-    echo "\e[33m[deprecated] use 'gca' instead of 'gitcan'\e[0m"
-    git commit --amend --no-edit "$@"
-}
-
-function gr_soft() {
-    echo "\e[33m[deprecated] use 'grs' instead of 'gr_soft'\e[0m"
-    git reset --soft "$@"
-}
-
-function gr_hard() {
-    echo "\e[33m[deprecated] use 'grh' instead of 'gr_hard'\e[0m"
-    grh "$@"
-}
-
-function git_clean_all() {
-    echo "\e[33m[deprecated] use 'gcla' instead of 'git_clean_all'\e[0m"
-    gcla "$@"
-}
-
 if (($+commands[mdcat])); then
     alias md='mdcat -p'
     # View README in current directory
