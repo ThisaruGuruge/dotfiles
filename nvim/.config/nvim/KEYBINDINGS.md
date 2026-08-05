@@ -183,6 +183,12 @@ Open with `<leader>fy` to browse yank history in a Telescope picker.
 | `<leader>tt` | Toggle terminal       | plugins/editor.lua:169 |
 | `<C-\>`      | Toggle terminal (alt) | plugins/editor.lua:174 |
 
+## Line Wrap
+
+| Key          | Action      | Source               |
+| ------------ | ----------- | --------------------- |
+| `<leader>tw` | Toggle wrap | plugins/editor.lua:319 |
+
 ## TMux Integration (vim-tmux-navigator)
 
 Seamless navigation between NeoVim splits and TMux panes.
