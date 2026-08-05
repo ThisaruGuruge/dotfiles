@@ -141,11 +141,26 @@ printf '%b● PERSONAL%b' "$PERSONAL_FG" "$RESET"
 # Vim mode segment
 if [ -n "$vim_mode" ]; then
     case "$vim_mode" in
-        NORMAL) VIM_FG="$BLUE_FG"; vim_label="NORMAL" ;;
-        INSERT) VIM_FG="$GREEN_FG"; vim_label="INSERT" ;;
-        "VISUAL LINE") VIM_FG="$YELLOW_FG"; vim_label="V-LINE" ;;
-        VISUAL) VIM_FG="$YELLOW_FG"; vim_label="VISUAL" ;;
-        *) VIM_FG="$TOKENS_FG"; vim_label="$vim_mode" ;;
+        NORMAL)
+            VIM_FG="$BLUE_FG"
+            vim_label="NORMAL"
+            ;;
+        INSERT)
+            VIM_FG="$GREEN_FG"
+            vim_label="INSERT"
+            ;;
+        "VISUAL LINE")
+            VIM_FG="$YELLOW_FG"
+            vim_label="V-LINE"
+            ;;
+        VISUAL)
+            VIM_FG="$YELLOW_FG"
+            vim_label="VISUAL"
+            ;;
+        *)
+            VIM_FG="$TOKENS_FG"
+            vim_label="$vim_mode"
+            ;;
     esac
     printf "  ${VIM_FG}%s${RESET}" "$vim_label"
 fi
