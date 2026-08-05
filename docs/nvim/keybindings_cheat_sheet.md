@@ -240,6 +240,12 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 | `<Space>tt` | `n`      | Toggle terminal |
 | `<C-\>`     | `n`, `t` | Quick toggle    |
 
+## Line Wrap
+
+| Key         | Mode | Action      |
+| :---------- | :--- | :---------- |
+| `<Space>tw` | `n`  | Toggle wrap |
+
 ---
 
 ## Ballerina (ballerina.nvim)
