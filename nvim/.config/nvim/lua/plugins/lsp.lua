@@ -28,7 +28,151 @@ return {
         },
         lazy = false,
         config = function()
+            -- mason-lspconfig >= 2.0 dropped the `handlers` setup option in favor
+            -- of the native vim.lsp.config()/vim.lsp.enable() API (see :h vim.lsp.config).
+            -- Per-server overrides are registered here, then `automatic_enable`
+            -- below turns each one on for installed servers.
             local capabilities = require("blink.cmp").get_lsp_capabilities()
+
+            -- Lua-specific settings
+            vim.lsp.config("lua_ls", {
+                capabilities = capabilities,
+                settings = {
+                    Lua = {
+                        completion = {
+                            callSnippet = "Replace",
+                        },
+                        telemetry = {
+                            enable = false,
+                        },
+                    },
+                },
+            })
+
+            -- Python-specific settings
+            vim.lsp.config("pyright", {
+                capabilities = capabilities,
+                settings = {
+                    pyright = {
+                        -- Using Ruff's import organizer
+                        disableOrganizeImports = true,
+                    },
+                    python = {
+                        analysis = {
+                            autoSearchPaths = true,
+                            useLibraryCodeForTypes = true,
+                            diagnosticMode = "workspace",
+                            typeCheckingMode = "basic",
+                            -- Enable all language features
+                            autoImportCompletions = true,
+                        },
+                    },
+                },
+                on_attach = function(client, bufnr)
+                    -- Ensure Pyright provides navigation features
+                    client.server_capabilities.definitionProvider = true
+                    client.server_capabilities.referencesProvider = true
+                    client.server_capabilities.declarationProvider = true
+                    client.server_capabilities.implementationProvider = true
+                end,
+            })
+
+            -- Ruff LSP for Python linting and code actions
+            vim.lsp.config("ruff", {
+                capabilities = capabilities,
+                init_options = {
+                    settings = {
+                        -- Ruff configuration
+                        args = {},
+                    },
+                },
+                on_attach = function(client, bufnr)
+                    -- Disable Ruff's hover in favor of Pyright
+                    client.server_capabilities.hoverProvider = false
+                    -- Ruff doesn't provide navigation, only code actions
+                    client.server_capabilities.definitionProvider = false
+                    client.server_capabilities.referencesProvider = false
+                end,
+            })
+
+            -- Go-specific settings
+            vim.lsp.config("gopls", {
+                capabilities = capabilities,
+                settings = {
+                    gopls = {
+                        analyses = {
+                            unusedparams = true,
+                            unusedvariable = true,
+                            shadow = true,
+                            nilness = true,
+                        },
+                        staticcheck = true,
+                        gofumpt = true,
+                        usePlaceholders = true,
+                        completeUnimported = true,
+                        -- Restrict workspace symbol search (<leader>fS) to this module's
+                        -- own packages, excluding dependencies and the stdlib
+                        symbolScope = "workspace",
+                    },
+                },
+            })
+
+            -- Harper: grammar + spell in comments and markdown
+            vim.lsp.config("harper_ls", {
+                capabilities = capabilities,
+                settings = {
+                    ["harper-ls"] = {
+                        linters = {
+                            spell_check = true,
+                            repeated_words = true,
+                            sentence_capitalization = false, -- too noisy in code comments
+                            unclosed_quotes = true,
+                        },
+                    },
+                },
+            })
+
+            -- Typos: low-false-positive typo detection in identifiers, strings, and comments
+            vim.lsp.config("typos_lsp", {
+                capabilities = capabilities,
+                init_options = {
+                    diagnosticSeverity = "Hint",
+                    -- Global user-level config; project _typos.toml is merged on top
+                    config = vim.fn.expand("~/.config/typos/_typos.toml"),
+                },
+            })
+
+            -- Java-specific settings
+            local jdtls_path = require("mason-registry").get_package("jdtls"):get_install_path()
+            local jdtls_launcher = vim.fn.glob(jdtls_path .. "/plugins/org.eclipse.equinox.launcher_*.jar")
+            local jdtls_config = vim.fn.glob(jdtls_path .. "/config_mac")
+
+            vim.lsp.config("jdtls", {
+                capabilities = capabilities,
+                cmd = {
+                    "java",
+                    "-Declipse.application=org.eclipse.jdt.ls.core.id1.JavaLanguageServerImpl",
+                    "-Dosgi.bundles.defaultStartLevel=4",
+                    "-Declipse.product=org.eclipse.jdt.ls.core.product",
+                    "-Dlog.protocol=true",
+                    "-Dlog.level=ALL",
+                    "-Xms1g",
+                    "--add-modules=ALL-SYSTEM",
+                    "--add-opens",
+                    "java.base/java.util=ALL-UNNAMED",
+                    "--add-opens",
+                    "java.base/java.lang=ALL-UNNAMED",
+                    "-jar",
+                    jdtls_launcher,
+                    "-configuration",
+                    jdtls_config,
+                    "-data",
+                    vim.fn.stdpath("cache") .. "/jdtls-workspace/" .. vim.fn.fnamemodify(vim.fn.getcwd(), ":p:h:t"),
+                },
+                -- Here you can configure project-specific settings, like runtimes
+                -- See: https://github.com/mfussenegger/nvim-jdtls#project-specific-runtimes
+                root_markers = { ".git", "mvnw", "gradlew", "pom.xml", "build.gradle" },
+            })
 
             require("mason-lspconfig").setup({
                 ensure_installed = {
@@ -46,168 +190,9 @@ return {
                     "harper_ls", -- Grammar + spell in comments and markdown
                     "typos_lsp", -- Typo detection in identifiers, strings, and comments
                 },
-                automatic_installation = true,
-                handlers = {
-                    -- Default handler for all servers
-                    function(server_name)
-                        require("lspconfig")[server_name].setup({
-                            capabilities = capabilities,
-                        })
-                    end,
-                    -- Lua-specific settings
-                    ["lua_ls"] = function()
-                        require("lspconfig").lua_ls.setup({
-                            capabilities = capabilities,
-                            settings = {
-                                Lua = {
-                                    completion = {
-                                        callSnippet = "Replace",
-                                    },
-                                    telemetry = {
-                                        enable = false,
-                                    },
-                                },
-                            },
-                        })
-                    end,
-                    -- Python-specific settings
-                    ["pyright"] = function()
-                        require("lspconfig").pyright.setup({
-                            capabilities = capabilities,
-                            settings = {
-                                pyright = {
-                                    -- Using Ruff's import organizer
-                                    disableOrganizeImports = true,
-                                },
-                                python = {
-                                    analysis = {
-                                        autoSearchPaths = true,
-                                        useLibraryCodeForTypes = true,
-                                        diagnosticMode = "workspace",
-                                        typeCheckingMode = "basic",
-                                        -- Enable all language features
-                                        autoImportCompletions = true,
-                                    },
-                                },
-                            },
-                            on_attach = function(client, bufnr)
-                                -- Ensure Pyright provides navigation features
-                                client.server_capabilities.definitionProvider = true
-                                client.server_capabilities.referencesProvider = true
-                                client.server_capabilities.declarationProvider = true
-                                client.server_capabilities.implementationProvider = true
-                            end,
-                        })
-                    end,
-                    -- Ruff LSP for Python linting and code actions
-                    ["ruff"] = function()
-                        require("lspconfig").ruff.setup({
-                            capabilities = capabilities,
-                            init_options = {
-                                settings = {
-                                    -- Ruff configuration
-                                    args = {},
-                                },
-                            },
-                            on_attach = function(client, bufnr)
-                                -- Disable Ruff's hover in favor of Pyright
-                                client.server_capabilities.hoverProvider = false
-                                -- Ruff doesn't provide navigation, only code actions
-                                client.server_capabilities.definitionProvider = false
-                                client.server_capabilities.referencesProvider = false
-                            end,
-                        })
-                    end,
-                    -- Go-specific settings
-                    ["gopls"] = function()
-                        require("lspconfig").gopls.setup({
-                            capabilities = capabilities,
-                            settings = {
-                                gopls = {
-                                    analyses = {
-                                        unusedparams = true,
-                                        unusedvariable = true,
-                                        shadow = true,
-                                        nilness = true,
-                                    },
-                                    staticcheck = true,
-                                    gofumpt = true,
-                                    usePlaceholders = true,
-                                    completeUnimported = true,
-                                    -- Restrict workspace symbol search (<leader>fS) to this module's
-                                    -- own packages, excluding dependencies and the stdlib
-                                    symbolScope = "workspace",
-                                },
-                            },
-                        })
-                    end,
-                    -- Harper: grammar + spell in comments and markdown
-                    ["harper_ls"] = function()
-                        require("lspconfig").harper_ls.setup({
-                            capabilities = capabilities,
-                            settings = {
-                                ["harper-ls"] = {
-                                    linters = {
-                                        spell_check = true,
-                                        repeated_words = true,
-                                        sentence_capitalization = false, -- too noisy in code comments
-                                        unclosed_quotes = true,
-                                    },
-                                },
-                            },
-                        })
-                    end,
-                    -- Typos: low-false-positive typo detection in identifiers, strings, and comments
-                    ["typos_lsp"] = function()
-                        require("lspconfig").typos_lsp.setup({
-                            capabilities = capabilities,
-                            init_options = {
-                                diagnosticSeverity = "Hint",
-                                -- Global user-level config; project _typos.toml is merged on top
-                                config = vim.fn.expand("~/.config/typos/_typos.toml"),
-                            },
-                        })
-                    end,
-                    -- Java-specific settings
-                    ["jdtls"] = function()
-                        local jdtls_path = require("mason-registry").get_package("jdtls"):get_install_path()
-                        local jdtls_launcher = vim.fn.glob(jdtls_path .. "/plugins/org.eclipse.equinox.launcher_*.jar")
-                        local jdtls_config = vim.fn.glob(jdtls_path .. "/config_mac")
-
-                        require("lspconfig").jdtls.setup({
-                            capabilities = capabilities,
-                            cmd = {
-                                "java",
-                                "-Declipse.application=org.eclipse.jdt.ls.core.id1.JavaLanguageServerImpl",
-                                "-Dosgi.bundles.defaultStartLevel=4",
-                                "-Declipse.product=org.eclipse.jdt.ls.core.product",
-                                "-Dlog.protocol=true",
-                                "-Dlog.level=ALL",
-                                "-Xms1g",
-                                "--add-modules=ALL-SYSTEM",
-                                "--add-opens",
-                                "java.base/java.util=ALL-UNNAMED",
-                                "--add-opens",
-                                "java.base/java.lang=ALL-UNNAMED",
-                                "-jar",
-                                jdtls_launcher,
-                                "-configuration",
-                                jdtls_config,
-                                "-data",
-                                vim.fn.stdpath("cache") .. "/jdtls-workspace/" .. vim.fn.fnamemodify(vim.fn.getcwd(), ":p:h:t"),
-                            },
-                            -- Here you can configure project-specific settings, like runtimes
-                            -- See: https://github.com/mfussenegger/nvim-jdtls#project-specific-runtimes
-                            root_dir = require("lspconfig").util.root_pattern {
-                                ".git",
-                                "mvnw",
-                                "gradlew",
-                                "pom.xml",
-                                "build.gradle",
-                            },
-                        })
-                    end,
-                },
+                -- Enables every installed server via vim.lsp.enable(), picking up
+                -- the vim.lsp.config() overrides registered above.
+                automatic_enable = true,
             })
         end,
     },

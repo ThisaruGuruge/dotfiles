@@ -47,7 +47,7 @@ git:
     showWholeGraph: false
 os:
   editPreset: "nvim-remote"
-  open: '[ -n "$NVIM" ] && nvim --server "$NVIM" --remote-tab {{filename}} || open {{filename}}'
+  open: '[ -z "$NVIM" ] && (open {{filename}}) || (nvim --server "$NVIM" --remote-tab {{filename}})'
 promptToReturnFromSubprocess: false
 # Don't confirm on quit
 confirmOnQuit: false
