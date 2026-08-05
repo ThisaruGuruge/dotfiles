@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-08-05
+
 ### Fixed
 
 - Fixed Undotree's diff pane appearing frozen on the current state while browsing history (`nvim/.config/nvim/lua/plugins/undotree.lua`) — the plugin only refreshes the diff panel when you actually step to a state, not when the cursor merely moves over a tree line (which can also land on branch/connector art rather than a real entry, leaving it unclear which entry was even selected). Aliased lowercase `j`/`k` to Undotree's own `J`/`K` (step to previous/next state via `earlier`/`later`), which lets the plugin position the cursor on the correct entry itself and refresh the diff panel on every step
