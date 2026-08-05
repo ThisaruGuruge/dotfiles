@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed Undotree's diff pane appearing frozen on the current state while browsing history (`nvim/.config/nvim/lua/plugins/undotree.lua`) — the plugin only refreshes the diff panel when you actually step to a state, not when the cursor merely moves over a tree line (which can also land on branch/connector art rather than a real entry, leaving it unclear which entry was even selected). Aliased lowercase `j`/`k` to Undotree's own `J`/`K` (step to previous/next state via `earlier`/`later`), which lets the plugin position the cursor on the correct entry itself and refresh the diff panel on every step
 - Fixed `.github/workflows/release.yml` referencing a `packages.json` file removed months ago (commit `629fe27`) — its `Generate release artifacts` step failed on `cp: cannot stat 'packages.json'` for every release, including `2.1.0`, which is why that release's GitHub Release/artifacts had to be published manually
 - Fixed `.github/workflows/auto-tag.yml` tagging a release but never triggering `release.yml` — a tag pushed with the default `GITHUB_TOKEN` doesn't fire other workflows' `push: tags:` listeners (GitHub's anti-recursion safeguard for bot-authored events), so `auto-tag.yml` now explicitly dispatches `release.yml` via `gh workflow run` right after tagging
 
@@ -16,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `hammerspoon` stow package (`hammerspoon/.hammerspoon/init.lua`) and `cask "hammerspoon"` to `Brewfile` — loads `ControlEscape.spoon` so Caps Lock taps send Escape and holds act as Control. The Spoon itself is installed manually (`git clone` into `~/.hammerspoon/Spoons/`), not by `init.sh` — it's third-party code with its own git history.
 - Added `overrideGpg: true` to `lazygit/.config/lazygit/config.yml` — with `commit.gpgsign = true` and a passphrase agent (gpg-agent) caching the passphrase, lazygit otherwise blocks commit/amend actions with "Feature not available for users using GPG" since it can't tell whether a signing action will need an interactive terminal prompt
+- Added `<leader>tw` (`:set wrap!`) to toggle soft line wrap
 - Added `<leader>gt` for `gitsigns.toggle_deleted()` — toggles an inline, in-buffer view of removed lines directly at the hunk (virtual text, strikethrough-style), as an alternative to the floating-window `<leader>gp` preview. Pair with the existing `<leader>gr`/`<leader>gR` (reset hunk/buffer) to discard the change once you've seen what's missing
 - Documented built-in `]l`/`[l` (and `]L`/`[L`) location-list navigation, with which-key labels in `plugins/editor.lua` — clarifies that `gO` (LSP document symbols) opens a location list, not the quickfix list, so `]q`/`[q` don't apply to it
 - Added `<leader>fS` for project-wide symbol search (`Telescope lsp_dynamic_workspace_symbols`) — look up a struct/function/class by name across the whole workspace and jump straight to its definition
