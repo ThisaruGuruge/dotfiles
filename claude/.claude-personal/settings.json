@@ -16,7 +16,8 @@
   "tui": "fullscreen",
   "theme": "dark",
   "editorMode": "vim",
-  "hideVimModeIndicator": true,
   "verbose": true,
-  "autocompact_percentage_override": 75
+  "hideVimModeIndicator": true,
+  "autocompact_percentage_override": 75,
+  "model": "opus"
 }
