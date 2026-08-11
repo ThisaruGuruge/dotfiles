@@ -92,7 +92,7 @@ The main `Brewfile` contains core packages that are always installed. Optional p
 ```bash
 packages/
 ├── cloud.brewfile       # AWS, GCP CLIs
-├── containers.brewfile  # Docker, Rancher Desktop
+├── containers.brewfile  # colima, Docker CLI + Compose
 ├── development.brewfile # pyenv, rbenv, nvm, flutter
 ├── editors.brewfile     # Cursor, VS Code
 ├── productivity.brewfile # Raycast, Rectangle, etc.
@@ -115,7 +115,7 @@ brew bundle --file=packages/editors.brewfile     # Add editors
 - `aws`, `gcp` – cloud CLIs and helpers
 - `editors` – Cursor, VS Code
 - `terminals` – iTerm2 (casks)
-- `containers` – Docker Desktop, Rancher Desktop
+- `containers` – colima (container runtime), Docker CLI + Compose
 - `productivity` – Raycast, Rectangle, TablePlus, Alfred, Postman
 
 Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
@@ -143,6 +143,27 @@ Ghostty is configured with:
 - Catppuccin Mocha theme
 - FiraCode Nerd Font with ligatures
 - Tmux-aware keybindings for window/pane navigation
+
+### Containers (colima)
+
+The optional `containers` category (`packages/containers.brewfile`) installs [colima](https://colima.run) as the local container runtime, paired with the plain `docker` and `docker-compose` CLI formulae — no Docker Desktop app/VM required.
+
+```bash
+brew bundle --file=packages/containers.brewfile  # colima + docker CLI + compose
+colima start                                     # boots the VM, sets the `colima` docker context
+docker ps                                        # talks to colima automatically
+lzd                                               # lazydocker also works unchanged — it just follows the active docker context
+```
+
+Homebrew's `docker-compose` formula installs as a CLI plugin, which Docker only discovers if `~/.docker/config.json` lists its plugin dir:
+
+```json
+{
+  "cliPluginsExtraDirs": ["/opt/homebrew/lib/docker/cli-plugins"]
+}
+```
+
+`init.sh` does not currently write this key automatically — add it by hand (or merge it into an existing `~/.docker/config.json`) after installing `docker-compose`.
 
 ### Symlink Management (bestow)
 

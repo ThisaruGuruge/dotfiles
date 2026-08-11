@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added `stay_awake()`, `stay_awake_stop()`, and `stay_awake_for(pid)` functions (`zsh/.functions.d/05-system.zsh`) — keep the system from idle-sleeping while long-running background agents work, without keeping the display on. Uses `caffeinate -s`, which only holds its assertion on AC power, so the machine still sleeps normally on battery. `stay_awake`/`stay_awake_stop` are a manual toggle (agent runs can span days, so there's no single command to wrap); `stay_awake_for` attaches the same assertion to an already-running process by PID and releases automatically when it exits
+- Added `brew "colima"` to `packages/containers.brewfile` — lightweight `lima`-VM-based container runtime, replacing Rancher Desktop as the default local Docker engine
+
+### Changed
+
+- Swapped `cask "docker"` (Docker Desktop app) for `brew "docker"` + `brew "docker-compose"` (CLI-only) in `packages/containers.brewfile` — colima supplies the daemon/VM itself, so the Docker Desktop app is redundant and would otherwise compete with colima for the docker context/socket
+
+### Removed
+
+- Removed `cask "rancher-desktop"` from `packages/containers.brewfile` — superseded by colima, which covers the same "lightweight container runtime without Docker Desktop" need with a smaller footprint
 
 ## [2.2.0] - 2026-08-05
 
