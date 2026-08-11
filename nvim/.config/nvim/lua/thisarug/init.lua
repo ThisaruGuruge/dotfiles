@@ -21,6 +21,7 @@ opt.termguicolors = true
 opt.signcolumn = "yes"
 opt.scrolloff = 20
 opt.wrap = false
+opt.linebreak = true -- when wrap is on, break at word boundaries instead of mid-word
 
 -- System integration
 opt.clipboard = "unnamedplus"
