@@ -33,6 +33,7 @@ list_dotfiles_tools() {
     echo "   git-delta        - Enhanced git diff viewer"
     echo "   gh               - GitHub CLI"
     echo "   lazydocker       - Docker TUI"
+    echo "   colima           - Container runtime (lima VM + Docker daemon)"
     echo "   nvim             - Text editor"
     echo "   direnv           - Directory-specific environments"
     echo "   atuin            - Enhanced shell history"

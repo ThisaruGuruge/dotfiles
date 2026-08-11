@@ -242,6 +242,9 @@ test_tool "Git" "git" "git --version"
 # Docker (optional)
 test_tool "Docker" "docker" "docker --version" "true"
 
+# Colima (optional container runtime)
+test_tool "colima" "colima" "colima --version" "true"
+
 # Gradle (gng provides gw command that finds gradlew anywhere in the project tree)
 if command -v gw >/dev/null 2>&1; then
     print_test "GNG (gw)" "pass" "Gradle run-anywhere wrapper available"
