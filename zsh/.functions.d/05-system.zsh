@@ -2,7 +2,8 @@
 # ============================================================================
 # System Functions
 # ============================================================================
-# System utilities: checkPort(), kill_by_port(), dif(), da()
+# System utilities: checkPort(), kill_by_port(), dif(), da(), stay_awake(),
+# stay_awake_stop(), stay_awake_for()
 
 checkPort() {
     lsof -i:"$1"
@@ -39,6 +40,59 @@ da() {
     local output
     output="$(dust -n 9999 "$@" 2>&1)" || return $?
     printf '%s\n' "$output" | less -R -F -X
+}
+
+# Keep the system awake while long-running agents work in the background,
+# without keeping the display on. Uses `caffeinate -s`, which only holds its
+# assertion while on AC power, so the machine still sleeps normally on
+# battery (avoiding unintended battery drain/shutdowns). Manual start/stop
+# rather than wrapping a command: agent runs can span days of idling, so
+# there's no single command to attach the assertion's lifetime to.
+STAY_AWAKE_PIDFILE="${TMPDIR:-/tmp}/dotfiles-stay-awake.pid"
+
+stay_awake() {
+    if [[ -f "$STAY_AWAKE_PIDFILE" ]] && kill -0 "$(<"$STAY_AWAKE_PIDFILE")" 2>/dev/null; then
+        echo "Already running (PID $(<"$STAY_AWAKE_PIDFILE"))."
+        return 0
+    fi
+    nohup caffeinate -s >/dev/null 2>&1 &
+    echo $! >"$STAY_AWAKE_PIDFILE"
+    disown
+    echo "System will stay awake while on AC power (PID $!). Run 'stay_awake_stop' when done."
+}
+
+stay_awake_stop() {
+    if [[ ! -f "$STAY_AWAKE_PIDFILE" ]]; then
+        echo "Not running."
+        return 0
+    fi
+    local pid
+    pid="$(<"$STAY_AWAKE_PIDFILE")"
+    if kill "$pid" 2>/dev/null; then
+        echo "Stopped (PID $pid)."
+    else
+        echo "Process $pid was not running."
+    fi
+    rm -f "$STAY_AWAKE_PIDFILE"
+}
+
+# Attach the same AC-only "stay awake" assertion to an already-running
+# process (e.g. an agent started in another terminal/session) instead of
+# the current shell. Releases automatically once that PID exits.
+stay_awake_for() {
+    if [[ -z "$1" ]]; then
+        echo "Usage: stay_awake_for <pid>" >&2
+        return 1
+    fi
+
+    if ! kill -0 "$1" 2>/dev/null; then
+        echo "Error: no running process with PID $1" >&2
+        return 1
+    fi
+
+    nohup caffeinate -s -w "$1" >/dev/null 2>&1 &
+    disown
+    echo "System will stay awake (AC only) until PID $1 exits."
 }
 
 kill_by_port() {
