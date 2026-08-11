@@ -227,6 +227,16 @@ alias drmi='docker rmi'
 alias dprune='docker system prune -f'
 alias lzd='lazydocker'
 
+# Colima shortcuts (container runtime — docker/lzd aliases above talk to it once running)
+if (($+commands[colima])); then
+    alias colima-start='colima start'
+    alias colima-stop='colima stop'
+    alias colima-restart='colima restart'
+    alias colima-status='colima status'
+    alias colima-list='colima list'
+    alias colima-ssh='colima ssh'
+fi
+
 # Network utilities
 alias myip='curl -s ifconfig.me'
 alias localip="ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1'"
