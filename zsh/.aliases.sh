@@ -311,3 +311,6 @@ alias ccpr='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude --resume'
 alias ccer='CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" claude --resume'
 alias ccpc='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude --continue'
 alias ccec='CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" claude --continue'
+
+# Keep the machine awake
+alias dont_sleep='caffeinate -d'
