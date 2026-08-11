@@ -207,7 +207,7 @@ alias_help() {
             ;;
 
         # Docker Operations
-        "docker" | "dps" | "dpsa" | "dex" | "dlog")
+        "docker" | "dps" | "dpsa" | "dex" | "dlog" | "colima" | "colima-start" | "colima-stop")
             echo "🐳 Docker Aliases - Container Management"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "Container Status:"
@@ -225,8 +225,16 @@ alias_help() {
             echo "Cleanup:"
             echo "  dprune  docker system prune -f (cleanup unused)"
             echo ""
+            echo "Colima (container runtime — must be running before dps/dex/etc. work):"
+            echo "  colima-start     colima start (boot the VM + docker daemon)"
+            echo "  colima-stop      colima stop"
+            echo "  colima-restart   colima restart"
+            echo "  colima-status    colima status"
+            echo "  colima-list      colima list (all instances)"
+            echo "  colima-ssh       colima ssh (shell into the VM)"
+            echo ""
             echo "💡 Example workflow:"
-            echo "  dps → dex myapp bash → exit → dlog myapp"
+            echo "  colima-start → dps → dex myapp bash → exit → dlog myapp"
             ;;
 
         # Tmux Operations
@@ -307,7 +315,7 @@ alias_help() {
             echo "  File operations: ls, ll, cat, grep"
             echo "  Git workflow: git, gs, lg, glog"
             echo "  Gradle build: gw, gwb, gwc, gwt, gwcb"
-            echo "  Docker: docker, dps, dex, dlog"
+            echo "  Docker: docker, dps, dex, dlog, colima-start, colima-stop"
             echo "  Tmux: tmux, t, ta, tl"
             echo "  Network: myip, localip, ping"
             echo "  History: atuin, hs, hstats, hsync"

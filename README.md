@@ -150,10 +150,21 @@ The optional `containers` category (`packages/containers.brewfile`) installs [co
 
 ```bash
 brew bundle --file=packages/containers.brewfile  # colima + docker CLI + compose
-colima start                                     # boots the VM, sets the `colima` docker context
+colima-start                                     # boots the VM, sets the `colima` docker context
 docker ps                                        # talks to colima automatically
 lzd                                               # lazydocker also works unchanged — it just follows the active docker context
 ```
+
+Colima lifecycle aliases (`zsh/.aliases.sh`, only defined if `colima` is installed):
+
+| Alias | Command |
+| --- | --- |
+| `colima-start` | `colima start` |
+| `colima-stop` | `colima stop` |
+| `colima-restart` | `colima restart` |
+| `colima-status` | `colima status` |
+| `colima-list` | `colima list` |
+| `colima-ssh` | `colima ssh` |
 
 Homebrew's `docker-compose` formula installs as a CLI plugin, which Docker only discovers if `~/.docker/config.json` lists its plugin dir:
 
