@@ -24,10 +24,10 @@ gui:
       - red
 git:
   overrideGpg: true
-  pagers:
+  diffRenderers:
     - # Use delta for better diffs (if available)
       colorArg: always
-      pager: delta --dark --paging=never
+      command: delta --dark --paging=never
   commit:
     signOff: false
     autoWrapCommitMessage: true
