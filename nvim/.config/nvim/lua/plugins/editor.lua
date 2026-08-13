@@ -45,7 +45,9 @@ return {
       end
 
       local function select_node(node)
-        if not node then return end
+        if not node then
+          return
+        end
         local sr, sc, er, ec = get_node_range(node)
         vim.api.nvim_buf_set_mark(0, "<", sr + 1, sc, {})
         vim.api.nvim_buf_set_mark(0, ">", er + 1, ec - 1, {})
@@ -104,7 +106,9 @@ return {
             {
               function()
                 local reg = vim.fn.reg_recording()
-                if reg ~= "" then return "Recording @" .. reg end
+                if reg ~= "" then
+                  return "Recording @" .. reg
+                end
                 return ""
               end,
               color = { fg = "#1e1e2e", bg = "#f38ba8", gui = "bold" },
@@ -125,7 +129,9 @@ return {
             { "aerial", sep = " › ", depth = 3 },
             {
               json_path.get,
-              cond = function() return vim.bo.filetype == "json" end,
+              cond = function()
+                return vim.bo.filetype == "json"
+              end,
               icon = "{}",
             },
           },
@@ -133,16 +139,22 @@ return {
           lualine_x = {
             {
               function()
-                if vim.v.hlsearch == 0 then return "" end
+                if vim.v.hlsearch == 0 then
+                  return ""
+                end
                 local ok, result = pcall(vim.fn.searchcount, { maxcount = 999 })
-                if not ok or result.total == 0 then return "" end
+                if not ok or result.total == 0 then
+                  return ""
+                end
                 return string.format("[%d/%d]", result.current, result.total)
               end,
             },
             {
               function()
                 local clients = vim.lsp.get_clients({ bufnr = 0 })
-                if #clients == 0 then return "" end
+                if #clients == 0 then
+                  return ""
+                end
                 local names = {}
                 for _, client in ipairs(clients) do
                   table.insert(names, client.name)
@@ -171,18 +183,28 @@ return {
             {
               function()
                 local file = vim.fn.expand("%:p")
-                if file == "" or file == nil then return "" end
+                if file == "" or file == nil then
+                  return ""
+                end
                 local size = vim.fn.getfsize(file)
-                if size <= 0 then return "" end
-                if size < 1024 then return size .. "B" end
-                if size < 1048576 then return string.format("%.1fK", size / 1024) end
+                if size <= 0 then
+                  return ""
+                end
+                if size < 1024 then
+                  return size .. "B"
+                end
+                if size < 1048576 then
+                  return string.format("%.1fK", size / 1024)
+                end
                 return string.format("%.1fM", size / 1048576)
               end,
             },
             {
               function()
                 local updates = require("lazy.status").updates()
-                if updates then return "󰏔 " .. updates end
+                if updates then
+                  return "󰏔 " .. updates
+                end
                 return ""
               end,
               cond = function()
@@ -348,12 +370,12 @@ return {
         { "]t", desc = "Next TODO Comment", icon = "" },
 
         -- Quickfix navigation
-        {"[q", desc = "Previous Quickfix item", icon = ""},
-        {"]q", desc = "Next Quickfix item", icon = ""},
+        { "[q", desc = "Previous Quickfix item", icon = "" },
+        { "]q", desc = "Next Quickfix item", icon = "" },
 
         -- Location list navigation (e.g. gO document symbols)
-        {"[l", desc = "Previous Location-list item", icon = ""},
-        {"]l", desc = "Next Location-list item", icon = ""},
+        { "[l", desc = "Previous Location-list item", icon = "" },
+        { "]l", desc = "Next Location-list item", icon = "" },
 
         -- Move selected lines up/down in visual mode
         { "J", ":move '>+1<CR>gv=gv", desc = "Move Selection Down", mode = "v" },
