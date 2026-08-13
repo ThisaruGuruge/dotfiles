@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed `harper-ls` reporting zero spell/grammar diagnostics in long documents (`nvim/.config/nvim/lua/plugins/lsp.lua`) — harper-ls silently skips any file larger than its `maxFileLength` setting (default 120000 bytes) instead of reporting a limit, so a large spec or design doc looked clean while every typo in it went unflagged. Raised to 1000000
+
 ### Added
 
 - Added `stay_awake()`, `stay_awake_stop()`, and `stay_awake_for(pid)` functions (`zsh/.functions.d/05-system.zsh`) — keep the system from idle-sleeping while long-running background agents work, without keeping the display on. Uses `caffeinate -s`, which only holds its assertion on AC power, so the machine still sleeps normally on battery. `stay_awake`/`stay_awake_stop` are a manual toggle (agent runs can span days, so there's no single command to wrap); `stay_awake_for` attaches the same assertion to an already-running process by PID and releases automatically when it exits
