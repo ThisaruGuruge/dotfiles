@@ -108,29 +108,4 @@ return {
       { "<leader>gg", "<cmd>LazyGit<cr>", desc = "LazyGit" },
     },
   },
-
-  -- Git Worktree: Manage git worktrees directly from Neovim
-  {
-    "ThePrimeagen/git-worktree.nvim",
-    config = function()
-      require("git-worktree").setup()
-      require("telescope").load_extension("git_worktree")
-    end,
-    keys = {
-      {
-        "<leader>gw",
-        function()
-          require("telescope").extensions.git_worktree.git_worktrees()
-        end,
-        desc = "Switch Git Worktree",
-      },
-      {
-        "<leader>gW",
-        function()
-          require("telescope").extensions.git_worktree.create_git_worktree()
-        end,
-        desc = "Create Git Worktree",
-      },
-    },
-  },
 }

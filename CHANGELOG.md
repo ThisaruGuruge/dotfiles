@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Removed `ThePrimeagen/git-worktree.nvim` and its `<leader>gw`/`<leader>gW` keybindings (`nvim/.config/nvim/lua/plugins/git.lua`) — upstream's last commit is 2023-11-07
 - Removed `cask "rancher-desktop"` from `packages/containers.brewfile` — superseded by colima, which covers the same "lightweight container runtime without Docker Desktop" need with a smaller footprint
 
 ## [2.2.0] - 2026-08-05
