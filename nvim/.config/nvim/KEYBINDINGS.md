@@ -249,7 +249,6 @@ Works for any language treesitter understands: JSON objects/arrays, functions, c
 | ------------ | ---------------------------- | ------------------------- |
 | `<leader>xx` | Toggle workspace diagnostics | plugins/trouble.lua       |
 | `<leader>xX` | Toggle buffer diagnostics    | plugins/trouble.lua       |
-| `<leader>xs` | Toggle symbols               | plugins/trouble.lua       |
 | `<leader>xr` | Toggle LSP references        | plugins/trouble.lua       |
 | `<leader>xl` | Toggle location list         | plugins/trouble.lua       |
 | `<leader>xq` | Toggle quickfix list         | plugins/trouble.lua       |
