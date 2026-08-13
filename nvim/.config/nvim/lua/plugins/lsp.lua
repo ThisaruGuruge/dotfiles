@@ -122,6 +122,7 @@ return {
         capabilities = capabilities,
         settings = {
           ["harper-ls"] = {
+            maxFileLength = 1000000,
             linters = {
               spell_check = true,
               repeated_words = true,
