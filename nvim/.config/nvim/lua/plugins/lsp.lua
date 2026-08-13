@@ -198,23 +198,25 @@ return {
     end,
   },
 
+  -- Lua development: Neovim API types, plugin definitions, and completion
+  {
+    "folke/lazydev.nvim",
+    ft = "lua",
+    opts = {
+      library = {
+        { path = "${3rd}/luv/library", words = { "vim%.uv" } },
+      },
+    },
+  },
+
   -- LSP Config
   {
     "neovim/nvim-lspconfig",
     dependencies = {
       "williamboman/mason-lspconfig.nvim",
-      "folke/neodev.nvim",
     },
     event = { "BufReadPre", "BufNewFile" },
     config = function()
-      -- Setup neodev BEFORE lspconfig for Neovim Lua API completion
-      require("neodev").setup({
-        library = {
-          enabled = true, -- Enable neodev for all lua files
-          plugins = true, -- Include plugin definitions
-        },
-      })
-
       -- Set blink.cmp capabilities globally so native-API servers
       -- (e.g. ballerina) inherit them without extra per-server config.
       vim.lsp.config("*", {
