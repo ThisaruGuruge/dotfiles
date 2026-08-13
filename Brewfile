@@ -55,6 +55,7 @@ brew "shellcheck"                   # Shell script linter (required by CONTRIBUT
 brew "shfmt"                        # Shell script formatter (conform.nvim + CONTRIBUTING.md)
 brew "stylua"                       # Lua formatter (conform.nvim)
 brew "prettier"                     # JS/TS/JSON/YAML/Markdown formatter (conform.nvim)
+brew "markdownlint-cli2"            # Markdown structure/style linter (nvim-lint)
 
 # AI/Development Tools
 cask "antigravity"                  # AI Agent

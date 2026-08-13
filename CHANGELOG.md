@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added `mfussenegger/nvim-lint` (`nvim/.config/nvim/lua/plugins/lint.lua`) with `markdownlint-cli2` for Markdown — structure and style diagnostics (heading increment, blanks around headings/lists, bare URLs, list-marker consistency) that no existing tool covered: `harper-ls` handles prose, `marksman` handles links, `prettier` only formats. Lints on `FileType`, `BufWritePost`, and `InsertLeave`, with `<leader>ll` to lint on demand
+- Added `brew "markdownlint-cli2"` to `Brewfile` — the linter binary behind the above
+- Added `nvim/.config/nvim/markdownlint.yaml` — fallback rule set used when a file has no project-level markdownlint config in any parent directory. Disables `line-length`, `no-inline-html`, and `first-line-heading`; a project's own `.markdownlint*` config takes precedence
 - Added `stay_awake()`, `stay_awake_stop()`, and `stay_awake_for(pid)` functions (`zsh/.functions.d/05-system.zsh`) — keep the system from idle-sleeping while long-running background agents work, without keeping the display on. Uses `caffeinate -s`, which only holds its assertion on AC power, so the machine still sleeps normally on battery. `stay_awake`/`stay_awake_stop` are a manual toggle (agent runs can span days, so there's no single command to wrap); `stay_awake_for` attaches the same assertion to an already-running process by PID and releases automatically when it exits
 - Added `brew "colima"` to `packages/containers.brewfile` — lightweight `lima`-VM-based container runtime, replacing Rancher Desktop as the default local Docker engine
 - Added `colima-start`/`colima-stop`/`colima-restart`/`colima-status`/`colima-list`/`colima-ssh` aliases (`zsh/.aliases.sh`) — not named `docker start`/`docker stop` since those are real docker subcommands (start/stop an existing container by name), and shadowing them would be confusing
