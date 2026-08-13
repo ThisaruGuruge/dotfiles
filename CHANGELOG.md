@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-08-13
+
 ### Fixed
 
 - Fixed `.github/workflows/auto-tag.yml` reporting success after pushing a tag whose release never got published — dispatching `release.yml` is fire-and-forget, so when that run failed the tag job still went green and nothing signalled the gap. This is how `2.1.0` was tagged but never released. A new step now polls `gh release view` for up to 5 minutes after the dispatch and fails the job with the re-publish command if no release appears
