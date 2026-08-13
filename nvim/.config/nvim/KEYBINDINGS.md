@@ -80,6 +80,7 @@ Inside yazi.nvim floating window:
 | `<leader>ld` | Show diagnostics                                                   | plugins/lsp.lua:80        |
 | `<leader>lq` | Buffer diagnostics to quickfix (spell excluded, jumps to first)    | plugins/lsp.lua           |
 | `<leader>lW` | Workspace diagnostics to quickfix (spell excluded, jumps to first) | plugins/lsp.lua           |
+| `<leader>ll` | Lint buffer (markdownlint on Markdown)                             | plugins/lint.lua          |
 | `[d`         | Previous diagnostic                                                | plugins/lsp.lua:86        |
 | `]d`         | Next diagnostic                                                    | plugins/lsp.lua:84        |
 

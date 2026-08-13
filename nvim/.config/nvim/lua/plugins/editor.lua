@@ -326,6 +326,7 @@ return {
         { "<leader>ld", desc = "Show Diagnostics", icon = "" },
         { "<leader>lq", desc = "Buffer Diagnostics to Quickfix", icon = "" },
         { "<leader>lW", desc = "Workspace Diagnostics to Quickfix", icon = "" },
+        { "<leader>ll", desc = "Lint Buffer", icon = "" },
 
         -- Spell/grammar mappings (set in lsp.lua, registered here for which-key)
         { "<leader>zn", desc = "Next Spell Issue", icon = "" },
