@@ -146,8 +146,8 @@ Built-in Neovim navigation for the quickfix list (global) and location list (per
 | Key         | Action                 | Source             |
 | ----------- | ---------------------- | ------------------ |
 | `<leader>a` | Toggle outline sidebar | plugins/aerial.lua |
-| `{`         | Previous symbol        | plugins/aerial.lua |
-| `}`         | Next symbol            | plugins/aerial.lua |
+| `[[`        | Previous symbol        | plugins/aerial.lua |
+| `]]`        | Next symbol            | plugins/aerial.lua |
 
 ## Clipboard History (neoclip.nvim)
 
