@@ -344,7 +344,6 @@ return {
         -- Trouble mappings
         { "<leader>xx", desc = "Diagnostics (Trouble)", icon = "" },
         { "<leader>xX", desc = "Buffer Diagnostics (Trouble)", icon = "" },
-        { "<leader>xs", desc = "Symbols (Trouble)", icon = "" },
         { "<leader>xr", desc = "LSP References (Trouble)", icon = "" },
         { "<leader>xl", desc = "Location List (Trouble)", icon = "" },
         { "<leader>xq", desc = "Quickfix List (Trouble)", icon = "" },
