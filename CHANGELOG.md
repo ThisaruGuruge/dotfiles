@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fixed `.github/workflows/auto-tag.yml` reporting success after pushing a tag whose release never got published — dispatching `release.yml` is fire-and-forget, so when that run failed the tag job still went green and nothing signalled the gap. This is how `2.1.0` was tagged but never released. A new step now polls `gh release view` for up to 5 minutes after the dispatch and fails the job with the re-publish command if no release appears
 - Fixed `harper-ls` reporting zero spell/grammar diagnostics in long documents (`nvim/.config/nvim/lua/plugins/lsp.lua`) — harper-ls silently skips any file larger than its `maxFileLength` setting (default 120000 bytes) instead of reporting a limit, so a large spec or design doc looked clean while every typo in it went unflagged. Raised to 1000000
 
 ### Added

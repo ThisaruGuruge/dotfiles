@@ -194,6 +194,34 @@ jobs:
           # release.yml explicitly instead of relying on that push event.
           gh workflow run release.yml --ref main -f tag="$NEXT_TAG"
 
+      # Dispatching release.yml is fire-and-forget: this job would otherwise go
+      # green even when the release run fails, leaving a tag with no GitHub
+      # Release and nothing to signal it (this is how 2.1.0 was lost).
+      - name: Verify the release was published
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEXT_TAG="${{ steps.next.outputs.tag }}"
+
+          for _ in $(seq 1 30); do
+            if gh release view "$NEXT_TAG" >/dev/null 2>&1; then
+              echo "✅ Release $NEXT_TAG published"
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "::error::Tag $NEXT_TAG was pushed but no GitHub Release appeared within 5 minutes."
+          {
+            echo "## ⚠️ Tag pushed without a release"
+            echo ""
+            echo "Check the release.yml run, then re-publish with:"
+            echo '```'
+            echo "gh workflow run release.yml --ref main -f tag=$NEXT_TAG"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
       - name: Summary
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
