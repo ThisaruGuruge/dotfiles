@@ -140,8 +140,6 @@ Built-in Neovim navigation for the quickfix list (global) and location list (per
 | `<leader>gd` | Diff this           | plugins/git.lua:71  |
 | `<leader>gD` | Diff this ~         | plugins/git.lua:72  |
 | `<leader>gg` | LazyGit             | plugins/git.lua:108 |
-| `<leader>gw` | Switch Git Worktree | plugins/git.lua:121 |
-| `<leader>gW` | Create Git Worktree | plugins/git.lua:128 |
 
 ## Code Outline (aerial.nvim)
 

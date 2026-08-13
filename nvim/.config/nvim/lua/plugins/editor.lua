@@ -316,8 +316,6 @@ return {
         { "<leader>gd", desc = "Diff This", icon = "" },
         { "<leader>gD", desc = "Diff This ~", icon = "" },
         { "<leader>gg", desc = "LazyGit", icon = "" },
-        { "<leader>gw", desc = "Switch Git Worktree", icon = "" },
-        { "<leader>gW", desc = "Create Git Worktree", icon = "" },
 
         -- LSP mappings (will be set in LspAttach, these help which-key)
         { "<leader>lr", desc = "Rename Symbol", icon = "" },
