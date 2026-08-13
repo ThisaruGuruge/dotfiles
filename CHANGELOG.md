@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Added `nvim/.config/nvim/.stylua.toml` (`indent_type = "Spaces"`, `indent_width = 2`, `column_width = 120`) and reformatted every Lua file under `nvim/` to match — stylua's built-in default is tabs, so format-on-save had been silently converting files to tab indentation against the "never use tabs" convention in CLAUDE.md. Neovim core and the plugins that ship a stylua config (aerial, conform, gitsigns) all use 2 spaces
 - Swapped `cask "docker"` (Docker Desktop app) for `brew "docker"` + `brew "docker-compose"` (CLI-only) in `packages/containers.brewfile` — colima supplies the daemon/VM itself, so the Docker Desktop app is redundant and would otherwise compete with colima for the docker context/socket
 
 ### Removed

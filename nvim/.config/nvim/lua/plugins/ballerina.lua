@@ -1,7 +1,7 @@
 return {
-	{
-		"redpierrot/ballerina.nvim",
-		ft = "ballerina",
-		opts = {},
-	},
+  {
+    "redpierrot/ballerina.nvim",
+    ft = "ballerina",
+    opts = {},
+  },
 }
