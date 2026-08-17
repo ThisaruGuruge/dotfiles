@@ -7,6 +7,29 @@ local function map(lhs, rhs, desc, mode)
   return { lhs, rhs, desc = desc, mode = mode }
 end
 
+-- The expression under the cursor, or the visual selection verbatim. Same rule
+-- nvim-dap-ui applies to <leader>de: `<cexpr>` rather than `<cword>`, so in
+-- `e.source` the cursor on the dot or on `source` yields `e.source` — though on
+-- `e` itself it yields just `e`, and anything `<cexpr>` won't reach (an index,
+-- a call) needs a visual selection. Reimplemented here because dapui's own
+-- helper runs through nio and expects an async context.
+local function current_expr()
+  local mode = vim.fn.mode()
+  if mode ~= "v" and mode ~= "V" and mode ~= "\22" then
+    return vim.fn.expand("<cexpr>")
+  end
+  local anchor, cursor = vim.fn.getpos("v"), vim.fn.getpos(".")
+  local start_row, start_col, end_row, end_col = anchor[2], anchor[3], cursor[2], cursor[3]
+  if start_row > end_row or (start_row == end_row and start_col > end_col) then
+    start_row, start_col, end_row, end_col = end_row, end_col, start_row, start_col
+  end
+  if mode == "V" then
+    start_col, end_col = 1, #vim.fn.getline(end_row)
+  end
+  local lines = vim.api.nvim_buf_get_text(0, start_row - 1, start_col - 1, end_row - 1, end_col, {})
+  return table.concat(lines, "\n")
+end
+
 return {
   {
     "mfussenegger/nvim-dap",
@@ -95,6 +118,18 @@ return {
       map("<leader>de", function()
         require("dapui").eval(nil, { enter = true })
       end, "Evaluate expression", { "n", "v" }),
+      -- <leader>de is a one-shot float; this pins the expression so it
+      -- re-evaluates at every stop. The Watches pane's own `w` mapping only
+      -- works from inside the panes.
+      map("<leader>dw", function()
+        local expr = current_expr()
+        if expr == "" then
+          vim.notify("No expression under the cursor", vim.log.levels.WARN)
+          return
+        end
+        require("dapui").elements.watches.add(expr)
+        vim.notify("Watching " .. expr)
+      end, "Watch expression", { "n", "v" }),
     },
     config = function()
       local dap = require("dap")

@@ -335,6 +335,7 @@ Language-agnostic. Every binding below works for any configured debugger
 | `<leader>dr` | Toggle REPL                | plugins/dap.lua |
 | `<leader>du` | Toggle DAP UI              | plugins/dap.lua |
 | `<leader>de` | Evaluate expression (n, v) | plugins/dap.lua |
+| `<leader>dw` | Watch expression (n, v)    | plugins/dap.lua |
 
 F-key equivalents for the stepping commands, for use mid-session:
 
@@ -393,6 +394,15 @@ It is a prompt buffer taking Go expressions and dot-commands (`.frames`,
 `.scopes`, `.threads`, `.help`), so it is only worth opening for something the
 Scopes and Watches panes cannot show; stepping and evaluation already have
 keymaps.
+
+**Evaluating an expression.** `<leader>de` opens a one-shot float;
+`<leader>dw` pins the same expression in Watches, where it re-evaluates at every
+stop. Both take the expression from `<cexpr>` in normal mode — in `e.source`,
+the cursor on the dot or on `source` gives you `e.source`, but on `e` it gives
+just `e`. For anything `<cexpr>` cannot reach (`candidates[0].source`,
+`len(errs)`, a call), select it in visual mode: the selection is used verbatim.
+Evaluation happens in the **selected** frame, so `o` on a caller in Stacks first
+lets you inspect that frame's variables.
 
 Value **types** are hidden (`render.max_type_length = 0` in `plugins/dap.lua`).
 Go reports them as fully-qualified import paths, which push the value itself

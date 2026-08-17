@@ -268,6 +268,7 @@ Works for every configured debugger — Go, Python, Java, Ballerina.
 | `<Space>dr` | `n`    | Toggle REPL              |
 | `<Space>du` | `n`    | Toggle DAP UI            |
 | `<Space>de` | `n, v` | Evaluate expression      |
+| `<Space>dw` | `n, v` | Watch expression         |
 
 Go-only (buffer-local to `.go` files):
 
