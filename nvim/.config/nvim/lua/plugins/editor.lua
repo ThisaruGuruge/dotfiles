@@ -269,6 +269,7 @@ return {
       wk.add({
         -- Leader groups (with clear visual indicators)
         { "<leader>c", group = " Copy...", icon = "" },
+        { "<leader>d", group = " Debug...", icon = "" },
         { "<leader>f", group = "󰍉 Find/Search...", icon = "" },
         { "<leader>g", group = " Git...", icon = "" },
         { "<leader>l", group = " LSP...", icon = "" },
@@ -340,6 +341,26 @@ return {
         { "<leader>tw", "<cmd>set wrap!<cr>", desc = "Toggle Wrap", icon = "" },
         { "<leader>u", desc = "Toggle Undotree", icon = "" },
         { "<leader>a", desc = "Toggle Outline", icon = "" },
+
+        -- Debug mappings (set in plugins/dap.lua; the Go-only ones in
+        -- plugins/dap-go.lua, which is why they only appear in .go buffers)
+        { "<leader>db", desc = "Toggle Breakpoint", icon = "" },
+        { "<leader>dB", desc = "Conditional Breakpoint", icon = "" },
+        { "<leader>dp", desc = "Log Point", icon = "" },
+        { "<leader>dc", desc = "Continue / Start (F5)", icon = "" },
+        { "<leader>do", desc = "Step Over (F10)", icon = "" },
+        { "<leader>di", desc = "Step Into (F11)", icon = "" },
+        { "<leader>dO", desc = "Step Out (S-F11)", icon = "" },
+        { "<leader>dC", desc = "Run to Cursor", icon = "" },
+        { "<leader>dq", desc = "Terminate Session (F6)", icon = "" },
+        { "<leader>dR", desc = "Restart Session", icon = "" },
+        { "<leader>dl", desc = "Run Last Configuration", icon = "" },
+        { "<leader>dr", desc = "Toggle REPL", icon = "" },
+        { "<leader>du", desc = "Toggle DAP UI", icon = "" },
+        { "<leader>de", desc = "Evaluate Expression", icon = "" },
+        { "<leader>dt", desc = "Debug Nearest Test (Go)", icon = "" },
+        { "<leader>dT", desc = "Debug Last Test (Go)", icon = "" },
+        { "<leader>da", desc = "Attach Remote Delve (Go)", icon = "" },
 
         -- Trouble mappings
         { "<leader>xx", desc = "Diagnostics (Trouble)", icon = "" },

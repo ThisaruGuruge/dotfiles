@@ -6,13 +6,13 @@
 
 This configuration follows standard Vim/Neovim conventions:
 
-| Pattern     | Purpose               | Examples                                                                                        |
-| :---------- | :-------------------- | :---------------------------------------------------------------------------------------------- |
-| `g*`        | Navigation (go to...) | `gd` (definition), `gr` (references), `gi` (implementation)                                     |
-| `<Space>g*` | Git operations        | `<Space>gs` (stage), `<Space>gp` (preview), `<Space>gg` (LazyGit)                               |
+| Pattern     | Purpose               | Examples                                                                                                            |
+| :---------- | :-------------------- | :------------------------------------------------------------------------------------------------------------------ |
+| `g*`        | Navigation (go to...) | `gd` (definition), `gr` (references), `gi` (implementation)                                                         |
+| `<Space>g*` | Git operations        | `<Space>gs` (stage), `<Space>gp` (preview), `<Space>gg` (LazyGit)                                                   |
 | `<Space>l*` | LSP actions           | `<Space>lr` (rename), `<Space>la` (actions), `<Space>lf` (format), `<Space>lq` (buf qf), `<Space>lW` (workspace qf) |
-| `<Space>f*` | Find/Search           | `<Space>ff` (files), `<Space>fg` (grep), `<Space>fb` (buffers), `<Space>fy` (clipboard history) |
-| `[` / `]`   | Previous/Next         | `[d` (prev diagnostic), `]c` (next git hunk)                                                    |
+| `<Space>f*` | Find/Search           | `<Space>ff` (files), `<Space>fg` (grep), `<Space>fb` (buffers), `<Space>fy` (clipboard history)                     |
+| `[` / `]`   | Previous/Next         | `[d` (prev diagnostic), `]c` (next git hunk)                                                                        |
 
 ---
 
@@ -44,14 +44,14 @@ The dashboard appears when opening Neovim without arguments. Press the shortcut 
 
 ## Search & Find (Telescope)
 
-| Key         | Mode | Action                    |
-| :---------- | :--- | :------------------------ |
-| `<Space>ff` | `n`  | Find files in project     |
-| `<Space>fg` | `n`  | Live grep (search text)   |
-| `<Space>fb` | `n`  | Find buffers (open files) |
-| `<Space>fh` | `n`  | Find help tags            |
-| `<Space>fr` | `n`  | Recent files              |
-| `<Space>fw` | `n`  | Find word under cursor    |
+| Key         | Mode | Action                                           |
+| :---------- | :--- | :----------------------------------------------- |
+| `<Space>ff` | `n`  | Find files in project                            |
+| `<Space>fg` | `n`  | Live grep (search text)                          |
+| `<Space>fb` | `n`  | Find buffers (open files)                        |
+| `<Space>fh` | `n`  | Find help tags                                   |
+| `<Space>fr` | `n`  | Recent files                                     |
+| `<Space>fw` | `n`  | Find word under cursor                           |
 | `<Space>fS` | `n`  | Search symbols (workspace, e.g. `Engine` struct) |
 
 ---
@@ -98,20 +98,20 @@ See `docs/YAZI_KEYBINDINGS.md` for the full yazi keybinding reference.
 
 ### Gitsigns (Hunks)
 
-| Key         | Mode     | Action          |
-| :---------- | :------- | :-------------- |
-| `]c`        | `n`      | Next hunk       |
-| `[c`        | `n`      | Previous hunk   |
-| `<Space>gs` | `n`, `v` | Stage hunk      |
-| `<Space>gr` | `n`, `v` | Reset hunk      |
-| `<Space>gS` | `n`      | Stage buffer    |
-| `<Space>gu` | `n`      | Undo stage hunk |
-| `<Space>gR` | `n`      | Reset buffer    |
-| `<Space>gp` | `n`      | Preview hunk    |
+| Key         | Mode     | Action                        |
+| :---------- | :------- | :---------------------------- |
+| `]c`        | `n`      | Next hunk                     |
+| `[c`        | `n`      | Previous hunk                 |
+| `<Space>gs` | `n`, `v` | Stage hunk                    |
+| `<Space>gr` | `n`, `v` | Reset hunk                    |
+| `<Space>gS` | `n`      | Stage buffer                  |
+| `<Space>gu` | `n`      | Undo stage hunk               |
+| `<Space>gR` | `n`      | Reset buffer                  |
+| `<Space>gp` | `n`      | Preview hunk                  |
 | `<Space>gt` | `n`      | Toggle deleted lines (inline) |
-| `<Space>gb` | `n`      | Blame line      |
-| `<Space>gd` | `n`      | Diff this       |
-| `<Space>gD` | `n`      | Diff this ~     |
+| `<Space>gb` | `n`      | Blame line                    |
+| `<Space>gd` | `n`      | Diff this                     |
+| `<Space>gD` | `n`      | Diff this ~                   |
 
 ---
 
@@ -119,40 +119,40 @@ See `docs/YAZI_KEYBINDINGS.md` for the full yazi keybinding reference.
 
 ### Navigation
 
-| Key  | Mode | Action               |
-| :--- | :--- | :------------------- |
-| `gd` | `n`  | Go to definition     |
-| `gD` | `n`  | Go to declaration    |
-| `gr` | `n`  | Find references      |
-| `gi` | `n`  | Go to implementation |
+| Key  | Mode | Action                                    |
+| :--- | :--- | :---------------------------------------- |
+| `gd` | `n`  | Go to definition                          |
+| `gD` | `n`  | Go to declaration                         |
+| `gr` | `n`  | Find references                           |
+| `gi` | `n`  | Go to implementation                      |
 | `gO` | `n`  | Document symbols (opens in location list) |
-| `K`  | `n`  | Hover documentation  |
+| `K`  | `n`  | Hover documentation                       |
 
 ### Actions
 
-| Key         | Mode | Action              |
-| :---------- | :--- | :------------------ |
-| `<Space>lr` | `n`  | Rename symbol       |
-| `<Space>la` | `n`  | Code actions        |
-| `<Space>lf` | `n`  | Format buffer       |
-| `<Space>ld` | `n`  | Show diagnostics    |
-| `<Space>lq` | `n`  | Buffer diagnostics to quickfix (spell excluded, jumps to first) |
+| Key         | Mode | Action                                                             |
+| :---------- | :--- | :----------------------------------------------------------------- |
+| `<Space>lr` | `n`  | Rename symbol                                                      |
+| `<Space>la` | `n`  | Code actions                                                       |
+| `<Space>lf` | `n`  | Format buffer                                                      |
+| `<Space>ld` | `n`  | Show diagnostics                                                   |
+| `<Space>lq` | `n`  | Buffer diagnostics to quickfix (spell excluded, jumps to first)    |
 | `<Space>lW` | `n`  | Workspace diagnostics to quickfix (spell excluded, jumps to first) |
-| `[d`        | `n`  | Previous diagnostic |
-| `]d`        | `n`  | Next diagnostic     |
+| `[d`        | `n`  | Previous diagnostic                                                |
+| `]d`        | `n`  | Next diagnostic                                                    |
 
 ### Spell & Grammar Checking
 
 Dedicated keybindings that jump only between spell/grammar diagnostics, skipping all code errors and warnings.
 
-| Key          | Mode | Action                                  |
-| :----------- | :--- | :-------------------------------------- |
-| `<Space>zn`  | `n`  | Next spell/typo issue                            |
-| `<Space>zp`  | `n`  | Previous spell/typo issue                        |
-| `<Space>zf`  | `n`  | Fix at cursor (code action menu)                 |
-| `<Space>zu`  | `n`  | Add word to user dictionary (global)             |
-| `<Space>zw`  | `n`  | Add word to workspace dictionary (project)       |
-| `<Space>zi`  | `n`  | Ignore this Harper lint (persisted)              |
+| Key         | Mode | Action                                     |
+| :---------- | :--- | :----------------------------------------- |
+| `<Space>zn` | `n`  | Next spell/typo issue                      |
+| `<Space>zp` | `n`  | Previous spell/typo issue                  |
+| `<Space>zf` | `n`  | Fix at cursor (code action menu)           |
+| `<Space>zu` | `n`  | Add word to user dictionary (global)       |
+| `<Space>zw` | `n`  | Add word to workspace dictionary (project) |
+| `<Space>zi` | `n`  | Ignore this Harper lint (persisted)        |
 
 - `harper-ls` — grammar + spell in comments and Markdown (warnings)
 - `typos-lsp` — typos in identifiers/strings/comments, e.g. `getRepsone` → `getResponse` (hints)
@@ -163,16 +163,16 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 
 ## Quickfix & Location List
 
-| Key  | Mode | Action                       |
-| :--- | :--- | :--------------------------- |
-| `]q` | `n`  | Next quickfix item           |
-| `[q` | `n`  | Previous quickfix item       |
-| `]Q` | `n`  | Last quickfix item           |
-| `[Q` | `n`  | First quickfix item          |
-| `]l` | `n`  | Next location-list item      |
-| `[l` | `n`  | Previous location-list item  |
-| `]L` | `n`  | Last location-list item      |
-| `[L` | `n`  | First location-list item     |
+| Key  | Mode | Action                      |
+| :--- | :--- | :-------------------------- |
+| `]q` | `n`  | Next quickfix item          |
+| `[q` | `n`  | Previous quickfix item      |
+| `]Q` | `n`  | Last quickfix item          |
+| `[Q` | `n`  | First quickfix item         |
+| `]l` | `n`  | Next location-list item     |
+| `[l` | `n`  | Previous location-list item |
+| `]L` | `n`  | Last location-list item     |
+| `[L` | `n`  | First location-list item    |
 
 `gO` (LSP document symbols) populates the **location list**, not the quickfix list — use `]l`/`[l`, not `]q`/`[q`, to navigate it.
 
@@ -248,17 +248,81 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 
 ---
 
+## Debugging (nvim-dap)
+
+Works for every configured debugger — Go, Python, Java, Ballerina.
+
+| Key         | Mode   | Action                   |
+| :---------- | :----- | :----------------------- |
+| `<Space>db` | `n`    | Toggle breakpoint        |
+| `<Space>dB` | `n`    | Conditional breakpoint   |
+| `<Space>dp` | `n`    | Log point                |
+| `<Space>dc` | `n`    | Continue / start (`F5`)  |
+| `<Space>do` | `n`    | Step over (`F10`)        |
+| `<Space>di` | `n`    | Step into (`F11`)        |
+| `<Space>dO` | `n`    | Step out (`S-F11`)       |
+| `<Space>dC` | `n`    | Run to cursor            |
+| `<Space>dq` | `n`    | Terminate session (`F6`) |
+| `<Space>dR` | `n`    | Restart session          |
+| `<Space>dl` | `n`    | Run last configuration   |
+| `<Space>dr` | `n`    | Toggle REPL              |
+| `<Space>du` | `n`    | Toggle DAP UI            |
+| `<Space>de` | `n, v` | Evaluate expression      |
+
+Go-only (buffer-local to `.go` files):
+
+| Key         | Mode | Action                              |
+| :---------- | :--- | :---------------------------------- |
+| `<Space>dt` | `n`  | Debug nearest test                  |
+| `<Space>dT` | `n`  | Debug last test                     |
+| `<Space>da` | `n`  | Attach to a remote `dlv --headless` |
+
+### Go walkthroughs
+
+**Debug a test** — put the cursor inside a `func TestX(t *testing.T)` and hit
+`<Space>dt`. Delve builds the test binary, the UI opens, and execution stops at
+your breakpoints. Step with `F10`/`F11`.
+
+**Debug a CLI with arguments** — open a file in the `main` package, set a
+breakpoint (`<Space>db`), then `<Space>dc` → _Debug package (arguments)_ and
+type them:
+
+```text
+Program arguments: stow zsh -s ~/dotfiles -d ~
+```
+
+The prompt is pre-filled with whatever you typed last time, and `<Space>dl`
+replays the run without prompting at all.
+
+**Debug something that reads stdin / runs in a container / runs elsewhere** —
+nvim can't hand a launched process a terminal, so start delve yourself:
+
+```sh
+dlv debug --headless --listen=127.0.0.1:38697 --accept-multiclient -- stow zsh
+```
+
+It compiles and then waits. In nvim, `<Space>da`, accept the default address,
+and your breakpoints sync over; `<Space>dc` starts it. The program has a real
+TTY in the terminal where delve is running, so prompts and output work
+normally.
+
+> Delve is installed by Mason, not Homebrew. After a Go upgrade delve may
+> refuse to run ("version of Go is too new") — `:MasonUpdate`, then reinstall
+> `delve`.
+
+---
+
 ## Ballerina (ballerina.nvim)
 
 Buffer-local — only active in `.bal` files.
 
-| Key         | Mode | Action                             |
-| :---------- | :--- | :---------------------------------- |
-| `<Space>br` | `n`  | Run (`:BallerinaRun`)               |
-| `<Space>bb` | `n`  | Build (`:BallerinaBuild`)           |
-| `<Space>bt` | `n`  | Test (`:BallerinaTest`)             |
-| `<Space>bf` | `n`  | Format (`:BallerinaFormat`)         |
-| `<Space>bF` | `n`  | Toggle format-on-save               |
+| Key         | Mode | Action                      |
+| :---------- | :--- | :-------------------------- |
+| `<Space>br` | `n`  | Run (`:BallerinaRun`)       |
+| `<Space>bb` | `n`  | Build (`:BallerinaBuild`)   |
+| `<Space>bt` | `n`  | Test (`:BallerinaTest`)     |
+| `<Space>bf` | `n`  | Format (`:BallerinaFormat`) |
+| `<Space>bF` | `n`  | Toggle format-on-save       |
 
 Standard LSP mappings (`gd`, `K`, `<Space>lr`, etc.) also work here. Diagnostics from Run/Test/Build land in the quickfix list.
 
@@ -344,15 +408,15 @@ Flash also enhances:
 
 Adds sign-column indicators and extra navigation on top of Vim's built-in marks. `ma` still sets mark `a`, `` `a `` / `'a` still jump to it, `dma` still deletes it.
 
-| Key          | Mode | Action                              |
-| :----------- | :--- | :----------------------------------- |
-| `m,`         | `n`  | Set next available lowercase mark    |
-| `m;`         | `n`  | Toggle mark on current line          |
-| `dm-`        | `n`  | Delete all marks on current line     |
-| `dm<space>`  | `n`  | Delete all marks in buffer           |
-| `m]`         | `n`  | Jump to next mark                    |
-| `m[`         | `n`  | Jump to previous mark                |
-| `m:`         | `n`  | Preview mark                         |
+| Key         | Mode | Action                            |
+| :---------- | :--- | :-------------------------------- |
+| `m,`        | `n`  | Set next available lowercase mark |
+| `m;`        | `n`  | Toggle mark on current line       |
+| `dm-`       | `n`  | Delete all marks on current line  |
+| `dm<space>` | `n`  | Delete all marks in buffer        |
+| `m]`        | `n`  | Jump to next mark                 |
+| `m[`        | `n`  | Jump to previous mark             |
+| `m:`        | `n`  | Preview mark                      |
 
 ---
 
