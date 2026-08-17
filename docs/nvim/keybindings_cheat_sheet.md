@@ -283,16 +283,18 @@ Go-only (buffer-local to `.go` files):
 `<Space>dt`. Delve builds the test binary, the UI opens, and execution stops at
 your breakpoints. Step with `F10`/`F11`.
 
-**Debug a CLI with arguments** — open a file in the `main` package, set a
-breakpoint (`<Space>db`), then `<Space>dc` → _Debug package (arguments)_ and
-type them:
+**Debug a CLI with arguments** — set a breakpoint (`<Space>db`) anywhere,
+including deep in an `internal/` package, then `<Space>dc` → _Debug program
+(arguments)_ and type them:
 
 ```text
 Program arguments: stow zsh -s ~/dotfiles -d ~
 ```
 
 The prompt is pre-filled with whatever you typed last time, and `<Space>dl`
-replays the run without prompting at all.
+replays the run. The binary launched is the module's `main` package (found via
+`go.mod` + `go list`), not the current file's directory — so the file you have
+open is irrelevant. Several `cmd/*` binaries means one extra pick.
 
 **Debug something that reads stdin / runs in a container / runs elsewhere** —
 nvim can't hand a launched process a terminal, so start delve yourself:

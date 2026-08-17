@@ -24,6 +24,78 @@ local function prompt_args()
   end)
 end
 
+-- Resolving what to launch.
+--
+-- The obvious `program = "${fileDirname}"` is wrong for anything but a
+-- single-package toy: you set a breakpoint in a library file (say
+-- internal/engine/operations.go) and delve dutifully builds *that* package.
+-- `go build -o` on a non-main package writes a compiled archive rather than a
+-- binary, so the launch dies with "not an executable file". What you almost
+-- always mean is "run the program that reaches this breakpoint", so resolve
+-- the module's main package instead of the current file's directory.
+local main_pkgs_cache = {} -- module root -> { dir, ... }
+local last_main = {} -- module root -> last chosen dir
+
+local function module_root()
+  local dir = vim.fn.expand("%:p:h")
+  local gomod = vim.fs.find("go.mod", { upward = true, path = dir })[1]
+  return gomod and vim.fs.dirname(gomod) or dir
+end
+
+local function main_packages(root)
+  if main_pkgs_cache[root] then
+    return main_pkgs_cache[root]
+  end
+  local res = vim
+    .system({ "go", "list", "-f", '{{if eq .Name "main"}}{{.Dir}}{{end}}', "./..." }, { cwd = root, text = true })
+    :wait(10000)
+  local dirs = {}
+  for _, line in ipairs(vim.split(res.stdout or "", "\n", { trimempty = true })) do
+    table.insert(dirs, line)
+  end
+  main_pkgs_cache[root] = dirs
+  return dirs
+end
+
+-- Returns a coroutine because picking between several `cmd/*` binaries needs
+-- vim.ui.select, which is async. nvim-dap resumes it with the chosen value.
+local function prompt_program()
+  return coroutine.create(function(dap_run_co)
+    local root = module_root()
+    local dirs = main_packages(root)
+
+    if #dirs == 0 then
+      -- No main package anywhere (library-only module, or `go list` failed).
+      -- Hand delve the module root so it reports something intelligible.
+      coroutine.resume(dap_run_co, root)
+      return
+    end
+    if #dirs == 1 then
+      coroutine.resume(dap_run_co, dirs[1])
+      return
+    end
+
+    -- Several binaries: offer them with the previous pick first.
+    local choices = vim.deepcopy(dirs)
+    local previous = last_main[root]
+    if previous then
+      table.sort(choices, function(a, _)
+        return a == previous
+      end)
+    end
+    vim.ui.select(choices, {
+      prompt = "Main package to debug:",
+      format_item = function(dir)
+        return dir == root and "." or dir:sub(#root + 2)
+      end,
+    }, function(choice)
+      choice = choice or previous or dirs[1]
+      last_main[root] = choice
+      coroutine.resume(dap_run_co, choice)
+    end)
+  end)
+end
+
 -- Prefer the delve Mason installs (plugins/dap.lua ensures it), but fall back
 -- to any `dlv` on PATH so a Homebrew or `go install` copy keeps working.
 local function delve_path()
@@ -128,24 +200,27 @@ return {
       require("dap").configurations.go = {
         {
           type = "go",
-          name = "Debug package (current file's dir)",
+          name = "Debug program",
           request = "launch",
-          program = "${fileDirname}",
+          program = prompt_program,
+          cwd = "${workspaceFolder}",
           outputMode = "remote",
         },
         {
           type = "go",
-          name = "Debug package (arguments)",
+          name = "Debug program (arguments)",
           request = "launch",
-          program = "${fileDirname}",
+          program = prompt_program,
           args = prompt_args,
+          cwd = "${workspaceFolder}",
           outputMode = "remote",
         },
         {
           type = "go",
-          name = "Debug file",
+          name = "Debug current file",
           request = "launch",
           program = "${file}",
+          cwd = "${workspaceFolder}",
           outputMode = "remote",
         },
         {

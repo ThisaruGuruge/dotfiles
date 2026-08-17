@@ -358,19 +358,29 @@ Buffer-local, only active in `.go` files.
 
 Configurations offered by `<leader>dc`:
 
-| Configuration                      | What it runs                                                 |
-| ---------------------------------- | ------------------------------------------------------------ |
-| Debug package (current file's dir) | The package the current file belongs to                      |
-| Debug package (arguments)          | Same, prompting for CLI args (pre-filled with the last ones) |
-| Debug file                         | Just the current file                                        |
-| Debug test (current file)          | Tests in the current file                                    |
-| Debug test (package)               | Tests in the current package                                 |
-| Attach remote (dlv --headless)     | Connects to an already-running delve                         |
+| Configuration                  | What it runs                                                 |
+| ------------------------------ | ------------------------------------------------------------ |
+| Debug program                  | The module's `main` package, wherever the current file lives |
+| Debug program (arguments)      | Same, prompting for CLI args (pre-filled with the last ones) |
+| Debug current file             | Just the current file (single-file `main` programs)          |
+| Debug test (current file)      | Tests in the current file                                    |
+| Debug test (package)           | Tests in the current package                                 |
+| Attach remote (dlv --headless) | Connects to an already-running delve                         |
 
-**Debugging a CLI with arguments** — open a file in the `main` package,
-set a breakpoint, `<leader>dc`, pick _Debug package (arguments)_, and type the
-args (e.g. `stow zsh -s ~/dotfiles -d ~`). `<leader>dl` replays the same run
-without re-prompting.
+**Debugging a CLI with arguments** — set a breakpoint anywhere, including deep
+in an `internal/` package, then `<leader>dc`, pick _Debug program (arguments)_
+and type the args (e.g. `stow zsh -s ~/dotfiles -d ~`). `<leader>dl` replays
+the same run.
+
+The program launched is the module's `main` package, found by walking up to
+`go.mod` and asking `go list`. You do **not** have to have a `main` file open —
+that matters because the breakpoint you care about is usually in a library
+package. Modules with several binaries under `cmd/` prompt you to choose, with
+the previous pick listed first.
+
+> Debugging the current file's _directory_ is deliberately not offered. On a
+> library package `go build -o` writes a compiled archive rather than a binary,
+> and the launch fails with `not an executable file`.
 
 **Debugging a program that reads stdin**, runs in a container, or lives on
 another machine — launching from nvim can't give it a terminal, so start delve
