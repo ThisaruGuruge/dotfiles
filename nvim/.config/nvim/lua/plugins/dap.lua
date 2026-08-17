@@ -84,8 +84,10 @@ return {
       end, "Run last configuration"),
 
       -- Inspection
+      -- Layout 3 (see dapui.setup below): the REPL, docked at the bottom only
+      -- while you want it.
       map("<leader>dr", function()
-        require("dap").repl.toggle()
+        require("dapui").toggle({ layout = 3 })
       end, "Toggle REPL"),
       map("<leader>du", function()
         require("dapui").toggle()
@@ -129,25 +131,50 @@ return {
       end
 
       dapui.setup({
+        -- Elements render in the *reverse* of the order declared here.
+        -- nvim-dap-ui opens the first element, then splits each subsequent one
+        -- off it with a plain `split`/`vsplit`, which land above and to the
+        -- left — so the last entry ends up on top (sidebar) or rightmost
+        -- (bottom tray). Declaration order below is therefore bottom-to-top.
         layouts = {
           {
+            -- Scopes is the pane you actually read while stepping, so it goes
+            -- on top with half the height; the other three are lists that are
+            -- mostly short.
             elements = {
-              { id = "scopes", size = 0.25 },
-              { id = "breakpoints", size = 0.25 },
-              { id = "stacks", size = 0.25 },
-              { id = "watches", size = 0.25 },
+              { id = "breakpoints", size = 0.12 },
+              { id = "stacks", size = 0.23 },
+              { id = "watches", size = 0.15 },
+              { id = "scopes", size = 0.5 },
             },
-            size = 40,
+            size = 50,
             position = "left",
           },
           {
+            -- Program output only. The REPL is layout 3, opened on demand by
+            -- <leader>dr, because stepping and evaluating both have keymaps
+            -- and a permanently docked REPL just costs vertical space.
             elements = {
-              { id = "repl", size = 0.5 },
-              { id = "console", size = 0.5 },
+              { id = "console", size = 1.0 },
             },
             size = 0.25,
             position = "bottom",
           },
+          {
+            elements = {
+              { id = "repl", size = 1.0 },
+            },
+            size = 0.3,
+            position = "bottom",
+          },
+        },
+        render = {
+          -- Go types are fully-qualified import paths
+          -- ("github.com/redpierrot/bestow/internal/engine.operationCandidate"),
+          -- which eat the whole line and push the value off-screen. Delve
+          -- already repeats the short type in the value, so drop the type
+          -- column; set -1 to bring it back.
+          max_type_length = 0,
         },
         floating = {
           max_height = 0.9,
@@ -155,7 +182,7 @@ return {
         },
         controls = {
           enabled = true,
-          element = "repl",
+          element = "console",
         },
       })
 
@@ -175,9 +202,12 @@ return {
         end
       end
 
-      -- Open the UI when a session starts, close it when one ends
+      -- Open the UI when a session starts, close it when one ends. Only
+      -- layouts 1 and 2 — layout 3 is the on-demand REPL. The tray opens
+      -- before the sidebar so the sidebar spans the full height.
       dap.listeners.after.event_initialized["dapui_config"] = function()
-        dapui.open()
+        dapui.open({ layout = 2 })
+        dapui.open({ layout = 1 })
       end
       dap.listeners.before.event_terminated["dapui_config"] = function()
         dapui.close()

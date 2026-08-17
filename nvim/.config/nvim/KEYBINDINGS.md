@@ -346,6 +346,47 @@ F-key equivalents for the stepping commands, for use mid-session:
 | `S-F11` | Step out                 |
 | `F6`    | Terminate session        |
 
+### The debug UI
+
+A session opens a 50-column sidebar and a bottom output pane:
+
+```text
+┌──────────────┬─────────────────────────────┐
+│  Scopes      │                             │
+│  (half the   │      source buffer          │
+│   sidebar)   │                             │
+├──────────────┤                             │
+│  Watches     │                             │
+├──────────────┤                             │
+│  Stacks      ├─────────────────────────────┤
+├──────────────┤   Console (program output)  │
+│  Breakpoints │   + control icons           │
+└──────────────┴─────────────────────────────┘
+```
+
+| Pane            | What it holds                                                   |
+| --------------- | --------------------------------------------------------------- |
+| **Scopes**      | Variables in the selected frame. `e` edits a value live         |
+| **Watches**     | Expressions re-evaluated at every stop; type at the `>` prompt  |
+| **Stacks**      | Threads and call stack. `<CR>` on a frame moves Scopes to it    |
+| **Breakpoints** | Breakpoints and their source line. `<CR>` jumps, `t` toggles    |
+| **Console**     | The debuggee's stdout/stderr, routed over DAP by `outputMode`   |
+
+Inside any of those panes: `<CR>` expands or collapses, `o` opens, `d` removes,
+`e` edits, `r` sends the value to the REPL, `t` toggles. Moving the cursor onto
+a line that is too long to fit pops the full value into a hover window.
+
+The REPL is **not** docked — `<leader>dr` slides it in and out of the bottom.
+It is a prompt buffer taking Go expressions and dot-commands (`.frames`,
+`.scopes`, `.threads`, `.help`), so it is only worth opening for something the
+Scopes and Watches panes cannot show; stepping and evaluation already have
+keymaps.
+
+Value **types** are hidden (`render.max_type_length = 0` in `plugins/dap.lua`).
+Go reports them as fully-qualified import paths, which push the value itself
+off-screen, and delve repeats the short type inside the value anyway. Set it to
+`-1` to bring the column back.
+
 ### Go (nvim-dap-go)
 
 Buffer-local, only active in `.go` files.

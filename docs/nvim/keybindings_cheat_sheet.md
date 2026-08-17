@@ -277,6 +277,10 @@ Go-only (buffer-local to `.go` files):
 | `<Space>dT` | `n`  | Debug last test                     |
 | `<Space>da` | `n`  | Attach to a remote `dlv --headless` |
 
+In the UI panes: `<CR>` expand/collapse, `o` open, `d` remove, `e` edit a value
+live, `r` send to REPL, `t` toggle. Long values pop into a hover window when the
+cursor lands on them. The REPL is not docked — `<Space>dr` slides it in.
+
 ### Go walkthroughs
 
 **Debug a test** — put the cursor inside a `func TestX(t *testing.T)` and hit
