@@ -125,21 +125,21 @@ Built-in Neovim navigation for the quickfix list (global) and location list (per
 
 ## Git (Gitsigns)
 
-| Key          | Action              | Source              |
-| ------------ | ------------------- | ------------------- |
-| `]c`         | Next git hunk       | plugins/git.lua:34  |
-| `[c`         | Previous git hunk   | plugins/git.lua:44  |
-| `<leader>gs` | Stage hunk          | plugins/git.lua:55  |
-| `<leader>gr` | Reset hunk          | plugins/git.lua:56  |
-| `<leader>gS` | Stage buffer        | plugins/git.lua:63  |
-| `<leader>gu` | Undo stage hunk     | plugins/git.lua:64  |
-| `<leader>gR` | Reset buffer        | plugins/git.lua:65  |
-| `<leader>gp` | Preview hunk        | plugins/git.lua:66  |
+| Key          | Action                        | Source              |
+| ------------ | ----------------------------- | ------------------- |
+| `]c`         | Next git hunk                 | plugins/git.lua:34  |
+| `[c`         | Previous git hunk             | plugins/git.lua:44  |
+| `<leader>gs` | Stage hunk                    | plugins/git.lua:55  |
+| `<leader>gr` | Reset hunk                    | plugins/git.lua:56  |
+| `<leader>gS` | Stage buffer                  | plugins/git.lua:63  |
+| `<leader>gu` | Undo stage hunk               | plugins/git.lua:64  |
+| `<leader>gR` | Reset buffer                  | plugins/git.lua:65  |
+| `<leader>gp` | Preview hunk                  | plugins/git.lua:66  |
 | `<leader>gt` | Toggle deleted lines (inline) | plugins/git.lua:67  |
-| `<leader>gb` | Blame line          | plugins/git.lua:68  |
-| `<leader>gd` | Diff this           | plugins/git.lua:71  |
-| `<leader>gD` | Diff this ~         | plugins/git.lua:72  |
-| `<leader>gg` | LazyGit             | plugins/git.lua:108 |
+| `<leader>gb` | Blame line                    | plugins/git.lua:68  |
+| `<leader>gd` | Diff this                     | plugins/git.lua:71  |
+| `<leader>gD` | Diff this ~                   | plugins/git.lua:72  |
+| `<leader>gg` | LazyGit                       | plugins/git.lua:108 |
 
 ## Code Outline (aerial.nvim)
 
@@ -184,8 +184,8 @@ Open with `<leader>fy` to browse yank history in a Telescope picker.
 
 ## Line Wrap
 
-| Key          | Action      | Source               |
-| ------------ | ----------- | --------------------- |
+| Key          | Action      | Source                 |
+| ------------ | ----------- | ---------------------- |
 | `<leader>tw` | Toggle wrap | plugins/editor.lua:319 |
 
 ## TMux Integration (vim-tmux-navigator)
@@ -314,6 +314,83 @@ Adds sign-column indicators and extra navigation on top of Vim's built-in marks 
 
 > Set/delete a specific mark the vanilla way: `ma` sets mark `a`, `dma` deletes it.
 
+## Debugging (nvim-dap)
+
+Language-agnostic. Every binding below works for any configured debugger
+(Go, Python, Java, Ballerina).
+
+| Key          | Action                     | Source          |
+| ------------ | -------------------------- | --------------- |
+| `<leader>db` | Toggle breakpoint          | plugins/dap.lua |
+| `<leader>dB` | Conditional breakpoint     | plugins/dap.lua |
+| `<leader>dp` | Log point                  | plugins/dap.lua |
+| `<leader>dc` | Continue / start session   | plugins/dap.lua |
+| `<leader>do` | Step over                  | plugins/dap.lua |
+| `<leader>di` | Step into                  | plugins/dap.lua |
+| `<leader>dO` | Step out                   | plugins/dap.lua |
+| `<leader>dC` | Run to cursor              | plugins/dap.lua |
+| `<leader>dq` | Terminate session          | plugins/dap.lua |
+| `<leader>dR` | Restart session            | plugins/dap.lua |
+| `<leader>dl` | Run last configuration     | plugins/dap.lua |
+| `<leader>dr` | Toggle REPL                | plugins/dap.lua |
+| `<leader>du` | Toggle DAP UI              | plugins/dap.lua |
+| `<leader>de` | Evaluate expression (n, v) | plugins/dap.lua |
+
+F-key equivalents for the stepping commands, for use mid-session:
+
+| Key     | Action                   |
+| ------- | ------------------------ |
+| `F5`    | Continue / start session |
+| `F10`   | Step over                |
+| `F11`   | Step into                |
+| `S-F11` | Step out                 |
+| `F6`    | Terminate session        |
+
+### Go (nvim-dap-go)
+
+Buffer-local, only active in `.go` files.
+
+| Key          | Action                              | Source             |
+| ------------ | ----------------------------------- | ------------------ |
+| `<leader>dt` | Debug nearest test (treesitter)     | plugins/dap-go.lua |
+| `<leader>dT` | Debug last test                     | plugins/dap-go.lua |
+| `<leader>da` | Attach to a remote `dlv --headless` | plugins/dap-go.lua |
+
+Configurations offered by `<leader>dc`:
+
+| Configuration                      | What it runs                                                 |
+| ---------------------------------- | ------------------------------------------------------------ |
+| Debug package (current file's dir) | The package the current file belongs to                      |
+| Debug package (arguments)          | Same, prompting for CLI args (pre-filled with the last ones) |
+| Debug file                         | Just the current file                                        |
+| Debug test (current file)          | Tests in the current file                                    |
+| Debug test (package)               | Tests in the current package                                 |
+| Attach remote (dlv --headless)     | Connects to an already-running delve                         |
+
+**Debugging a CLI with arguments** — open a file in the `main` package,
+set a breakpoint, `<leader>dc`, pick _Debug package (arguments)_, and type the
+args (e.g. `stow zsh -s ~/dotfiles -d ~`). `<leader>dl` replays the same run
+without re-prompting.
+
+**Debugging a program that reads stdin**, runs in a container, or lives on
+another machine — launching from nvim can't give it a terminal, so start delve
+yourself and attach:
+
+```sh
+dlv debug --headless --listen=127.0.0.1:38697 --accept-multiclient -- <program args>
+```
+
+then `<leader>da` in nvim and accept the default address. Breakpoints sync
+across, `<leader>dc` starts execution, and the program keeps a real TTY in the
+terminal where you started delve.
+
+> Delve ignores the `console: "integratedTerminal"` launch attribute — that
+> belongs to the VS Code Go extension, not to delve — which is why remote
+> attach is the route for interactive programs rather than a launch option.
+>
+> **Troubleshooting**: delve refuses to run against a Go release it doesn't
+> recognise. After a Go upgrade, `:MasonUpdate` then reinstall `delve`.
+
 ## Ballerina (ballerina.nvim)
 
 Buffer-local, only active in `.bal` files.
@@ -341,6 +418,7 @@ Buffer-local, only active in `.bal` files.
 | Prefix      | Group               | Source                |
 | ----------- | ------------------- | --------------------- |
 | `<leader>c` | Copy                | plugins/editor.lua    |
+| `<leader>d` | Debug (nvim-dap)    | plugins/editor.lua    |
 | `<leader>f` | Find (Telescope)    | plugins/editor.lua:69 |
 | `<leader>g` | Git                 | plugins/editor.lua:70 |
 | `<leader>l` | LSP                 | plugins/editor.lua:72 |
