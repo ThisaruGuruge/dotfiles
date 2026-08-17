@@ -58,7 +58,6 @@ brew "prettier"                     # JS/TS/JSON/YAML/Markdown formatter (confor
 brew "markdownlint-cli2"            # Markdown structure/style linter (nvim-lint)
 
 # AI/Development Tools
-cask "antigravity"                  # AI Agent
 cask "claude-code"                  # Claude Code CLI (claude/ package configures it)
 
 # Language version managers and development tools

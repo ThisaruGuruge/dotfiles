@@ -34,6 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the `<leader>xs` Trouble symbols binding (`nvim/.config/nvim/lua/plugins/trouble.lua`) — it showed the current file's outline, which the always-open aerial sidebar already provides. Trouble stays installed for diagnostics, LSP references, quickfix, and location list
 - Removed `ThePrimeagen/git-worktree.nvim` and its `<leader>gw`/`<leader>gW` keybindings (`nvim/.config/nvim/lua/plugins/git.lua`) — upstream's last commit is 2023-11-07
 - Removed `cask "rancher-desktop"` from `packages/containers.brewfile` — superseded by colima, which covers the same "lightweight container runtime without Docker Desktop" need with a smaller footprint
+- Removed the `noto` stow package (`noto/.config/noto/.notorc`), `brew "snelusha/noto/noto"` from `packages/productivity.brewfile`, and `noto` from the bestow package list in `init.sh`
+- Removed `cask "antigravity"` from `Brewfile` and `cask "cursor"` from `packages/editors.brewfile`
+- Removed the `todo` alias (`zsh/.aliases.sh`) — it pointed at `todo.sh`, which is not installed by any Brewfile in this repo, so the alias only ever produced "command not found"
 
 ## [2.2.0] - 2026-08-05
 

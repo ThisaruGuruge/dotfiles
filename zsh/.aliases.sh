@@ -13,8 +13,6 @@ alias cp="cp -riv"
 alias mv="mv -iv"
 alias qfind="find . -name "
 
-alias todo='todo.sh'
-
 if (($+commands[eza])); then
     alias ls='eza --icons --git'
     alias ll='eza -l --icons --git --header --no-user'
