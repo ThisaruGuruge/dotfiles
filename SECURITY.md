@@ -114,7 +114,7 @@ edit_secrets
 
 Sensitive files are automatically excluded:
 
-```
+```text
 .env           # Environment variables (encrypted or not)
 *.key          # Private keys
 *.pem          # Certificates
@@ -167,7 +167,8 @@ The installation script:
 #### Key Location
 
 Encryption keys are stored at:
-```
+
+```text
 ~/.config/sops/age/keys.txt
 ```
 

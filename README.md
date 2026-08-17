@@ -21,14 +21,18 @@ A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CL
 1. **macOS** – Tested on Sonoma/Ventura (Apple Silicon friendly)
 2. **Git** – Already on macOS, confirm with `git --version`
 3. **Homebrew** – Install if missing:
+
    ```bash
    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
    ```
+
 4. **Terminal** – Ghostty (recommended and configured), iTerm2, or Terminal.app all work
 5. **Nerd Font** – Needed for icons in Powerlevel10k/lazygit:
+
    ```bash
    brew install --cask font-fira-code-nerd-font
    ```
+
    Set the font once inside your terminal profile (Appearance/Text settings).
 
 ## Installation
@@ -122,23 +126,24 @@ Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 
 ## Repository Layout & Symlink Packages
 
-| Path | Notes |
-| --- | --- |
-| `zsh/` | `.zshrc`, `.zshrc.d/` (modular shell config), `.functions.d/` (modular functions), aliases, paths |
-| `zsh/.zshrc.d/` | 7 modules: plugins, completion, keybindings, history, integrations, environment, tmux |
-| `zsh/.functions.d/` | 9 modules: colors, core, navigation, archives, git, system, dotfiles, docs, packages |
+| Path                     | Notes                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------- |
+| `zsh/`                   | `.zshrc`, `.zshrc.d/` (modular shell config), `.functions.d/` (modular functions), aliases, paths |
+| `zsh/.zshrc.d/`          | 7 modules: plugins, completion, keybindings, history, integrations, environment, tmux             |
+| `zsh/.functions.d/`      | 9 modules: colors, core, navigation, archives, git, system, dotfiles, docs, packages              |
 | `<tool>/.config/<tool>/` | XDG configs, one stow package per tool (`ghostty`, `lazygit`, `nvim`, `yazi`, `ripgrep`, `typos`) |
-| `zsh/.p10k.zsh` | Powerlevel10k prompt config (Catppuccin Mocha, stowed to `~/.p10k.zsh`) |
-| `git/` | `.gitconfig`, ignore rules, delta settings |
-| `tmux/` | Modern tmux config + keybinds |
-| `direnv/` | Project-specific environment automation |
-| `packages/` | Optional category Brewfiles (cloud, containers, development, etc.) |
-| `bin/` | Helper scripts (`test-zsh-config`, `profile-zsh-startup`, `audit-configs`, `adopt-config`) |
-| `docs/` | Additional documentation (prompt guide, tmux keybindings, config management) |
+| `zsh/.p10k.zsh`          | Powerlevel10k prompt config (Catppuccin Mocha, stowed to `~/.p10k.zsh`)                           |
+| `git/`                   | `.gitconfig`, ignore rules, delta settings                                                        |
+| `tmux/`                  | Modern tmux config + keybinds                                                                     |
+| `direnv/`                | Project-specific environment automation                                                           |
+| `packages/`              | Optional category Brewfiles (cloud, containers, development, etc.)                                |
+| `bin/`                   | Helper scripts (`test-zsh-config`, `profile-zsh-startup`, `audit-configs`, `adopt-config`)        |
+| `docs/`                  | Additional documentation (prompt guide, tmux keybindings, config management)                      |
 
 ### Ghostty Configuration
 
 Ghostty is configured with:
+
 - Option key for word navigation (Option+Left/Right)
 - Catppuccin Mocha theme
 - FiraCode Nerd Font with ligatures
@@ -157,14 +162,14 @@ lzd                                               # lazydocker also works unchan
 
 Colima lifecycle aliases (`zsh/.aliases.sh`, only defined if `colima` is installed):
 
-| Alias | Command |
-| --- | --- |
-| `colima-start` | `colima start` |
-| `colima-stop` | `colima stop` |
+| Alias            | Command          |
+| ---------------- | ---------------- |
+| `colima-start`   | `colima start`   |
+| `colima-stop`    | `colima stop`    |
 | `colima-restart` | `colima restart` |
-| `colima-status` | `colima status` |
-| `colima-list` | `colima list` |
-| `colima-ssh` | `colima ssh` |
+| `colima-status`  | `colima status`  |
+| `colima-list`    | `colima list`    |
+| `colima-ssh`     | `colima ssh`     |
 
 Homebrew's `docker-compose` formula installs as a CLI plugin, which Docker only discovers if `~/.docker/config.json` lists its plugin dir:
 
@@ -234,15 +239,15 @@ app.conf                                   # Opens config files in nvim
 
 **Supported extensions:**
 
-| Extension | Tool | Purpose |
-|-----------|------|---------|
-| `.md` | `mdcat -p` | View rendered Markdown with paging |
-| `.json` | `jless` | Interactive JSON browsing with folding |
-| `.yaml`, `.yml` | `jless` | Interactive YAML browsing |
-| `.py` | `$EDITOR` | Edit Python files |
-| `.sh`, `.bash`, `.zsh` | `$EDITOR` | Edit shell scripts |
-| `.bal` | `$EDITOR` | Edit Ballerina files |
-| `.conf`, `.config`, `.ini` | `$EDITOR` | Edit configuration files |
+| Extension                  | Tool       | Purpose                                |
+| -------------------------- | ---------- | -------------------------------------- |
+| `.md`                      | `mdcat -p` | View rendered Markdown with paging     |
+| `.json`                    | `jless`    | Interactive JSON browsing with folding |
+| `.yaml`, `.yml`            | `jless`    | Interactive YAML browsing              |
+| `.py`                      | `$EDITOR`  | Edit Python files                      |
+| `.sh`, `.bash`, `.zsh`     | `$EDITOR`  | Edit shell scripts                     |
+| `.bal`                     | `$EDITOR`  | Edit Ballerina files                   |
+| `.conf`, `.config`, `.ini` | `$EDITOR`  | Edit configuration files               |
 
 The default editor is set to `nvim` via the `$EDITOR` environment variable in `.zshenv`.
 
@@ -252,11 +257,13 @@ The default editor is set to `nvim` via the `$EDITOR` environment variable in `.
 - Secrets live in `~/.env` (ignored by git). They remain encrypted on disk and are transparently decrypted by the shell when sourced.
 - Use `edit_secrets` (wrapper defined in `.functions.d/06-dotfiles.zsh`) to decrypt, open your `$EDITOR`, and re-encrypt on save.
 - Manual commands:
+
   ```bash
   sops -d ~/.env | less            # View decrypted env
   sops ~/.env                      # Edit directly
   export SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt
   ```
+
 - The template at `zsh/.env.example` is copied when you first run `init.sh`; extend it if you need new keys for future machines.
 
 ## Touch ID for sudo
@@ -286,7 +293,7 @@ EOF
 
 Sample prompt (top line + prompt character on line 2):
 
-```
+```text
  ~/dotfiles  main !+   Go 1.23.4
 ❯
 ```
@@ -300,7 +307,7 @@ What you see:
 - **Prompt character** – `❯` green on success, red on failure; `❮` in Vim normal mode
 - **Transient prompt** – after a command runs, the previous prompt collapses to just `❯` in scrollback
 
-**Design principle**: The prompt shows *command context* (where you are, git state, language). The tmux status bar shows *session context* (session name, sysinfo, battery, time). Nothing is duplicated between the two layers.
+**Design principle**: The prompt shows _command context_ (where you are, git state, language). The tmux status bar shows _session context_ (session name, sysinfo, battery, time). Nothing is duplicated between the two layers.
 
 Customize the prompt at `~/.p10k.zsh` (stowed from `zsh/.p10k.zsh`):
 
