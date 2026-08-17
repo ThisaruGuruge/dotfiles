@@ -18,7 +18,7 @@ return {
       default_direction = "prefer_left",
     },
     -- Auto-open when opening a file
-    open_automatic = true,
+    open_automatic = false,
     filter_kind = false,
     show_guides = true,
     guides = {
