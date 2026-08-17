@@ -81,6 +81,8 @@ Inside yazi.nvim floating window:
 | `<leader>lq` | Buffer diagnostics to quickfix (spell excluded, jumps to first)    | plugins/lsp.lua           |
 | `<leader>lW` | Workspace diagnostics to quickfix (spell excluded, jumps to first) | plugins/lsp.lua           |
 | `<leader>ll` | Lint buffer (markdownlint on Markdown)                             | plugins/lint.lua          |
+| `<leader>lh` | Toggle inlay hints (parameter names, inferred types)               | plugins/lsp.lua           |
+| `<leader>lc` | Run codelens under the cursor                                      | plugins/lsp.lua           |
 | `[d`         | Previous diagnostic                                                | plugins/lsp.lua:86        |
 | `]d`         | Next diagnostic                                                    | plugins/lsp.lua:84        |
 
@@ -464,6 +466,54 @@ terminal where you started delve.
 > **Troubleshooting**: delve refuses to run against a Go release it doesn't
 > recognise. After a Go upgrade, `:MasonUpdate` then reinstall `delve`.
 
+## Go (gopher.nvim)
+
+Code generation, buffer-local to `.go` files. The five binaries behind these
+(`iferr`, `gomodifytags`, `impl`, `gotests`, `json-to-struct`) are installed by
+Mason the first time you open a Go file — no `go install` needed.
+
+| Key          | Action                                     | Command         |
+| ------------ | ------------------------------------------ | --------------- |
+| `<leader>Ge` | Insert an `if err != nil` guard            | `:GoIfErr`      |
+| `<leader>Gt` | Add `json` struct tags                     | `:GoTagAdd`     |
+| `<leader>GT` | Remove `json` struct tags                  | `:GoTagRm`      |
+| `<leader>Gi` | Generate interface method stubs            | `:GoImpl`       |
+| `<leader>Gc` | Generate a doc comment for the symbol      | `:GoCmt`        |
+| `<leader>Ga` | Generate a test for the function at cursor | `:GoTestAdd`    |
+| `<leader>GA` | Generate tests for everything in the file  | `:GoTestsAll`   |
+| `<leader>Gj` | Turn JSON into a struct definition         | `:GoJson`       |
+| `<leader>Gm` | `go mod tidy`                              | `:GoMod tidy`   |
+
+`<leader>Ge` reads the enclosing function's signature to pick the return values,
+so in a `func(...) (*Config, error)` it writes `return nil, err` rather than a
+bare `return`. Put the cursor on the line that produced the `err`.
+
+Other commands without keymaps: `:GoTagAdd yaml` (or any tag name), `:GoGet`,
+`:GoWork`, `:GoGenerate`, `:GoTestsExp` (exported functions only).
+
+## Testing (neotest)
+
+| Key          | Action                             |
+| ------------ | ---------------------------------- |
+| `<leader>Tr` | Run the nearest test               |
+| `<leader>Tf` | Run every test in the file         |
+| `<leader>TA` | Run every test in the project      |
+| `<leader>Td` | Debug the nearest test             |
+| `<leader>TS` | Stop the running test              |
+| `<leader>Ts` | Toggle the summary tree            |
+| `<leader>To` | Show output for the nearest test   |
+| `<leader>TO` | Toggle the output panel            |
+| `<leader>Tw` | Toggle watch mode for the file     |
+
+Tests run with `-v -race -count=1`. The `-count=1` matters: it defeats Go's test
+result cache, so a green result always reflects the code as it is now.
+
+> `<leader>Td` and `<leader>dt` both debug a test, and both end up in the same
+> delve session — neotest-golang's `dap_mode` defaults to `"dap-go"`, so it
+> hands over to the adapter `plugins/dap-go.lua` configures. Use `<leader>dt`
+> when you are already debugging, `<leader>Td` when you are looking at a failure
+> in the summary tree.
+
 ## Ballerina (ballerina.nvim)
 
 Buffer-local, only active in `.bal` files.
@@ -494,8 +544,10 @@ Buffer-local, only active in `.bal` files.
 | `<leader>d` | Debug (nvim-dap)    | plugins/editor.lua    |
 | `<leader>f` | Find (Telescope)    | plugins/editor.lua:69 |
 | `<leader>g` | Git                 | plugins/editor.lua:70 |
+| `<leader>G` | Go (gopher.nvim)    | plugins/editor.lua    |
 | `<leader>l` | LSP                 | plugins/editor.lua:72 |
 | `<leader>z` | Spell/Grammar       | plugins/editor.lua    |
+| `<leader>T` | Test (neotest)      | plugins/editor.lua    |
 | `<leader>t` | Toggle              | plugins/editor.lua:71 |
 | `<leader>x` | Trouble/Diagnostics | plugins/editor.lua    |
 
