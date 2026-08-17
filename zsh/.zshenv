@@ -1,3 +1,13 @@
+# Keep PATH free of duplicates for the whole session. `.paths.sh` has its own
+# path_dedupe(), but that runs once and only covers entries added before it —
+# anything appended later (pyenv prepends its shims in .zshrc.d/06-environment.zsh
+# on every source, so re-sourcing .zshrc duplicated them) slipped past it.
+# zsh's -U keeps the array unique on every assignment instead. It lives here
+# rather than in .paths.sh because that file is also sourced by bash, which has
+# no typeset -U.
+typeset -U path PATH
+typeset -U fpath
+
 # Default editor
 export EDITOR="nvim"
 export VISUAL="$EDITOR"
