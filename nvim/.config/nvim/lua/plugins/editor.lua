@@ -367,6 +367,7 @@ return {
         { "<leader>dr", desc = "Toggle REPL", icon = "" },
         { "<leader>du", desc = "Toggle DAP UI", icon = "" },
         { "<leader>de", desc = "Evaluate Expression", icon = "" },
+        { "<leader>dw", desc = "Watch Expression", icon = "" },
         { "<leader>dt", desc = "Debug Nearest Test (Go)", icon = "" },
         { "<leader>dT", desc = "Debug Last Test (Go)", icon = "" },
         { "<leader>da", desc = "Attach Remote Delve (Go)", icon = "" },
