@@ -277,9 +277,11 @@ Go-only (buffer-local to `.go` files):
 | `<Space>dT` | `n`  | Debug last test                     |
 | `<Space>da` | `n`  | Attach to a remote `dlv --headless` |
 
-In the UI panes: `<CR>` expand/collapse, `o` open, `d` remove, `e` edit a value
-live, `r` send to REPL, `t` toggle. Long values pop into a hover window when the
-cursor lands on them. The REPL is not docked — `<Space>dr` slides it in.
+In the UI panes, each pane binds only the actions that suit it: `<CR>` expands
+in Scopes and Watches, `o` jumps to the frame in Stacks and to the breakpoint in
+Breakpoints, `e` edits a value live, `d` removes, `t` toggles. Long values pop
+into a hover window when the cursor lands on them. The REPL is not docked —
+`<Space>dr` slides it in.
 
 ### Go walkthroughs
 

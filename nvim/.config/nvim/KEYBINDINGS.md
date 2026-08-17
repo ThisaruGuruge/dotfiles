@@ -368,13 +368,25 @@ A session opens a 50-column sidebar and a bottom output pane:
 | --------------- | --------------------------------------------------------------- |
 | **Scopes**      | Variables in the selected frame. `e` edits a value live         |
 | **Watches**     | Expressions re-evaluated at every stop; type at the `>` prompt  |
-| **Stacks**      | Threads and call stack. `<CR>` on a frame moves Scopes to it    |
-| **Breakpoints** | Breakpoints and their source line. `<CR>` jumps, `t` toggles    |
+| **Stacks**      | Threads and call stack. `o` on a frame moves Scopes to it       |
+| **Breakpoints** | Breakpoints and their source line. `o` jumps, `t` toggles       |
 | **Console**     | The debuggee's stdout/stderr, routed over DAP by `outputMode`   |
 
-Inside any of those panes: `<CR>` expands or collapses, `o` opens, `d` removes,
-`e` edits, `r` sends the value to the REPL, `t` toggles. Moving the cursor onto
-a line that is too long to fit pops the full value into a hover window.
+Each pane only binds the actions that make sense in it, so the same key does
+different work — or nothing — depending on where you are:
+
+| Key    | Scopes / Watches       | Stacks               | Breakpoints          |
+| ------ | ---------------------- | -------------------- | -------------------- |
+| `<CR>` | Expand / collapse      | -                    | -                    |
+| `o`    | -                      | Jump to frame        | Jump to breakpoint   |
+| `d`    | Remove (Watches)       | -                    | Delete breakpoint    |
+| `e`    | Edit the value live    | -                    | -                    |
+| `r`    | Send to REPL (Watches) | -                    | -                    |
+| `t`    | -                      | Toggle subtle frames | Enable / disable     |
+
+Pressing a key a pane does not bind prints `No <name> action for current line`.
+Moving the cursor onto a line too long to fit pops the full value into a hover
+window.
 
 The REPL is **not** docked — `<leader>dr` slides it in and out of the bottom.
 It is a prompt buffer taking Go expressions and dot-commands (`.frames`,

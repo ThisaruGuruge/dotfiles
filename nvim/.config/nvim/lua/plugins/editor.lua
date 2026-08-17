@@ -56,7 +56,16 @@ return {
 
       local selection_stack = {}
 
+      -- <CR> is a live key in plenty of special buffers: quickfix and location
+      -- lists jump to the entry under the cursor, and nvim-dap-ui's panes bind
+      -- it themselves. A global normal-mode mapping shadows all of those, so
+      -- only claim <CR> in ordinary file buffers and feed the key straight
+      -- back (noremap, so this mapping doesn't re-fire) everywhere else.
       vim.keymap.set("n", "<CR>", function()
+        if vim.bo.buftype ~= "" then
+          vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "n", false)
+          return
+        end
         local node = vim.treesitter.get_node()
         if node then
           selection_stack = { node }
