@@ -138,6 +138,8 @@ See `docs/YAZI_KEYBINDINGS.md` for the full yazi keybinding reference.
 | `<Space>ld` | `n`  | Show diagnostics                                                   |
 | `<Space>lq` | `n`  | Buffer diagnostics to quickfix (spell excluded, jumps to first)    |
 | `<Space>lW` | `n`  | Workspace diagnostics to quickfix (spell excluded, jumps to first) |
+| `<Space>lh` | `n`  | Toggle inlay hints                                                 |
+| `<Space>lc` | `n`  | Run codelens under the cursor                                      |
 | `[d`        | `n`  | Previous diagnostic                                                |
 | `]d`        | `n`  | Next diagnostic                                                    |
 
@@ -318,6 +320,48 @@ normally.
 > Delve is installed by Mason, not Homebrew. After a Go upgrade delve may
 > refuse to run ("version of Go is too new") — `:MasonUpdate`, then reinstall
 > `delve`.
+
+---
+
+## Go (gopher.nvim)
+
+Buffer-local to `.go` files. Binaries come from Mason on first use.
+
+| Key         | Mode | Action                                     |
+| :---------- | :--- | :----------------------------------------- |
+| `<Space>Ge` | `n`  | Insert an `if err != nil` guard            |
+| `<Space>Gt` | `n`  | Add `json` struct tags                     |
+| `<Space>GT` | `n`  | Remove `json` struct tags                  |
+| `<Space>Gi` | `n`  | Generate interface method stubs            |
+| `<Space>Gc` | `n`  | Generate a doc comment                     |
+| `<Space>Ga` | `n`  | Generate a test for the function at cursor |
+| `<Space>GA` | `n`  | Generate tests for the whole file          |
+| `<Space>Gj` | `n`  | Turn JSON into a struct                    |
+| `<Space>Gm` | `n`  | `go mod tidy`                              |
+
+`<Space>Ge` reads the enclosing function's return types, so it writes
+`return nil, err` in a `(*Config, error)` function rather than a bare `return`.
+Put the cursor on the line that produced the `err`.
+
+---
+
+## Testing (neotest)
+
+| Key         | Mode | Action                           |
+| :---------- | :--- | :------------------------------- |
+| `<Space>Tr` | `n`  | Run the nearest test             |
+| `<Space>Tf` | `n`  | Run every test in the file       |
+| `<Space>TA` | `n`  | Run every test in the project    |
+| `<Space>Td` | `n`  | Debug the nearest test           |
+| `<Space>TS` | `n`  | Stop the running test            |
+| `<Space>Ts` | `n`  | Toggle the summary tree          |
+| `<Space>To` | `n`  | Show output for the nearest test |
+| `<Space>TO` | `n`  | Toggle the output panel          |
+| `<Space>Tw` | `n`  | Toggle watch mode for the file   |
+
+Runs with `-v -race -count=1`; `-count=1` defeats Go's test cache so a green
+result always reflects the current code. `<Space>Td` debugs through the same
+nvim-dap-go adapter as `<Space>dt`.
 
 ---
 

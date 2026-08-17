@@ -110,6 +110,32 @@ return {
             gofumpt = true,
             usePlaceholders = true,
             completeUnimported = true,
+            -- Inline annotations. `parameterNames` is the one that earns its
+            -- keep in Go, where call sites are all positional; the rest fill in
+            -- the types that `:=` and composite literals leave implicit.
+            hints = {
+              assignVariableTypes = true,
+              compositeLiteralFields = true,
+              compositeLiteralTypes = true,
+              constantValues = true,
+              functionTypeParameters = true,
+              parameterNames = true,
+              rangeVariableTypes = true,
+            },
+            -- Actionable lines above tests, //go:generate directives, and the
+            -- module declaration. gc_details is left off: it annotates every
+            -- escape/inline decision, which is noise unless you are chasing
+            -- allocations.
+            codelenses = {
+              gc_details = false,
+              generate = true,
+              regenerate_cgo = true,
+              run_govulncheck = true,
+              test = true,
+              tidy = true,
+              upgrade_dependency = true,
+              vendor = true,
+            },
             -- Restrict workspace symbol search (<leader>fS) to this module's
             -- own packages, excluding dependencies and the stdlib
             symbolScope = "workspace",
@@ -331,6 +357,36 @@ return {
             vim.diagnostic.goto_next,
             vim.tbl_extend("force", opts, { desc = "Next diagnostic" })
           )
+
+          -- Inlay hints — parameter names and inferred types rendered inline.
+          -- On by default wherever the server supports them, toggled per buffer
+          -- because they get in the way when reading dense code.
+          if client and client:supports_method("textDocument/inlayHint") then
+            vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
+            vim.keymap.set("n", "<leader>lh", function()
+              vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = bufnr }), { bufnr = bufnr })
+            end, vim.tbl_extend("force", opts, { desc = "Toggle inlay hints" }))
+          end
+
+          -- Codelenses — "run test", "generate", "tidy", "upgrade dependency".
+          -- The server computes them on request, so they need refreshing as the
+          -- buffer changes; without that they are stale or simply absent.
+          if client and client:supports_method("textDocument/codeLens") then
+            vim.keymap.set(
+              "n",
+              "<leader>lc",
+              vim.lsp.codelens.run,
+              vim.tbl_extend("force", opts, { desc = "Run codelens" })
+            )
+            vim.api.nvim_create_autocmd({ "BufEnter", "InsertLeave", "TextChanged" }, {
+              buffer = bufnr,
+              group = vim.api.nvim_create_augroup("LspCodeLens" .. bufnr, { clear = true }),
+              callback = function()
+                vim.lsp.codelens.refresh({ bufnr = bufnr })
+              end,
+            })
+            vim.lsp.codelens.refresh({ bufnr = bufnr })
+          end
         end,
       })
 

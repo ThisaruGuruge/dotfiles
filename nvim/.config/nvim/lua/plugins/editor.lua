@@ -281,8 +281,10 @@ return {
         { "<leader>d", group = " Debug...", icon = "" },
         { "<leader>f", group = "󰍉 Find/Search...", icon = "" },
         { "<leader>g", group = " Git...", icon = "" },
+        { "<leader>G", group = " Go...", icon = "" },
         { "<leader>l", group = " LSP...", icon = "" },
         { "<leader>z", group = " Spell/Grammar...", icon = "" },
+        { "<leader>T", group = "󰙨 Test...", icon = "" },
         { "<leader>t", group = " Toggle...", icon = "" },
         { "<leader>x", group = " Trouble/Diagnostics...", icon = "" },
 
@@ -335,6 +337,8 @@ return {
         { "<leader>lq", desc = "Buffer Diagnostics to Quickfix", icon = "" },
         { "<leader>lW", desc = "Workspace Diagnostics to Quickfix", icon = "" },
         { "<leader>ll", desc = "Lint Buffer", icon = "" },
+        { "<leader>lh", desc = "Toggle Inlay Hints", icon = "" },
+        { "<leader>lc", desc = "Run Codelens", icon = "" },
 
         -- Spell/grammar mappings (set in lsp.lua, registered here for which-key)
         { "<leader>zn", desc = "Next Spell Issue", icon = "" },
@@ -368,6 +372,28 @@ return {
         { "<leader>du", desc = "Toggle DAP UI", icon = "" },
         { "<leader>de", desc = "Evaluate Expression", icon = "" },
         { "<leader>dw", desc = "Watch Expression", icon = "" },
+
+        -- Go code generation (buffer-local to .go files, from plugins/go.lua)
+        { "<leader>Ge", desc = "if err != nil Guard", icon = "" },
+        { "<leader>Gt", desc = "Add JSON Struct Tags", icon = "" },
+        { "<leader>GT", desc = "Remove JSON Struct Tags", icon = "" },
+        { "<leader>Gi", desc = "Implement Interface", icon = "" },
+        { "<leader>Gc", desc = "Doc Comment", icon = "" },
+        { "<leader>Ga", desc = "Generate Test for Function", icon = "" },
+        { "<leader>GA", desc = "Generate Tests for File", icon = "" },
+        { "<leader>Gj", desc = "JSON to Struct", icon = "" },
+        { "<leader>Gm", desc = "go mod tidy", icon = "" },
+
+        -- Test runner (plugins/neotest.lua)
+        { "<leader>Tr", desc = "Run Nearest Test", icon = "" },
+        { "<leader>Tf", desc = "Run Tests in File", icon = "" },
+        { "<leader>TA", desc = "Run All Tests", icon = "" },
+        { "<leader>Td", desc = "Debug Nearest Test", icon = "" },
+        { "<leader>TS", desc = "Stop Nearest Test", icon = "" },
+        { "<leader>Ts", desc = "Toggle Test Summary", icon = "" },
+        { "<leader>To", desc = "Show Test Output", icon = "" },
+        { "<leader>TO", desc = "Toggle Output Panel", icon = "" },
+        { "<leader>Tw", desc = "Toggle Watch for File", icon = "" },
         { "<leader>dt", desc = "Debug Nearest Test (Go)", icon = "" },
         { "<leader>dT", desc = "Debug Last Test (Go)", icon = "" },
         { "<leader>da", desc = "Attach Remote Delve (Go)", icon = "" },
