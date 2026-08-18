@@ -39,13 +39,20 @@ return {
     dependencies = { "nvim-treesitter/nvim-treesitter" },
     keys = {
       cmd("<leader>Ge", "GoIfErr", "if err != nil guard"),
-      cmd("<leader>Gt", "GoTagAdd json", "Add json struct tags"),
-      cmd("<leader>GT", "GoTagRm json", "Remove json struct tags"),
+      -- Struct tags: lowercase adds, uppercase removes, letter names the
+      -- format. gomodifytags appends, so <leader>Gj then <leader>Gy leaves a
+      -- field carrying both tags.
+      cmd("<leader>Gj", "GoTagAdd json", "Add json struct tags"),
+      cmd("<leader>GJ", "GoTagRm json", "Remove json struct tags"),
+      cmd("<leader>Gy", "GoTagAdd yaml", "Add yaml struct tags"),
+      cmd("<leader>GY", "GoTagRm yaml", "Remove yaml struct tags"),
+      cmd("<leader>Gt", "GoTagAdd toml", "Add toml struct tags"),
+      cmd("<leader>GT", "GoTagRm toml", "Remove toml struct tags"),
       cmd("<leader>Gi", "GoImpl", "Implement interface"),
       cmd("<leader>Gc", "GoCmt", "Doc comment"),
       cmd("<leader>Ga", "GoTestAdd", "Generate test for function"),
       cmd("<leader>GA", "GoTestsAll", "Generate tests for file"),
-      cmd("<leader>Gj", "GoJson", "JSON to struct"),
+      cmd("<leader>Gs", "GoJson", "JSON to struct"),
       cmd("<leader>Gm", "GoMod tidy", "go mod tidy"),
     },
     config = function()

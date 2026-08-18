@@ -475,20 +475,31 @@ Mason the first time you open a Go file — no `go install` needed.
 | Key          | Action                                     | Command         |
 | ------------ | ------------------------------------------ | --------------- |
 | `<leader>Ge` | Insert an `if err != nil` guard            | `:GoIfErr`      |
-| `<leader>Gt` | Add `json` struct tags                     | `:GoTagAdd`     |
-| `<leader>GT` | Remove `json` struct tags                  | `:GoTagRm`      |
+| `<leader>Gj` | Add `json` struct tags                     | `:GoTagAdd`     |
+| `<leader>GJ` | Remove `json` struct tags                  | `:GoTagRm`      |
+| `<leader>Gy` | Add `yaml` struct tags                     | `:GoTagAdd`     |
+| `<leader>GY` | Remove `yaml` struct tags                  | `:GoTagRm`      |
+| `<leader>Gt` | Add `toml` struct tags                     | `:GoTagAdd`     |
+| `<leader>GT` | Remove `toml` struct tags                  | `:GoTagRm`      |
 | `<leader>Gi` | Generate interface method stubs            | `:GoImpl`       |
 | `<leader>Gc` | Generate a doc comment for the symbol      | `:GoCmt`        |
 | `<leader>Ga` | Generate a test for the function at cursor | `:GoTestAdd`    |
 | `<leader>GA` | Generate tests for everything in the file  | `:GoTestsAll`   |
-| `<leader>Gj` | Turn JSON into a struct definition         | `:GoJson`       |
+| `<leader>Gs` | Turn JSON into a struct definition         | `:GoJson`       |
 | `<leader>Gm` | `go mod tidy`                              | `:GoMod tidy`   |
 
 `<leader>Ge` reads the enclosing function's signature to pick the return values,
 so in a `func(...) (*Config, error)` it writes `return nil, err` rather than a
 bare `return`. Put the cursor on the line that produced the `err`.
 
-Other commands without keymaps: `:GoTagAdd yaml` (or any tag name), `:GoGet`,
+The tag keys follow one rule: the letter names the format (`j`son, `y`aml,
+`t`oml) and the capital removes what the lowercase adds. gomodifytags appends
+rather than replaces, so `<leader>Gj` then `<leader>Gy` leaves both
+`json:"..."` and `yaml:"..."` on every field. For any other tag name, call
+`:GoTagAdd <name>` / `:GoTagRm <name>` directly (`db`, `mapstructure`, ...).
+
+
+Other commands without keymaps: `:GoGet`,
 `:GoWork`, `:GoGenerate`, `:GoTestsExp` (exported functions only).
 
 ## Testing (neotest)
