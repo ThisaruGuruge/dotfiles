@@ -330,18 +330,26 @@ Buffer-local to `.go` files. Binaries come from Mason on first use.
 | Key         | Mode | Action                                     |
 | :---------- | :--- | :----------------------------------------- |
 | `<Space>Ge` | `n`  | Insert an `if err != nil` guard            |
-| `<Space>Gt` | `n`  | Add `json` struct tags                     |
-| `<Space>GT` | `n`  | Remove `json` struct tags                  |
+| `<Space>Gj` | `n`  | Add `json` struct tags                     |
+| `<Space>GJ` | `n`  | Remove `json` struct tags                  |
+| `<Space>Gy` | `n`  | Add `yaml` struct tags                     |
+| `<Space>GY` | `n`  | Remove `yaml` struct tags                  |
+| `<Space>Gt` | `n`  | Add `toml` struct tags                     |
+| `<Space>GT` | `n`  | Remove `toml` struct tags                  |
 | `<Space>Gi` | `n`  | Generate interface method stubs            |
 | `<Space>Gc` | `n`  | Generate a doc comment                     |
 | `<Space>Ga` | `n`  | Generate a test for the function at cursor |
 | `<Space>GA` | `n`  | Generate tests for the whole file          |
-| `<Space>Gj` | `n`  | Turn JSON into a struct                    |
+| `<Space>Gs` | `n`  | Turn JSON into a struct                    |
 | `<Space>Gm` | `n`  | `go mod tidy`                              |
 
 `<Space>Ge` reads the enclosing function's return types, so it writes
 `return nil, err` in a `(*Config, error)` function rather than a bare `return`.
 Put the cursor on the line that produced the `err`.
+
+Tag keys: the letter is the format (`j`son, `y`aml, `t`oml), the capital
+removes it. Tags stack — `<Space>Gj` then `<Space>Gy` gives a field both.
+Any other tag name: `:GoTagAdd db`, `:GoTagRm mapstructure`, etc.
 
 ---
 

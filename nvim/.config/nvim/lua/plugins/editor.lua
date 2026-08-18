@@ -375,13 +375,17 @@ return {
 
         -- Go code generation (buffer-local to .go files, from plugins/go.lua)
         { "<leader>Ge", desc = "if err != nil Guard", icon = "" },
-        { "<leader>Gt", desc = "Add JSON Struct Tags", icon = "" },
-        { "<leader>GT", desc = "Remove JSON Struct Tags", icon = "" },
+        { "<leader>Gj", desc = "Add JSON Struct Tags", icon = "" },
+        { "<leader>GJ", desc = "Remove JSON Struct Tags", icon = "" },
+        { "<leader>Gy", desc = "Add YAML Struct Tags", icon = "" },
+        { "<leader>GY", desc = "Remove YAML Struct Tags", icon = "" },
+        { "<leader>Gt", desc = "Add TOML Struct Tags", icon = "" },
+        { "<leader>GT", desc = "Remove TOML Struct Tags", icon = "" },
         { "<leader>Gi", desc = "Implement Interface", icon = "" },
         { "<leader>Gc", desc = "Doc Comment", icon = "" },
         { "<leader>Ga", desc = "Generate Test for Function", icon = "" },
         { "<leader>GA", desc = "Generate Tests for File", icon = "" },
-        { "<leader>Gj", desc = "JSON to Struct", icon = "" },
+        { "<leader>Gs", desc = "JSON to Struct", icon = "" },
         { "<leader>Gm", desc = "go mod tidy", icon = "" },
 
         -- Test runner (plugins/neotest.lua)
