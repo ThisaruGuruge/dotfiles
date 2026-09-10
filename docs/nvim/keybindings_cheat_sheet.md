@@ -465,6 +465,21 @@ Flash also enhances:
 
 ---
 
+## Subword Motion (nvim-spider)
+
+Overrides `w`/`e`/`b`/`ge` to stop at subword boundaries — camelCase, PascalCase, snake_case, SCREAMING_SNAKE_CASE — instead of jumping the whole identifier.
+
+| Key  | Mode          | Action                  |
+| :--- | :------------ | :----------------------- |
+| `w`  | `n`, `o`, `x` | Next subword start      |
+| `e`  | `n`, `o`, `x` | End of subword          |
+| `b`  | `n`, `o`, `x` | Previous subword start  |
+| `ge` | `n`, `o`, `x` | End of previous subword |
+
+**Example:** on `myPascalCaseVariable`, `w` stops at `Pascal`, `Case`, `Variable` in turn instead of skipping to the next identifier.
+
+---
+
 ## Marks (marks.nvim)
 
 Adds sign-column indicators and extra navigation on top of Vim's built-in marks. `ma` still sets mark `a`, `` `a `` / `'a` still jump to it, `dma` still deletes it.
