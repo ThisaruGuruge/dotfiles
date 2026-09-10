@@ -369,8 +369,9 @@ return {
           end
 
           -- Codelenses — "run test", "generate", "tidy", "upgrade dependency".
-          -- The server computes them on request, so they need refreshing as the
-          -- buffer changes; without that they are stale or simply absent.
+          -- enable() attaches its own buffer-change listener that keeps them
+          -- refreshed, so no manual BufEnter/InsertLeave/TextChanged autocmd
+          -- is needed on top of it.
           if client and client:supports_method("textDocument/codeLens") then
             vim.keymap.set(
               "n",
@@ -378,14 +379,7 @@ return {
               vim.lsp.codelens.run,
               vim.tbl_extend("force", opts, { desc = "Run codelens" })
             )
-            vim.api.nvim_create_autocmd({ "BufEnter", "InsertLeave", "TextChanged" }, {
-              buffer = bufnr,
-              group = vim.api.nvim_create_augroup("LspCodeLens" .. bufnr, { clear = true }),
-              callback = function()
-                vim.lsp.codelens.refresh({ bufnr = bufnr })
-              end,
-            })
-            vim.lsp.codelens.refresh({ bufnr = bufnr })
+            vim.lsp.codelens.enable(true, { bufnr = bufnr })
           end
         end,
       })
@@ -413,7 +407,12 @@ return {
         local all = vim.diagnostic.get(bufnr)
         local spell = vim.tbl_filter(function(d)
           local s = (d.source or ""):lower()
-          return s:find("harper") ~= nil or s:find("typos") ~= nil
+          if s:find("harper") == nil and s:find("typos") == nil then
+            return false
+          end
+          -- Skip namespaces silenced by <leader>th: what isn't displayed
+          -- shouldn't be a jump target either.
+          return vim.diagnostic.is_enabled({ bufnr = bufnr, ns_id = d.namespace })
         end, all)
         if #spell == 0 then
           vim.notify("No spell issues in buffer", vim.log.levels.INFO)
@@ -457,6 +456,48 @@ return {
         goto_spell(false)
       end, { desc = "Previous spell/typo issue", silent = true })
       vim.keymap.set("n", "<leader>zf", vim.lsp.buf.code_action, { desc = "Fix spell/typo", silent = true })
+
+      -- Every diagnostic namespace harper-ls publishes into for a buffer.
+      -- Push diagnostics use one namespace per client; pull diagnostics use
+      -- one per request id, so those are matched by name instead.
+      local function harper_namespaces(bufnr)
+        local out, seen = {}, {}
+        local function add(ns)
+          if ns and not seen[ns] then
+            seen[ns] = true
+            out[#out + 1] = ns
+          end
+        end
+        for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr, name = "harper_ls" })) do
+          add(vim.lsp.diagnostic.get_namespace(client.id))
+          local prefix = ("nvim.lsp.%s.%d."):format(client.name, client.id)
+          for ns_id, ns in pairs(vim.diagnostic.get_namespaces()) do
+            if ns.name:sub(1, #prefix) == prefix then
+              add(ns_id)
+            end
+          end
+        end
+        return out
+      end
+
+      -- Silence harper's grammar/spell suggestions in this buffer only. The
+      -- server stays attached, so toggling back re-displays what it already
+      -- knows, and typos-lsp plus real code diagnostics are untouched.
+      vim.keymap.set("n", "<leader>th", function()
+        local bufnr = vim.api.nvim_get_current_buf()
+        local namespaces = harper_namespaces(bufnr)
+        if #namespaces == 0 then
+          vim.notify("harper-ls is not attached to this buffer", vim.log.levels.WARN)
+          return
+        end
+        -- All of them are flipped together, so the first one's state is the
+        -- buffer's state.
+        local enable = not vim.diagnostic.is_enabled({ bufnr = bufnr, ns_id = namespaces[1] })
+        for _, ns in ipairs(namespaces) do
+          vim.diagnostic.enable(enable, { bufnr = bufnr, ns_id = ns })
+        end
+        vim.notify("Harper " .. (enable and "enabled" or "disabled") .. " for this buffer", vim.log.levels.INFO)
+      end, { desc = "Toggle Harper (buffer)", silent = true })
 
       -- Filter code actions by title patterns and auto-apply when unambiguous.
       -- harper-ls: "Add "word" to the user/workspace/file dictionary."

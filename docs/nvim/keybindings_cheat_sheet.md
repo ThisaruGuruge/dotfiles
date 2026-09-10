@@ -155,6 +155,7 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 | `<Space>zu` | `n`  | Add word to user dictionary (global)       |
 | `<Space>zw` | `n`  | Add word to workspace dictionary (project) |
 | `<Space>zi` | `n`  | Ignore this Harper lint (persisted)        |
+| `<Space>th` | `n`  | Toggle Harper diagnostics (buffer)         |
 
 - `harper-ls` — grammar + spell in comments and Markdown (warnings)
 - `typos-lsp` — typos in identifiers/strings/comments, e.g. `getRepsone` → `getResponse` (hints)
