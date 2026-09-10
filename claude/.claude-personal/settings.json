@@ -17,7 +17,8 @@
   "theme": "dark",
   "editorMode": "vim",
   "verbose": true,
-  "hideVimModeIndicator": true,
+  "agentPushNotifEnabled": true,
+  "hideVimModeIndicator": false,
   "autocompact_percentage_override": 75,
-  "model": "opus"
+  "model": "sonnet"
 }
