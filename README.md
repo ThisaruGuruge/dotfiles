@@ -98,7 +98,7 @@ The main `Brewfile` contains core packages that are always installed. Optional p
 ```bash
 packages/
 ├── cloud.brewfile       # AWS, GCP CLIs
-├── containers.brewfile  # colima, Docker CLI + Compose
+├── containers.brewfile  # colima, Docker CLI + Compose + credential helper
 ├── development.brewfile # pyenv, rbenv, nvm, flutter
 ├── editors.brewfile     # Cursor, VS Code
 ├── productivity.brewfile # Raycast, Rectangle, etc.
@@ -121,7 +121,7 @@ brew bundle --file=packages/editors.brewfile     # Add editors
 - `aws`, `gcp` – cloud CLIs and helpers
 - `editors` – Cursor, VS Code
 - `terminals` – iTerm2 (casks)
-- `containers` – colima (container runtime), Docker CLI + Compose
+- `containers` – colima (container runtime), Docker CLI + Compose + credential helper
 - `productivity` – Raycast, Rectangle, TablePlus, Alfred, Postman
 
 Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
@@ -153,10 +153,10 @@ Ghostty is configured with:
 
 ### Containers (colima)
 
-The optional `containers` category (`packages/containers.brewfile`) installs [colima](https://colima.run) as the local container runtime, paired with the plain `docker` and `docker-compose` CLI formulae — no Docker Desktop app/VM required.
+The optional `containers` category (`packages/containers.brewfile`) installs [colima](https://colima.run) as the local container runtime, paired with the plain `docker`, `docker-compose`, and `docker-credential-helper` CLI formulae — no Docker Desktop app/VM required.
 
 ```bash
-brew bundle --file=packages/containers.brewfile  # colima + docker CLI + compose
+brew bundle --file=packages/containers.brewfile  # colima + docker CLI + compose + credential helper
 colima-start                                     # boots the VM, sets the `colima` docker context
 docker ps                                        # talks to colima automatically
 lzd                                               # lazydocker also works unchanged — it just follows the active docker context
@@ -173,15 +173,16 @@ Colima lifecycle aliases (`zsh/.aliases.sh`, only defined if `colima` is install
 | `colima-list`    | `colima list`    |
 | `colima-ssh`     | `colima ssh`     |
 
-Homebrew's `docker-compose` formula installs as a CLI plugin, which Docker only discovers if `~/.docker/config.json` lists its plugin dir:
+Homebrew's `docker-compose` formula installs as a CLI plugin, and `docker-credential-helper` installs `docker-credential-osxkeychain` to store registry credentials in the macOS Keychain instead of plaintext — but Docker only picks either up if `~/.docker/config.json` says so:
 
 ```json
 {
-  "cliPluginsExtraDirs": ["/opt/homebrew/lib/docker/cli-plugins"]
+  "cliPluginsExtraDirs": ["/opt/homebrew/lib/docker/cli-plugins"],
+  "credsStore": "osxkeychain"
 }
 ```
 
-`init.sh` does not currently write this key automatically — add it by hand (or merge it into an existing `~/.docker/config.json`) after installing `docker-compose`.
+`init.sh` does not currently write these keys automatically — add them by hand (or merge into an existing `~/.docker/config.json`) after installing `docker-compose` / `docker-credential-helper`.
 
 ### Symlink Management (bestow)
 

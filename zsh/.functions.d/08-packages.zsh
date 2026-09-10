@@ -34,6 +34,7 @@ list_dotfiles_tools() {
     echo "   gh               - GitHub CLI"
     echo "   lazydocker       - Docker TUI"
     echo "   colima           - Container runtime (lima VM + Docker daemon)"
+    echo "   docker-credential-helper - Stores registry creds in macOS Keychain"
     echo "   nvim             - Text editor"
     echo "   direnv           - Directory-specific environments"
     echo "   atuin            - Enhanced shell history"
