@@ -54,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Swapped `cask "docker"` (Docker Desktop app) for `brew "docker"` + `brew "docker-compose"` (CLI-only) in `packages/containers.brewfile` — colima supplies the daemon/VM itself, so the Docker Desktop app is redundant and would otherwise compete with colima for the docker context/socket
 - Moved aerial's toggle from `<leader>a` to `<leader>ta`, and undotree's toggle from `<leader>u` to `<leader>tu` (`nvim/.config/nvim/lua/plugins/aerial.lua`, `nvim/.config/nvim/lua/plugins/undotree.lua`) — both were standalone top-level bindings; grouping them under the existing `<leader>t` "Toggle..." prefix keeps toggles discoverable in one which-key menu, alongside `<leader>th`
 - Yazi now shows hidden files by default (`show_hidden = true` in `yazi/.config/yazi/yazi.toml`)
+- `brew_update` (`zsh/.aliases.sh`) now runs `ya pkg upgrade` after `brew upgrade`, when `ya` is installed — yazi's plugins pin to a git revision in `yazi/.config/yazi/package.toml`, independent of the `yazi` binary itself, and upgrading the binary without also upgrading the plugins is how they drifted out of sync with the plugin API previously
+- Bumped every `yazi/.config/yazi/package.toml` plugin dependency to their latest pinned revision via `ya pkg upgrade`
 
 ### Removed
 
