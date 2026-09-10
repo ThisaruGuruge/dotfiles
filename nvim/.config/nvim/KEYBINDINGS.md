@@ -300,6 +300,17 @@ mini.ai extends Vim's built-in `a` (around) and `i` (inside) text object prefixe
 
 > Flash also enhances `/` and `?` search with jump labels, and `f`/`t`/`F`/`T` character motions.
 
+## Subword Motion (nvim-spider)
+
+Replaces the built-in `w`/`e`/`b`/`ge` word motions so they stop at each subword boundary (camelCase, PascalCase, snake_case, SCREAMING_SNAKE_CASE) instead of jumping over the whole identifier.
+
+| Key  | Mode          | Action                       | Source             |
+| ---- | ------------- | ----------------------------- | ------------------ |
+| `w`  | `n`, `o`, `x` | Next subword start             | plugins/spider.lua |
+| `e`  | `n`, `o`, `x` | End of subword                 | plugins/spider.lua |
+| `b`  | `n`, `o`, `x` | Previous subword start         | plugins/spider.lua |
+| `ge` | `n`, `o`, `x` | End of previous subword        | plugins/spider.lua |
+
 ## Marks (marks.nvim)
 
 Adds sign-column indicators and extra navigation on top of Vim's built-in marks (`ma` still sets mark `a`, `` `a `` / `'a` still jump to it).
