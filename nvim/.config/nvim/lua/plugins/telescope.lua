@@ -71,7 +71,7 @@ return {
           :find()
       end
 
-      vim.keymap.set("n", "<leader>fg", live_multigrep)
+      vim.keymap.set("n", "<leader>fg", live_multigrep, { desc = "Live Grep (multi)" })
 
       require("telescope").setup({
         pickers = {
