@@ -245,6 +245,9 @@ test_tool "Docker" "docker" "docker --version" "true"
 # Colima (optional container runtime)
 test_tool "colima" "colima" "colima --version" "true"
 
+# docker-credential-osxkeychain (optional; stores registry creds in macOS Keychain)
+test_tool "docker-credential-osxkeychain" "docker-credential-osxkeychain" "docker-credential-osxkeychain list" "true"
+
 # Gradle (gng provides gw command that finds gradlew anywhere in the project tree)
 if command -v gw >/dev/null 2>&1; then
     print_test "GNG (gw)" "pass" "Gradle run-anywhere wrapper available"

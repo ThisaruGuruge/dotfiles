@@ -1,4 +1,5 @@
 # Container management tools
-brew "colima"          # Lightweight container runtime (lima VM + Docker daemon)
-brew "docker"          # Docker CLI (no Docker Desktop app/VM; colima provides the daemon)
-brew "docker-compose"  # Compose CLI plugin
+brew "colima"                    # Lightweight container runtime (lima VM + Docker daemon)
+brew "docker"                    # Docker CLI (no Docker Desktop app/VM; colima provides the daemon)
+brew "docker-compose"            # Compose CLI plugin
+brew "docker-credential-helper"  # Stores registry creds in macOS Keychain (docker-credential-osxkeychain)
