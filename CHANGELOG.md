@@ -58,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Yazi now shows hidden files by default (`show_hidden = true` in `yazi/.config/yazi/yazi.toml`)
 - `brew_update` (`zsh/.aliases.sh`) now runs `ya pkg upgrade` after `brew upgrade`, when `ya` is installed — yazi's plugins pin to a git revision in `yazi/.config/yazi/package.toml`, independent of the `yazi` binary itself, and upgrading the binary without also upgrading the plugins is how they drifted out of sync with the plugin API previously
 - Bumped every `yazi/.config/yazi/package.toml` plugin dependency to their latest pinned revision via `ya pkg upgrade`
+- Reduced colima's default VM memory allocation from 8 GiB to 6 GiB (`colima/.config/colima/default/colima.yaml`)
 
 ### Removed
 
