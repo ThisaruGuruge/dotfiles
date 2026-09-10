@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `brew "docker-credential-helper"` to `packages/containers.brewfile` — installs `docker-credential-osxkeychain`, which stores registry credentials in the macOS Keychain instead of plaintext in `~/.docker/config.json`. Docker only picks it up once `credsStore: "osxkeychain"` is set in that file, which is not written automatically (documented in `README.md` alongside the existing `docker-compose` plugin-dir note)
 - Added `<leader>th` (`nvim/.config/nvim/lua/plugins/lsp.lua`) to toggle `harper-ls` diagnostics for the current buffer — silences grammar/spell suggestions without detaching the server, so toggling back re-displays what it already knows. Push and pull diagnostic namespaces are both matched (push uses one namespace per client, pull one per request id) and flipped together. The spell/typo jump list (`<leader>zn`/`<leader>zp`) now skips whatever namespace this silences, so what is hidden is not still a jump target
 - Added `bestow/.bestowignore` — a global ignore list (`.git`, `.gitignore`, `README.md`, `LICENSE`) applied to every stow package
+- Added `[[plugin.prepend_fetchers]]` no-op rules to `yazi/.config/yazi/yazi.toml` that skip MIME-type fetching under `.git/`, `node_modules/`, `build/`, and `target/` — `mime-ext` has no gitignore awareness, so walking those directories for MIME types was pure waste. `.git` also gets excluded from the `git` plugin fetcher, since it is never something `.gitignore` describes
 
 ### Changed
 
