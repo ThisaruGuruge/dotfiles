@@ -292,7 +292,10 @@ alias grepbal='rg --type ballerina'
 alias searchbal='rg --type bal'
 
 # Brew update all
-alias brew_update='brew update && brew upgrade && brew cleanup --prune=all'
+# Yazi plugins pin to a git revision in package.toml, independent of the yazi
+# binary itself — upgrading yazi here without also running `ya pkg upgrade`
+# is how they silently drifted out of sync with the plugin API last time.
+alias brew_update='brew update && brew upgrade && brew cleanup --prune=all && { (($+commands[ya])) && ya pkg upgrade; true }'
 
 # Atuin shell history aliases
 if (($+commands[atuin])); then
