@@ -2,6 +2,9 @@
   "env": {
     "BASH_OUTPUT_MAX_LENGTH": "150000"
   },
+  "permissions": {
+    "defaultMode": "auto"
+  },
   "statusLine": {
     "type": "command",
     "command": "bash /Users/thisaru/.claude-enterprise/statusline-command.sh"
