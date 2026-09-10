@@ -1,7 +1,7 @@
 return {
   "mbbill/undotree",
   keys = {
-    { "<leader>u", "<cmd>UndotreeToggle<cr>", desc = "Toggle Undotree" },
+    { "<leader>tu", "<cmd>UndotreeToggle<cr>", desc = "Toggle Undotree" },
   },
   config = function()
     -- Focus undotree window when opened

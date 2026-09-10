@@ -6,7 +6,7 @@ return {
   },
   event = { "BufReadPost", "BufNewFile" },
   keys = {
-    { "<leader>a", "<cmd>AerialToggle!<cr>", desc = "Toggle Outline" },
+    { "<leader>ta", "<cmd>AerialToggle!<cr>", desc = "Toggle Outline" },
     { "[[", "<cmd>AerialPrev<cr>", desc = "Previous Symbol" },
     { "]]", "<cmd>AerialNext<cr>", desc = "Next Symbol" },
   },

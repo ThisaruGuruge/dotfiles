@@ -199,7 +199,7 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 
 | Key        | Mode | Action                  |
 | :--------- | :--- | :---------------------- |
-| `<Space>a` | `n`  | Toggle outline sidebar  |
+| `<Space>ta` | `n`  | Toggle outline sidebar  |
 | `{`        | `n`  | Jump to previous symbol |
 | `}`        | `n`  | Jump to next symbol     |
 
@@ -228,7 +228,7 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 
 | Key        | Mode | Action                                |
 | :--------- | :--- | :------------------------------------ |
-| `<Space>u` | `n`  | Toggle Undotree (visual undo history) |
+| `<Space>tu` | `n`  | Toggle Undotree (visual undo history) |
 
 ## Markdown Rendering (render-markdown.nvim)
 

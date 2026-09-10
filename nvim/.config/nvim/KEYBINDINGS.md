@@ -148,7 +148,7 @@ Built-in Neovim navigation for the quickfix list (global) and location list (per
 
 | Key         | Action                 | Source             |
 | ----------- | ---------------------- | ------------------ |
-| `<leader>a` | Toggle outline sidebar | plugins/aerial.lua |
+| `<leader>ta` | Toggle outline sidebar | plugins/aerial.lua |
 | `[[`        | Previous symbol        | plugins/aerial.lua |
 | `]]`        | Next symbol            | plugins/aerial.lua |
 
@@ -170,7 +170,7 @@ Open with `<leader>fy` to browse yank history in a Telescope picker.
 
 | Key         | Action          | Source               |
 | ----------- | --------------- | -------------------- |
-| `<leader>u` | Toggle Undotree | plugins/undotree.lua |
+| `<leader>tu` | Toggle Undotree | plugins/undotree.lua |
 
 ## Markdown Rendering (render-markdown.nvim)
 
