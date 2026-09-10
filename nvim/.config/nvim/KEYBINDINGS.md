@@ -98,6 +98,7 @@ Dedicated keybindings that navigate only spell/grammar diagnostics (from `harper
 | `<leader>zu` | Add word to user dictionary (global)       | plugins/lsp.lua |
 | `<leader>zw` | Add word to workspace dictionary (project) | plugins/lsp.lua |
 | `<leader>zi` | Ignore this Harper lint (persisted)        | plugins/lsp.lua |
+| `<leader>th` | Toggle Harper diagnostics (buffer)         | plugins/lsp.lua |
 
 > `harper-ls` — grammar + spell in comments and Markdown (shown as warnings).
 > `typos-lsp` — identifier/string/comment typos like `getRepsone` → `getResponse` (shown as hints).
