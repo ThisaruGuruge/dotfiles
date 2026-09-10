@@ -35,6 +35,37 @@ prepend_rules = [
     { mime = "application/pdf",  use = ["open"] },
 ]
 
+# mime-ext has no gitignore awareness, so walking a large node_modules/build/
+# target for MIME types is pure waste — skip it via yazi's built-in no-op
+# fetcher. .git is never something .gitignore describes, so it's excluded
+# here too. Each rule must share its `group`/`prio` with the real rule it
+# shadows: fetchers dedupe per (group, priority tier), a mismatch on either
+# lets the real fetcher queue anyway.
+[[plugin.prepend_fetchers]]
+group = "file"
+url   = "**/{.git,node_modules,build,target}/**"
+run   = "noop"
+prio  = "high"
+
+# The git fetcher (yazi-rs/plugins:git) is already gitignore-aware — it runs
+# `git status --ignored`, marks an ignored directory `excluded`, and does not
+# recurse into it. So only .git needs excluding here: it can't be gitignored,
+# and `git status` run from inside it is meaningless.
+[[plugin.prepend_fetchers]]
+group = "file"
+url   = "**/.git/**"
+run   = "noop"
+
+[[plugin.prepend_fetchers]]
+group = "dir"
+url   = "**/.git/"
+run   = "noop"
+
+[[plugin.prepend_fetchers]]
+group = "dir"
+url   = "**/.git/**/"
+run   = "noop"
+
 [[plugin.prepend_fetchers]]
 id    = "mime"
 group = "file"
