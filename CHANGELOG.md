@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Changed the `blast-radius` mod to stop prompting on `git push --force-with-lease`, which refuses to overwrite remote commits you haven't seen. Plain `--force`, `-f` and `+refspec` pushes still ask, and unanswered prompts still deny.
+
 ## [2.6.0] - 2026-10-06
 
 ### Fixed
@@ -18,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `googleworkspace-cli` (`gws`) with two isolated accounts: `gwsp` (personal) and `gwse` (enterprise), each with its own config dir, OAuth client and credentials under `~/.config/gws-<name>/`. They are scripts in `bin/` rather than aliases so agents and non-interactive shells get them. `bin/gws` shadows the real binary and refuses to run without an account context, and `bin/gws-account` is the shared helper that pins the file keyring backend. `test-zsh` checks both wrappers and that bare `gws` stays blocked
 - Added Groovy/Gradle scripting support to Neovim: `nvim-treesitter` parser (`nvim/.config/nvim/lua/plugins/editor.lua`), and `groovyls` on the `groovy` filetype (which Neovim already maps `.gradle`, `.groovy`, and `Jenkinsfile` to), mason-installed with root markers covering both Gradle DSLs (`nvim/.config/nvim/lua/plugins/lsp.lua`). vscode-gradle's `gradle_ls`, which would have added Gradle-aware task/dependency completion, was tried and dropped — its language server only speaks over a named pipe that VS Code's own extension code creates and hands it the name of; it has no stdio mode, so Neovim's spawn-and-talk-over-stdio LSP client can't drive it (confirmed by decompiling its `main()` — it wraps `args[0]` straight into a `NamedPipeStream` with no fallback). `npm-groovy-lint` (CodeNarc) was tried for diagnostics and full-ruleset formatting but dropped from both — its rulesets assume application code, not a build DSL, so every `build.gradle` lit up with irrelevant style warnings and there's no CodeNarc "Gradle" ruleset to swap in instead. It's still wired into conform (`nvim/.config/nvim/lua/plugins/formatting.lua`) as a formatter, but scoped via `-r` to just the `Indentation`/`IndentationClosingBraces`/`IndentationComments` CodeNarc rules — the only part of its default ruleset that's universally correct for a build script. Trailing-whitespace trimming comes from the existing filetype-agnostic `trim_whitespace` formatter instead of CodeNarc's own `TrailingWhitespace` rule
+
 
 ## [2.5.0] - 2026-10-06
 

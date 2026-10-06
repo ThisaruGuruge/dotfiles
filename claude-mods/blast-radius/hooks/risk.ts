@@ -145,7 +145,8 @@ function classifySegment(segment: string): Risk[] {
     if (sub === 'reset' && args.includes('--hard')) push('git-reset-hard')
     else if (
       sub === 'push' &&
-      (args.some(a => a === '--force' || a.startsWith('--force-with-lease') || a === '-f') ||
+      // --force-with-lease refuses to clobber remote commits you have not seen, so it is not flagged.
+      (args.includes('--force') ||
         args.some(a => /^-[A-Za-z]*f[A-Za-z]*$/.test(a)) ||
         args.some(a => a.startsWith('+') && a.length > 1))
     )
