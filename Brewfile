@@ -11,6 +11,7 @@ tap "gdubw/gng"                # GNG - Gradle run-anywhere tool
 brew "go"                           # Go toolchain; required to `go install` bestow, the symlink manager used by init.sh (github.com/redpierrot/bestow)
 brew "git"                          # Version control
 brew "neovim"                       # Text editor (nvim/ package configures it)
+brew "tree-sitter-cli"              # Compiles nvim-treesitter parsers (:TSInstall)
 brew "fzf"                          # Fuzzy finder
 brew "zoxide"                       # Smart cd command
 brew "tree"                         # Directory tree viewer
@@ -27,6 +28,7 @@ brew "htop"                         # System monitor
 brew "direnv"                       # Directory-specific environments
 brew "atuin"                        # Shell history with sync
 brew "gh"                           # GitHub CLI
+brew "googleworkspace-cli"          # Google Workspace CLI (`gws`); use via gwsp/gwse -- bare gws is blocked by bin/gws
 
 # Tools for managing secrets and encryption
 brew "sops"                         # Secrets OPerationS
@@ -58,7 +60,7 @@ brew "prettier"                     # JS/TS/JSON/YAML/Markdown formatter (confor
 brew "markdownlint-cli2"            # Markdown structure/style linter (nvim-lint)
 
 # AI/Development Tools
-cask "claude-code"                  # Claude Code CLI (claude/ package configures it)
+cask "claude-code@latest"           # Claude Code CLI (claude/ package configures it); @latest cask tracks releases much more tightly than plain claude-code
 
 # Language version managers and development tools
 brew "ballerina"                    # Cloud-native programming language

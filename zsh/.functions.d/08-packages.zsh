@@ -32,6 +32,7 @@ list_dotfiles_tools() {
     echo "   git + lazygit    - Version control"
     echo "   git-delta        - Enhanced git diff viewer"
     echo "   gh               - GitHub CLI"
+    echo "   gwsp / gwse      - Google Workspace CLI, personal / enterprise account (bare gws is blocked)"
     echo "   lazydocker       - Docker TUI"
     echo "   colima           - Container runtime (lima VM + Docker daemon)"
     echo "   docker-credential-helper - Stores registry creds in macOS Keychain"

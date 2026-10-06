@@ -1,0 +1,3 @@
+#!/bin/bash
+# Google Workspace CLI -- personal account (see gws-account)
+exec "$(dirname "${BASH_SOURCE[0]}")/gws-account" personal "$@"
