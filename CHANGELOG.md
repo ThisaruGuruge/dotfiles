@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.1] - 2026-10-06
+
 ### Changed
 
 - Changed the `blast-radius` mod to stop prompting on `git push --force-with-lease`, which refuses to overwrite remote commits you haven't seen. Plain `--force`, `-f` and `+refspec` pushes still ask, and unanswered prompts still deny.
