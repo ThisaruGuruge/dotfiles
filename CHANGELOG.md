@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-10-06
+
 ### Fixed
 
 - Fixed `brew_update` never actually updating Claude Code — swapped `Brewfile`'s `cask "claude-code"` for `cask "claude-code@latest"`. The plain cask lags homebrew-cask's bump cadence (observed 32 versions behind npm's latest), and Claude Code's own auto-updater is a permanent no-op once it detects a Homebrew install (`claude update` reports "managed by Homebrew" and stops), so there was no path to current versions at all. The `@latest` cask tracks releases far more tightly and `claude update` now checks against the "latest" channel instead of "stable"
