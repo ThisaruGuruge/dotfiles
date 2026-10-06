@@ -28,6 +28,7 @@ brew "htop"                         # System monitor
 brew "direnv"                       # Directory-specific environments
 brew "atuin"                        # Shell history with sync
 brew "gh"                           # GitHub CLI
+brew "googleworkspace-cli"          # Google Workspace CLI (`gws`); use via gwsp/gwse -- bare gws is blocked by bin/gws
 
 # Tools for managing secrets and encryption
 brew "sops"                         # Secrets OPerationS
