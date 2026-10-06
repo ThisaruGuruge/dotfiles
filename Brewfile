@@ -11,6 +11,7 @@ tap "gdubw/gng"                # GNG - Gradle run-anywhere tool
 brew "go"                           # Go toolchain; required to `go install` bestow, the symlink manager used by init.sh (github.com/redpierrot/bestow)
 brew "git"                          # Version control
 brew "neovim"                       # Text editor (nvim/ package configures it)
+brew "tree-sitter-cli"              # Compiles nvim-treesitter parsers (:TSInstall)
 brew "fzf"                          # Fuzzy finder
 brew "zoxide"                       # Smart cd command
 brew "tree"                         # Directory tree viewer
