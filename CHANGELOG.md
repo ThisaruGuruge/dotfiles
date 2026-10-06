@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-06
+
 ### Added
 
 - Added `claude-mods/` — five Claude Code mods loaded straight from the repo by both accounts via `CLAUDE_CODE_PLUGIN_DIRS`: `statusbar` (stacked context bar with compact marker and legend, `~N turns left`, 5h/7d limits, last-turn stats, prompt-cache countdown, threshold toasts), `blast-radius` (preview-and-confirm for risky Bash commands), `redact` (strips secrets from prompts and tool output), `mission-control` (`/mission-control` pane) and `session-wrapped` (`/wrapped` summary)
