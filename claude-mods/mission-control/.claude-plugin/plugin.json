@@ -1,0 +1,6 @@
+{
+  "name": "mission-control",
+  "version": "0.1.0",
+  "description": "A /mission-control pane showing live agents, recent tool calls and files touched this session.",
+  "types": "./types/index.d.ts"
+}

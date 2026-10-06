@@ -1,0 +1,3 @@
+# Engine-generated editor types and tsconfig (rewritten on every load)
+*/.claude-plugin/types/
+*/tsconfig.json
