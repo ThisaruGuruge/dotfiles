@@ -201,6 +201,57 @@ return {
         root_markers = { ".git", "mvnw", "gradlew", "pom.xml", "build.gradle" },
       })
 
+      -- Groovy/Gradle: groovyls attaches to the `groovy` filetype, which
+      -- Neovim already maps .gradle, .groovy, and Jenkinsfile to. Root
+      -- markers cover both Gradle DSLs since a Groovy build.gradle can sit
+      -- in a project whose settings file is Kotlin DSL. (vscode-gradle's
+      -- `gradle_ls` was tried and rejected — see git history: its server
+      -- only speaks over a named pipe that the VS Code extension's own
+      -- TypeScript side creates and hands it the name of; it has no stdio
+      -- mode, so a plain spawn-and-talk-over-stdio client like Neovim's
+      -- can't drive it.) Known false positive: groovyls pools every open
+      -- buffer into one shared Groovy CompilationUnit, and a script with no
+      -- explicit class gets one inferred from its filename — so any two
+      -- build.gradle buffers open at once (root + a submodule) collide on
+      -- the inferred name "build" and it reports a bogus "duplicate class"
+      -- warning on both. Harmless; clears when one of them is closed. No
+      -- setting fixes it — it's the server sharing one compile pass across
+      -- buffers, not something this config controls.
+      --
+      -- npm-groovy-lint (CodeNarc) is deliberately NOT wired into nvim-lint
+      -- for the `groovy` filetype (see lint.lua) — CodeNarc's rulesets
+      -- assume application code, not a build DSL, so every build.gradle
+      -- lit up with irrelevant style warnings ("def for declaration should
+      -- not be used", EJB-spec rules, duplicate string literals, ...).
+      -- There's no CodeNarc "Gradle" ruleset to swap in, and no maintained
+      -- Gradle-aware LSP for Neovim either — the gradle.nvim plugins
+      -- (oclay1st/gradle.nvim, pandalec/gradle.nvim) are task runners (run
+      -- tasks, browse dependencies) with no diagnostics of their own, so
+      -- they don't help here. groovyls's compile-based errors are the only
+      -- diagnostics build.gradle files get.
+      --
+      -- It IS still wired into conform (formatting.lua) as a formatter, but
+      -- scoped via `-r` to just the Indentation/IndentationClosingBraces/
+      -- IndentationComments CodeNarc rules — the only part of CodeNarc that
+      -- is universally correct for a build script. Trailing-whitespace
+      -- trimming comes from the separate, filetype-agnostic `trim_whitespace`
+      -- formatter, not from npm-groovy-lint's own TrailingWhitespace rule.
+      -- groovyls has no `documentFormattingProvider`/
+      -- `documentRangeFormattingProvider` capability (checked its Java
+      -- source), so there's no LSP-based formatting to fall back to.
+      vim.lsp.config("groovyls", {
+        capabilities = capabilities,
+        root_markers = {
+          "settings.gradle",
+          "settings.gradle.kts",
+          "build.gradle",
+          "build.gradle.kts",
+          "gradlew",
+          "Jenkinsfile",
+          ".git",
+        },
+      })
+
       require("mason-lspconfig").setup({
         ensure_installed = {
           "lua_ls",
@@ -216,6 +267,7 @@ return {
           "marksman", -- Markdown LSP
           "harper_ls", -- Grammar + spell in comments and markdown
           "typos_lsp", -- Typo detection in identifiers, strings, and comments
+          "groovyls", -- Groovy language features
         },
         -- Enables every installed server via vim.lsp.enable(), picking up
         -- the vim.lsp.config() overrides registered above.

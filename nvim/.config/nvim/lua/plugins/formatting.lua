@@ -41,6 +41,14 @@ return {
               return args
             end,
           },
+          -- Scoped to indentation only: the default ruleset is CodeNarc's
+          -- full application-code rule set (see lsp.lua's Groovy/Gradle
+          -- comment for why that's unusable on a build.gradle). Trailing
+          -- whitespace is already handled by the `["*"] = trim_whitespace`
+          -- formatter below, so it's left out here.
+          ["npm-groovy-lint"] = {
+            args = { "--fix", "-r", "Indentation,IndentationClosingBraces,IndentationComments", "$FILENAME" },
+          },
         },
         formatters_by_ft = {
           lua = { "stylua" },
@@ -54,6 +62,7 @@ return {
           markdown = { "prettierd", "prettier", stop_after_first = true },
           go = { "gofmt", "goimports" },
           java = { "google_java_format" },
+          groovy = { "npm-groovy-lint" },
           rust = { "rustfmt" },
           sh = { "shfmt" },
           ["*"] = { "trim_whitespace" },
