@@ -14,6 +14,7 @@ describe('classify', () => {
     expect(kinds('git push --force origin main')).toEqual(['git-push-force'])
     expect(kinds('git push -f')).toEqual(['git-push-force'])
     expect(kinds('git push origin +main')).toEqual(['git-push-force'])
+    expect(kinds('git push --force-with-lease --force')).toEqual(['git-push-force'])
     expect(kinds('git clean -fd')).toEqual(['git-clean'])
     expect(kinds('bestow stow --adopt zsh')).toEqual(['adopt'])
     expect(kinds('stow --adopt nvim')).toEqual(['adopt'])
@@ -32,6 +33,8 @@ describe('classify', () => {
       'rm -i notes.txt',
       'git status',
       'git push origin main',
+      'git push --force-with-lease',
+      'git push --force-with-lease=main:abc123 origin main',
       'git reset --soft HEAD~1',
       'git clean -nd',
       'chmod +x script.sh',
