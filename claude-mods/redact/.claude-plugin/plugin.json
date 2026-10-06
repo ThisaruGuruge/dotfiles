@@ -1,0 +1,5 @@
+{
+  "name": "redact",
+  "version": "0.1.0",
+  "description": "Hides secrets (API keys, tokens, private keys) from the model in prompts and tool results"
+}

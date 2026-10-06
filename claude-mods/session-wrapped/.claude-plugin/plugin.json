@@ -1,0 +1,6 @@
+{
+  "name": "session-wrapped",
+  "version": "0.1.0",
+  "description": "A /wrapped pane summarizing the session: turns, tools, files, cost, peak context, longest and busiest turns.",
+  "types": "./types/index.d.ts"
+}

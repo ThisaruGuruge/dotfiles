@@ -1,0 +1,5 @@
+{
+  "name": "blast-radius",
+  "version": "0.1.0",
+  "description": "Previews what a risky shell command would touch and asks before it runs"
+}

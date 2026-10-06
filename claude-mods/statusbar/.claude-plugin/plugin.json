@@ -1,0 +1,20 @@
+{
+  "name": "statusbar",
+  "version": "0.2.0",
+  "description": "Band above the prompt: stacked context bar, rate limits, last-turn stats, cache countdown and threshold toasts.",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "autocompactPercent": {
+      "type": "number",
+      "title": "Autocompact marker (%)",
+      "description": "Where the | marker sits on the context bar",
+      "default": 75
+    },
+    "cacheTtlSeconds": {
+      "type": "number",
+      "title": "Prompt cache TTL (s)",
+      "description": "Lifetime of the prompt cache, for the countdown",
+      "default": 3600
+    }
+  }
+}
