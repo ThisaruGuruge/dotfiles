@@ -58,7 +58,7 @@ brew "prettier"                     # JS/TS/JSON/YAML/Markdown formatter (confor
 brew "markdownlint-cli2"            # Markdown structure/style linter (nvim-lint)
 
 # AI/Development Tools
-cask "claude-code"                  # Claude Code CLI (claude/ package configures it)
+cask "claude-code@latest"           # Claude Code CLI (claude/ package configures it); @latest cask tracks releases much more tightly than plain claude-code
 
 # Language version managers and development tools
 brew "ballerina"                    # Cloud-native programming language
