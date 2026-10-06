@@ -1,6 +1,7 @@
 {
   "env": {
-    "BASH_OUTPUT_MAX_LENGTH": "150000"
+    "BASH_OUTPUT_MAX_LENGTH": "150000",
+    "CLAUDE_CODE_PLUGIN_DIRS": "~/dotfiles/claude-mods/statusbar:~/dotfiles/claude-mods/blast-radius:~/dotfiles/claude-mods/redact:~/dotfiles/claude-mods/mission-control:~/dotfiles/claude-mods/session-wrapped"
   },
   "permissions": {
     "defaultMode": "auto"
