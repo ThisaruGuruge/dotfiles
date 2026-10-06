@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `claude-mods/` — five Claude Code mods loaded straight from the repo by both accounts via `CLAUDE_CODE_PLUGIN_DIRS`: `statusbar` (stacked context bar with compact marker and legend, `~N turns left`, 5h/7d limits, last-turn stats, prompt-cache countdown, threshold toasts), `blast-radius` (preview-and-confirm for risky Bash commands), `redact` (strips secrets from prompts and tool output), `mission-control` (`/mission-control` pane) and `session-wrapped` (`/wrapped` summary)
+
+### Changed
+
+- Slimmed the Claude Code status line scripts to account, vim mode, directory, git, model, session cost and token count — the context bar and rate limits now live in the `statusbar` mod. `WORK` is now peach instead of mauve so it is clearly distinct from the blue `PERSONAL`
+- Raised `autoCompactWindow` in the personal account from 300k to 500k tokens, a leftover from a smaller plan
+
 ## [2.4.0] - 2026-09-10
 
 ## [2.3.0] - 2026-08-13
