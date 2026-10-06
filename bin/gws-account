@@ -1,0 +1,32 @@
+#!/bin/bash
+#
+# gws-account <name> [gws args...]
+#
+# Run the Google Workspace CLI against one account's isolated config dir.
+# Used by `gwsp` / `gwse`; add a new account by adding another thin wrapper.
+#
+# Each account gets its own directory (~/.config/gws-<name>) holding its own
+# client_secret.json, encrypted credentials and token cache. The keyring
+# backend is pinned to `file` so each directory keeps its own encryption key;
+# mixing backends on one directory makes gws silently drop credentials.enc
+# (googleworkspace/cli#886). Nothing in this repo contains credentials.
+
+set -euo pipefail
+
+name="${1:-}"
+if [[ -z "$name" ]]; then
+    echo "usage: gws-account <name> [gws args...]" >&2
+    exit 64
+fi
+shift
+
+dir="$HOME/.config/gws-$name"
+mkdir -p "$dir"
+chmod 700 "$dir"
+
+export GOOGLE_WORKSPACE_CLI_CONFIG_DIR="$dir"
+export GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file
+
+# Go through the guard wrapper next to this script so the real-binary lookup
+# lives in one place.
+exec "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/gws" "$@"

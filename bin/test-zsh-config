@@ -160,6 +160,15 @@ test_tool "htop" "htop" "htop --version | head -1"
 test_tool "direnv" "direnv" "direnv --version"
 test_tool "atuin" "atuin" "atuin --version"
 test_tool "gh" "gh" "gh --version | head -1"
+test_tool "gwsp" "gwsp" "gwsp --version | head -1"
+test_tool "gwse" "gwse" "gwse --version | head -1"
+
+# Bare gws must stay blocked so nothing touches a Google account without context
+if gws --version >/dev/null 2>&1; then
+    print_test "gws guard" "fail" "Bare gws ran; bin/gws should refuse it (is ~/bin before Homebrew on PATH?)"
+else
+    print_test "gws guard" "pass" "Bare gws is blocked (use gwsp/gwse)"
+fi
 test_tool "jq" "jq" "jq --version"
 test_tool "jless" "jless" "jless --version" "true"
 test_tool "mdcat" "mdcat" "mdcat --version"

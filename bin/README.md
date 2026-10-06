@@ -47,6 +47,23 @@ git add fish/.config/fish fish/.bestowignore
 git commit -m "Adopt fish shell configuration"
 ```
 
+### `gws` / `gws-account` / `gwsp` / `gwse`
+Run the Google Workspace CLI (`googleworkspace-cli`) against two isolated accounts in parallel, like `ccp`/`cce` do for Claude Code.
+
+- `gwsp ...` — personal account, config dir `~/.config/gws-personal`
+- `gwse ...` — enterprise account, config dir `~/.config/gws-enterprise`
+- `gws ...` — **blocked**: `bin/gws` shadows the real binary (`~/bin` precedes Homebrew on `PATH`) and refuses to run unless `GOOGLE_WORKSPACE_CLI_CONFIG_DIR` is set. It is a script, not an alias, so it also guards non-interactive shells such as agents.
+- `gws-account <name>` — shared helper: creates `~/.config/gws-<name>` (mode 700), sets `GOOGLE_WORKSPACE_CLI_CONFIG_DIR`, pins `GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file` (each dir keeps its own encryption key; mixing backends makes gws silently drop `credentials.enc`), then runs the real binary. Add a third account with a two-line wrapper like `gwsp`.
+
+**Per-account setup (once per machine):**
+```bash
+cp /path/to/oauth-client.json ~/.config/gws-personal/client_secret.json    # or: gwsp auth setup (needs gcloud)
+gwsp auth login
+gwse auth login
+gwsp auth status && gwse auth status
+```
+Credentials live only in those directories, never in this repo. Make sure each `client_secret.json` has a `project_id`, otherwise gws can fall back to gcloud's ADC quota project and leak across accounts.
+
 ### `sync-brewfile`
 Update your Brewfile with all currently installed Homebrew packages.
 

@@ -1,0 +1,47 @@
+#!/bin/bash
+#
+# gws guard: refuse bare `gws`, require an account-scoped invocation.
+#
+# This shadows the real Google Workspace CLI (googleworkspace-cli) because
+# ~/bin precedes Homebrew on PATH. It only runs the real binary when
+# GOOGLE_WORKSPACE_CLI_CONFIG_DIR is set, which `gwsp` / `gwse` do for you.
+# That way nothing (agents included) can touch an account by accident.
+#
+# Works in non-interactive shells too, which is why this is a script rather
+# than an alias or shell function.
+
+set -euo pipefail
+
+if [[ -z "${GOOGLE_WORKSPACE_CLI_CONFIG_DIR:-}" ]]; then
+    cat >&2 <<'MSG'
+gws: bare `gws` is disabled -- it has no account context.
+
+Use an account-scoped command instead:
+  gwsp ...   personal Google Workspace account
+  gwse ...   enterprise (work) Google Workspace account
+
+Example: gwsp auth login      gwse drive files list
+MSG
+    exit 64
+fi
+
+# Find the real binary: first `gws` on PATH that is not this script's directory.
+self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+real=""
+IFS=: read -r -a path_entries <<< "$PATH"
+for dir in "${path_entries[@]}"; do
+    [[ -z "$dir" ]] && continue
+    resolved="$(cd "$dir" 2>/dev/null && pwd -P)" || continue
+    [[ "$resolved" == "$self_dir" ]] && continue
+    if [[ -x "$dir/gws" ]]; then
+        real="$dir/gws"
+        break
+    fi
+done
+
+if [[ -z "$real" ]]; then
+    echo "gws: real binary not found on PATH (brew install googleworkspace-cli)" >&2
+    exit 127
+fi
+
+exec "$real" "$@"
