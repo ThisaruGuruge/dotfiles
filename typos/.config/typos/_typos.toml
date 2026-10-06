@@ -11,3 +11,4 @@
 #   patterns = ["myPattern.*"]
 
 [default.extend-words]
+testng = "testng"

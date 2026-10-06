@@ -19,6 +19,7 @@ return {
         "go",
         "rust",
         "python",
+        "groovy",
       }
 
       -- Auto-install missing parsers when entering a buffer
