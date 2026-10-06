@@ -28,7 +28,7 @@ fi
 # Find the real binary: first `gws` on PATH that is not this script's directory.
 self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 real=""
-IFS=: read -r -a path_entries <<< "$PATH"
+IFS=: read -r -a path_entries <<<"$PATH"
 for dir in "${path_entries[@]}"; do
     [[ -z "$dir" ]] && continue
     resolved="$(cd "$dir" 2>/dev/null && pwd -P)" || continue
