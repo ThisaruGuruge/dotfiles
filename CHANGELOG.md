@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-10-11
+
 ### Added
 
 - Added the `agents` mod (`claude-mods/agents`): a `/agents` pane that opens when the first subagent of a batch starts, and one row per running subagent above the prompt, which stays visible when the engine's diff panel takes the pane's seat. Each subagent gets a crab costume by type (Explore, Plan, review, security, test, guide, design, fork, general) and shows its model, effort, a context-fill bar, output tokens, model requests, tool calls, the latest tool call and elapsed time. It registers no tools and makes no network or process calls
