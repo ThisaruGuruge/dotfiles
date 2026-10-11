@@ -35,19 +35,34 @@ unset _ghostty_terminfo
 [ -d "$HOME/Setup/flutter/bin" ] && export PATH="$HOME/Setup/flutter/bin:$PATH"
 
 # NVM - make node/npm/npx available in non-interactive shells (e.g. Claude Code agents)
-# Resolves the nvm default alias to the correct installed version path
+# Resolves the nvm default alias to the matching installed version's bin dir.
+# Only version-shaped defaults (22, 22.2, 22.2.0, v22.2.0) are resolved, after
+# following up to three levels of nvm alias files (lts/* -> lts/jod -> v22.x.y).
+# Anything else (node, stable, system, a missing lts alias) changes nothing and
+# prints nothing; interactive shells still get the full nvm via its lazy loader.
 export NVM_DIR="$HOME/.nvm"
-if [ -f "$NVM_DIR/alias/default" ] && [ -d "$NVM_DIR/versions/node" ]; then
-    _nvm_ver=$(cat "$NVM_DIR/alias/default")
-    # Resolve one level of alias indirection (e.g., "lts/*" -> "22.x.x")
-    [ -f "$NVM_DIR/alias/$_nvm_ver" ] && _nvm_ver=$(cat "$NVM_DIR/alias/$_nvm_ver")
-    # Find the matching installed version using semantic version sort. The
-    # glob is anchored: "22.2" must match v22.2 / v22.2.x, never v22.22.2.
+unset NVM_DEFAULT_BIN
+if [[ -f "$NVM_DIR/alias/default" && -d "$NVM_DIR/versions/node" ]]; then
+    _nvm_ver="$(<"$NVM_DIR/alias/default")"
+    for _nvm_i in 1 2 3; do
+        [[ -n "$_nvm_ver" && "$_nvm_ver" != */../* && -f "$NVM_DIR/alias/$_nvm_ver" ]] || break
+        _nvm_ver="$(<"$NVM_DIR/alias/$_nvm_ver")"
+    done
     _nvm_ver="${_nvm_ver#v}"
-    _nvm_node=$(ls -d "$NVM_DIR/versions/node/v${_nvm_ver}" "$NVM_DIR/versions/node/v${_nvm_ver}".* 2>/dev/null | sort -V | tail -1)
+    _nvm_node=()
+    if [[ "$_nvm_ver" =~ '^[0-9]+(\.[0-9]+){0,2}$' ]]; then
+        # Exact directory first; otherwise the highest anchored match ("22.2"
+        # matches v22.2.x, never v22.22.2). (N) keeps a miss silent instead of
+        # a NOMATCH error, (n) sorts numerically so v22.10 beats v22.9.
+        _nvm_node=("$NVM_DIR/versions/node/v${_nvm_ver}"(N/))
+        ((${#_nvm_node})) || _nvm_node=("$NVM_DIR/versions/node/v${_nvm_ver}".*(Nn/))
+    fi
     # NVM_DEFAULT_BIN is a plain (unexported) shell variable: .zprofile uses it
     # to put this directory back in front after path_helper and Homebrew's
     # PATH setup have run (see the end of .zprofile).
-    [ -d "$_nvm_node/bin" ] && NVM_DEFAULT_BIN="$_nvm_node/bin" && export PATH="$NVM_DEFAULT_BIN:$PATH"
-    unset _nvm_ver _nvm_node
+    if ((${#_nvm_node})) && [[ -d "${_nvm_node[-1]}/bin" ]]; then
+        NVM_DEFAULT_BIN="${_nvm_node[-1]}/bin"
+        export PATH="$NVM_DEFAULT_BIN:$PATH"
+    fi
+    unset _nvm_ver _nvm_node _nvm_i
 fi

@@ -111,7 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `init.sh` skipping the `colima` package when stowing
 - Fixed `init.sh` treating a `sudo_local` whose `pam_tid` line is commented out (a copy of macOS's template) as "Touch ID already configured", and inserting the `pam_reattach` line before commented-out `pam_tid` lines; a fresh setup now backs up an existing `sudo_local` and keeps its lines instead of overwriting it
 - Fixed non-interactive login shells (`zsh -l -c ...`) exiting 1 when `~/.local/bin/env` is missing: it is now sourced only if present, and the duplicate source in `.bash_profile` is gone
-- Fixed login shells running Homebrew's node instead of the nvm default: `.zprofile` puts the nvm default's `bin` back in front after `path_helper` and the Homebrew PATH, and the version glob in `.zshenv` is anchored so `22.2` no longer matches `v22.22.2`
+- Fixed login shells running Homebrew's node instead of the nvm default: `.zprofile` puts the nvm default's `bin` back in front after `path_helper` and the Homebrew PATH, and the version lookup in `.zshenv` is anchored so `22.2` no longer matches `v22.22.2`. `.zshenv` also resolves `lts/*` through nvm's alias files, and a default that is not a version (`node`, `system`) or an unresolvable alias now leaves PATH alone instead of printing `no matches found` in every zsh
 
 ### Upgrade notes
 

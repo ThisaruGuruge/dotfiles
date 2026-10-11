@@ -26,7 +26,8 @@ export PATH="$PATH:/usr/local/bin"
 
 # Login shells: /etc/zprofile (path_helper) and the Homebrew PATH above push
 # Homebrew's node in front of the nvm default that .zshenv already put first.
-# Move the nvm default's bin back to the front.
-if [[ -n "$NVM_DEFAULT_BIN" && -d "$NVM_DEFAULT_BIN" ]]; then
+# Move the nvm default's bin back to the front (only a real nvm version dir,
+# so an unresolved default can never promote something like /bin).
+if [[ -n "$NVM_DEFAULT_BIN" && "$NVM_DEFAULT_BIN" == "$NVM_DIR"/versions/node/*/bin && -d "$NVM_DEFAULT_BIN" ]]; then
     path=("$NVM_DEFAULT_BIN" $path)
 fi

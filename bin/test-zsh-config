@@ -545,6 +545,36 @@ else
     print_test "login zsh: nvm default (anchored version) first on PATH; XDG_* from .zshenv" "fail" "$sc_out"
 fi
 
+# nvm default forms: exact versions resolve with no NOMATCH noise; alias names
+# that are not versions (node, system) or a missing alias file change nothing.
+mkdir -p "$sc_home/.nvm/alias/lts" "$sc_home/.nvm/versions/node/v22.10.0/bin"
+print lts/jod >"$sc_home/.nvm/alias/lts/*"
+print v22.10.0 >"$sc_home/.nvm/alias/lts/jod"
+local sc_nvm_bad="" sc_case sc_def sc_want
+for sc_case in "22=v22.22.2" "22.2=v22.2.0" "22.2.0=v22.2.0" "v22.2.0=v22.2.0" "lts/*=v22.10.0" "node=" "system=" "MISSING="; do
+    sc_def="${sc_case%%=*}"
+    sc_want="${sc_case#*=}"
+    if [[ "$sc_def" == MISSING ]]; then
+        rm -f "$sc_home/.nvm/alias/default"
+    else
+        print -r -- "$sc_def" >"$sc_home/.nvm/alias/default"
+    fi
+    # One line of output (no error text): the nvm bin first, or else no nvm
+    # entry and no stray /bin promoted to the front.
+    sc_out="$(env -i HOME="$sc_home" PATH=/usr/bin:/bin zsh -l -c 'print -r -- "${path[1]}"; print -rl -- $path | grep -c "/.nvm/"' 2>&1)"
+    if [[ -n "$sc_want" ]]; then
+        [[ "$sc_out" == "$sc_home/.nvm/versions/node/$sc_want/bin"$'\n'1 ]] || sc_nvm_bad+=" [$sc_def] ${sc_out//$sc_home/~}"
+    else
+        [[ "$sc_out" == *$'\n'0 && "${sc_out%%$'\n'*}" != /bin && "$sc_out" != *$'\n'*$'\n'* ]] || sc_nvm_bad+=" [$sc_def] ${sc_out//$sc_home/~}"
+    fi
+done
+print 22.2 >"$sc_home/.nvm/alias/default"
+if [[ -z "$sc_nvm_bad" ]]; then
+    print_test "nvm default: 22, 22.2, 22.2.0, v22.2.0, lts/*, node, system, missing (no errors, no bogus PATH)" "pass" ""
+else
+    print_test "nvm default: 22, 22.2, 22.2.0, v22.2.0, lts/*, node, system, missing (no errors, no bogus PATH)" "fail" "$sc_nvm_bad"
+fi
+
 # --- global gitignore ---------------------------------------------------------
 if command -v git >/dev/null 2>&1; then
     mkdir -p "$sc_tmp/ig" && git -C "$sc_tmp/ig" init -q 2>/dev/null
