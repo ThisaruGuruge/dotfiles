@@ -71,7 +71,8 @@ git_staged=0
 git_unstaged=0
 git_untracked=0
 TAB=$(printf '\t')
-if git_out=$(GIT_OPTIONAL_LOCKS=0 git -C "$cwd" status --porcelain=v2 --branch 2>/dev/null); then
+# --no-ahead-behind: the counts are not shown, and on a far-diverged branch they cost a walk every 5 s
+if git_out=$(GIT_OPTIONAL_LOCKS=0 git -C "$cwd" status --porcelain=v2 --branch --no-ahead-behind 2>/dev/null); then
     IFS=$TAB read -r git_head _ git_staged git_unstaged git_untracked <<EOF
 $(printf '%s\n' "$git_out" | awk '
     /^# branch\.oid / { oid = $3 }

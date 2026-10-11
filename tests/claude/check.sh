@@ -65,6 +65,13 @@ else
     fi
 fi
 
+# The status line refreshes every 5 s: its git status must not count ahead/behind commits
+if grep -q 'status --porcelain=v2 --branch --no-ahead-behind' "$statusline"; then
+    pass "Status line git status skips ahead/behind counts"
+else
+    fail "Status line git status skips ahead/behind counts"
+fi
+
 # ── Status line: Remote Control indicator ───────────────────────────────────
 rc_line() {
     # $1: content of sessions/<pid>.json, or - for no file. The file is named after the shell
