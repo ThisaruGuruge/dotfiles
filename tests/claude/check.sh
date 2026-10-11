@@ -133,6 +133,30 @@ if command -v tmux >/dev/null 2>&1 && tmux -L "$tmux_server" -f /dev/null new-se
     else
         fail "claude-tmux-state sets and clears @claude_state" "$seen"
     fi
+    # resume (PostToolUse) only turns waiting back into working
+    in_tmux() { TMUX="$sock,$pid,0" TMUX_PANE="$pane" "$@" </dev/null; }
+    in_tmux "$state" "done"
+    in_tmux "$state" resume
+    seen="$(get)/"
+    in_tmux "$state" waiting
+    in_tmux "$state" resume
+    seen="$seen$(get)"
+    if [ "$seen" = "done/working" ]; then
+        pass "claude-tmux-state resume turns only waiting into working"
+    else
+        fail "claude-tmux-state resume turns only waiting into working" "$seen"
+    fi
+    # A claude started under another claude (two `claude` processes above the hook; symlinks
+    # named claude stand in for them) leaves the outer session's window alone
+    mkdir -p "$work/fake" && ln -s /bin/sh "$work/fake/claude"
+    in_tmux "$state" "done"
+    # shellcheck disable=SC2016 # expanded by the inner shells
+    in_tmux "$work/fake/claude" -c '"$1" -c "\"\$1\" working; :" _ "$2"; :' _ "$work/fake/claude" "$state"
+    if [ "$(get)" = "done" ]; then
+        pass "claude-tmux-state leaves the window alone for a nested claude"
+    else
+        fail "claude-tmux-state leaves the window alone for a nested claude" "$(get)"
+    fi
 else
     warn "claude-tmux-state sets and clears @claude_state" "tmux not available"
 fi
@@ -175,12 +199,12 @@ for settings in "$repo"/claude/.claude-*/settings.json; do
         fail "$account/settings.json is valid JSON"
         continue
     fi
-    hooks=$(jq -r '[.hooks.UserPromptSubmit, .hooks.Notification, .hooks.Stop, .hooks.SessionEnd]
-        | map(.[]?.hooks[]?.command) | join("\n")' "$settings")
-    if printf '%s\n' "$hooks" | grep -c 'claude-tmux-state' | grep -qx 4; then
-        pass "$account/settings.json wires claude-tmux-state into 4 hooks"
+    hooks=$(jq -r '[.hooks | (.UserPromptSubmit, .Notification, .Stop, .StopFailure, .PostToolUse, .SessionEnd)
+        | [.[]?.hooks[]?.command | select(test("claude-tmux-state"))] | length] | join(" ")' "$settings")
+    if [ "$hooks" = "1 1 1 1 1 1" ]; then
+        pass "$account/settings.json wires claude-tmux-state into 6 hooks"
     else
-        fail "$account/settings.json wires claude-tmux-state into 4 hooks"
+        fail "$account/settings.json wires claude-tmux-state into 6 hooks" "$hooks"
     fi
     if [ "$(jq -r '.statusLine.refreshInterval // empty' "$settings")" = 5 ]; then
         pass "$account/settings.json refreshes the status line every 5 s"

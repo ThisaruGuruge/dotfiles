@@ -116,9 +116,11 @@ Claude Code helpers, called from `claude/.claude-*/` by their repo path (`~/dotf
   accounts' `statusline-command.sh` exec: account, Remote Control (`◉ RC` / `○ RC off`), vim mode,
   directory and git, model, cost, tokens. One `jq` and one `git status --porcelain=v2 --branch` per refresh.
   The RC segment reads undocumented Claude Code internals; see the script's header for its limits.
-- `claude-tmux-state working|waiting|done|clear` sets (or clears) the tmux window option `@claude_state`
-  on the window of `$TMUX_PANE`, from the UserPromptSubmit, Notification, Stop and SessionEnd hooks.
-  Silent, always exits 0, a no-op outside tmux.
+- `claude-tmux-state working|waiting|done|clear|resume` sets (or clears) the tmux window option
+  `@claude_state` on the window of `$TMUX_PANE`, from the UserPromptSubmit, Notification, Stop,
+  StopFailure, PostToolUse (`resume`: back to `working` only when it was `waiting`) and SessionEnd hooks.
+  Silent, always exits 0, a no-op outside tmux, and a no-op when two `claude` processes are above it (a
+  nested `claude -p` inherits `TMUX_PANE`, but the window is the outer session's).
 
 Both are checked by `tests/claude/check.sh`, which `test-zsh` runs.
 

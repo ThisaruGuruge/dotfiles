@@ -60,8 +60,10 @@ files round-trip.
   cannot tell waiting from attached from reconnecting, and an outbound-only mirror session shows `RC` too).
   The status line refreshes every 5 s (`statusLine.refreshInterval`) so a `/remote-control` toggle shows.
 - `bin/claude-tmux-state` is called by hooks in both accounts and sets the tmux window option
-  `@claude_state` to `working` (prompt sent), `waiting` (Claude Code wants attention), `done` (turn ended),
-  or clears it (session ended). It is silent and a no-op outside tmux.
+  `@claude_state` to `working` (prompt sent, or a tool ran after Claude Code waited for you), `waiting`
+  (Claude Code wants attention), `done` (turn ended, also on an API error), or clears it (session ended).
+  It is silent and a no-op outside tmux, and a `claude` started inside another session (`claude -p` from
+  the Bash tool) leaves the outer session's window alone.
 - `ccp`, `ccpr` and `ccpc` load `~/.claude-personal/projects.d/<repo>.json` with `--settings` when the
   current git repo has one: the place for a project's own autoMode rules, which must not live in this
   public repo (Claude Code ignores autoMode in a project's `.claude/settings*.json`). `<repo>` is the
