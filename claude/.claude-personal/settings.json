@@ -20,6 +20,5 @@
   "verbose": true,
   "agentPushNotifEnabled": true,
   "hideVimModeIndicator": false,
-  "autocompact_percentage_override": 75,
   "model": "sonnet"
 }

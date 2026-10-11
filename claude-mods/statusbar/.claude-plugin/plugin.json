@@ -6,8 +6,8 @@
   "userConfig": {
     "autocompactPercent": {
       "type": "number",
-      "title": "Autocompact marker (%)",
-      "description": "Where the | marker sits on the context bar",
+      "title": "Fallback autocompact marker (%)",
+      "description": "Where the | marker sits when Claude Code reports no context breakdown; otherwise the marker follows Claude Code's own compaction threshold",
       "default": 75
     },
     "cacheTtlSeconds": {
