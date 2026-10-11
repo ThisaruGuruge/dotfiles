@@ -62,11 +62,27 @@ keybind = super+enter=toggle_fullscreen
 keybind = super+f=start_search
 
 # Line and word navigation (macOS-style)
-# Home/End sequences pass through tmux transparently; \x01 would be eaten as tmux prefix
+# Cmd+Left/Right send Home/End (ESC [ H / ESC [ F); a raw \x01 would be eaten as
+# the tmux prefix. Option+Left/Right send ESC b / ESC f (Alt+b / Alt+f) explicitly
+# so zsh's backward-word / forward-word work the same inside and outside tmux.
+# Cmd+Delete sends ESC k (Alt+k), which zsh binds to kill-line. A raw Ctrl+k
+# (\x0b) would be swallowed by tmux's Ctrl+k pane navigation and never reach zsh.
 keybind = super+left=text:\x1b[H
 keybind = super+right=text:\x1b[F
+keybind = alt+left=esc:b
+keybind = alt+right=esc:f
 keybind = super+backspace=text:\x15
-keybind = super+delete=text:\x0b
+keybind = super+delete=text:\x1bk
+
+# -----------------------------------------------------------------------------
+# TMux-coupled keybinds (everything below sends the tmux PREFIX)
+# -----------------------------------------------------------------------------
+# Every text:\x01... binding below hard-codes tmux's prefix, Ctrl+a (\x01).
+# If you change `set -g prefix` in tmux/.tmux.conf these silently stop working
+# (bin/test-zsh-config fails when the prefix is no longer C-a). Outside tmux they
+# send Ctrl+a plus a letter to the shell (beginning-of-line then a stray
+# character), so they only make sense inside a tmux session. The same shortcuts
+# are listed in the tmux command palette (prefix + ?) under "Ghostty".
 
 # TMux: window navigation
 keybind = super+[=text:\x01p

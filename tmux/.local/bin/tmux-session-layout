@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# tmux-session-layout <session> <dir>
+# Create a detached session with the standard project layout. Shared by
+# tmux-session-creator (prefix + S) and tmux-sessionizer (prefix + f).
+#
+# Windows, in this order:
+#   1  Long Runs   plain shell (servers, builds, anything you leave running)
+#   2  CLAUDE      starts `claude` (the account is chosen by direnv from the directory)
+#   3  NVim        nvim on top (~80%), plain shell underneath (~20%); this window is focused
+#
+# Only creates: if the session already exists it is left untouched.
+# SESSIONIZER_LAYOUT=bare creates a single plain shell window instead. It is read from
+# the environment, then from the tmux global environment, so
+#   tmux set-environment -g SESSIONIZER_LAYOUT bare
+# works on a running server (and `tmux set-environment -gu SESSIONIZER_LAYOUT` undoes it).
+#
+# The CLAUDE window types `claude` through direnv (see claude_cmd below), so the account the
+# directory's .envrc selects applies even though a fresh shell has not run the direnv hook yet.
+#
+# TMUX_LAYOUT_CLAUDE_CMD / TMUX_LAYOUT_NVIM_CMD override the commands typed into the
+# CLAUDE and NVim windows (default: claude via direnv, nvim); they exist so the layout can
+# be tested.
+
+session="${1:?usage: tmux-session-layout <session> <dir>}"
+dir="${2:?usage: tmux-session-layout <session> <dir>}"
+
+if tmux has-session -t="$session" 2>/dev/null; then
+    exit 0
+fi
+
+layout="${SESSIONIZER_LAYOUT:-}"
+if [[ -z "$layout" ]]; then
+    env_line=$(tmux show-environment -g SESSIONIZER_LAYOUT 2>/dev/null)
+    [[ "$env_line" == SESSIONIZER_LAYOUT=* ]] && layout="${env_line#*=}"
+fi
+
+if [[ "$layout" == "bare" ]]; then
+    tmux new-session -d -s "$session" -c "$dir"
+    exit 0
+fi
+
+# A fresh pane's zsh has not run direnv's hook yet (it is lazy-loaded from a chpwd hook,
+# which does not fire for a shell started in its start directory), so a bare `claude`
+# would ignore the directory's .envrc and use the default account. Export the .envrc into
+# a subshell instead: it works whether or not the hook is loaded, scopes the environment
+# to claude, and still starts claude (with direnv's error shown) when the .envrc is
+# blocked or fails. `direnv exec` is not used because it refuses to run anything then.
+if command -v direnv >/dev/null 2>&1; then
+    # shellcheck disable=SC2016  # typed into the pane as is; the pane's shell expands it
+    default_claude_cmd='(eval "$(direnv export zsh)"; claude)'
+else
+    default_claude_cmd='claude'
+fi
+claude_cmd="${TMUX_LAYOUT_CLAUDE_CMD:-$default_claude_cmd}"
+nvim_cmd="${TMUX_LAYOUT_NVIM_CMD:-nvim}"
+
+# A session created without an attached client is 80x24 and tmux rescales its layout
+# proportionally when a bigger client arrives, which skews the 80/20 split. Create it at
+# the size the client will have: ask tmux for the client that is open (this runs from a
+# popup), else the controlling terminal (sessionizer started from a plain shell).
+size_args=()
+if [[ -n "${TMUX:-}" ]]; then
+    read -r cols rows < <(tmux display-message -p '#{client_width} #{client_height}' 2>/dev/null)
+fi
+if [[ -z "${cols:-}" || -z "${rows:-}" ]]; then
+    # stderr is silenced first: opening /dev/tty fails noisily when there is no terminal
+    read -r rows cols < <(stty size 2>/dev/null </dev/tty)
+fi
+if [[ "${cols:-}" =~ ^[0-9]+$ && "${rows:-}" =~ ^[0-9]+$ ]] && ((cols > 0 && rows > 1)); then
+    # The status line(s) take rows from the window ("on" = 1, "off" = 0, or a count)
+    status_lines=$(tmux show-options -gv status 2>/dev/null)
+    case "${status_lines:-on}" in
+        off) status_lines=0 ;;
+        [2-5]) ;;
+        *) status_lines=1 ;;
+    esac
+    size_args=(-x "$cols" -y "$((rows - status_lines))")
+fi
+
+# Target everything by id so unusual session names cannot confuse tmux's target parser.
+sid=$(tmux new-session -d -P -F '#{session_id}' -s "$session" -n "Long Runs" -c "$dir" "${size_args[@]}") || exit 1
+tmux set-option -w -t "$sid:" automatic-rename off
+
+claude_pane=$(tmux new-window -P -F '#{pane_id}' -t "$sid:" -n CLAUDE -c "$dir")
+tmux set-option -w -t "$claude_pane" automatic-rename off
+tmux send-keys -t "$claude_pane" "$claude_cmd" Enter
+
+read -r nvim_window nvim_pane < <(tmux new-window -P -F '#{window_id} #{pane_id}' -t "$sid:" -n NVim -c "$dir")
+tmux set-option -w -t "$nvim_window" automatic-rename off
+tmux send-keys -t "$nvim_pane" "$nvim_cmd" Enter
+tmux split-window -v -l 20% -t "$nvim_pane" -c "$dir"
+tmux select-pane -t "$nvim_pane"
+
+# Open the session on the NVim window
+tmux select-window -t "$nvim_window"

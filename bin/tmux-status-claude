@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# tmux-status-claude — "󰂞 N waiting: sessA, sessB" for tmux's status-right.
+#
+# Counts windows whose @claude_state option is "waiting" (set per window by
+# bin/claude-tmux-state from Claude Code hooks) and lists the sessions they live in.
+# Prints nothing when no window is waiting, so the status bar stays quiet.
+#
+# No cache file on purpose: tmux runs a #() command at most once per second and
+# shares the output across clients, and a file cache would only delay the
+# `refresh-client -S` that the state helper triggers. The script costs one tmux call.
+
+command -v tmux >/dev/null 2>&1 || exit 0
+
+# Keep the segment narrow: at most MAX_NAMES sessions (the rest become "+N"), each cut to
+# MAX_LEN characters, so it adds roughly 45 columns at most to the status bar.
+MAX_NAMES=2
+MAX_LEN=12
+
+# Cutting by character needs a UTF-8 locale (the macOS awk is byte based, so bash does it)
+case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
+    *UTF-8* | *utf8*) ;;
+    *) export LC_ALL=en_US.UTF-8 ;;
+esac
+
+# First line: how many windows are waiting. Then one line per session, in window order.
+summary=$(tmux list-windows -a -F $'#{session_name}\t#{@claude_state}' 2>/dev/null |
+    awk -F '\t' '
+        $2 == "waiting" {
+            total++
+            if (!($1 in seen)) {
+                seen[$1] = 1
+                order[++n] = $1
+            }
+        }
+        END {
+            if (!total) exit
+            print total
+            for (i = 1; i <= n; i++) print order[i]
+        }')
+[[ -n "$summary" ]] || exit 0
+
+total=""
+names=()
+count=0
+while IFS= read -r line; do
+    if [[ -z "$total" ]]; then
+        total=$line
+        continue
+    fi
+    count=$((count + 1))
+    ((count > MAX_NAMES)) && continue
+    ((${#line} > MAX_LEN)) && line="${line:0:MAX_LEN-1}…"
+    names+=("${line//#/##}") # "#" is tmux's format escape
+done <<<"$summary"
+
+list=""
+for name in "${names[@]}"; do
+    list="${list:+$list, }$name"
+done
+more=""
+((count > MAX_NAMES)) && more=" +$((count - MAX_NAMES))"
+printf '#[fg=#f38ba8,bold]󰂞 %d waiting: %s%s #[default]' "$total" "$list" "$more"
