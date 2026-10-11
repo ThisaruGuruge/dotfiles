@@ -54,11 +54,13 @@ The script is interactive; it will:
 - Install core packages from `Brewfile` with Brew
 - Offer opt-in categories (development, terminals, editors, etc.)
 - Install SDKMAN + Java 21 (optional) and brew-based Ballerina
-- Enable Touch ID for sudo (with tmux support via `pam-reattach`)
+- Enable Touch ID for sudo (with tmux support via `pam-reattach`, loaded from a root-owned copy in `/opt/pam`)
 - Configure Atuin, direnv, tmux, git delta, lazygit, lazydocker, aliases, and helper functions
-- Generate/restore encrypted `.env` with SOPS + age (keys stored at `~/.config/sops/age/keys.txt`)
+- Generate/restore encrypted `.env` with SOPS + age (keys stored at `~/.config/sops/age/keys.txt`, per-machine `~/.sops.yaml`)
 - Create Nerd Font + terminal integrations
 - Back up existing dotfiles and symlink everything via `bestow`
+- Install TPM (pinned release) and the tmux plugins
+- Check that the SSH commit-signing key exists (offers to create it)
 - Test the install with `test-zsh` and show next steps
 
 ### Option 2 – Manual setup
@@ -78,13 +80,19 @@ bestow init --source ~/dotfiles --destination ~/
 
 # Symlink the packages you need (add/remove as desired)
 bestow stow zsh git tmux direnv bash
+bestow stow bin -d ~/bin   # bin links into ~/bin, not ~
 
-# Copy the env template (will be encrypted later by init/edit_secrets)
-cp zsh/.env.example zsh/.env
+# Secrets: an age key and this machine's own sops config (not tracked)
+mkdir -p ~/.config/sops/age && age-keygen -o ~/.config/sops/age/keys.txt
+sed "s/AGE_PUBLIC_KEY/$(grep '^# public key:' ~/.config/sops/age/keys.txt | cut -d' ' -f4)/g" \
+  bash/.sops.yaml.example > ~/.sops.yaml
 
-# Reload configuration
+# Reload configuration, then create the encrypted ~/.env
 source ~/.zshrc
+edit_secrets
 ```
+
+Git signs every commit with SSH (`gpgSign = true`), so set `user.signingkey` in `~/.gitconfig.local` (see `git/.gitconfig.local.example`) and create the key it names (`ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_signing`) before your first commit.
 
 Edit the `Brewfile` directly or use category Brewfiles in `packages/` before running `brew bundle` if you want to customize packages.
 
@@ -198,7 +206,9 @@ bestow stow git tmux direnv        # Git/Tmux/Direnv packages
 bestow unstow zsh
 ```
 
-`init.sh` (the fresh-machine installer) still bootstraps with GNU Stow, since `bestow` is a personal Go build not yet packaged for distribution.
+`init.sh` (the fresh-machine installer) installs bestow with `go install github.com/redpierrot/bestow@latest` and runs the same `bestow stow` commands per package. `@latest` resolves to bestow's newest tagged release once it publishes tags (until then, the newest commit on its default branch).
+
+> **`bin` is the exception**: it links into `~/bin`, so always stow it as `bestow stow bin -d ~/bin`. Don't run a bare `bestow stow` across every package — with the single `$HOME` destination in bestow's config it would link `bin/*` straight into `~`.
 
 **Alternative**: For cross-platform dotfile management, consider [Chezmoi](https://www.chezmoi.io/).
 
@@ -289,8 +299,16 @@ The default editor is set to `nvim` via the `$EDITOR` environment variable in `.
 ## Secret Management (SOPS + age)
 
 - Keys live at `~/.config/sops/age/keys.txt` and are created by `init.sh`. Backup that file somewhere safe.
-- Secrets live in `~/.env` (ignored by git). They remain encrypted on disk and are transparently decrypted by the shell when sourced.
-- Use `edit_secrets` (wrapper defined in `.functions.d/06-dotfiles.zsh`) to decrypt, open your `$EDITOR`, and re-encrypt on save.
+- `~/.sops.yaml` names the age recipient new secrets are encrypted to, so it is **per machine**: `init.sh` writes it from `bash/.sops.yaml.example` with this machine's public key. It is not tracked or stowed. Machines set up before this change have it as a symlink into the repo, which dangles once you pull (the repo no longer ships `bash/.sops.yaml`). `edit_secrets` still works then (it encrypts to this machine's own key, from `age-keygen -y`), and either `./init.sh` or these two commands replace the link with a real file. Remove the link first: redirecting into a dangling symlink writes through it, back into the repo.
+
+  ```bash
+  rm ~/.sops.yaml
+  sed "s/AGE_PUBLIC_KEY/$(age-keygen -y ~/.config/sops/age/keys.txt)/g" ~/dotfiles/bash/.sops.yaml.example > ~/.sops.yaml
+  ```
+
+- Secrets live in `~/.env` (outside the repo). They stay encrypted on disk. On startup the shell decrypts them once into a private cache (`~/.cache/zsh/env_cache.v2`, mode 600 in a 700 directory). The cache records the `sops_mac` of the `~/.env` it came from, so any change to `~/.env` (an edit, a key rotation, a restored backup) makes the next shell decrypt again; a cache with the wrong mode or owner is ignored, and the old `env_cache` from earlier versions is deleted on sight.
+- The loader reads `[export ]KEY=value` lines without sourcing or eval'ing anything: **nothing in `~/.env` runs while it loads**. Values can be `'single quoted'` (literal), `"double quoted"` (`$NAME`/`${NAME}` and the `\\` `\"` `\$` `` \` `` escapes; nothing else expands) or plain words (`$NAME`/`${NAME}` expand, and `~` or `~/...` at the start or after a `:` becomes `$HOME`, as in `KUBECONFIG=~/.kube/config`). Lines with `$(...)`, backticks or other shell syntax, and a fixed list of names zsh turns into code or needs intact (prompts such as `PS1`/`PROMPT_EOL_MARK`, `PROMPT_COMMAND`, hook arrays, `PATH`/`FPATH`/`ZDOTDIR`, `LD_*`/`DYLD_*`, `IFS`, `HOME`, `UID`, `TMOUT`, ...) are skipped and named (never shown) on stderr, once per change to `~/.env` rather than in every new shell. Values themselves aren't policed: `NODE_OPTIONS`, `GIT_SSH_COMMAND` and the like are yours to set, and `LANG`/`LC_*`/`TERM` are allowed.
+- Use `edit_secrets` (wrapper defined in `.functions.d/06-dotfiles.zsh`) to decrypt, open your `$EDITOR`, and re-encrypt on save. The plaintext only exists in a private temp directory that is removed on exit or Ctrl-C, vim/nvim run without swap/undo/backup files, and the new file must decrypt back to your edits before it replaces `~/.env` (if `~/.env` is a symlink, the file it points to is replaced, not the link). It refuses to start when `~/.sops.yaml` doesn't list this machine's key. If the save fails — the editor exits non-zero (`:cq`), a line sops can't store (a bare name, a value spread over several lines, CRLF endings; reported by line number, never by content), or encryption fails — it offers to reopen the editor, keep the plaintext copy (its path is printed; delete it yourself) or discard the edits. The previous version is kept as `~/.env.backup.<timestamp>` (encrypted; the newest 3 are kept).
 - Manual commands:
 
   ```bash
@@ -299,7 +317,7 @@ The default editor is set to `nvim` via the `$EDITOR` environment variable in `.
   export SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt
   ```
 
-- The template at `zsh/.env.example` is copied when you first run `init.sh`; extend it if you need new keys for future machines.
+- `zsh/.env.example` lists the keys a new machine needs; copy them in with `edit_secrets`. Nothing reads `zsh/.env`, so never create one in the repo (`test-zsh` warns if it exists, and about plaintext `~/.env.backup*` files).
 
 ## Touch ID for sudo
 
@@ -307,22 +325,32 @@ The installer configures macOS to accept Touch ID (fingerprint) for `sudo` promp
 
 **tmux support**: The `pam-reattach` brew package is included so Touch ID also works inside tmux sessions — without it, macOS cannot reach the biometric sensor from a reattached session.
 
+**Root-owned module**: sudo loads `pam_reattach.so` as root, and the Homebrew prefix is writable by your user — so `sudo_local` must never point into it (any process running as you could swap the module and get root on your next `sudo`). `init.sh` copies the module to `/opt/pam/pam_reattach.so` (`root:wheel`, mode 444) and points `sudo_local` there; on machines set up earlier it offers to migrate the old Homebrew path. Re-run `./init.sh` after `brew upgrade pam-reattach` to refresh the copy. `test-zsh` fails if the configured module isn't root-owned.
+
 After running `init.sh`, any `sudo` command will show the Touch ID prompt first and fall back to password if dismissed.
+
+**If sudo stops working**: OpenPAM may refuse the whole sudo stack when it can't load a module named in `sudo_local` (a deleted `/opt/pam/pam_reattach.so`, a typo), even on an `optional` line. Keep a root shell (`sudo -s`) open while you edit `sudo_local` and test `sudo -k true` in a new terminal. If you're already locked out, move the file aside without sudo — `osascript` asks for an admin password through macOS's own authorization dialog, which doesn't go through `/etc/pam.d/sudo`:
+
+```bash
+osascript -e 'do shell script "mv /etc/pam.d/sudo_local /etc/pam.d/sudo_local.disabled" with administrator privileges'
+```
 
 To enable manually (without `init.sh`):
 
 ```bash
 brew install pam-reattach
 
+# Copy the module somewhere only root can write (requires sudo)
+sudo install -d -o root -g wheel -m 755 /opt/pam
+sudo install -o root -g wheel -m 444 "$(brew --prefix)/lib/pam/pam_reattach.so" /opt/pam/pam_reattach.so
+
 # Create /etc/pam.d/sudo_local (requires sudo)
 sudo tee /etc/pam.d/sudo_local <<'EOF'
 # sudo_local: local config for sudo (persists across macOS updates)
-auth       optional       /opt/homebrew/lib/pam/pam_reattach.so
+auth       optional       /opt/pam/pam_reattach.so
 auth       sufficient     pam_tid.so
 EOF
 ```
-
-> **Note**: On Intel Macs, replace `/opt/homebrew/lib/pam/pam_reattach.so` with `/usr/local/lib/pam/pam_reattach.so`.
 
 ## Powerlevel10k Prompt
 

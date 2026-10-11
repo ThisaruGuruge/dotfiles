@@ -5,8 +5,11 @@
 [user]
     name = YOUR_FULL_NAME
     email = YOUR_EMAIL@example.com
-    # Uncomment and configure if you use GPG signing
-    # signingkey = YOUR_GPG_KEY_ID
+    # Commits are signed with SSH (git/.config/git/config: commit.gpgSign =
+    # true, gpg.format = ssh), so git commit fails until this points at a key
+    # that exists. init.sh offers to create it (ssh-keygen -t ed25519 -f
+    # ~/.ssh/id_ed25519_signing); add the .pub to GitHub as a Signing key.
+    signingkey = ~/.ssh/id_ed25519_signing.pub
 
 [github]
     user = YOUR_GITHUB_USERNAME

@@ -32,26 +32,26 @@ fi
 # Claude Code that snapshot shell functions still work correctly.
 export NVM_DIR="$HOME/.nvm"
 if [[ -d "$NVM_DIR/versions/node" ]]; then
-    if [[ -s "/opt/homebrew/opt/nvm/nvm.sh" ]]; then
+    if [[ -s "${HOMEBREW_PREFIX:-/opt/homebrew}/opt/nvm/nvm.sh" ]]; then
         nvm() {
             unset -f nvm node npm npx
-            \. "/opt/homebrew/opt/nvm/nvm.sh"
-            [[ -n "$PS1" ]] && [[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ]] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"
+            \. "${HOMEBREW_PREFIX:-/opt/homebrew}/opt/nvm/nvm.sh"
+            [[ -n "$PS1" ]] && [[ -s "${HOMEBREW_PREFIX:-/opt/homebrew}/opt/nvm/etc/bash_completion.d/nvm" ]] && \. "${HOMEBREW_PREFIX:-/opt/homebrew}/opt/nvm/etc/bash_completion.d/nvm"
             nvm "$@"
         }
         node() {
             unset -f nvm node npm npx
-            \. "/opt/homebrew/opt/nvm/nvm.sh"
+            \. "${HOMEBREW_PREFIX:-/opt/homebrew}/opt/nvm/nvm.sh"
             node "$@"
         }
         npm() {
             unset -f nvm node npm npx
-            \. "/opt/homebrew/opt/nvm/nvm.sh"
+            \. "${HOMEBREW_PREFIX:-/opt/homebrew}/opt/nvm/nvm.sh"
             npm "$@"
         }
         npx() {
             unset -f nvm node npm npx
-            \. "/opt/homebrew/opt/nvm/nvm.sh"
+            \. "${HOMEBREW_PREFIX:-/opt/homebrew}/opt/nvm/nvm.sh"
             npx "$@"
         }
     fi

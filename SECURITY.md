@@ -66,16 +66,16 @@ edit_secrets
 # GOOD: View decrypted secrets without editing
 sops -d ~/.env
 
-# GOOD: Use .env.example template
-cp zsh/.env.example zsh/.env
-edit_secrets
+# GOOD: Start from the keys listed in zsh/.env.example
+edit_secrets   # creates/edits the encrypted ~/.env
 ```
 
 #### What NOT to Do
 
 ```bash
-# BAD: Don't commit .env files
-git add zsh/.env  # NEVER DO THIS
+# BAD: Don't keep secrets inside the repo checkout (nothing reads zsh/.env,
+# and one `git add -f` or `git stash -u` would publish it)
+cp zsh/.env.example zsh/.env  # NEVER DO THIS; use edit_secrets (~/.env)
 
 # BAD: Don't share encryption keys
 cat ~/.config/sops/age/keys.txt  # Keep this private
@@ -98,15 +98,18 @@ The following should ALWAYS be encrypted:
 
 #### Template Usage
 
-Use `zsh/.env.example` as a template:
+`zsh/.env.example` lists the keys a machine needs. Add them to the encrypted
+`~/.env` with `edit_secrets`; never copy the template to `zsh/.env`:
 
 ```bash
-# Copy template
-cp zsh/.env.example zsh/.env
-
-# Edit with SOPS encryption
+# Decrypts ~/.env into a private temp dir, opens $EDITOR (vim/nvim without
+# swap/undo files), re-encrypts, and checks the result decrypts before saving
 edit_secrets
 ```
+
+`~/.sops.yaml` (which age recipient new secrets are encrypted to) is per
+machine: `init.sh` writes it from `bash/.sops.yaml.example` with this machine's
+public key, and it is not tracked in the repo.
 
 ### Git Security
 
@@ -154,13 +157,16 @@ cat init.sh
 
 The installation script:
 
-- Installs Homebrew packages from `Brewfile` (plus any optional `packages/*.brewfile` you choose)
-- Creates encrypted environment files
-- Sets up SOPS/age encryption
-- Creates symlinks with bestow
-- Does NOT modify existing configs without backup
+- Installs Homebrew packages from `Brewfile` (plus the optional `packages/*.brewfile` categories you pick)
+- Sets up SOPS/age encryption: an age key, a per-machine `~/.sops.yaml`, and an encrypted `~/.env`
+- Creates symlinks with bestow; a file already in the way is either renamed to `*.bestow.backup` or left alone (you choose)
+- Copies `.zshrc`, `.vimrc`, `.aliases.sh`, `.functions.sh` and `.paths.sh` to `~/.dotfiles_backup_<timestamp>` before stowing
+- Changes some files **without** keeping a copy, by design:
+  - a plaintext `~/.env` (or the file a `~/.env` symlink points to) is replaced by its encrypted version, only after a `sops -d` round trip matches, and no plaintext copy is kept
+  - a `~/.sops.yaml` symlink that dangles or points at the repo's old `bash/.sops.yaml` is replaced by a real file (any other symlink is only replaced if you agree)
+  - `/etc/pam.d/sudo_local` is edited in place to add or migrate the `pam_reattach` line (a `sudo_local` that is replaced outright is first copied to `sudo_local.backup.<timestamp>`)
 - Does NOT download executables from untrusted sources
-- Does NOT require sudo (except for Xcode Command Line Tools)
+- Uses sudo for the Homebrew installer, the Touch ID setup (`/etc/pam.d/sudo_local` and the root-owned `/opt/pam/pam_reattach.so`) and the Xcode Command Line Tools
 
 ### Age Encryption Key Management
 
@@ -186,23 +192,35 @@ gpg -c ~/.config/sops/age/keys.txt
 
 #### Key Rotation
 
-If you suspect your age key is compromised:
+If you suspect your age key is compromised, re-encrypt `~/.env` to a new key.
+`sops rotate` does this in place (the plaintext never touches the disk) and
+also replaces the data key, so the old age key can't open the new file:
 
 ```bash
-# 1. Generate new age key
-age-keygen -o ~/.config/sops/age/new-keys.txt
+KEYS=~/.config/sops/age/keys.txt
 
-# 2. Update SOPS config
-vim ~/.sops.yaml  # Update key reference
+# 1. Generate the new key next to the old one (sops still needs the old key)
+(umask 077 && age-keygen -o ~/.config/sops/age/new-keys.txt)
+OLD=$(age-keygen -y "$KEYS")
+NEW=$(age-keygen -y ~/.config/sops/age/new-keys.txt)
 
-# 3. Re-encrypt all secrets
-sops -r -d ~/.env > /tmp/env-plaintext
-sops -e /tmp/env-plaintext > ~/.env
-rm /tmp/env-plaintext
+# 2. Re-encrypt ~/.env to the new key only, with a fresh data key
+SOPS_AGE_KEY_FILE="$KEYS" sops rotate -i --add-age "$NEW" --rm-age "$OLD" ~/.env
 
-# 4. Replace old key
-mv ~/.config/sops/age/new-keys.txt ~/.config/sops/age/keys.txt
+# 3. Check the new key alone can decrypt it, then make it the key
+SOPS_AGE_KEY_FILE=~/.config/sops/age/new-keys.txt sops -d ~/.env >/dev/null &&
+    mv ~/.config/sops/age/new-keys.txt "$KEYS"
+
+# 4. Encrypt future edits to the new key, and drop backups made with the old one
+sed -i '' "s/$OLD/$NEW/g" ~/.sops.yaml
+rm -f ~/.env.backup.*
 ```
+
+Then back up the new key, and change the secrets themselves (tokens,
+passwords): if the old key leaked, assume everything it could decrypt did too.
+Don't decrypt to a file and re-encrypt with `sops -e plain > ~/.env`: the shell
+truncates `~/.env` before sops runs, and the plaintext copy outlives the
+rotation.
 
 ## Known Security Considerations
 

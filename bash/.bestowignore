@@ -1,0 +1,3 @@
+# ~/.sops.yaml is per machine (init.sh writes it from .sops.yaml.example), so a
+# leftover bash/.sops.yaml from older checkouts must never be stowed over it
+.sops.yaml

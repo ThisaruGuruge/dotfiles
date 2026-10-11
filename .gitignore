@@ -1,6 +1,23 @@
 # Environment and secrets
 .env
+.env.*
+!.env.example
 .gitconfig.local
+# Per-machine sops config (names this machine's age recipient); init.sh writes
+# ~/.sops.yaml from bash/.sops.yaml.example
+bash/.sops.yaml
+
+# Secrets the per-package .bestowignore files keep out of $HOME must stay out
+# of git too: a stray copy inside a package (e.g. from adopt-config) would
+# otherwise be one `git add -A` away from a public repo
+gh/**/hosts.yml
+atuin/**/key
+atuin/**/session
+atuin/**/history.db*
+*.token
+*.key
+*.pem
+credentials*
 git/.config/git/work.gitconfig
 git/.config/git/personal.gitconfig
 git/.config/git/allowed_signers

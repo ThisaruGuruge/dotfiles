@@ -1,0 +1,11 @@
+# sops configuration template. init.sh writes ~/.sops.yaml from this file,
+# filling in the placeholder recipient below with this machine's age public
+# key (the "# public key:" line in ~/.config/sops/age/keys.txt). ~/.sops.yaml
+# is per machine and is not tracked or stowed: never commit a real recipient.
+creation_rules:
+  - path_regex: \.env$
+    age: AGE_PUBLIC_KEY
+  - path_regex: \.env\.sops$
+    age: AGE_PUBLIC_KEY
+  - path_regex: \.secrets\.sops\.ya?ml$
+    age: AGE_PUBLIC_KEY
