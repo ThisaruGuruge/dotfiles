@@ -12,7 +12,7 @@ set -u
 repo=${1:-$(cd "$(dirname "$0")/../.." && pwd)}
 work=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-claude-check.XXXXXX")
 tmux_server="dotfiles-check-$$"
-# shellcheck disable=SC2329 # called by the EXIT trap
+# shellcheck disable=SC2317,SC2329 # called by the EXIT trap
 cleanup() {
     tmux -L "$tmux_server" kill-server >/dev/null 2>&1
     rm -rf "$work"
