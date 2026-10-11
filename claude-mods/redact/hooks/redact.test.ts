@@ -71,10 +71,33 @@ describe('redactText', () => {
     expect(run(`token type bearer ${v}`).out).toBe('token type bearer [REDACTED:bearer]')
     const pw = part('s3', 'cr', 'et')
     expect(run(`postgres://app:${pw}@db.local:5432/x`).out).toBe('postgres://app:[REDACTED:url-password]@db.local:5432/x')
-    // The user part stays even when it equals the password
-    expect(run('postgres://postgres:postgres@localhost/x').out).toBe(
-      'postgres://postgres:[REDACTED:url-password]@localhost/x',
+    expect(run(`redis://:${pwd}@cache.example.com:6379`).out).toBe('redis://:[REDACTED:url-password]@cache.example.com:6379')
+    expect(run(`Authorization: Bearer ${part('abc123', 'def456', 'ghi789')}`).out).toBe(
+      'Authorization: Bearer [REDACTED:auth-header]',
     )
+  })
+
+  test('leaves demo credentials alone, so compose files and READMEs round-trip', () => {
+    const samples = [
+      'DATABASE_URL=postgres://postgres:postgres@db:5432/app',
+      'amqp://guest:guest@rabbit:5672/',
+      'https://user:changeme@example.com',
+      `postgres://app:${pwd}@localhost:5432/app`,
+      `mysql://root:${pwd}@127.0.0.1/db`,
+      'Authorization: Bearer YOUR_TOKEN_HERE',
+      'Authorization: Basic CHANGE_ME_PLEASE',
+    ]
+    for (const s of samples) expect(run(s).out).toBe(s)
+  })
+
+  test('stays linear on long adversarial runs', () => {
+    // Each of these took seconds with unanchored repetition; 80 KB must stay well under 200 ms
+    const inputs = ['a-', 'a_', 'a+', 'a.', 'x9-', 'a://b:', 'Bearer ', 'TOKEN'].map(u => u.repeat(Math.ceil(80000 / u.length)))
+    for (const s of inputs) {
+      const t = Date.now()
+      run(s)
+      expect(Date.now() - t).toBeLessThan(200)
+    }
   })
 
   test('leaves ordinary text and placeholders alone', () => {

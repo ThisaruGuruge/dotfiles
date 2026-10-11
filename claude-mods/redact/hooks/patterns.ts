@@ -3,9 +3,10 @@ export type Counts = Record<string, number>
 /**
  * A rule hides its whole match, or, with `prefix`, only what follows the
  * text group 1 matched (group 2), and only when `check` says it looks like a
- * secret (isSecretLike by default).
+ * secret (isSecretLike by default). `check` also sees group 1 and the text
+ * right after the match.
  */
-type Rule = { kind: string; re: RegExp; prefix?: true; check?: (v: string) => boolean }
+type Rule = { kind: string; re: RegExp; prefix?: true; check?: (v: string, head: string, after: string) => boolean }
 
 const PLACEHOLDER = /^(\$|\{|<|%|\[REDACTED|ENC\[|\*+$|x+$|\.+$)/i
 const LOOKS_RANDOM = /^[A-Za-z0-9!@#$%^&*_+\-=/.~]+$/
@@ -33,6 +34,27 @@ export function isSecretLike(v: string): boolean {
     !looksLikeCode(v) &&
     !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(v) // commit and file hashes
   )
+}
+
+/**
+ * A value in a URL or an Authorization header that could be a real
+ * credential: not a placeholder, not a capitalised word like YOUR_TOKEN_HERE,
+ * and either letters with digits (6+), letters with symbols (8+), or long
+ * (16+). Demo passwords like `guest`, `postgres` or `changeme` pass through,
+ * so files that hold them can still be read and written back.
+ */
+export function isCredentialValue(v: string): boolean {
+  if (PLACEHOLDER.test(v) || /^[A-Z_-]+$/.test(v) || v.length < 6) return false
+  const letters = /[A-Za-z]/.test(v)
+  return v.length >= 16 || (letters && /[0-9]/.test(v)) || (letters && v.length >= 8 && /[^A-Za-z0-9]/.test(v))
+}
+
+const LOCAL_HOST = /^(?:localhost|127\.\d+\.\d+\.\d+|0\.0\.0\.0|\[::1\])(?:[:/?#]|$)/i
+
+/** A URL password worth hiding: a credential, not the user name again, not on this machine. */
+function isUrlPassword(v: string, head: string, after: string): boolean {
+  const user = /\/\/([^:]*):$/.exec(head)?.[1]
+  return isCredentialValue(v) && v !== user && !LOCAL_HOST.test(after.replace(/^@/, ''))
 }
 
 // What follows a credential's name: an optional closing quote, `:` or `=`, an optional opening quote
@@ -66,7 +88,7 @@ const RULES: Rule[] = [
     kind: 'auth-header',
     re: /(\bAuthorization["']?\s*:\s*["']?(?:Basic|Bearer|Token|Digest)\s+)([^\s"'`,;]{8,})/gi,
     prefix: true,
-    check: v => !PLACEHOLDER.test(v),
+    check: isCredentialValue,
   },
   {
     kind: 'bearer',
@@ -75,11 +97,12 @@ const RULES: Rule[] = [
     check: v => !PLACEHOLDER.test(v) && /[0-9]/.test(v) && /[A-Za-z]/.test(v),
   },
   {
-    // scheme://user:password@host: only the password
+    // scheme://user:password@host (user may be empty): only the password.
+    // The lookbehind and the bounded scheme keep a long run like `a.a.a.a...` linear.
     kind: 'url-password',
-    re: /(\b[A-Za-z][A-Za-z0-9+.-]*:\/\/[^\s:@/]+:)([^\s@/]+)(?=@)/g,
+    re: /((?<![A-Za-z0-9+.-])[A-Za-z][A-Za-z0-9+.-]{0,31}:\/\/[^\s:@/]*:)([^\s@/]+)(?=@)/g,
     prefix: true,
-    check: v => !PLACEHOLDER.test(v),
+    check: isUrlPassword,
   },
   {
     // name = value: only the value is replaced, and only when it looks random
@@ -92,9 +115,10 @@ const RULES: Rule[] = [
   },
   {
     // GITHUB_TOKEN=, NPM_AUTH_TOKEN:, packagePAT=, githubToken:, "private_key": ...
+    // Starting only at the head of a name, with a bounded prefix, keeps `a-a-a-...` linear.
     kind: 'credential',
     re: new RegExp(
-      `((?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-])*(?:token|pat|private[_-]?key|credentials?)${ASSIGN})${VALUE}`,
+      `((?<![A-Za-z0-9_-])(?:[A-Za-z0-9]+[_-]){0,10}(?:token|pat|private[_-]?key|credentials?)${ASSIGN})${VALUE}`,
       'gi',
     ),
     prefix: true,
@@ -120,7 +144,10 @@ export function redactText(text: string, counts: Counts): string {
       }
       const head = m[1] as string
       const value = m[2] as string
-      if (!(rule.check ?? isSecretLike)(value)) return whole
+      // replace() passes the offset and the whole input last (no named groups here)
+      const end = (m[m.length - 2] as number) + whole.length
+      const after = (m[m.length - 1] as string).slice(end, end + 64)
+      if (!(rule.check ?? isSecretLike)(value, head, after)) return whole
       counts[rule.kind] = (counts[rule.kind] ?? 0) + 1
       return `${head}[REDACTED:${rule.kind}]${whole.slice(head.length + value.length)}`
     })
