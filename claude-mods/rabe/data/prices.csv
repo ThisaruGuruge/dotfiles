@@ -1,0 +1,52 @@
+# USD per million tokens. Standard global API list prices, checked 2026-10-09.
+# Claude: https://platform.claude.com/docs/en/about-claude/pricing
+# OpenAI: https://developers.openai.com/api/docs/pricing and https://developers.openai.com/api/docs/guides/prompt-caching
+# Scope: not Codex plan billing (the Enterprise token rate card charges no cache writes and exempts gpt-6-astra from the long-context rates),
+# not fast, priority, batch, flex or regional (data residency) rates, not Bedrock or Vertex.
+# model: the ID that Claude Code or Codex reports. aliases: other names for the same row, separated by ";".
+# Cache writes: Claude rows use cache_write_5m and cache_write_1h; OpenAI rows use cache_write, which lasts cache_write_minutes.
+# Empty cache_read or cache_write: those tokens bill at the input price (no discount, no write charge).
+# Long tier: when the total prompt input (uncached + cache reads + cache writes) exceeds long_context_tokens, the long_* rates
+# apply to every token of that request, not only to the excess. long_scope says what the provider bills at those rates:
+# request = the qualifying request; session = OpenAI's wording "the full session" (not defined further). Empty: no tier.
+# gpt-5.5-pro: the long tier is on the pricing page only; its model page does not show it (unconfirmed).
+provider,model,aliases,input,output,cache_read,cache_write_5m,cache_write_1h,cache_write,cache_write_minutes,long_context_tokens,long_scope,long_input,long_output,long_cache_read,long_cache_write_5m,long_cache_write_1h,long_cache_write
+claude,claude-fable-5-1,,10,50,0.25,12.5,20,,,,,,,,,,
+claude,claude-mythos-5-1,,10,50,0.25,12.5,20,,,,,,,,,,
+claude,claude-fable-5,,10,50,1,12.5,20,,,,,,,,,,
+claude,claude-mythos-5,,10,50,1,12.5,20,,,,,,,,,,
+claude,claude-opus-5-5,,4,20,0.2,5,8,,,,,,,,,,
+claude,claude-opus-5,,5,25,0.5,6.25,10,,,,,,,,,,
+claude,claude-opus-4-8,,5,25,0.5,6.25,10,,,,,,,,,,
+claude,claude-opus-4-7,,5,25,0.5,6.25,10,,,,,,,,,,
+claude,claude-opus-4-6,,5,25,0.5,6.25,10,,,,,,,,,,
+claude,claude-opus-4-5-20251101,claude-opus-4-5,5,25,0.5,6.25,10,,,,,,,,,,
+claude,claude-opus-4-1-20250805,claude-opus-4-1,15,75,1.5,18.75,30,,,,,,,,,,
+claude,claude-opus-4-20250514,claude-opus-4-0,15,75,1.5,18.75,30,,,,,,,,,,
+claude,claude-sonnet-5-5,,2,10,0.1,2.5,4,,,,,,,,,,
+claude,claude-sonnet-5,,2,10,0.2,2.5,4,,,,,,,,,,
+claude,claude-sonnet-4-6,,3,15,0.3,3.75,6,,,,,,,,,,
+claude,claude-sonnet-4-5-20250929,claude-sonnet-4-5,3,15,0.3,3.75,6,,,,,,,,,,
+claude,claude-sonnet-4-20250514,claude-sonnet-4-0,3,15,0.3,3.75,6,,,,,,,,,,
+claude,claude-haiku-5-5,,0.1,0.5,0.01,0.125,0.2,,,100000,request,0.5,2.5,0.05,0.625,1,
+claude,claude-haiku-4-5-20251001,claude-haiku-4-5,1,5,0.1,1.25,2,,,,,,,,,,
+claude,claude-3-5-haiku-20241022,,0.8,4,0.08,1,1.6,,,,,,,,,,
+openai,gpt-6-astra,,10,50,1,,,12.5,30,272000,request,20,75,2,,,25
+openai,gpt-6.1-sol,,2,10,0.1,,,2.5,30,272000,request,4,15,0.2,,,5
+openai,gpt-6-sol,,2,10,0.2,,,2.5,30,272000,request,4,15,0.4,,,5
+openai,gpt-6-luna,,0.1,0.5,0.01,,,0.125,30,272000,request,0.2,0.75,0.02,,,0.25
+openai,gpt-5.6-sol,gpt-5.6,4,20,0.4,,,5,30,272000,request,8,30,0.8,,,10
+openai,gpt-5.6-terra,,2,12,0.2,,,2.5,30,272000,request,4,18,0.4,,,5
+openai,gpt-5.6-luna,,0.2,1.2,0.02,,,0.25,30,272000,request,0.4,1.8,0.04,,,0.5
+openai,gpt-5.5,,5,30,0.5,,,,,272000,session,10,45,1,,,
+openai,gpt-5.5-pro,,30,180,,,,,,272000,session,60,270,,,,
+openai,gpt-5.4,,2.5,15,0.25,,,,,272000,session,5,22.5,0.5,,,
+openai,gpt-5.4-mini,,0.75,4.5,0.075,,,,,,,,,,,,
+openai,gpt-5.4-nano,,0.2,1.25,0.02,,,,,,,,,,,,
+openai,gpt-5.4-pro,,30,180,,,,,,272000,session,60,270,,,,
+openai,gpt-5.3-codex,,1.75,14,0.175,,,,,,,,,,,,
+openai,gpt-5.2,,1.75,14,0.175,,,,,,,,,,,,
+openai,gpt-5.1,,1.25,10,0.125,,,,,,,,,,,,
+openai,gpt-5,,1.25,10,0.125,,,,,,,,,,,,
+openai,gpt-5-mini,,0.25,2,0.025,,,,,,,,,,,,
+openai,gpt-5-nano,,0.05,0.4,0.005,,,,,,,,,,,,

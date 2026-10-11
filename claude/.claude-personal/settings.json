@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "BASH_OUTPUT_MAX_LENGTH": "150000",
-    "CLAUDE_CODE_PLUGIN_DIRS": "~/dotfiles/claude-mods/statusbar:~/dotfiles/claude-mods/blast-radius:~/dotfiles/claude-mods/redact:~/dotfiles/claude-mods/mission-control:~/dotfiles/claude-mods/session-wrapped"
+    "CLAUDE_CODE_PLUGIN_DIRS": "~/dotfiles/claude-mods/statusbar:~/dotfiles/claude-mods/blast-radius:~/dotfiles/claude-mods/redact:~/dotfiles/claude-mods/agents:~/dotfiles/claude-mods/rabe:~/dotfiles/claude-mods/session-wrapped"
   },
   "statusLine": {
     "type": "command",
