@@ -3,7 +3,9 @@ return {
     "mikavilpas/yazi.nvim",
     event = "VeryLazy",
     keys = {
-      { "<c-up>", "<cmd>Yazi toggle<cr>", desc = "Resume last yazi session" },
+      -- Not <C-Up>: macOS Mission Control owns Ctrl+Up, so it never reaches the
+      -- terminal. <leader>o is the "open" group (or/oc live in editor.lua).
+      { "<leader>oy", "<cmd>Yazi toggle<cr>", desc = "Resume last yazi session" },
     },
     opts = {
       open_for_directories = true,

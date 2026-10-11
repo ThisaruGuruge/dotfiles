@@ -4,7 +4,7 @@ This guide explains how to add new keybindings that will automatically appear in
 
 ## Location
 
-All keybindings are centralized in: **`config/.config/nvim/lua/plugins/editor.lua`**
+All keybindings are centralized in: **`nvim/.config/nvim/lua/plugins/editor.lua`** (the `nvim` stow package, symlinked to `~/.config/nvim`)
 
 ## Steps to Add a New Keybinding
 
@@ -67,12 +67,26 @@ Once you add a keybinding this way:
 
 ## LSP Keybindings
 
-LSP keybindings (like `gd`, `gr`, `gi`) are defined in `config/.config/nvim/lua/plugins/lsp.lua` in the `LspAttach` autocmd.
+LSP keybindings (like `gd`, `grr`, `gri`, `grt`) are defined in `nvim/.config/nvim/lua/plugins/lsp.lua` in the `LspAttach` autocmd.
+
+Neovim 0.11+ already ships `grr` (references), `gri` (implementation), `grt` (type definition), `grn` (rename), `gra` (code action) and `gO` (document symbols). This config overrides only `grr`/`gri`/`grt` with Telescope pickers. Never map a bare `gr` or `gi`: `gr` makes every `gr*` mapping wait out `timeoutlen`, and `gi` is the built-in "insert at last insert position".
 
 To add LSP-related keybindings:
 
 1. Add them in the `LspAttach` callback in `lsp.lua`
 2. Register them in which-key's `editor.lua` for descriptions
+
+## Check for Clashes First
+
+Before picking a key, look at what already owns it:
+
+1. `:verbose nmap <key>` (and `imap`/`xmap`/`tmap`) shows the mapping and where it was set.
+2. `<Space>fk` (Telescope keymaps) lists everything, including plugin and built-in maps.
+3. Remember keys that never reach Neovim: macOS Mission Control takes `Ctrl+Up/Down/Left/Right`, and tmux or Ghostty may bind the key before the terminal passes it on.
+4. Avoid a capital `Q` in a key sequence: Neovim 0.10+ maps `Q` itself (to `@@`), which is invisible to `:nmap` and causes `E354`.
+5. Avoid a bare key that is also the first key of a longer mapping (`gr` vs `grr`): the shorter one makes the longer ones wait for `timeoutlen`.
+
+Leader prefixes already in use: `b` Ballerina (buffer-local), `c` copy, `d` debug, `e` nvim config, `f` find, `g` git, `G` Go, `l` LSP, `o` open/yazi, `q` sessions, `t` toggles, `T` tests, `v` practice, `x` trouble, `z` spell.
 
 ## Testing Your Changes
 

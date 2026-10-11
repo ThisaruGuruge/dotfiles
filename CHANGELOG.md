@@ -16,21 +16,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `bin/lint`, a single lint entry point (also run by CI): `shellcheck` and `shfmt -i 4 -ci -d` on an explicit list of bash scripts, `zsh -n` on the zsh modules and zsh scripts, `stylua --check nvim/.config/nvim`, and `claude plugin test` for every mod in `claude-mods/` with hooks (local only; skipped when `claude` is not installed, as in CI). It fails when a script in `bin/` is missing from its file lists, and also covers the Claude `statusline-command.sh` scripts. `validate.yml` now calls it
 - Added a script index to `bin/README.md` covering every script in `bin/` with its language
 - `test-zsh` now runs `brew bundle check --no-upgrade` against the `Brewfile` and warns about missing entries
+- Added `persistence.nvim` sessions to Neovim: one session per working directory and git branch, saved on exit and never restored automatically. `<leader>qs` restores the session for the current directory, `<leader>ql` the last one, `<leader>qd` stops saving the current one, and the dashboard has an `s` button. New `<leader>q` which-key group
+- Added `diffview.nvim` to Neovim: `<leader>gv` reviews the branch against the default branch (`origin/HEAD`, falling back to `origin/main`) as a merge-base diff, `<leader>gh` shows the current file's history and `<leader>gH` the repo's. `q` closes any Diffview tab
+- Added `neotest-python` (pytest) and `neotest-vitest` to neotest, so the existing `<leader>T…` keys run and debug Python and Vitest tests as well as Go. `<leader>Td` on a Python test debugs through the same debugpy adapter as `<leader>dc`; `thisarug/dap/python.lua` now also registers it as `python`, the adapter name neotest-python launches with
+- Added `<leader>oy` to resume the last yazi session, and a `<leader>o` which-key group for the yazi mappings
+- Added `<C-p>` in yazi to paste and overwrite existing files, and `=` to diff the two selected files
 
 ### Changed
 
 - Changed `list_dotfiles_tools` to build the inventory from `Brewfile` and `packages/*.brewfile`, with each entry's comment as its description
 - Formatted `bin/adopt-config`, `bin/profile-startup`, `bin/reset-dotfiles` and `bin/sync-brewfile` with `shfmt -i 4 -ci`
+- Changed the LSP navigation keys in Neovim to the built-in `grr` (references), `gri` (implementations) and a new `grt` (type definitions), each opening a Telescope picker. The custom `gr` and `gi` are gone: a bare `gr` made every `grr`/`gri`/`grn`/`gra` wait for `timeoutlen`, and `gi` shadowed the built-in "insert at last insert position". `grn`, `gra` and `gO` stay as shipped
+- Changed the yazi diff plugin from `<C-d>` to `=`, so `<C-d>` is the built-in half-page-down again (`<C-u>` / `<C-d>` now both scroll, as the docs said)
+- Changed the Neovim dashboard `g` (Live Grep) button to open Telescope live grep
+- Rewrote the Neovim keybinding docs (`KEYBINDINGS.md`, `docs/nvim/keybindings_cheat_sheet.md`, `docs/nvim/ADDING_KEYBINDINGS.md`, `docs/YAZI_KEYBINDINGS.md`) to match the config: source columns cite files instead of drifted line numbers, the `<leader>en`, `<leader>ep`, `<leader>vg`, `<leader>fg` multi-grep syntax and F-key rows are listed, and `ADDING_KEYBINDINGS.md` gained a "check for clashes" checklist
 
 ### Removed
 
 - Removed the dead Python tooling that read the long-gone `packages.json`: `bin/generate-brewfile`, `bin/manage-packages` and the `manage_packages` function; removed the stale `packages.json` mentions from `SECURITY.md` and `CONTRIBUTING.md`
 - Removed `bin/reload-nvim-config`
+- Removed `nvim/.config/nvim/lua/plugins/telescope/multigrep.lua`, a dead duplicate of the multi-grep picker defined inline in `telescope.lua` (its `setup` was never called). Run `bestow stow nvim` and delete the dangling `~/.config/nvim/lua/plugins/telescope/multigrep.lua` symlink
 
 ### Fixed
 
 - Fixed release notes being empty: the changelog extraction for a release now returns the full section for that version.
 - Fixed `bin/reset-dotfiles` using an undefined `PURPLE` colour and removed an unused variable from `bin/sync-brewfile`
+- Fixed `<C-\>` in Neovim opening a terminal instead of jumping to the previous tmux pane: removed toggleterm's `open_mapping`, which shadowed vim-tmux-navigator. The terminal stays on `<leader>tt`
+- Fixed the yazi resume key: `<C-Up>` is taken by macOS Mission Control and never reached the terminal, so it moved to `<leader>oy`
+- Fixed the Neovim dashboard `g` button, which called a `live_grep_args` Telescope extension that was never installed
+- Fixed which-key labelling `<leader>u` and `<leader>a` for keys that are really `<leader>tu` (undotree) and `<leader>ta` (outline), and added the missing `<leader>th` label
+- Fixed the Neovim and yazi docs listing keys that don't exist (`<leader>cw`, `<leader>xs`, `<S-CR>`, a duplicated `<leader>xt`, `{`/`}` for aerial)
 
 ## [2.7.0] - 2026-10-11
 
@@ -66,7 +81,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `googleworkspace-cli` (`gws`) with two isolated accounts: `gwsp` (personal) and `gwse` (enterprise), each with its own config dir, OAuth client and credentials under `~/.config/gws-<name>/`. They are scripts in `bin/` rather than aliases so agents and non-interactive shells get them. `bin/gws` shadows the real binary and refuses to run without an account context, and `bin/gws-account` is the shared helper that pins the file keyring backend. `test-zsh` checks both wrappers and that bare `gws` stays blocked
 - Added Groovy/Gradle scripting support to Neovim: `nvim-treesitter` parser (`nvim/.config/nvim/lua/plugins/editor.lua`), and `groovyls` on the `groovy` filetype (which Neovim already maps `.gradle`, `.groovy`, and `Jenkinsfile` to), mason-installed with root markers covering both Gradle DSLs (`nvim/.config/nvim/lua/plugins/lsp.lua`). vscode-gradle's `gradle_ls`, which would have added Gradle-aware task/dependency completion, was tried and dropped — its language server only speaks over a named pipe that VS Code's own extension code creates and hands it the name of; it has no stdio mode, so Neovim's spawn-and-talk-over-stdio LSP client can't drive it (confirmed by decompiling its `main()` — it wraps `args[0]` straight into a `NamedPipeStream` with no fallback). `npm-groovy-lint` (CodeNarc) was tried for diagnostics and full-ruleset formatting but dropped from both — its rulesets assume application code, not a build DSL, so every `build.gradle` lit up with irrelevant style warnings and there's no CodeNarc "Gradle" ruleset to swap in instead. It's still wired into conform (`nvim/.config/nvim/lua/plugins/formatting.lua`) as a formatter, but scoped via `-r` to just the `Indentation`/`IndentationClosingBraces`/`IndentationComments` CodeNarc rules — the only part of its default ruleset that's universally correct for a build script. Trailing-whitespace trimming comes from the existing filetype-agnostic `trim_whitespace` formatter instead of CodeNarc's own `TrailingWhitespace` rule
-
 
 ## [2.5.0] - 2026-10-06
 

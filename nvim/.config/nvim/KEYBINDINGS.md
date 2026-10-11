@@ -8,46 +8,56 @@ This configuration follows standard Vim/Neovim conventions:
 
 - **`g*`** - Navigation commands (go to definition, references, etc.) - Standard Vim pattern
 - **`<leader>g*`** - Git operations (stage, commit, diff, etc.)
+- **`<leader>q*`** - Sessions (restore / stop saving)
+- **`<leader>o*`** - Open the file explorer (yazi)
 - **`<leader>l*`** - LSP actions (rename, code actions, format, diagnostics)
 - **`<leader>f*`** - Find/Search operations (Telescope)
 - **`[` / `]`** - Jump to previous/next (diagnostics, git hunks, etc.)
 
 ## Dashboard (alpha-nvim)
 
-| Key | Action                         | Source                |
-| --- | ------------------------------ | --------------------- |
-| `f` | Find File (from dashboard)     | plugins/dashboard.lua |
-| `r` | Recent Files (from dashboard)  | plugins/dashboard.lua |
-| `g` | Live Grep (from dashboard)     | plugins/dashboard.lua |
-| `e` | File Explorer (from dashboard) | plugins/dashboard.lua |
-| `l` | Open Lazy (from dashboard)     | plugins/dashboard.lua |
-| `q` | Quit (from dashboard)          | plugins/dashboard.lua |
+| Key | Action                           | Source                |
+| --- | -------------------------------- | --------------------- |
+| `f` | Find File (from dashboard)       | plugins/dashboard.lua |
+| `r` | Recent Files (from dashboard)    | plugins/dashboard.lua |
+| `g` | Live Grep (from dashboard)       | plugins/dashboard.lua |
+| `e` | File Explorer (from dashboard)   | plugins/dashboard.lua |
+| `s` | Restore Session (from dashboard) | plugins/dashboard.lua |
+| `l` | Open Lazy (from dashboard)       | plugins/dashboard.lua |
+| `q` | Quit (from dashboard)            | plugins/dashboard.lua |
 
 > Dashboard buttons are only active on the start screen (when Neovim opens without arguments).
 
 ## General
 
-| Key                | Action                            | Source               |
-| ------------------ | --------------------------------- | -------------------- |
-| `<Space>`          | Leader key                        | config/lazy.lua:21   |
-| `<leader>?`        | Show all keybindings (searchable) | thisarug/init.lua:39 |
-| `<leader><leader>` | Show all leader commands          | thisarug/init.lua:41 |
+| Key                | Action                            | Source             |
+| ------------------ | --------------------------------- | ------------------ |
+| `<Space>`          | Leader key                        | config/lazy.lua    |
+| `<leader>?`        | Show all keybindings (searchable) | plugins/editor.lua |
+| `<leader><leader>` | Show all leader commands          | plugins/editor.lua |
 
 ## File Navigation & Search (Telescope)
 
-| Key          | Action                     | Source                   |
-| ------------ | -------------------------- | ------------------------ |
-| `<leader>ff` | Find files                 | plugins/telescope.lua:8  |
-| `<leader>fg` | Live grep                  | plugins/telescope.lua:9  |
-| `<leader>fb` | Find buffers               | plugins/telescope.lua:10 |
-| `<leader>fh` | Find help                  | plugins/telescope.lua:11 |
-| `<leader>fr` | Recent files               | plugins/telescope.lua:12 |
-| `<leader>fw` | Find word under cursor     | plugins/telescope.lua:13 |
-| `<leader>fk` | Find keymaps               | plugins/telescope.lua:14 |
-| `<leader>fs` | Search string (prompt)     | plugins/telescope.lua:17 |
-| `<leader>fS` | Search symbols (workspace) | plugins/editor.lua:266   |
-| `<leader>fy` | Clipboard history          | plugins/clipboard.lua    |
-| `<C-p>`      | Find git files             | plugins/telescope.lua:15 |
+| Key          | Action                          | Source                    |
+| ------------ | ------------------------------- | ------------------------- |
+| `<leader>ff` | Find files                      | plugins/editor.lua        |
+| `<leader>fg` | Live grep (multi, see below)    | plugins/telescope.lua     |
+| `<leader>fb` | Find buffers                    | plugins/editor.lua        |
+| `<leader>fh` | Find help                       | plugins/editor.lua        |
+| `<leader>fr` | Recent files                    | plugins/editor.lua        |
+| `<leader>fw` | Find word under cursor          | plugins/editor.lua        |
+| `<leader>fk` | Find keymaps                    | plugins/editor.lua        |
+| `<leader>fs` | Search in current buffer        | plugins/editor.lua        |
+| `<leader>fS` | Search symbols (workspace)      | plugins/editor.lua        |
+| `<leader>fy` | Clipboard history               | plugins/clipboard.lua     |
+| `<leader>ft` | Find TODOs                      | plugins/todo-comments.lua |
+| `<leader>en` | Find files in the nvim config   | plugins/telescope.lua     |
+| `<leader>ep` | Find files in installed plugins | plugins/telescope.lua     |
+| `<C-p>`      | Find git files                  | plugins/editor.lua        |
+
+> **Multi grep** (`<leader>fg`): type `pattern`, then two spaces and a ripgrep
+> file type, then two spaces and a glob — `TODO  lua  *_spec.lua`. Only the
+> pattern is required.
 
 ## File Explorer (yazi.nvim)
 
@@ -55,7 +65,7 @@ This configuration follows standard Vim/Neovim conventions:
 | ------------ | ----------------------------------- | ------------------ |
 | `<leader>or` | Open yazi in working root directory | plugins/editor.lua |
 | `<leader>oc` | Open yazi at current file           | plugins/editor.lua |
-| `<C-Up>`     | Resume last yazi session            | plugins/yazi.lua   |
+| `<leader>oy` | Resume last yazi session            | plugins/yazi.lua   |
 
 Inside yazi.nvim floating window:
 
@@ -67,24 +77,32 @@ Inside yazi.nvim floating window:
 
 ## LSP
 
-| Key          | Action                                                             | Source                    |
-| ------------ | ------------------------------------------------------------------ | ------------------------- |
-| `gd`         | Go to definition                                                   | plugins/lsp.lua:64        |
-| `gD`         | Go to declaration                                                  | plugins/lsp.lua:66        |
-| `gr`         | Find references                                                    | plugins/lsp.lua:68        |
-| `gi`         | Go to implementation                                               | plugins/lsp.lua:70        |
-| `K`          | Hover documentation                                                | plugins/lsp.lua:72        |
-| `<leader>lr` | Rename symbol                                                      | plugins/lsp.lua:74        |
-| `<leader>la` | Code action                                                        | plugins/lsp.lua:76        |
-| `<leader>lf` | Format buffer                                                      | plugins/formatting.lua:29 |
-| `<leader>ld` | Show diagnostics                                                   | plugins/lsp.lua:80        |
-| `<leader>lq` | Buffer diagnostics to quickfix (spell excluded, jumps to first)    | plugins/lsp.lua           |
-| `<leader>lW` | Workspace diagnostics to quickfix (spell excluded, jumps to first) | plugins/lsp.lua           |
-| `<leader>ll` | Lint buffer (markdownlint on Markdown)                             | plugins/lint.lua          |
-| `<leader>lh` | Toggle inlay hints (parameter names, inferred types)               | plugins/lsp.lua           |
-| `<leader>lc` | Run codelens under the cursor                                      | plugins/lsp.lua           |
-| `[d`         | Previous diagnostic                                                | plugins/lsp.lua:86        |
-| `]d`         | Next diagnostic                                                    | plugins/lsp.lua:84        |
+| Key          | Action                                                             | Source                 |
+| ------------ | ------------------------------------------------------------------ | ---------------------- |
+| `gd`         | Go to definition                                                   | plugins/lsp.lua        |
+| `gD`         | Go to declaration                                                  | plugins/lsp.lua        |
+| `grr`        | References (Telescope; overrides the built-in)                     | plugins/lsp.lua        |
+| `gri`        | Implementations (Telescope; overrides the built-in)                | plugins/lsp.lua        |
+| `grt`        | Type definitions (Telescope; overrides the built-in)               | plugins/lsp.lua        |
+| `grn`        | Rename (Neovim built-in)                                           | built-in               |
+| `gra`        | Code action (Neovim built-in)                                      | built-in               |
+| `gO`         | Document symbols to location list (Neovim built-in)                | built-in               |
+| `K`          | Hover documentation                                                | plugins/lsp.lua        |
+| `<leader>lr` | Rename symbol                                                      | plugins/lsp.lua        |
+| `<leader>la` | Code action                                                        | plugins/lsp.lua        |
+| `<leader>lf` | Format buffer                                                      | plugins/formatting.lua |
+| `<leader>ld` | Show diagnostics                                                   | plugins/lsp.lua        |
+| `<leader>lq` | Buffer diagnostics to quickfix (spell excluded, jumps to first)    | plugins/lsp.lua        |
+| `<leader>lW` | Workspace diagnostics to quickfix (spell excluded, jumps to first) | plugins/lsp.lua        |
+| `<leader>ll` | Lint buffer (markdownlint on Markdown)                             | plugins/lint.lua       |
+| `<leader>lh` | Toggle inlay hints (parameter names, inferred types)               | plugins/lsp.lua        |
+| `<leader>lc` | Run codelens under the cursor                                      | plugins/lsp.lua        |
+| `[d`         | Previous diagnostic                                                | plugins/lsp.lua        |
+| `]d`         | Next diagnostic                                                    | plugins/lsp.lua        |
+
+> `gr` and `gi` are deliberately **not** mapped. A bare `gr` sits on the `gr*`
+> prefix and makes `grr`/`gri`/`grn`/`gra` wait out `timeoutlen`, and `gi` is
+> Neovim's own "insert at the last insert position".
 
 ### Spell & Grammar Checking
 
@@ -113,44 +131,54 @@ Dedicated keybindings that navigate only spell/grammar diagnostics (from `harper
 
 Built-in Neovim navigation for the quickfix list (global) and location list (per-window, e.g. populated by `gO` for LSP document symbols).
 
-| Key  | Action                      | Source                 |
-| ---- | --------------------------- | ---------------------- |
-| `]q` | Next quickfix item          | built-in               |
-| `[q` | Previous quickfix item      | built-in               |
-| `]Q` | Last quickfix item          | built-in               |
-| `[Q` | First quickfix item         | built-in               |
-| `]l` | Next location-list item     | plugins/editor.lua:346 |
-| `[l` | Previous location-list item | plugins/editor.lua:345 |
-| `]L` | Last location-list item     | built-in               |
-| `[L` | First location-list item    | built-in               |
+| Key  | Action                      | Source             |
+| ---- | --------------------------- | ------------------ |
+| `]q` | Next quickfix item          | built-in           |
+| `[q` | Previous quickfix item      | built-in           |
+| `]Q` | Last quickfix item          | built-in           |
+| `[Q` | First quickfix item         | built-in           |
+| `]l` | Next location-list item     | plugins/editor.lua |
+| `[l` | Previous location-list item | plugins/editor.lua |
+| `]L` | Last location-list item     | built-in           |
+| `[L` | First location-list item    | built-in           |
 
 > `gO` (LSP document symbols) opens a **location list**, not the quickfix list — its window shows `qf` as the filetype (loclist and quickfix share it), but only `]l`/`[l` navigate it, not `]q`/`[q`.
 
 ## Git (Gitsigns)
 
-| Key          | Action                        | Source              |
-| ------------ | ----------------------------- | ------------------- |
-| `]c`         | Next git hunk                 | plugins/git.lua:34  |
-| `[c`         | Previous git hunk             | plugins/git.lua:44  |
-| `<leader>gs` | Stage hunk                    | plugins/git.lua:55  |
-| `<leader>gr` | Reset hunk                    | plugins/git.lua:56  |
-| `<leader>gS` | Stage buffer                  | plugins/git.lua:63  |
-| `<leader>gu` | Undo stage hunk               | plugins/git.lua:64  |
-| `<leader>gR` | Reset buffer                  | plugins/git.lua:65  |
-| `<leader>gp` | Preview hunk                  | plugins/git.lua:66  |
-| `<leader>gt` | Toggle deleted lines (inline) | plugins/git.lua:67  |
-| `<leader>gb` | Blame line                    | plugins/git.lua:68  |
-| `<leader>gd` | Diff this                     | plugins/git.lua:71  |
-| `<leader>gD` | Diff this ~                   | plugins/git.lua:72  |
-| `<leader>gg` | LazyGit                       | plugins/git.lua:108 |
+| Key          | Action                        | Source          |
+| ------------ | ----------------------------- | --------------- |
+| `]c`         | Next git hunk                 | plugins/git.lua |
+| `[c`         | Previous git hunk             | plugins/git.lua |
+| `<leader>gs` | Stage hunk                    | plugins/git.lua |
+| `<leader>gr` | Reset hunk                    | plugins/git.lua |
+| `<leader>gS` | Stage buffer                  | plugins/git.lua |
+| `<leader>gu` | Undo stage hunk               | plugins/git.lua |
+| `<leader>gR` | Reset buffer                  | plugins/git.lua |
+| `<leader>gp` | Preview hunk                  | plugins/git.lua |
+| `<leader>gt` | Toggle deleted lines (inline) | plugins/git.lua |
+| `<leader>gb` | Blame line                    | plugins/git.lua |
+| `<leader>gd` | Diff this                     | plugins/git.lua |
+| `<leader>gD` | Diff this ~                   | plugins/git.lua |
+| `<leader>gg` | LazyGit                       | plugins/git.lua |
+
+### Diffview (diffview.nvim)
+
+| Key          | Action                                                                                                          | Source          |
+| ------------ | --------------------------------------------------------------------------------------------------------------- | --------------- |
+| `<leader>gv` | Branch vs the default branch (`origin/HEAD`, else `origin/main`) — merge-base diff, only what this branch added | plugins/git.lua |
+| `<leader>gh` | History of the current file                                                                                     | plugins/git.lua |
+| `<leader>gH` | History of the whole repo                                                                                       | plugins/git.lua |
+
+Inside a Diffview tab `q` closes it (`:DiffviewClose`). `<Tab>` / `<S-Tab>` step through files, `<leader>e` focuses the file panel and `<leader>b` toggles it.
 
 ## Code Outline (aerial.nvim)
 
-| Key         | Action                 | Source             |
-| ----------- | ---------------------- | ------------------ |
+| Key          | Action                 | Source             |
+| ------------ | ---------------------- | ------------------ |
 | `<leader>ta` | Toggle outline sidebar | plugins/aerial.lua |
-| `[[`        | Previous symbol        | plugins/aerial.lua |
-| `]]`        | Next symbol            | plugins/aerial.lua |
+| `[[`         | Previous symbol        | plugins/aerial.lua |
+| `]]`         | Next symbol            | plugins/aerial.lua |
 
 ## Clipboard History (neoclip.nvim)
 
@@ -168,9 +196,21 @@ Open with `<leader>fy` to browse yank history in a Telescope picker.
 
 ## Undo History
 
-| Key         | Action          | Source               |
-| ----------- | --------------- | -------------------- |
+| Key          | Action          | Source               |
+| ------------ | --------------- | -------------------- |
 | `<leader>tu` | Toggle Undotree | plugins/undotree.lua |
+
+## Sessions (persistence.nvim)
+
+One session per working directory and git branch, written when Neovim exits.
+Nothing is restored automatically — `nvim file` stays a plain `nvim file`.
+
+| Key          | Action                                        | Source                  |
+| ------------ | --------------------------------------------- | ----------------------- |
+| `<leader>qs` | Restore the session for the current directory | plugins/persistence.lua |
+| `<leader>ql` | Restore the last session (any directory)      | plugins/persistence.lua |
+| `<leader>qd` | Stop saving: don't write a session on exit    | plugins/persistence.lua |
+| `s`          | Restore session (dashboard button)            | plugins/dashboard.lua   |
 
 ## Markdown Rendering (render-markdown.nvim)
 
@@ -180,40 +220,42 @@ Open with `<leader>fy` to browse yank history in a Telescope picker.
 
 ## Terminal
 
-| Key          | Action                | Source                 |
-| ------------ | --------------------- | ---------------------- |
-| `<leader>tt` | Toggle terminal       | plugins/editor.lua:169 |
-| `<C-\>`      | Toggle terminal (alt) | plugins/editor.lua:174 |
+| Key          | Action          | Source             |
+| ------------ | --------------- | ------------------ |
+| `<leader>tt` | Toggle terminal | plugins/editor.lua |
+
+> There is no `<C-\>` terminal toggle: that key is reserved for
+> vim-tmux-navigator's "previous pane" (see below).
 
 ## Line Wrap
 
-| Key          | Action      | Source                 |
-| ------------ | ----------- | ---------------------- |
-| `<leader>tw` | Toggle wrap | plugins/editor.lua:319 |
+| Key          | Action      | Source             |
+| ------------ | ----------- | ------------------ |
+| `<leader>tw` | Toggle wrap | plugins/editor.lua |
 
 ## TMux Integration (vim-tmux-navigator)
 
 Seamless navigation between NeoVim splits and TMux panes.
 
-| Key     | Action                       | Source              |
-| ------- | ---------------------------- | ------------------- |
-| `<C-h>` | Navigate left (NeoVim/TMux)  | plugins/tmux.lua:14 |
-| `<C-j>` | Navigate down (NeoVim/TMux)  | plugins/tmux.lua:15 |
-| `<C-k>` | Navigate up (NeoVim/TMux)    | plugins/tmux.lua:16 |
-| `<C-l>` | Navigate right (NeoVim/TMux) | plugins/tmux.lua:17 |
-| `<C-\>` | Navigate to previous pane    | plugins/tmux.lua:18 |
+| Key     | Action                       | Source           |
+| ------- | ---------------------------- | ---------------- |
+| `<C-h>` | Navigate left (NeoVim/TMux)  | plugins/tmux.lua |
+| `<C-j>` | Navigate down (NeoVim/TMux)  | plugins/tmux.lua |
+| `<C-k>` | Navigate up (NeoVim/TMux)    | plugins/tmux.lua |
+| `<C-l>` | Navigate right (NeoVim/TMux) | plugins/tmux.lua |
+| `<C-\>` | Navigate to previous pane    | plugins/tmux.lua |
 
-## Completion (nvim-cmp)
+## Completion (blink.cmp)
 
-| Key         | Action                            | Source                 |
-| ----------- | --------------------------------- | ---------------------- |
-| `<C-b>`     | Scroll docs up                    | plugins/editor.lua:101 |
-| `<C-f>`     | Scroll docs down                  | plugins/editor.lua:102 |
-| `<C-Space>` | Complete                          | plugins/editor.lua:103 |
-| `<C-e>`     | Abort completion                  | plugins/editor.lua:104 |
-| `<CR>`      | Confirm completion                | plugins/editor.lua:105 |
-| `<Tab>`     | Next item / Jump snippet          | plugins/editor.lua:106 |
-| `<S-Tab>`   | Previous item / Jump snippet back | plugins/editor.lua:115 |
+| Key         | Action                            | Source             |
+| ----------- | --------------------------------- | ------------------ |
+| `<C-b>`     | Scroll docs up                    | plugins/editor.lua |
+| `<C-f>`     | Scroll docs down                  | plugins/editor.lua |
+| `<C-Space>` | Complete                          | plugins/editor.lua |
+| `<C-e>`     | Abort completion                  | plugins/editor.lua |
+| `<CR>`      | Confirm completion                | plugins/editor.lua |
+| `<Tab>`     | Next item / Jump snippet          | plugins/editor.lua |
+| `<S-Tab>`   | Previous item / Jump snippet back | plugins/editor.lua |
 
 ## Line Movement (Visual Mode)
 
@@ -224,11 +266,11 @@ Seamless navigation between NeoVim splits and TMux panes.
 
 ## Treesitter Text Objects
 
-| Key      | Action                   | Source                   |
-| -------- | ------------------------ | ------------------------ |
-| `<CR>`   | Init/Increment selection | plugins/editor.lua:28-29 |
-| `<S-CR>` | Scope increment          | plugins/editor.lua:30    |
-| `<BS>`   | Node decrement           | plugins/editor.lua:31    |
+| Key    | Action                   | Source             |
+| ------ | ------------------------ | ------------------ |
+| `<CR>` | Init/Increment selection | plugins/editor.lua |
+
+| `<BS>` | Node decrement | plugins/editor.lua |
 
 ## Folding (treesitter-based)
 
@@ -248,14 +290,13 @@ Works for any language treesitter understands: JSON objects/arrays, functions, c
 
 ## Trouble (Diagnostics Panel)
 
-| Key          | Action                       | Source                    |
-| ------------ | ---------------------------- | ------------------------- |
-| `<leader>xx` | Toggle workspace diagnostics | plugins/trouble.lua       |
-| `<leader>xX` | Toggle buffer diagnostics    | plugins/trouble.lua       |
-| `<leader>xr` | Toggle LSP references        | plugins/trouble.lua       |
-| `<leader>xl` | Toggle location list         | plugins/trouble.lua       |
-| `<leader>xq` | Toggle quickfix list         | plugins/trouble.lua       |
-| `<leader>xt` | Toggle TODO list             | plugins/todo-comments.lua |
+| Key          | Action                       | Source              |
+| ------------ | ---------------------------- | ------------------- |
+| `<leader>xx` | Toggle workspace diagnostics | plugins/trouble.lua |
+| `<leader>xX` | Toggle buffer diagnostics    | plugins/trouble.lua |
+| `<leader>xr` | Toggle LSP references        | plugins/trouble.lua |
+| `<leader>xl` | Toggle location list         | plugins/trouble.lua |
+| `<leader>xq` | Toggle quickfix list         | plugins/trouble.lua |
 
 ## TODO Comments (todo-comments.nvim)
 
@@ -305,12 +346,12 @@ mini.ai extends Vim's built-in `a` (around) and `i` (inside) text object prefixe
 
 Replaces the built-in `w`/`e`/`b`/`ge` word motions so they stop at each subword boundary (camelCase, PascalCase, snake_case, SCREAMING_SNAKE_CASE) instead of jumping over the whole identifier.
 
-| Key  | Mode          | Action                       | Source             |
-| ---- | ------------- | ----------------------------- | ------------------ |
-| `w`  | `n`, `o`, `x` | Next subword start             | plugins/spider.lua |
-| `e`  | `n`, `o`, `x` | End of subword                 | plugins/spider.lua |
-| `b`  | `n`, `o`, `x` | Previous subword start         | plugins/spider.lua |
-| `ge` | `n`, `o`, `x` | End of previous subword        | plugins/spider.lua |
+| Key  | Mode          | Action                  | Source             |
+| ---- | ------------- | ----------------------- | ------------------ |
+| `w`  | `n`, `o`, `x` | Next subword start      | plugins/spider.lua |
+| `e`  | `n`, `o`, `x` | End of subword          | plugins/spider.lua |
+| `b`  | `n`, `o`, `x` | Previous subword start  | plugins/spider.lua |
+| `ge` | `n`, `o`, `x` | End of previous subword | plugins/spider.lua |
 
 ## Marks (marks.nvim)
 
@@ -327,6 +368,12 @@ Adds sign-column indicators and extra navigation on top of Vim's built-in marks 
 | `m:`        | Preview mark                      | plugins/marks.lua |
 
 > Set/delete a specific mark the vanilla way: `ma` sets mark `a`, `dma` deletes it.
+
+## Practice (vim-be-good)
+
+| Key          | Action                         | Source                  |
+| ------------ | ------------------------------ | ----------------------- |
+| `<leader>vg` | Vim Be Good (practice motions) | plugins/vim-be-good.lua |
 
 ## Debugging (nvim-dap)
 
@@ -379,25 +426,25 @@ A session opens a 50-column sidebar and a bottom output pane:
 └──────────────┴─────────────────────────────┘
 ```
 
-| Pane            | What it holds                                                   |
-| --------------- | --------------------------------------------------------------- |
-| **Scopes**      | Variables in the selected frame. `e` edits a value live         |
-| **Watches**     | Expressions re-evaluated at every stop; type at the `>` prompt  |
-| **Stacks**      | Threads and call stack. `o` on a frame moves Scopes to it       |
-| **Breakpoints** | Breakpoints and their source line. `o` jumps, `t` toggles       |
-| **Console**     | The debuggee's stdout/stderr, routed over DAP by `outputMode`   |
+| Pane            | What it holds                                                  |
+| --------------- | -------------------------------------------------------------- |
+| **Scopes**      | Variables in the selected frame. `e` edits a value live        |
+| **Watches**     | Expressions re-evaluated at every stop; type at the `>` prompt |
+| **Stacks**      | Threads and call stack. `o` on a frame moves Scopes to it      |
+| **Breakpoints** | Breakpoints and their source line. `o` jumps, `t` toggles      |
+| **Console**     | The debuggee's stdout/stderr, routed over DAP by `outputMode`  |
 
 Each pane only binds the actions that make sense in it, so the same key does
 different work — or nothing — depending on where you are:
 
-| Key    | Scopes / Watches       | Stacks               | Breakpoints          |
-| ------ | ---------------------- | -------------------- | -------------------- |
-| `<CR>` | Expand / collapse      | -                    | -                    |
-| `o`    | -                      | Jump to frame        | Jump to breakpoint   |
-| `d`    | Remove (Watches)       | -                    | Delete breakpoint    |
-| `e`    | Edit the value live    | -                    | -                    |
-| `r`    | Send to REPL (Watches) | -                    | -                    |
-| `t`    | -                      | Toggle subtle frames | Enable / disable     |
+| Key    | Scopes / Watches       | Stacks               | Breakpoints        |
+| ------ | ---------------------- | -------------------- | ------------------ |
+| `<CR>` | Expand / collapse      | -                    | -                  |
+| `o`    | -                      | Jump to frame        | Jump to breakpoint |
+| `d`    | Remove (Watches)       | -                    | Delete breakpoint  |
+| `e`    | Edit the value live    | -                    | -                  |
+| `r`    | Send to REPL (Watches) | -                    | -                  |
+| `t`    | -                      | Toggle subtle frames | Enable / disable   |
 
 Pressing a key a pane does not bind prints `No <name> action for current line`.
 Moving the cursor onto a line too long to fit pops the full value into a hover
@@ -484,21 +531,21 @@ Code generation, buffer-local to `.go` files. The five binaries behind these
 (`iferr`, `gomodifytags`, `impl`, `gotests`, `json-to-struct`) are installed by
 Mason the first time you open a Go file — no `go install` needed.
 
-| Key          | Action                                     | Command         |
-| ------------ | ------------------------------------------ | --------------- |
-| `<leader>Ge` | Insert an `if err != nil` guard            | `:GoIfErr`      |
-| `<leader>Gj` | Add `json` struct tags                     | `:GoTagAdd`     |
-| `<leader>GJ` | Remove `json` struct tags                  | `:GoTagRm`      |
-| `<leader>Gy` | Add `yaml` struct tags                     | `:GoTagAdd`     |
-| `<leader>GY` | Remove `yaml` struct tags                  | `:GoTagRm`      |
-| `<leader>Gt` | Add `toml` struct tags                     | `:GoTagAdd`     |
-| `<leader>GT` | Remove `toml` struct tags                  | `:GoTagRm`      |
-| `<leader>Gi` | Generate interface method stubs            | `:GoImpl`       |
-| `<leader>Gc` | Generate a doc comment for the symbol      | `:GoCmt`        |
-| `<leader>Ga` | Generate a test for the function at cursor | `:GoTestAdd`    |
-| `<leader>GA` | Generate tests for everything in the file  | `:GoTestsAll`   |
-| `<leader>Gs` | Turn JSON into a struct definition         | `:GoJson`       |
-| `<leader>Gm` | `go mod tidy`                              | `:GoMod tidy`   |
+| Key          | Action                                     | Command       |
+| ------------ | ------------------------------------------ | ------------- |
+| `<leader>Ge` | Insert an `if err != nil` guard            | `:GoIfErr`    |
+| `<leader>Gj` | Add `json` struct tags                     | `:GoTagAdd`   |
+| `<leader>GJ` | Remove `json` struct tags                  | `:GoTagRm`    |
+| `<leader>Gy` | Add `yaml` struct tags                     | `:GoTagAdd`   |
+| `<leader>GY` | Remove `yaml` struct tags                  | `:GoTagRm`    |
+| `<leader>Gt` | Add `toml` struct tags                     | `:GoTagAdd`   |
+| `<leader>GT` | Remove `toml` struct tags                  | `:GoTagRm`    |
+| `<leader>Gi` | Generate interface method stubs            | `:GoImpl`     |
+| `<leader>Gc` | Generate a doc comment for the symbol      | `:GoCmt`      |
+| `<leader>Ga` | Generate a test for the function at cursor | `:GoTestAdd`  |
+| `<leader>GA` | Generate tests for everything in the file  | `:GoTestsAll` |
+| `<leader>Gs` | Turn JSON into a struct definition         | `:GoJson`     |
+| `<leader>Gm` | `go mod tidy`                              | `:GoMod tidy` |
 
 `<leader>Ge` reads the enclosing function's signature to pick the return values,
 so in a `func(...) (*Config, error)` it writes `return nil, err` rather than a
@@ -510,32 +557,38 @@ rather than replaces, so `<leader>Gj` then `<leader>Gy` leaves both
 `json:"..."` and `yaml:"..."` on every field. For any other tag name, call
 `:GoTagAdd <name>` / `:GoTagRm <name>` directly (`db`, `mapstructure`, ...).
 
-
 Other commands without keymaps: `:GoGet`,
 `:GoWork`, `:GoGenerate`, `:GoTestsExp` (exported functions only).
 
 ## Testing (neotest)
 
-| Key          | Action                             |
-| ------------ | ---------------------------------- |
-| `<leader>Tr` | Run the nearest test               |
-| `<leader>Tf` | Run every test in the file         |
-| `<leader>TA` | Run every test in the project      |
-| `<leader>Td` | Debug the nearest test             |
-| `<leader>TS` | Stop the running test              |
-| `<leader>Ts` | Toggle the summary tree            |
-| `<leader>To` | Show output for the nearest test   |
-| `<leader>TO` | Toggle the output panel            |
-| `<leader>Tw` | Toggle watch mode for the file     |
+Adapters: Go (neotest-golang), Python (neotest-python, pytest) and
+JavaScript/TypeScript (neotest-vitest). The same keys drive all three.
 
-Tests run with `-v -race -count=1`. The `-count=1` matters: it defeats Go's test
-result cache, so a green result always reflects the code as it is now.
+| Key          | Action                           |
+| ------------ | -------------------------------- |
+| `<leader>Tr` | Run the nearest test             |
+| `<leader>Tf` | Run every test in the file       |
+| `<leader>TA` | Run every test in the project    |
+| `<leader>Td` | Debug the nearest test           |
+| `<leader>TS` | Stop the running test            |
+| `<leader>Ts` | Toggle the summary tree          |
+| `<leader>To` | Show output for the nearest test |
+| `<leader>TO` | Toggle the output panel          |
+| `<leader>Tw` | Toggle watch mode for the file   |
+
+Go tests run with `-v -race -count=1`. The `-count=1` matters: it defeats Go's
+test result cache, so a green result always reflects the code as it is now.
 
 > `<leader>Td` and `<leader>dt` both debug a test, and both end up in the same
 > delve session — neotest-golang's `dap_mode` defaults to `"dap-go"`, so it
 > hands over to the adapter `plugins/dap-go.lua` configures. Use `<leader>dt`
 > when you are already debugging, `<leader>Td` when you are looking at a failure
 > in the summary tree.
+>
+> Python is the same story with debugpy: neotest-python launches with
+> `type = "python"`, which `thisarug/dap/python.lua` aliases to the `debugpy`
+> adapter, and `justMyCode = false` lets you step into library code.
 
 ## Ballerina (ballerina.nvim)
 
@@ -561,18 +614,20 @@ Buffer-local, only active in `.bal` files.
 
 ## Which-Key Groups
 
-| Prefix      | Group               | Source                |
-| ----------- | ------------------- | --------------------- |
-| `<leader>c` | Copy                | plugins/editor.lua    |
-| `<leader>d` | Debug (nvim-dap)    | plugins/editor.lua    |
-| `<leader>f` | Find (Telescope)    | plugins/editor.lua:69 |
-| `<leader>g` | Git                 | plugins/editor.lua:70 |
-| `<leader>G` | Go (gopher.nvim)    | plugins/editor.lua    |
-| `<leader>l` | LSP                 | plugins/editor.lua:72 |
-| `<leader>z` | Spell/Grammar       | plugins/editor.lua    |
-| `<leader>T` | Test (neotest)      | plugins/editor.lua    |
-| `<leader>t` | Toggle              | plugins/editor.lua:71 |
-| `<leader>x` | Trouble/Diagnostics | plugins/editor.lua    |
+| Prefix      | Group                | Source             |
+| ----------- | -------------------- | ------------------ |
+| `<leader>c` | Copy                 | plugins/editor.lua |
+| `<leader>d` | Debug (nvim-dap)     | plugins/editor.lua |
+| `<leader>f` | Find (Telescope)     | plugins/editor.lua |
+| `<leader>g` | Git                  | plugins/editor.lua |
+| `<leader>G` | Go (gopher.nvim)     | plugins/editor.lua |
+| `<leader>l` | LSP                  | plugins/editor.lua |
+| `<leader>o` | Open/Explorer (yazi) | plugins/editor.lua |
+| `<leader>q` | Session              | plugins/editor.lua |
+| `<leader>z` | Spell/Grammar        | plugins/editor.lua |
+| `<leader>T` | Test (neotest)       | plugins/editor.lua |
+| `<leader>t` | Toggle               | plugins/editor.lua |
+| `<leader>x` | Trouble/Diagnostics  | plugins/editor.lua |
 
 ---
 

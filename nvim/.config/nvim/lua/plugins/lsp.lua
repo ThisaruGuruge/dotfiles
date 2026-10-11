@@ -346,31 +346,30 @@ return {
             vim.tbl_extend("force", opts, { desc = "Go to declaration" })
           )
 
+          -- Neovim 0.11+ already ships grr/gri/grt/grn/gra/gO as built-ins that
+          -- call vim.lsp.buf.*. Only the three navigation ones are upgraded
+          -- to Telescope pickers (preview + fuzzy filter); the rest stay as
+          -- shipped. A custom bare `gr` or `gi` would sit on the `gr*` prefix
+          -- and make every grr/gri/grn/gra wait out 'timeoutlen', and `gi`
+          -- would shadow the built-in "insert at last insert position".
           if has_telescope then
             vim.keymap.set(
               "n",
-              "gr",
+              "grr",
               "<cmd>Telescope lsp_references<cr>",
-              vim.tbl_extend("force", opts, { desc = "Find references" })
+              vim.tbl_extend("force", opts, { desc = "References" })
             )
             vim.keymap.set(
               "n",
-              "gi",
+              "gri",
               "<cmd>Telescope lsp_implementations<cr>",
-              vim.tbl_extend("force", opts, { desc = "Go to implementation" })
-            )
-          else
-            vim.keymap.set(
-              "n",
-              "gr",
-              vim.lsp.buf.references,
-              vim.tbl_extend("force", opts, { desc = "Find references" })
+              vim.tbl_extend("force", opts, { desc = "Implementations" })
             )
             vim.keymap.set(
               "n",
-              "gi",
-              vim.lsp.buf.implementation,
-              vim.tbl_extend("force", opts, { desc = "Go to implementation" })
+              "grt",
+              "<cmd>Telescope lsp_type_definitions<cr>",
+              vim.tbl_extend("force", opts, { desc = "Type definitions" })
             )
           end
 
