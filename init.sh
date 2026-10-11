@@ -518,7 +518,11 @@ install_tpm() {
         return 0
     fi
 
-    if ! git clone --quiet --depth 1 --branch "$TPM_VERSION" https://github.com/tmux-plugins/tpm "$tpm_dir"; then
+    # (git warns about checking out an annotated tag; only show its output on failure)
+    local clone_output
+    if ! clone_output=$(git -c advice.detachedHead=false clone --quiet --depth 1 --branch "$TPM_VERSION" \
+        https://github.com/tmux-plugins/tpm "$tpm_dir" 2>&1); then
+        echo "$clone_output"
         log_error "Could not clone TPM"
         return 0
     fi
@@ -575,7 +579,7 @@ setup_git_config() {
 check_git_signing() {
     log_step "Checking Git commit signing"
 
-    local default_key="$HOME/.ssh/id_ed25519_signing"
+    local signing_key_file="$HOME/.ssh/id_ed25519_signing"
     local signing_key key_path
     signing_key=$(cd "$HOME" && git config --get user.signingkey 2>/dev/null) || signing_key=""
 
@@ -601,13 +605,13 @@ check_git_signing() {
     fi
 
     log_warning "user.signingkey is $signing_key, which doesn't exist - every git commit will fail"
-    if [ "$key_path" = "$default_key.pub" ] && command_exists ssh-keygen &&
-        confirm "Create an SSH signing key at $default_key now? (ssh-keygen asks for a passphrase)"; then
+    if [ "$key_path" = "$signing_key_file.pub" ] && command_exists ssh-keygen &&
+        confirm "Create an SSH signing key at $signing_key_file now? (ssh-keygen asks for a passphrase)"; then
         mkdir -p "$HOME/.ssh"
         chmod 700 "$HOME/.ssh"
-        if ssh-keygen -t ed25519 -f "$default_key" -C "git commit signing ($(whoami)@$(hostname -s))"; then
-            log_success "Created $default_key"
-            log_info "Add $default_key.pub to GitHub (Settings > SSH and GPG keys > New SSH key > Signing key)"
+        if ssh-keygen -t ed25519 -f "$signing_key_file" -C "git commit signing ($(whoami)@$(hostname -s))"; then
+            log_success "Created $signing_key_file"
+            log_info "Add $signing_key_file.pub to GitHub (Settings > SSH and GPG keys > New SSH key > Signing key)"
             log_info "and to ~/.config/git/allowed_signers so git can verify your own signatures"
         else
             log_error "ssh-keygen failed; create the key yourself or change user.signingkey"
@@ -649,7 +653,7 @@ backup_existing_files() {
 # names the age recipient that new secrets are encrypted to, so it is per
 # machine: it is not tracked in the repo and not stowed.
 setup_sops_config() {
-    local public_key="$1"
+    local recipient="$1"
     local sops_config="$HOME/.sops.yaml"
     local template="$DOTFILES_DIR/bash/.sops.yaml.example"
 
@@ -661,11 +665,11 @@ setup_sops_config() {
     fi
 
     if [ -f "$sops_config" ]; then
-        if grep -qF -- "$public_key" "$sops_config"; then
+        if grep -qF -- "$recipient" "$sops_config"; then
             log_success "$sops_config lists this machine's age key"
             return 0
         fi
-        log_error "$sops_config doesn't list this machine's age key ($public_key)"
+        log_error "$sops_config doesn't list this machine's age key ($recipient)"
         log_info "New secrets would be encrypted to a key this machine can't decrypt."
         log_info "Add the key to ~/.sops.yaml, or delete the file and re-run ./init.sh"
         return 1
@@ -676,7 +680,7 @@ setup_sops_config() {
         return 1
     fi
     log_info "Creating ~/.sops.yaml for this machine's age key..."
-    if sed "s/AGE_PUBLIC_KEY/$public_key/g" "$template" >"$sops_config"; then
+    if sed "s/AGE_PUBLIC_KEY/$recipient/g" "$template" >"$sops_config"; then
         log_success "Created ~/.sops.yaml"
     else
         log_error "Could not write ~/.sops.yaml"
