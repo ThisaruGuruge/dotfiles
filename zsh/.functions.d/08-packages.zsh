@@ -1,66 +1,57 @@
 #!/bin/zsh
 # ============================================================================
 # Package Management Functions
-# ============================================================================
-# Tool management: list_dotfiles_tools(), remove_dotfiles_tool(), install_lazygit_latest(), manage_packages()
+# Tool management: list_dotfiles_tools(), remove_dotfiles_tool(), install_lazygit_latest()
 
-# List all tools configured in dotfiles
+# List every tool declared in Brewfile and packages/*.brewfile (the single
+# source of truth), with the trailing comment from each entry as description.
 list_dotfiles_tools() {
+    local root="${DOTFILES_DIR:-}"
+    if [[ -z "$root" || ! -f "$root/Brewfile" ]]; then
+        if [[ -f "${HOME}/dotfiles/Brewfile" ]]; then
+            root="${HOME}/dotfiles"
+        elif [[ -f "${HOME}/.dotfiles/Brewfile" ]]; then
+            root="${HOME}/.dotfiles"
+        else
+            echo "❌ Dotfiles directory with a Brewfile not found"
+            return 1
+        fi
+    fi
+
     echo "🛠️ Dotfiles Tool Inventory"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    local file label
+    for file in "$root/Brewfile" "$root"/packages/*.brewfile(N); do
+        if [[ "$file" == "$root/Brewfile" ]]; then
+            label="CORE (Brewfile)"
+        else
+            label="OPTIONAL (packages/${file:t})"
+        fi
+        echo ""
+        echo "📦 ${label}:"
+        awk '
+            /^[[:space:]]*(brew|cask|tap)[[:space:]]+"/ {
+                kind = $1
+                name = $2
+                gsub(/[",]/, "", name)
+                desc = ""
+                if (match($0, /#.*/)) {
+                    desc = substr($0, RSTART + 1)
+                    sub(/^[[:space:]]+/, "", desc)
+                }
+                if (desc == "") {
+                    printf "   %-5s %s\n", kind, name
+                } else {
+                    printf "   %-5s %-32s %s\n", kind, name, desc
+                }
+            }
+        ' "$file"
+    done
+
     echo ""
-    echo "📺 SHELL & TERMINAL ENHANCEMENT:"
-    echo "   zsh              - Shell"
-    echo "   powerlevel10k    - Fast prompt (pure Zsh)"
-    echo "   zinit            - Plugin manager"
-    echo "   tmux             - Terminal multiplexer"
-    echo ""
-    echo "📁 FILE & NAVIGATION TOOLS:"
-    echo "   yazi             - Terminal file manager (Neovim integration, image previews)"
-    echo "   chafa            - Image-to-text renderer (yazi image preview fallback)"
-    echo "   eza              - Modern ls replacement"
-    echo "   bat              - Enhanced cat with syntax highlighting"
-    echo "   mdcat            - Terminal markdown renderer (mdcat + mdless)"
-    echo "   ripgrep (rg)     - Fast grep replacement"
-    echo "   fzf              - Fuzzy finder"
-    echo "   zoxide           - Smart cd replacement"
-    echo "   fd               - Fast find replacement"
-    echo "   dust             - Modern du replacement (d, da for full paged view)"
-    echo "   htop             - Better top"
-    echo ""
-    echo "🔧 DEVELOPMENT TOOLS:"
-    echo "   git + lazygit    - Version control"
-    echo "   git-delta        - Enhanced git diff viewer"
-    echo "   gh               - GitHub CLI"
-    echo "   gwsp / gwse      - Google Workspace CLI, personal / enterprise account (bare gws is blocked)"
-    echo "   lazydocker       - Docker TUI"
-    echo "   colima           - Container runtime (lima VM + Docker daemon)"
-    echo "   docker-credential-helper - Stores registry creds in macOS Keychain"
-    echo "   nvim             - Text editor"
-    echo "   direnv           - Directory-specific environments"
-    echo "   atuin            - Enhanced shell history"
-    echo "   jq               - JSON processor"
-    echo "   jless            - Interactive JSON/YAML viewer"
-    echo "   gng (gw)         - Gradle run-anywhere wrapper"
-    echo ""
-    echo "📋 LANGUAGE & RUNTIME MANAGEMENT:"
-    echo "   NVM              - Node.js version manager (lazy-loaded)"
-    echo "   SDKMAN           - Java ecosystem manager (lazy-loaded)"
-    echo "   rbenv            - Ruby version manager (optional)"
-    echo "   pyenv            - Python version manager (optional)"
-    echo "   Ballerina        - Cloud-native programming language"
-    echo ""
-    echo "🔐 SECURITY & SECRETS:"
-    echo "   SOPS             - Secret management"
-    echo "   Age              - File encryption"
-    echo "   pam-reattach     - Touch ID in tmux"
-    echo ""
-    echo "⚙️ SYSTEM TOOLS:"
-    echo "   Homebrew         - Package manager"
-    echo "   stow             - Symlink farm manager"
-    echo ""
-    echo "💡 Usage: remove_dotfiles_tool <tool_name>"
-    echo "   Example: remove_dotfiles_tool rbenv"
+    echo "💡 Runtimes (not in Brewfile): NVM, SDKMAN (lazy-loaded); pyenv/rbenv optional"
+    echo "💡 Add a tool: edit Brewfile or packages/*.brewfile, then run 'brew bundle'"
 }
 
 # Remove a specific tool from dotfiles configuration
@@ -269,30 +260,4 @@ install_lazygit_latest() {
             return 1
             ;;
     esac
-}
-
-# Manage dotfiles packages (enable/disable packages and regenerate Brewfile)
-manage_packages() {
-    # Check if we have the package manager script
-    local dotfiles_dir=""
-    if [ -d "${HOME}/dotfiles" ]; then
-        dotfiles_dir="${HOME}/dotfiles"
-    elif [ -d "${HOME}/.dotfiles" ]; then
-        dotfiles_dir="${HOME}/.dotfiles"
-    fi
-
-    if [ -n "$dotfiles_dir" ] && [ -f "$dotfiles_dir/bin/manage-packages" ]; then
-        "$dotfiles_dir/bin/manage-packages" "$@"
-    else
-        echo "❌ Package manager not found"
-        echo "Expected location: $dotfiles_dir/bin/manage-packages"
-        echo ""
-        echo "📦 Package management allows you to:"
-        echo "• Enable/disable individual packages"
-        echo "• Enable/disable entire categories"
-        echo "• Automatically regenerate Brewfile"
-        echo "• Maintain consistency between init.sh and Brewfile"
-        echo ""
-        echo "Make sure you're in your dotfiles directory and the script exists."
-    fi
 }

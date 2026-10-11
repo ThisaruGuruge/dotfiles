@@ -69,7 +69,7 @@ mv "$CONFIG_SOURCE" "$CONFIG_DEST"
 PACKAGE_ROOT="$DOTFILES_DIR/$APP_NAME"
 if [ ! -f "$PACKAGE_ROOT/.bestowignore" ]; then
     echo "Creating .bestowignore..."
-    cat > "$PACKAGE_ROOT/.bestowignore" <<'EOF'
+    cat >"$PACKAGE_ROOT/.bestowignore" <<'EOF'
 # Ignore sensitive and generated files
 *.log
 *.cache

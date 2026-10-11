@@ -401,7 +401,6 @@ alias_categories() {
     echo "🔧 DEVELOPMENT:"
     echo "   take, kill_by_port, show_tools - Dev utilities"
     echo "   profile_startup - Test shell startup performance"
-    echo "   manage_packages - Configure package installation"
     echo ""
     echo "For detailed help: alias_help <alias_name>"
 }

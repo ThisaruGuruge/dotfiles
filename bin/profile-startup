@@ -25,13 +25,13 @@ echo ""
 # Function to get performance status
 get_status() {
     local time="$1"
-    if (( $(echo "$time < $EXCELLENT_THRESHOLD" | bc -l) )); then
+    if (($(echo "$time < $EXCELLENT_THRESHOLD" | bc -l))); then
         echo -e "${GREEN}EXCELLENT${NC}"
-    elif (( $(echo "$time < $GOOD_THRESHOLD" | bc -l) )); then
+    elif (($(echo "$time < $GOOD_THRESHOLD" | bc -l))); then
         echo -e "${GREEN}GOOD${NC}"
-    elif (( $(echo "$time < $ACCEPTABLE_THRESHOLD" | bc -l) )); then
+    elif (($(echo "$time < $ACCEPTABLE_THRESHOLD" | bc -l))); then
         echo -e "${YELLOW}ACCEPTABLE${NC}"
-    elif (( $(echo "$time < $SLOW_THRESHOLD" | bc -l) )); then
+    elif (($(echo "$time < $SLOW_THRESHOLD" | bc -l))); then
         echo -e "${YELLOW}SLOW${NC}"
     else
         echo -e "${RED}VERY SLOW${NC}"
@@ -72,12 +72,12 @@ echo "Performance status: $(get_status "$average")"
 echo ""
 echo "Performance Analysis:"
 echo "-------------------"
-if (( $(echo "$average < $GOOD_THRESHOLD" | bc -l) )); then
+if (($(echo "$average < $GOOD_THRESHOLD" | bc -l))); then
     echo -e "${GREEN}✅ Excellent performance! Your shell starts quickly.${NC}"
-elif (( $(echo "$average < $ACCEPTABLE_THRESHOLD" | bc -l) )); then
+elif (($(echo "$average < $ACCEPTABLE_THRESHOLD" | bc -l))); then
     echo -e "${YELLOW}⚡ Good performance, but could be improved.${NC}"
     echo "   Consider optimizing plugin loading or lazy loading more components."
-elif (( $(echo "$average < $SLOW_THRESHOLD" | bc -l) )); then
+elif (($(echo "$average < $SLOW_THRESHOLD" | bc -l))); then
     echo -e "${YELLOW}⚠️  Slow startup detected.${NC}"
     echo "   Your shell may benefit from lazy loading optimizations."
     echo "   Consider profiling individual components."
