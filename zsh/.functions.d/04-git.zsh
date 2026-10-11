@@ -199,22 +199,29 @@ git_ignore_local() {
 # GitHub PR helpers: prs(), prw()
 # ============================================================================
 
-# Browse the repo's pull requests with fzf (needs gh and fzf).
+# Browse the repo's pull requests with fzf (needs gh, jq and fzf).
 #   enter   check the PR out          ctrl-o  open it in the browser
 #   ctrl-d  full diff through delta   (the preview pane shows `gh pr view`)
 # Extra arguments go to `gh pr list`, e.g. `prs --author @me`, `prs --state all`.
+# PR titles and branch names are untrusted text: control characters (including
+# ESC) are replaced with spaces before they reach the terminal, and fzf is not
+# given --ansi, so a title cannot inject escape sequences into the list.
 prs() {
-    if ! command -v gh >/dev/null 2>&1 || ! command -v fzf >/dev/null 2>&1; then
-        echo "prs needs gh and fzf (brew install gh fzf)"
+    if ! command -v gh >/dev/null 2>&1 || ! command -v fzf >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+        echo "prs needs gh, fzf and jq (brew install gh fzf jq)"
         return 1
     fi
 
     local differ="${PAGER:-less}"
     command -v delta >/dev/null 2>&1 && differ="delta --paging=always"
 
-    local list
-    if ! list=$(gh pr list --limit 100 "$@" --json number,title,headRefName,author,isDraft,reviewDecision \
-        --jq '.[] | [(.number|tostring), (if .isDraft then "[draft] " else "" end) + .title, .headRefName, .author.login, (.reviewDecision // "")] | @tsv'); then
+    local json list
+    if ! json=$(gh pr list --limit 100 "$@" --json number,title,headRefName,author,isDraft,reviewDecision); then
+        return 1
+    fi
+    if ! list=$(printf '%s' "$json" | jq -r 'def clean: gsub("[[:cntrl:]]"; " ");
+        .[] | [(.number|tostring), (if .isDraft then "[draft] " else "" end) + (.title|clean), (.headRefName|clean), (.author.login|clean), (.reviewDecision // "")] | @tsv'); then
+        echo "prs: could not parse the output of gh pr list"
         return 1
     fi
     if [[ -z "$list" ]]; then
@@ -223,7 +230,7 @@ prs() {
     fi
 
     local pick
-    pick=$(printf '%s\n' "$list" | fzf --ansi --delimiter=$'\t' --with-nth=1,2,3,4,5 --tabstop=2 \
+    pick=$(printf '%s\n' "$list" | fzf --delimiter=$'\t' --with-nth=1,2,3,4,5 --tabstop=2 \
         --header $'enter: checkout   ctrl-o: browser   ctrl-d: diff' \
         --preview 'gh pr view {1}' --preview-window 'right,60%,wrap' \
         --bind 'ctrl-o:execute-silent(gh pr view {1} --web)' \
@@ -236,9 +243,12 @@ prs() {
 # Watch a PR's checks until they finish, then post a macOS notification with
 # the result. `prw` uses the current branch's PR; `prw 123` or `prw <url>`
 # picks one. Extra flags go to `gh pr checks` (e.g. `prw --fail-fast`).
+# The exit status mirrors `gh pr checks` (0 passed, 8 pending, other = failed
+# or not determinable); the message says which: failed, cancelled, still
+# pending, or "no result" when gh reports no checks or cannot be reached.
 prw() {
-    if ! command -v gh >/dev/null 2>&1; then
-        echo "prw needs gh (brew install gh)"
+    if ! command -v gh >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+        echo "prw needs gh and jq (brew install gh jq)"
         return 1
     fi
 
@@ -249,20 +259,43 @@ prw() {
     fi
 
     local title
-    title=$(gh pr view ${target:+"$target"} --json number,title --jq '"#\(.number) \(.title)"') || return 1
+    title=$(gh pr view ${target:+"$target"} --json number,title | jq -r 'def clean: gsub("[[:cntrl:]]"; " "); "#\(.number) \(.title|clean)"') || return 1
+    [[ -z "$title" ]] && return 1
 
     gh pr checks ${target:+"$target"} --watch "$@"
     local rc=$?
 
-    local result
+    # Anything but 0/8 is ambiguous (failed checks, no checks reported, auth or
+    # network trouble), so ask gh for the final buckets of the checks.
+    local result buckets
     case $rc in
         0) result="All checks passed" ;;
         8) result="Checks still pending" ;;
-        *) result="Checks failed" ;;
+        *)
+            local scope=() prev=""
+            local arg
+            for arg in "$@"; do
+                case "$arg" in
+                    --required | -R?* | --repo=*) scope+=("$arg") ;;
+                    *) [[ "$prev" == -R || "$prev" == --repo ]] && scope+=("$prev" "$arg") ;;
+                esac
+                prev="$arg"
+            done
+            if buckets=$(gh pr checks ${target:+"$target"} "${scope[@]}" --json bucket 2>/dev/null | jq -r '[.[].bucket] | unique | join(" ")' 2>/dev/null) && [[ -n "$buckets" ]]; then
+                case " $buckets " in
+                    *" fail "*) result="Checks failed" ;;
+                    *" cancel "*) result="Checks cancelled" ;;
+                    *" pending "*) result="Checks still pending" ;;
+                    *) result="Checks finished ($buckets) but gh exited $rc" ;;
+                esac
+            else
+                result="No check result (gh exited $rc: no checks reported, or gh could not be reached)"
+            fi
+            ;;
     esac
 
     printf '\a'
-    echo "$title: $result"
+    printf '%s: %s\n' "$title" "$result"
     if command -v osascript >/dev/null 2>&1; then
         osascript -e 'on run argv' \
             -e 'display notification (item 1 of argv) with title (item 2 of argv)' \
