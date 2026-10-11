@@ -137,6 +137,37 @@ else
     warn "claude-tmux-state sets and clears @claude_state" "tmux not available"
 fi
 
+# ── ccp per-project settings ────────────────────────────────────────────────
+# ccp/ccpr/ccpc pass ~/.claude-personal/projects.d/<repo>.json with --settings, <repo> being the main
+# checkout's name, also from a subdirectory or a linked worktree; nothing when the file is absent.
+if command -v zsh >/dev/null 2>&1 && command -v git >/dev/null 2>&1; then
+    # shellcheck disable=SC2016 # expanded by zsh
+    got=$(env HOME="$work/ccp/home" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 zsh -f -c '
+        w=$HOME:h
+        mkdir -p $HOME/.claude-personal/projects.d $w/proj-a/sub $w/proj-b $w/plain
+        print "{}" >$HOME/.claude-personal/projects.d/proj-a.json
+        git init -q $w/proj-a && git -C $w/proj-a -c user.name=t -c user.email=t@t commit -q --allow-empty -m i
+        git -C $w/proj-a worktree add -q $w/wt-x 2>/dev/null
+        git init -q $w/proj-b
+        source $1/zsh/.aliases.sh
+        claude() { print -rn -- "[${CLAUDE_CONFIG_DIR:t} ${*//$HOME/~}]" }
+        cd $w/proj-a/sub && ccp -p x
+        cd $w/wt-x && ccpr
+        cd $w/proj-b && ccpc
+        cd $w/plain && ccp
+    ' _ "$repo" 2>&1)
+    # shellcheck disable=SC2088 # the fake claude prints $HOME as a literal ~
+    s='~/.claude-personal/projects.d/proj-a.json'
+    want="[.claude-personal --settings $s -p x][.claude-personal --settings $s --resume][.claude-personal --continue][.claude-personal ]"
+    if [ "$got" = "$want" ]; then
+        pass "ccp loads the repo's projects.d file (subdirectory, worktree, none)"
+    else
+        fail "ccp loads the repo's projects.d file (subdirectory, worktree, none)" "$got"
+    fi
+else
+    warn "ccp loads the repo's projects.d file (subdirectory, worktree, none)" "zsh and git are needed"
+fi
+
 # ── Tracked settings ────────────────────────────────────────────────────────
 for settings in "$repo"/claude/.claude-*/settings.json; do
     account=$(basename "$(dirname "$settings")")

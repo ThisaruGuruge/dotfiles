@@ -64,6 +64,8 @@ files round-trip.
   or clears it (session ended). It is silent and a no-op outside tmux.
 - `ccp`, `ccpr` and `ccpc` load `~/.claude-personal/projects.d/<repo>.json` with `--settings` when the
   current git repo has one: the place for a project's own autoMode rules, which must not live in this
-  public repo (Claude Code ignores autoMode in a project's `.claude/settings*.json`).
+  public repo (Claude Code ignores autoMode in a project's `.claude/settings*.json`). `<repo>` is the
+  main checkout's directory name, so linked worktrees use their repo's file; two repos with the same
+  name share one.
 - `tests/claude/check.sh` (run by `test-zsh`) checks all three, plus a golden-output test for the
   status line.
