@@ -1,7 +1,7 @@
 {
   "name": "agents",
   "version": "0.1.0",
-  "description": "Subagent pane and strip above the prompt: a crab per agent type with model, effort, context, tokens, requests and the latest tool call.",
+  "description": "Subagent pane (rows above the prompt only as a fallback while the pane is not showing): a crab per agent type with model, effort, context, tokens, requests and the latest tool call.",
   "types": "./types/index.d.ts",
   "userConfig": {
     "rows": {
@@ -9,7 +9,7 @@
       "title": "Agent rows above the prompt",
       "default": "auto",
       "options": ["auto", "off", "always"],
-      "description": "auto: one row per running agent above the prompt only while the agents pane is not showing (closed, or the terminal is too narrow to seat it), so nothing repeats the pane. off: never draw the rows. always: draw them even while the pane is open, which also covers the engine's diff panel taking the pane's seat."
+      "description": "auto: one row per running agent above the prompt only while the agents pane is not showing (closed, or the terminal is too narrow to seat it), so nothing repeats the pane. off: never draw the rows. always: draw them even while the pane is open, which also covers the engine's diff panel taking the pane's seat (that is invisible to a mod, so auto then draws nothing). Set it in /config or pluginConfigs.agents.options.rows."
     }
   }
 }

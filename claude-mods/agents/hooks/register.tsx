@@ -51,21 +51,23 @@ export const register: Register = (on, options) => {
     if (isOpen) await $.ui.close({ id: PANE })
     else await $.ui.open({ id: PANE, title: 'Agents' })
 
-    return { text: isOpen ? 'Agents pane closed.' : 'Agents pane opened.' }
+    return { text: isOpen
+        ? 'Agents pane closed.'
+        : 'Agents pane opened. Rows above the prompt hide while it shows; if the pane is covered (e.g. by the diff panel), set the agents option rows to always.' }
   })
 
   // The rows above the prompt depend on whether the pane is showing, so a change of its seat redraws them.
   on('ui.open', { id: PANE }, async ($, e, next) => {
     const opened = await next(e)
-    await update($, paneTick, n => n + 1)
+    await update($, paneTick, n => n + 1).catch(() => {})
 
     return opened
-  }).catch(($, e, next) => next(e))
+  })
 
   on('ui.close', { id: PANE }, async ($, e, next) => {
     await next(e)
-    await update($, paneTick, n => n + 1)
-  }).catch(($, e, next) => next(e))
+    await update($, paneTick, n => n + 1).catch(() => {})
+  })
 
   on('agent.spawn', async ($, e, next) => {
     const started = await next(e)
@@ -211,6 +213,9 @@ export const register: Register = (on, options) => {
     if (e.props.hasSurvey || running.length === 0) return next(e)
     if (rowsMode === 'auto') {
       await read($, paneTick)
+      // Nothing emits an event when the shown tab changes; reading the tick clock re-runs this check every second
+      // while an agent runs, so the rows follow the pane's real state.
+      await read($, now)
       const panes = await $.ui.panes().catch(() => [])
       if (panes.some(p => p.id === PANE && p.isPlaced && p.isShown)) return next(e)
     }
