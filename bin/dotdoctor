@@ -9,11 +9,18 @@
 #   --full   also run `brew bundle check` and `claude plugin validate`
 #            (slower; needs brew / the claude CLI)
 #
-# Never changes anything: no stowing, no fixing, no network. Each problem
-# prints the command that fixes it.
+# Never changes your configuration: no stowing, no fixing. It makes no network
+# calls of its own; --full runs brew with auto-update and analytics switched off
+# and `claude plugin validate` against a throwaway config dir, so neither
+# touches the network or your Claude config. Each problem prints the command
+# that fixes it.
 #
 # Environment:
-#   DOTFILES   repo location (default: the repo this script lives in)
+#   DOTFILES   repo to check (default: the repo this script lives in, following
+#              symlinks, so the installed ~/bin/dotdoctor checks the live repo).
+#              Links in $HOME are compared against THIS repo: run from a linked
+#              git worktree and links that point at the main checkout look
+#              wrong, which dotdoctor flags up front.
 #   HOME       where links are expected (default: your home directory)
 
 # Messages deliberately show "~" as display text, never as a path to expand.
@@ -29,7 +36,7 @@ Read-only health check for the dotfiles setup. Prints one line per check:
 
 Checks:
   - every non-ignored file of every bestow package is linked into $HOME
-    (bin -> ~/bin), via `bestow stow -n`
+    (bin -> ~/bin), via `bestow stow -n` run once per package
   - no dangling symlinks into the repo
   - ~/.config/bestow/config.yaml matches the repo copy
   - ~/.claude -> ~/.claude-personal and the settings.local.json link
@@ -66,7 +73,9 @@ done
 
 # --- locate the repo -------------------------------------------------------
 
+DOTFILES_EXPLICIT=1
 if [[ -z "${DOTFILES:-}" ]]; then
+    DOTFILES_EXPLICIT=0
     src="${BASH_SOURCE[0]}"
     while [[ -L "$src" ]]; do
         link_dir="$(cd -P "$(dirname "$src")" && pwd)"
@@ -76,6 +85,53 @@ if [[ -z "${DOTFILES:-}" ]]; then
     DOTFILES="$(cd -P "$(dirname "$src")/.." && pwd)"
 fi
 DOTFILES="${DOTFILES%/}"
+# Compare physical paths: bestow reports them, and ~/dotfiles may be a symlink.
+DOTFILES="$(cd -P "$DOTFILES" 2>/dev/null && pwd || printf %s "$DOTFILES")"
+
+# Directories whose files count as "this repo" for link and plugin-path checks:
+# the checked repo itself, its main checkout (when DOTFILES is a linked
+# worktree) and the conventional ~/dotfiles and ~/.dotfiles locations. Nothing
+# else matches, so links into some other project that happens to live in a
+# directory called "dotfiles" are left alone.
+REPO_ROOTS=("$DOTFILES")
+if common_dir="$(git -C "$DOTFILES" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" && [[ "${common_dir##*/}" == .git ]]; then
+    main_root="${common_dir%/.git}"
+    [[ "$main_root" != "$DOTFILES" ]] && REPO_ROOTS+=("$main_root")
+fi
+REPO_ROOTS+=("$HOME/dotfiles" "$HOME/.dotfiles")
+IN_WORKTREE=0
+if git_dir="$(git -C "$DOTFILES" rev-parse --path-format=absolute --git-dir 2>/dev/null)" && [[ -n "${common_dir:-}" && "$git_dir" != "$common_dir" ]]; then
+    IN_WORKTREE=1
+fi
+
+# Lexically collapse . and .. in an absolute path (the target may not exist).
+normalize_path() {
+    local IFS=/ part out=()
+    local -a parts
+    read -ra parts <<<"$1"
+    for part in "${parts[@]}"; do
+        case "$part" in
+            '' | .) ;;
+            ..) [[ ${#out[@]} -gt 0 ]] && unset 'out[${#out[@]}-1]' ;;
+            *) out+=("$part") ;;
+        esac
+    done
+    if [[ ${#out[@]} -eq 0 ]]; then
+        printf '/'
+    else
+        printf '/%s' "${out[@]}"
+    fi
+}
+
+# True if the absolute path is inside any of REPO_ROOTS.
+in_repo() {
+    local p root
+    p="$(normalize_path "$1")"
+    for root in "${REPO_ROOTS[@]}"; do
+        [[ "$p" == "$root" || "$p" == "$root"/* ]] && return 0
+    done
+    return 1
+}
 
 # --- output ----------------------------------------------------------------
 
@@ -128,44 +184,53 @@ notes_capped() {
 
 # --- checks ----------------------------------------------------------------
 
-# Parse `bestow stow -n` output for one destination and report it.
+# Dry-run `bestow stow -n` once per package (so one package bestow cannot plan
+# does not hide the others) and report the combined result for one destination.
+# A file with no link and a destination blocked by something else both mean the
+# config is not active, so both are failures.
 # Usage: check_links <label> <destination> <package>...
 check_links() {
     local label="$1" dest="$2"
     shift 2
 
-    local out rc
-    out="$(bestow stow -n --source "$DOTFILES" --destination "$dest" "$@" 2>&1)"
-    rc=$?
-    if [[ $rc -ne 0 ]]; then
-        fail "$label: bestow dry-run failed (exit $rc)"
-        printf '%s\n' "$out" | tail -n 3 | notes_capped 3
-        return
+    local out rc line rest src dst reason pkg rel
+    local missing="" conflicts="" errors="" error_pkgs=""
+    local p
+    for p in "$@"; do
+        out="$(bestow stow -n --source "$DOTFILES" --destination "$dest" "$p" 2>&1)"
+        rc=$?
+        if [[ $rc -ne 0 ]]; then
+            errors="${errors}${p} (exit ${rc}): $(printf '%s\n' "$out" | tail -n 1 | sed 's/^ *//')"$'\n'
+            error_pkgs="${error_pkgs}${p} "
+            continue
+        fi
+        while IFS= read -r line; do
+            case "$line" in
+                *"LINK: "*)
+                    rest="${line#*LINK: }"
+                    src="${rest#* -> }"
+                    pkg="${src#"$DOTFILES"/}"
+                    pkg="${pkg%%/*}"
+                    rel="${src#"$DOTFILES"/"$pkg"/}"
+                    missing="${missing}${pkg}/${rel}"$'\n'
+                    ;;
+                *"SKIP: "*)
+                    rest="${line#*SKIP: }"
+                    dst="${rest#* -> }"
+                    reason="${dst##* \[}"
+                    reason="${reason%\]}"
+                    dst="${dst%% \[*}"
+                    conflicts="${conflicts}$(tilde "$dst") (${reason})"$'\n'
+                    ;;
+            esac
+        done <<<"$out"
+    done
+
+    if [[ -n "$errors" ]]; then
+        fail "$label: bestow could not plan $(printf '%s' "$errors" | grep -c .) package(s); the rest were checked"
+        printf '%s' "$errors" | notes_capped 8
+        note "fix: look at the message above, then: bestow stow -n ${error_pkgs% }"
     fi
-
-    local missing="" conflicts="" line rest src dst reason pkg rel
-    while IFS= read -r line; do
-        case "$line" in
-            *"LINK: "*)
-                rest="${line#*LINK: }"
-                src="${rest#* -> }"
-                pkg="${src#"$DOTFILES"/}"
-                pkg="${pkg%%/*}"
-                rel="${src#"$DOTFILES"/"$pkg"/}"
-                missing="${missing}${pkg}/${rel}"$'\n'
-                ;;
-            *"SKIP: "*)
-                rest="${line#*SKIP: }"
-                src="${rest%% -> *}"
-                dst="${rest#* -> }"
-                reason="${dst##* \[}"
-                reason="${reason%\]}"
-                dst="${dst%% \[*}"
-                conflicts="${conflicts}$(tilde "$dst") (${reason})"$'\n'
-                ;;
-        esac
-    done <<<"$out"
-
     if [[ -n "$missing" ]]; then
         local count pkgs
         count="$(printf '%s' "$missing" | grep -c .)"
@@ -179,17 +244,23 @@ check_links() {
         fi
     fi
     if [[ -n "$conflicts" ]]; then
-        warn "$label: $(printf '%s' "$conflicts" | grep -c .) destination(s) blocked by an existing file or other link"
+        fail "$label: $(printf '%s' "$conflicts" | grep -c .) destination(s) blocked by an existing file or other link (config not active)"
         printf '%s' "$conflicts" | notes_capped 8
         note "fix: inspect, then bestow stow <pkg> --backup (or --adopt, then review git diff)"
     fi
-    if [[ -z "$missing" && -z "$conflicts" ]]; then
+    if [[ -z "$errors" && -z "$missing" && -z "$conflicts" ]]; then
         ok "$label: all files linked"
     fi
 }
 
 check_packages() {
     section "Symlinks (bestow)"
+
+    if [[ $IN_WORKTREE -eq 1 && $DOTFILES_EXPLICIT -eq 0 ]]; then
+        warn "running from a linked git worktree; links in ~ are compared against THIS worktree"
+        note "links that point at your main checkout will show up as blocked/unlinked below"
+        note "to check the live setup: run the installed dotdoctor, or DOTFILES=<main checkout> dotdoctor"
+    fi
 
     if ! command -v bestow >/dev/null 2>&1; then
         warn "bestow not installed; skipping link checks (go install github.com/redpierrot/bestow@latest)"
@@ -218,8 +289,7 @@ check_packages() {
 }
 
 check_dangling() {
-    local base found="" link target abs
-    base="${DOTFILES##*/}"
+    local found="" link target abs
 
     while IFS= read -r link; do
         [[ -z "$link" ]] && continue
@@ -230,7 +300,7 @@ check_dangling() {
         else
             abs="$(dirname "$link")/$target"
         fi
-        if [[ "$abs" == "$DOTFILES/"* || "$abs" == *"/$base/"* || "$target" == "$base/"* || "$abs" == */dotfiles/* || "$target" == dotfiles/* ]]; then
+        if in_repo "$abs"; then
             found="${found}${link} -> ${target}"$'\n'
         fi
     done < <(
@@ -322,8 +392,18 @@ check_secrets() {
         fail "~/.env is plaintext; re-encrypt it (edit_secrets or: sops -e -i --input-type dotenv --output-type dotenv ~/.env)"
     fi
 
+    # A plaintext .env inside the repo is a failure even though .gitignore keeps
+    # it out of commits: it sits on disk next to the code, in every backup and
+    # sync of the checkout, and one `git add -f` from being published. Only a
+    # sops-encrypted copy is harmless.
     if [[ -f "$DOTFILES/zsh/.env" ]]; then
-        fail "$DOTFILES/zsh/.env exists inside the repo; move its values to ~/.env and delete it"
+        if grep -q '^sops_mac=' "$DOTFILES/zsh/.env" 2>/dev/null; then
+            warn "$DOTFILES/zsh/.env exists inside the repo (sops-encrypted); the live copy belongs in ~/.env"
+        elif git -C "$DOTFILES" check-ignore -q zsh/.env 2>/dev/null; then
+            fail "$DOTFILES/zsh/.env holds plaintext secrets inside the repo (git-ignored, but still on disk); move its values to ~/.env (edit_secrets) and delete it"
+        else
+            fail "$DOTFILES/zsh/.env holds plaintext secrets inside the repo and is NOT git-ignored; move its values to ~/.env (edit_secrets) and delete it"
+        fi
     fi
 
     local f plain=""
@@ -401,7 +481,7 @@ check_plugin_dirs() {
         [[ -f "$m/.claude-plugin/plugin.json" ]] && mods="${mods}${m##*/}"$'\n'
     done
 
-    local settings account dirs entry name problems listed
+    local settings account dirs entry name path problems listed
     for settings in "$DOTFILES"/claude/.claude-*/settings.json; do
         [[ -f "$settings" ]] || continue
         account="$(basename "$(dirname "$settings")")"
@@ -418,8 +498,12 @@ check_plugin_dirs() {
             name="${entry##*/}"
             listed="${listed}${name}"$'\n'
             # Claude expands a leading ~ itself; do the same to test the path.
-            if [[ ! -f "${entry/#\~/$HOME}/.claude-plugin/plugin.json" ]]; then
+            path="${entry/#\~/$HOME}"
+            if [[ ! -f "$path/.claude-plugin/plugin.json" ]]; then
                 problems="${problems}listed but missing or not a plugin: ${entry}"$'\n'
+            elif ! in_repo "$path" && ! in_repo "$(cd -P "$path" 2>/dev/null && pwd)"; then
+                # Matching by name alone would accept a same-named plugin from anywhere.
+                problems="${problems}listed outside this repo: ${entry}"$'\n'
             fi
         done < <(printf '%s\n' "$dirs" | tr ':' '\n')
 
@@ -444,7 +528,10 @@ check_full() {
 
     if command -v brew >/dev/null 2>&1; then
         if [[ -f "$DOTFILES/Brewfile" ]]; then
-            if brew bundle check --file="$DOTFILES/Brewfile" >/dev/null 2>&1; then
+            # `brew bundle` normally runs an auto-update first (network, writes to
+            # the Homebrew repo); keep this check read-only and offline.
+            if HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_ANALYTICS=1 HOMEBREW_NO_ENV_HINTS=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
+                brew bundle check --file="$DOTFILES/Brewfile" >/dev/null 2>&1; then
                 ok "Brewfile is satisfied"
             else
                 warn "Brewfile has missing packages"
@@ -456,17 +543,26 @@ check_full() {
     fi
 
     if command -v claude >/dev/null 2>&1; then
+        # validate writes .claude.json and backups into CLAUDE_CONFIG_DIR, so give
+        # it a throwaway one instead of the active account's directory.
         local m out
+        SCRATCH_CONFIG="$(mktemp -d "${TMPDIR:-/tmp}/dotdoctor-claude.XXXXXX")" || SCRATCH_CONFIG=""
+        if [[ -z "$SCRATCH_CONFIG" ]]; then
+            warn "could not create a temporary CLAUDE_CONFIG_DIR; skipping plugin validation"
+            return
+        fi
+        trap 'rm -rf -- "$SCRATCH_CONFIG"' EXIT
         for m in "$DOTFILES"/claude-mods/*/; do
             m="${m%/}"
             [[ -f "$m/.claude-plugin/plugin.json" ]] || continue
-            if out="$(claude plugin validate "$m" 2>&1)"; then
+            if out="$(CLAUDE_CONFIG_DIR="$SCRATCH_CONFIG" claude plugin validate "$m" 2>&1)"; then
                 ok "claude plugin validate: ${m##*/}"
             else
                 fail "claude plugin validate failed: ${m##*/}"
                 printf '%s\n' "$out" | notes_capped 5
             fi
         done
+        rm -rf -- "$SCRATCH_CONFIG"
     else
         warn "claude CLI not installed; skipping plugin validation"
     fi
