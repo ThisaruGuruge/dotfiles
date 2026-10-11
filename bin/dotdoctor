@@ -1,0 +1,601 @@
+#!/bin/bash
+#
+# dotdoctor -- read-only health check for this dotfiles setup.
+#
+# Reports drift between the repo and the machine, one line per check:
+#   ✔ ok    ⚠ worth a look (does not fail the run)    ✘ broken (exit status 1)
+#
+# Usage: dotdoctor [--full] [-h|--help]
+#   --full   also run `brew bundle check` and `claude plugin validate`
+#            (slower; needs brew / the claude CLI)
+#
+# Never changes your configuration: no stowing, no fixing. It makes no network
+# calls of its own; --full runs brew with auto-update and analytics switched off
+# and `claude plugin validate` against a throwaway config dir, so neither
+# touches the network or your Claude config. Each problem prints the command
+# that fixes it.
+#
+# Environment:
+#   DOTFILES   repo to check (default: the repo this script lives in, following
+#              symlinks, so the installed ~/bin/dotdoctor checks the live repo).
+#              Links in $HOME are compared against THIS repo: run from a linked
+#              git worktree and links that point at the main checkout look
+#              wrong, which dotdoctor flags up front.
+#   HOME       where links are expected (default: your home directory)
+
+# Messages deliberately show "~" as display text, never as a path to expand.
+# shellcheck disable=SC2088
+set -uo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage: dotdoctor [--full] [-h|--help]
+
+Read-only health check for the dotfiles setup. Prints one line per check:
+  ✔ ok    ⚠ worth a look    ✘ broken (makes the exit status non-zero)
+
+Checks:
+  - every non-ignored file of every bestow package is linked into $HOME
+    (bin -> ~/bin), via `bestow stow -n` run once per package
+  - no dangling symlinks into the repo
+  - ~/.config/bestow/config.yaml matches the repo copy
+  - ~/.claude -> ~/.claude-personal and the settings.local.json link
+  - age key present, ~/.env sops-encrypted, no plaintext secrets left around
+  - ControlEscape.spoon cloned, tmux plugin manager installed
+  - bare `gws` is blocked by the bin/gws guard
+  - CLAUDE_CODE_PLUGIN_DIRS in both settings.json match claude-mods/*
+
+Options:
+  --full   also run `brew bundle check` and `claude plugin validate` on
+           every mod
+  -h       show this help
+
+Exit status: 0 when nothing is broken (warnings allowed), 1 when any check
+fails, 2 on a usage error.
+EOF
+}
+
+FULL=0
+for arg in "$@"; do
+    case "$arg" in
+        --full) FULL=1 ;;
+        -h | --help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "dotdoctor: unknown option: $arg" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+# --- locate the repo -------------------------------------------------------
+
+DOTFILES_EXPLICIT=1
+if [[ -z "${DOTFILES:-}" ]]; then
+    DOTFILES_EXPLICIT=0
+    src="${BASH_SOURCE[0]}"
+    while [[ -L "$src" ]]; do
+        link_dir="$(cd -P "$(dirname "$src")" && pwd)"
+        src="$(readlink "$src")"
+        [[ "$src" != /* ]] && src="$link_dir/$src"
+    done
+    DOTFILES="$(cd -P "$(dirname "$src")/.." && pwd)"
+fi
+DOTFILES="${DOTFILES%/}"
+# Compare physical paths: bestow reports them, and ~/dotfiles may be a symlink.
+DOTFILES="$(cd -P "$DOTFILES" 2>/dev/null && pwd || printf %s "$DOTFILES")"
+
+# Directories whose files count as "this repo" for link and plugin-path checks:
+# the checked repo itself, its main checkout (when DOTFILES is a linked
+# worktree) and the conventional ~/dotfiles and ~/.dotfiles locations. Nothing
+# else matches, so links into some other project that happens to live in a
+# directory called "dotfiles" are left alone.
+REPO_ROOTS=("$DOTFILES")
+if common_dir="$(git -C "$DOTFILES" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" && [[ "${common_dir##*/}" == .git ]]; then
+    main_root="${common_dir%/.git}"
+    [[ "$main_root" != "$DOTFILES" ]] && REPO_ROOTS+=("$main_root")
+fi
+REPO_ROOTS+=("$HOME/dotfiles" "$HOME/.dotfiles")
+IN_WORKTREE=0
+if git_dir="$(git -C "$DOTFILES" rev-parse --path-format=absolute --git-dir 2>/dev/null)" && [[ -n "${common_dir:-}" && "$git_dir" != "$common_dir" ]]; then
+    IN_WORKTREE=1
+fi
+
+# Lexically collapse . and .. in an absolute path (the target may not exist).
+normalize_path() {
+    local IFS=/ part out=()
+    local -a parts
+    read -ra parts <<<"$1"
+    for part in "${parts[@]}"; do
+        case "$part" in
+            '' | .) ;;
+            ..) [[ ${#out[@]} -gt 0 ]] && unset 'out[${#out[@]}-1]' ;;
+            *) out+=("$part") ;;
+        esac
+    done
+    if [[ ${#out[@]} -eq 0 ]]; then
+        printf '/'
+    else
+        printf '/%s' "${out[@]}"
+    fi
+}
+
+# True if the absolute path is inside any of REPO_ROOTS.
+in_repo() {
+    local p root
+    p="$(normalize_path "$1")"
+    for root in "${REPO_ROOTS[@]}"; do
+        [[ "$p" == "$root" || "$p" == "$root"/* ]] && return 0
+    done
+    return 1
+}
+
+# --- output ----------------------------------------------------------------
+
+if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
+    C_OK=$'\033[32m' C_WARN=$'\033[33m' C_FAIL=$'\033[31m'
+    C_BOLD=$'\033[1m' C_DIM=$'\033[2m' C_OFF=$'\033[0m'
+else
+    C_OK='' C_WARN='' C_FAIL='' C_BOLD='' C_DIM='' C_OFF=''
+fi
+
+N_OK=0 N_WARN=0 N_FAIL=0
+
+section() { printf '\n%s%s%s\n' "$C_BOLD" "$1" "$C_OFF"; }
+ok() {
+    printf '  %s✔%s %s\n' "$C_OK" "$C_OFF" "$1"
+    N_OK=$((N_OK + 1))
+}
+warn() {
+    printf '  %s⚠%s %s\n' "$C_WARN" "$C_OFF" "$1"
+    N_WARN=$((N_WARN + 1))
+}
+fail() {
+    printf '  %s✘%s %s\n' "$C_FAIL" "$C_OFF" "$1"
+    N_FAIL=$((N_FAIL + 1))
+}
+# Show a path with $HOME abbreviated to ~.
+tilde() {
+    if [[ "$1" == "$HOME"/* ]]; then
+        printf '~%s' "${1#"$HOME"}"
+    else
+        printf '%s' "$1"
+    fi
+}
+# Indented detail line under the previous result.
+note() { printf '      %s%s%s\n' "$C_DIM" "$1" "$C_OFF"; }
+
+# Print at most $1 lines of stdin as notes, then "... and N more".
+notes_capped() {
+    local max="$1" n=0 line
+    while IFS= read -r line; do
+        n=$((n + 1))
+        if [[ $n -le $max ]]; then
+            note "$line"
+        fi
+    done
+    if [[ $n -gt $max ]]; then
+        note "... and $((n - max)) more"
+    fi
+}
+
+# --- checks ----------------------------------------------------------------
+
+# Dry-run `bestow stow -n` once per package (so one package bestow cannot plan
+# does not hide the others) and report the combined result for one destination.
+# A file with no link and a destination blocked by something else both mean the
+# config is not active, so both are failures.
+# Usage: check_links <label> <destination> <package>...
+check_links() {
+    local label="$1" dest="$2"
+    shift 2
+
+    local out rc line rest src dst reason pkg rel
+    local missing="" conflicts="" errors="" error_pkgs=""
+    local p
+    for p in "$@"; do
+        out="$(bestow stow -n --source "$DOTFILES" --destination "$dest" "$p" 2>&1)"
+        rc=$?
+        if [[ $rc -ne 0 ]]; then
+            errors="${errors}${p} (exit ${rc}): $(printf '%s\n' "$out" | tail -n 1 | sed 's/^ *//')"$'\n'
+            error_pkgs="${error_pkgs}${p} "
+            continue
+        fi
+        while IFS= read -r line; do
+            case "$line" in
+                *"LINK: "*)
+                    rest="${line#*LINK: }"
+                    src="${rest#* -> }"
+                    pkg="${src#"$DOTFILES"/}"
+                    pkg="${pkg%%/*}"
+                    rel="${src#"$DOTFILES"/"$pkg"/}"
+                    missing="${missing}${pkg}/${rel}"$'\n'
+                    ;;
+                *"SKIP: "*)
+                    rest="${line#*SKIP: }"
+                    dst="${rest#* -> }"
+                    reason="${dst##* \[}"
+                    reason="${reason%\]}"
+                    dst="${dst%% \[*}"
+                    conflicts="${conflicts}$(tilde "$dst") (${reason})"$'\n'
+                    ;;
+            esac
+        done <<<"$out"
+    done
+
+    if [[ -n "$errors" ]]; then
+        fail "$label: bestow could not plan $(printf '%s' "$errors" | grep -c .) package(s); the rest were checked"
+        printf '%s' "$errors" | notes_capped 8
+        note "fix: look at the message above, then: bestow stow -n ${error_pkgs% }"
+    fi
+    if [[ -n "$missing" ]]; then
+        local count pkgs
+        count="$(printf '%s' "$missing" | grep -c .)"
+        pkgs="$(printf '%s' "$missing" | cut -d/ -f1 | sort -u | tr '\n' ' ')"
+        fail "$label: $count repo file(s) not linked"
+        printf '%s' "$missing" | notes_capped 8
+        if [[ "$label" == "bin" ]]; then
+            note "fix: bestow stow bin --destination ~/bin"
+        else
+            note "fix: bestow stow ${pkgs% }"
+        fi
+    fi
+    if [[ -n "$conflicts" ]]; then
+        fail "$label: $(printf '%s' "$conflicts" | grep -c .) destination(s) blocked by an existing file or other link (config not active)"
+        printf '%s' "$conflicts" | notes_capped 8
+        note "fix: inspect, then bestow stow <pkg> --backup (or --adopt, then review git diff)"
+    fi
+    if [[ -z "$errors" && -z "$missing" && -z "$conflicts" ]]; then
+        ok "$label: all files linked"
+    fi
+}
+
+check_packages() {
+    section "Symlinks (bestow)"
+
+    if [[ $IN_WORKTREE -eq 1 && $DOTFILES_EXPLICIT -eq 0 ]]; then
+        warn "running from a linked git worktree; links in ~ are compared against THIS worktree"
+        note "links that point at your main checkout will show up as blocked/unlinked below"
+        note "to check the live setup: run the installed dotdoctor, or DOTFILES=<main checkout> dotdoctor"
+    fi
+
+    if ! command -v bestow >/dev/null 2>&1; then
+        warn "bestow not installed; skipping link checks (go install github.com/redpierrot/bestow@latest)"
+        return
+    fi
+
+    local pkgs=() d name
+    for d in "$DOTFILES"/*/; do
+        name="${d%/}"
+        name="${name##*/}"
+        case "$name" in
+            bin | docs | packages | claude-*) continue ;;
+            # Bootstrapped by init.sh (bestow init), not linked; see check_bestow_config.
+            bestow) continue ;;
+        esac
+        pkgs+=("$name")
+    done
+
+    if [[ ${#pkgs[@]} -gt 0 ]]; then
+        check_links "packages (${#pkgs[@]})" "$HOME" "${pkgs[@]}"
+    fi
+    # bin links into ~/bin, not ~/.
+    if [[ -d "$DOTFILES/bin" ]]; then
+        check_links "bin" "$HOME/bin" bin
+    fi
+}
+
+check_dangling() {
+    local found="" link target abs
+
+    while IFS= read -r link; do
+        [[ -z "$link" ]] && continue
+        [[ -e "$link" ]] && continue
+        target="$(readlink "$link")"
+        if [[ "$target" == /* ]]; then
+            abs="$target"
+        else
+            abs="$(dirname "$link")/$target"
+        fi
+        if in_repo "$abs"; then
+            found="${found}${link} -> ${target}"$'\n'
+        fi
+    done < <(
+        {
+            find "$HOME" -maxdepth 1 -type l 2>/dev/null
+            find "$HOME/.claude-personal" "$HOME/.claude-enterprise" -maxdepth 1 -type l 2>/dev/null
+            find "$HOME/bin" "$HOME/.local/bin" "$HOME/.hammerspoon" -maxdepth 3 -type l 2>/dev/null
+            find "$HOME/.config" -maxdepth 5 \( -name node_modules -o -name 'gws-*' \) -prune -o -type l -print 2>/dev/null
+        } | sort -u
+    )
+
+    if [[ -n "$found" ]]; then
+        warn "$(printf '%s' "$found" | grep -c .) dangling symlink(s) into the repo"
+        printf '%s' "$found" | notes_capped 10
+        note "fix: remove each with rm (they point at files that no longer exist)"
+    else
+        ok "no dangling symlinks into the repo"
+    fi
+}
+
+check_bestow_config() {
+    local live="$HOME/.config/bestow/config.yaml"
+    local repo="$DOTFILES/bestow/.config/bestow/config.yaml"
+
+    if [[ ! -f "$repo" ]]; then
+        warn "repo copy of the bestow config is missing ($repo)"
+    elif [[ ! -f "$live" ]]; then
+        warn "bestow config not bootstrapped ($(tilde "$live")); run: bestow init"
+    elif cmp -s "$live" "$repo"; then
+        ok "bestow config matches the repo copy"
+    else
+        warn "bestow config differs from the repo copy"
+        note "diff $(tilde "$live") $repo"
+        note "init.sh bootstraps the live file; keep the two in sync by hand"
+    fi
+}
+
+check_claude_links() {
+    local personal="$HOME/.claude-personal"
+    local claude="$HOME/.claude"
+
+    if [[ -L "$claude" ]]; then
+        if [[ -d "$personal" && "$(cd -P "$claude" 2>/dev/null && pwd)" == "$(cd -P "$personal" 2>/dev/null && pwd)" ]]; then
+            ok "~/.claude -> ~/.claude-personal"
+        else
+            warn "~/.claude is a symlink to $(readlink "$claude"), not ~/.claude-personal"
+        fi
+    elif [[ -d "$claude" ]]; then
+        warn "~/.claude is a real directory, not a symlink to ~/.claude-personal"
+        note "plain \`claude\` outside a pinned project reads it; move its contents into ~/.claude-personal first"
+        note "then: ln -s ~/.claude-personal ~/.claude"
+    else
+        warn "~/.claude does not exist; run: ln -s ~/.claude-personal ~/.claude"
+    fi
+
+    local link="$personal/settings.local.json"
+    local repo="$DOTFILES/.claude/settings.local.json"
+    if [[ ! -e "$repo" ]]; then
+        warn "repo .claude/settings.local.json is missing (untracked; nothing to link)"
+    elif [[ -L "$link" && "$link" -ef "$repo" ]]; then
+        ok "~/.claude-personal/settings.local.json -> repo .claude/settings.local.json"
+    elif [[ -e "$link" ]]; then
+        warn "~/.claude-personal/settings.local.json exists but is not a link to the repo copy"
+    else
+        warn "settings.local.json is not linked; run: ln -s $repo $(tilde "$link")"
+    fi
+}
+
+check_secrets() {
+    local key="$HOME/.config/sops/age/keys.txt"
+    if [[ -f "$key" ]]; then
+        local mode
+        mode="$(stat -f %Lp "$key" 2>/dev/null || stat -c %a "$key" 2>/dev/null || echo "")"
+        if [[ -n "$mode" && "$mode" != "600" && "$mode" != "400" ]]; then
+            warn "age key is mode $mode (expected 600): chmod 600 $key"
+        else
+            ok "age key present"
+        fi
+    else
+        fail "age key missing ($(tilde "$key")); secrets cannot be decrypted. Restore it or run ./init.sh"
+    fi
+
+    local env_file="$HOME/.env"
+    if [[ ! -f "$env_file" ]]; then
+        warn "~/.env not found; create it with edit_secrets"
+    elif grep -q '^sops_mac=' "$env_file" 2>/dev/null; then
+        ok "~/.env is sops-encrypted"
+    else
+        fail "~/.env is plaintext; re-encrypt it (edit_secrets or: sops -e -i --input-type dotenv --output-type dotenv ~/.env)"
+    fi
+
+    # A plaintext .env inside the repo is a failure even though .gitignore keeps
+    # it out of commits: it sits on disk next to the code, in every backup and
+    # sync of the checkout, and one `git add -f` from being published. Only a
+    # sops-encrypted copy is harmless.
+    if [[ -f "$DOTFILES/zsh/.env" ]]; then
+        if grep -q '^sops_mac=' "$DOTFILES/zsh/.env" 2>/dev/null; then
+            warn "$DOTFILES/zsh/.env exists inside the repo (sops-encrypted); the live copy belongs in ~/.env"
+        elif git -C "$DOTFILES" check-ignore -q zsh/.env 2>/dev/null; then
+            fail "$DOTFILES/zsh/.env holds plaintext secrets inside the repo (git-ignored, but still on disk); move its values to ~/.env (edit_secrets) and delete it"
+        else
+            fail "$DOTFILES/zsh/.env holds plaintext secrets inside the repo and is NOT git-ignored; move its values to ~/.env (edit_secrets) and delete it"
+        fi
+    fi
+
+    local f plain=""
+    for f in "$HOME"/.env.backup*; do
+        [[ -f "$f" ]] || continue
+        grep -q '^sops_mac=' "$f" 2>/dev/null || plain="${plain}${f}"$'\n'
+    done
+    if [[ -n "$plain" ]]; then
+        warn "$(printf '%s' "$plain" | grep -c .) unencrypted ~/.env backup file(s); rotate their secrets and delete them"
+        printf '%s' "$plain" | notes_capped 5
+    fi
+}
+
+check_tools() {
+    local spoon="$HOME/.hammerspoon/Spoons/ControlEscape.spoon"
+    if [[ -d "$spoon" ]]; then
+        ok "ControlEscape.spoon installed"
+    else
+        warn "ControlEscape.spoon not cloned"
+        note "fix: git clone https://github.com/jasonrudolph/ControlEscape.spoon.git $(tilde "$spoon")"
+    fi
+
+    local tpm="$HOME/.tmux/plugins/tpm"
+    if [[ -d "$tpm" ]]; then
+        ok "tmux plugin manager installed"
+        local conf="$DOTFILES/tmux/.tmux.conf" missing="" plugin
+        if [[ -f "$conf" ]]; then
+            while IFS= read -r plugin; do
+                [[ -d "$HOME/.tmux/plugins/${plugin##*/}" ]] || missing="${missing}${plugin}"$'\n'
+            done < <(sed -n "s/^set -g @plugin '\\([^']*\\)'.*/\\1/p" "$conf")
+        fi
+        if [[ -n "$missing" ]]; then
+            warn "tmux plugin(s) declared but not installed"
+            printf '%s' "$missing" | notes_capped 8
+            note "fix: press prefix + I inside tmux"
+        fi
+    else
+        warn "tmux plugin manager missing"
+        note "fix: git clone https://github.com/tmux-plugins/tpm $(tilde "$tpm"), then prefix + I in tmux"
+    fi
+}
+
+check_gws_guard() {
+    local p
+    p="$(command -v gws 2>/dev/null || true)"
+    if [[ -z "$p" ]]; then
+        warn "no gws on PATH (brew install googleworkspace-cli); guard not exercised"
+        return
+    fi
+    # Never execute an unknown gws: it could be the real binary.
+    if [[ "$p" -ef "$DOTFILES/bin/gws" ]]; then
+        local rc
+        env -u GOOGLE_WORKSPACE_CLI_CONFIG_DIR "$p" >/dev/null 2>&1 </dev/null
+        rc=$?
+        if [[ $rc -eq 64 ]]; then
+            ok "bare gws is blocked (exit 64 without an account)"
+        else
+            fail "bin/gws guard exited $rc without an account, expected 64"
+        fi
+    else
+        fail "gws on PATH is $p, not the bin/gws guard; bare gws is not blocked"
+        note "fix: bestow stow bin --destination ~/bin, and keep ~/bin before Homebrew on PATH"
+    fi
+}
+
+check_plugin_dirs() {
+    if ! command -v jq >/dev/null 2>&1; then
+        warn "jq not installed; skipping CLAUDE_CODE_PLUGIN_DIRS check"
+        return
+    fi
+
+    local mods="" m
+    for m in "$DOTFILES"/claude-mods/*/; do
+        m="${m%/}"
+        [[ -f "$m/.claude-plugin/plugin.json" ]] && mods="${mods}${m##*/}"$'\n'
+    done
+
+    local settings account dirs entry name path problems listed
+    for settings in "$DOTFILES"/claude/.claude-*/settings.json; do
+        [[ -f "$settings" ]] || continue
+        account="$(basename "$(dirname "$settings")")"
+        problems=""
+        listed=""
+        if ! dirs="$(jq -r '.env.CLAUDE_CODE_PLUGIN_DIRS // ""' "$settings" 2>/dev/null)"; then
+            fail "$account: settings.json is not valid JSON"
+            continue
+        fi
+
+        while IFS= read -r entry; do
+            [[ -z "$entry" ]] && continue
+            entry="${entry%/}"
+            name="${entry##*/}"
+            listed="${listed}${name}"$'\n'
+            # Claude expands a leading ~ itself; do the same to test the path.
+            path="${entry/#\~/$HOME}"
+            if [[ ! -f "$path/.claude-plugin/plugin.json" ]]; then
+                problems="${problems}listed but missing or not a plugin: ${entry}"$'\n'
+            elif ! in_repo "$path" && ! in_repo "$(cd -P "$path" 2>/dev/null && pwd)"; then
+                # Matching by name alone would accept a same-named plugin from anywhere.
+                problems="${problems}listed outside this repo: ${entry}"$'\n'
+            fi
+        done < <(printf '%s\n' "$dirs" | tr ':' '\n')
+
+        while IFS= read -r name; do
+            [[ -z "$name" ]] && continue
+            if ! printf '%s' "$listed" | grep -qxF "$name"; then
+                problems="${problems}mod not loaded: claude-mods/${name}"$'\n'
+            fi
+        done <<<"$mods"
+
+        if [[ -n "$problems" ]]; then
+            fail "$account: CLAUDE_CODE_PLUGIN_DIRS out of sync with claude-mods/"
+            printf '%s' "$problems" | notes_capped 8
+        else
+            ok "$account: CLAUDE_CODE_PLUGIN_DIRS matches claude-mods/ ($(printf '%s' "$mods" | grep -c .) mods)"
+        fi
+    done
+}
+
+check_full() {
+    section "Packages and mods (--full)"
+
+    if command -v brew >/dev/null 2>&1; then
+        if [[ -f "$DOTFILES/Brewfile" ]]; then
+            # `brew bundle` normally runs an auto-update first (network, writes to
+            # the Homebrew repo); keep this check read-only and offline.
+            if HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_ANALYTICS=1 HOMEBREW_NO_ENV_HINTS=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
+                brew bundle check --file="$DOTFILES/Brewfile" >/dev/null 2>&1; then
+                ok "Brewfile is satisfied"
+            else
+                warn "Brewfile has missing packages"
+                note "fix: brew bundle --file=$DOTFILES/Brewfile"
+            fi
+        fi
+    else
+        warn "brew not installed; skipping brew bundle check"
+    fi
+
+    if command -v claude >/dev/null 2>&1; then
+        # validate writes .claude.json and backups into CLAUDE_CONFIG_DIR, so give
+        # it a throwaway one instead of the active account's directory.
+        local m out
+        SCRATCH_CONFIG="$(mktemp -d "${TMPDIR:-/tmp}/dotdoctor-claude.XXXXXX")" || SCRATCH_CONFIG=""
+        if [[ -z "$SCRATCH_CONFIG" ]]; then
+            warn "could not create a temporary CLAUDE_CONFIG_DIR; skipping plugin validation"
+            return
+        fi
+        trap 'rm -rf -- "$SCRATCH_CONFIG"' EXIT
+        for m in "$DOTFILES"/claude-mods/*/; do
+            m="${m%/}"
+            [[ -f "$m/.claude-plugin/plugin.json" ]] || continue
+            if out="$(CLAUDE_CONFIG_DIR="$SCRATCH_CONFIG" claude plugin validate "$m" 2>&1)"; then
+                ok "claude plugin validate: ${m##*/}"
+            else
+                fail "claude plugin validate failed: ${m##*/}"
+                printf '%s\n' "$out" | notes_capped 5
+            fi
+        done
+        rm -rf -- "$SCRATCH_CONFIG"
+    else
+        warn "claude CLI not installed; skipping plugin validation"
+    fi
+}
+
+# --- run -------------------------------------------------------------------
+
+printf '%sdotdoctor%s  %s%s%s\n' "$C_BOLD" "$C_OFF" "$C_DIM" "$DOTFILES" "$C_OFF"
+
+check_packages
+
+section "Stale links"
+check_dangling
+
+section "Bestow"
+check_bestow_config
+
+section "Claude Code"
+check_claude_links
+check_plugin_dirs
+
+section "Secrets"
+check_secrets
+
+section "Tools"
+check_tools
+check_gws_guard
+
+if [[ $FULL -eq 1 ]]; then
+    check_full
+fi
+
+printf '\n%s%d ok%s, %s%d warning(s)%s, %s%d failed%s\n' \
+    "$C_OK" "$N_OK" "$C_OFF" "$C_WARN" "$N_WARN" "$C_OFF" "$C_FAIL" "$N_FAIL" "$C_OFF"
+
+[[ $N_FAIL -eq 0 ]]

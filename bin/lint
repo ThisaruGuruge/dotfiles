@@ -72,6 +72,7 @@ BASH_FILES=(
     bin/reset-dotfiles
     bin/sync-brewfile
     bin/tmux-status-claude
+    bin/dotdoctor
     claude/.claude-enterprise/statusline-command.sh
     claude/.claude-personal/statusline-command.sh
 )
@@ -86,6 +87,7 @@ ZSH_FILES=(
     zsh/.functions.d/*.zsh
     zsh/.zshrc.d/*.zsh
     bin/profile-zsh-startup
+    bin/test-shell-helpers
     bin/test-zsh-config
     bin/tmux-status-battery
     bin/tmux-status-sysinfo

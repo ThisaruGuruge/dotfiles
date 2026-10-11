@@ -1,0 +1,541 @@
+#!/bin/zsh
+#
+# test-shell-helpers -- behavioural tests for dotdoctor, envrc, git_ignore_local,
+# prs/prw and the lazy direnv hook.
+#
+# Everything runs against throwaway directories: a scratch HOME, isolated
+# direnv/XDG dirs and fake gh/fzf/osascript/claude binaries. It never touches
+# your real HOME, direnv allow database or accounts, and makes no network calls.
+#
+# Usage: test-shell-helpers          (exit 0 = all passed, 1 = a test failed)
+# Environment: DOTFILES=<repo> to test a different checkout (default: this one).
+# Groups are skipped (not failed) when their tools are missing (direnv, bestow).
+
+emulate -L zsh
+
+SELF=${${(%):-%x}:A}
+if [[ -n ${DOTFILES:-} ]]; then
+    REPO=${DOTFILES:A}
+else
+    REPO=${SELF:h:h}
+fi
+
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/test-shell-helpers.XXXXXX") || exit 1
+TMP=${TMP:A} # physical path: bestow and dotdoctor compare paths as strings
+trap 'chmod -R u+rwx "$TMP" 2>/dev/null; rm -rf -- "$TMP"' EXIT
+
+# Isolate from the real environment before anything runs.
+export HOME=$TMP/home
+export XDG_CONFIG_HOME=$HOME/.config XDG_DATA_HOME=$TMP/data XDG_CACHE_HOME=$TMP/cache
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+mkdir -p "$HOME" "$XDG_CONFIG_HOME" "$XDG_DATA_HOME" "$XDG_CACHE_HOME"
+unset CLAUDE_CONFIG_DIR GOOGLE_WORKSPACE_CLI_CONFIG_DIR GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND DIRENV_DIR DIRENV_FILE DIRENV_DIFF DIRENV_WATCHES
+
+PASSES=0 FAILS=0 SKIPS=0
+check() { # check <name> <command...>   passes when the command succeeds
+    local name=$1
+    shift
+    if "$@" >/dev/null 2>&1; then
+        print -r -- "  PASS $name"
+        PASSES=$((PASSES + 1))
+    else
+        print -r -- "  FAIL $name"
+        FAILS=$((FAILS + 1))
+    fi
+}
+skip() {
+    print -r -- "  SKIP $1"
+    SKIPS=$((SKIPS + 1))
+}
+group() { print -r -- "$1"; }
+has() { grep -q -- "$1" "$2"; }
+lacks() { ! grep -q -- "$1" "$2"; }
+has_fixed() { grep -qF -- "$1" "$2"; }
+lacks_fixed() { ! grep -qF -- "$1" "$2"; }
+rc_is() { [[ $1 -eq $2 ]]; }
+
+# ---------------------------------------------------------------------------
+# Fake external commands
+# ---------------------------------------------------------------------------
+FAKE=$TMP/fakebin
+mkdir -p "$FAKE"
+cat >"$FAKE/gh" <<'EOF'
+#!/bin/bash
+echo "gh $*" >>"$GH_LOG"
+case "$1 $2" in
+    "pr list") cat "$GH_LIST_JSON" ;;
+    "pr checkout") echo "checked out $3" ;;
+    "pr view")
+        if [[ "$*" == *--json* ]]; then cat "$GH_VIEW_JSON"; else echo "#12 Add thing"; fi
+        ;;
+    "pr checks")
+        if [[ "$*" == *--json* ]]; then
+            [[ -n "${GH_BUCKETS_FAIL:-}" ]] && {
+                echo "no checks reported" >&2
+                exit 1
+            }
+            cat "$GH_BUCKETS_JSON"
+        else
+            exit "${GH_CHECKS_RC:-0}"
+        fi
+        ;;
+esac
+EOF
+cat >"$FAKE/fzf" <<'EOF'
+#!/bin/bash
+echo "fzf $*" >>"$GH_LOG"
+tee "$FZF_IN" | head -1
+EOF
+cat >"$FAKE/osascript" <<'EOF'
+#!/bin/bash
+echo "osascript $*" >>"$GH_LOG"
+EOF
+cat >"$FAKE/claude" <<'EOF'
+#!/bin/bash
+echo "CLAUDE_CONFIG_DIR=${CLAUDE_CONFIG_DIR-<unset>} GWS=[${GOOGLE_WORKSPACE_CLI_CONFIG_DIR-<unset>}] ARGS=$*"
+EOF
+chmod +x "$FAKE"/*
+export GH_LOG=$TMP/gh.log FZF_IN=$TMP/fzf.in
+
+# ---------------------------------------------------------------------------
+# git_ignore_local + envrc
+# ---------------------------------------------------------------------------
+group "git_ignore_local, envrc"
+source "$REPO/zsh/.functions.d/04-git.zsh"
+source "$REPO/zsh/.functions.d/02-navigation.zsh"
+
+PROJ=$TMP/proj
+mkdir -p "$PROJ/sub/deep"
+cd "$PROJ" || exit 1
+
+OUT=$TMP/out
+envrc >"$OUT" 2>&1
+check "envrc with no args prints usage, exit 0" rc_is $? 0
+envrc bogus >"$OUT" 2>&1
+check "envrc with an unknown command exits 1" rc_is $? 1
+check "usage explains who overrides what" has "gws works only inside a pinned tree" "$OUT"
+envrc status >"$OUT" 2>&1
+check "status: no pin by default" has "No envrc pin applies" "$OUT"
+
+print y | envrc work >"$OUT" 2>&1
+check "work writes a managed .envrc" has '^# Managed by envrc: enterprise' .envrc
+check "pin exports the gws dir" has 'GOOGLE_WORKSPACE_CLI_CONFIG_DIR=.*gws-enterprise' .envrc
+check "gws account dir is created mode 700" test "$(stat -f %Lp "$HOME/.config/gws-enterprise" 2>/dev/null || stat -c %a "$HOME/.config/gws-enterprise")" = 700
+check "output says bare gws is allowed inside the tree" has "bare .gws. now uses the pinned account" "$OUT"
+envrc work >"$OUT" 2>&1
+check "second identical envrc work is a no-op, exit 0" rc_is $? 0
+cd sub/deep || exit 1
+envrc status >"$OUT" 2>&1
+check "status in a subdirectory shows the inherited pin" has "inherited from a parent" "$OUT"
+check "status explains the override rules" has "ccp/cce set CLAUDE_CONFIG_DIR and blank the gws pin" "$OUT"
+envrc off >"$OUT" 2>&1
+check "off in a subdirectory with no .envrc is a no-op, exit 0" rc_is $? 0
+cd "$PROJ" || exit 1
+
+print y | envrc personal >"$OUT" 2>&1
+check "switching a pristine pin asks and rewrites" has 'gws-personal' .envrc
+check "switching a pristine pin makes no backup" test ! -e .envrc.bak
+print n | envrc work >"$OUT" 2>&1
+check "declining keeps the old pin" has 'gws-personal' .envrc
+
+# user edits to a managed file are detected, backed up and reported
+print 'export EXTRA=1' >>.envrc
+envrc status >"$OUT" 2>&1
+check "status notes a managed file edited by hand" has "has been edited" "$OUT"
+print y | envrc work >"$OUT" 2>&1
+check "edited managed file: warns about the edits" has "has been edited since" "$OUT"
+check "edited managed file: backup holds the edits" has 'EXTRA=1' .envrc.bak
+check "edited managed file: replaced with the new pin" has 'gws-enterprise' .envrc
+rm -f .envrc.bak
+
+# unmanaged file: backup before replacing
+print 'export MINE=1' >.envrc
+print n | envrc personal >"$OUT" 2>&1
+check "unmanaged .envrc survives a no" has 'MINE=1' .envrc
+envrc off >"$OUT" 2>&1
+check "off refuses an unmanaged .envrc" rc_is $? 1
+print y | envrc personal >"$OUT" 2>&1
+check "unmanaged .envrc is replaced on yes" has 'Managed by envrc' .envrc
+check "unmanaged .envrc is backed up first" has 'MINE=1' .envrc.bak
+rm -f .envrc.bak
+
+# off: decline, accept, and a hand-edited pin is backed up
+print n | envrc off >"$OUT" 2>&1
+check "off declined keeps the file" test -f .envrc
+print 'export EDIT=1' >>.envrc
+print y | envrc off >"$OUT" 2>&1
+check "off removes an edited pin" test ! -e .envrc
+check "off keeps a backup of an edited pin" has 'EDIT=1' .envrc.bak
+rm -f .envrc.bak
+
+# symlinks are never written through
+print shared >"$TMP/shared-target"
+ln -s "$TMP/shared-target" .envrc
+print y | envrc work >"$OUT" 2>&1
+rc=$?
+check "symlinked .envrc is refused" rc_is $rc 1
+check "symlink target is left untouched" test "$(<"$TMP/shared-target")" = shared
+check "symlink itself is left in place" test -L .envrc
+envrc off >"$OUT" 2>&1
+check "off refuses a symlinked .envrc" rc_is $? 1
+rm -f .envrc
+ln -s "$TMP/nonexistent-target" .envrc
+print y | envrc work >"$OUT" 2>&1
+check "dangling symlink is refused and no target is created" test ! -e "$TMP/nonexistent-target"
+rm -f .envrc
+
+# git exclude handling
+REPOD=$TMP/gitrepo
+mkdir -p "$REPOD/svc"
+git -C "$REPOD" init -q . >/dev/null 2>&1
+git -C "$REPOD" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init >/dev/null 2>&1
+printf 'node_modules' >"$REPOD/.git/info/exclude" # no trailing newline
+cd "$REPOD/svc" || exit 1
+print y | envrc work >"$OUT" 2>&1
+check "exclude entry is anchored to the file" has_fixed '/svc/.envrc' "$REPOD/.git/info/exclude"
+check "pre-existing last line is not glued to the new entry" has_fixed 'node_modules' "$REPOD/.git/info/exclude"
+check "the old last line stays on its own line" grep -qx node_modules "$REPOD/.git/info/exclude"
+check "git really ignores the pin" git check-ignore -q .envrc
+check "success is reported" has "Added '/svc/.envrc'" "$OUT"
+print y | envrc personal >"$OUT" 2>&1
+check "exclude entry is not duplicated" test "$(grep -cxF '/svc/.envrc' "$REPOD/.git/info/exclude")" = 1
+
+# linked worktree: .git is a file; exclude lives in the common dir
+WT=$TMP/wt
+git -C "$REPOD" worktree add -q "$WT" -b wtbranch >/dev/null 2>&1
+mkdir -p "$WT/pkg"
+cd "$WT/pkg" || exit 1
+check "worktree .git is a file" test -f "$WT/.git"
+print y | envrc work >"$OUT" 2>&1
+check "worktree: no error output" lacks "not a directory" "$OUT"
+check "worktree: pin is ignored by git" git check-ignore -q .envrc
+check "worktree: entry written to the shared exclude file" has_fixed '/pkg/.envrc' "$REPOD/.git/info/exclude"
+
+# tracked .envrc: exclude cannot help, and we must not claim success
+cd "$REPOD" || exit 1
+print 'x' >.envrc
+git add -f .envrc >/dev/null 2>&1
+git -c user.name=t -c user.email=t@t commit -q -m tracked >/dev/null 2>&1
+print y | envrc work >"$OUT" 2>&1
+check "tracked .envrc: warns it is still not ignored" has "still not ignored" "$OUT"
+
+cd "$TMP" || exit 1
+git_ignore_local foo >"$OUT" 2>&1
+check "git_ignore_local outside a repo fails" rc_is $? 1
+git_ignore_local >"$OUT" 2>&1
+check "git_ignore_local without args fails" rc_is $? 1
+
+# ---------------------------------------------------------------------------
+# lazy direnv hook + envrc reloading
+# ---------------------------------------------------------------------------
+group "direnv lazy hook"
+if ! command -v direnv >/dev/null 2>&1; then
+    skip "direnv not installed"
+else
+    HOOK_SRC=$TMP/hook.zsh
+    sed -n '/^# Lazy load direnv/,/^# Initialize atuin/p' "$REPO/zsh/.zshrc.d/05-shell-integrations.zsh" | sed '$d' >"$HOOK_SRC"
+    check "hook block extracted" test -s "$HOOK_SRC"
+
+    TREE=$TMP/tree
+    mkdir -p "$TREE/a/b/c" "$TMP/plain/x"
+    # direnv's zsh hook does nothing outside an interactive top-level shell, so
+    # each scenario is a fresh `zsh -f -i` reading its commands from stdin.
+    run_shell() { # run_shell <startdir> <commands...>  -> the RESULT: lines it printed
+        local start=$1
+        shift
+        zsh -f -i 2>/dev/null <<EOF | sed -n 's/^RESULT://p'
+cd '$start' || exit 3
+source '$HOOK_SRC'
+source '$REPO/zsh/.functions.d/04-git.zsh'
+source '$REPO/zsh/.functions.d/02-navigation.zsh'
+run_precmd() { local f; for f in \$precmd_functions; do \$f; done; }
+$*
+exit
+EOF
+    }
+    show() { print 'print "RESULT:v=${CLAUDE_CONFIG_DIR-unset} g=${GOOGLE_WORKSPACE_CLI_CONFIG_DIR-unset}"'; }
+
+    # pin the tree, then use fresh shells
+    ( cd "$TREE" && print y | envrc work >/dev/null 2>&1 )
+    PIN="v=$HOME/.claude-enterprise g=$HOME/.config/gws-enterprise"
+
+    out=$(run_shell "$TMP/plain/x" 'run_precmd; print "RESULT:hook=${+functions[_direnv_hook]} check=${+functions[_direnv_check]} v=${CLAUDE_CONFIG_DIR-unset}"')
+    check "no .envrc above: direnv stays lazy (hook not loaded)" test "$out" = "hook=0 check=1 v=unset"
+
+    out=$(run_shell "$TREE/a/b/c" "run_precmd; $(show)")
+    check "new shell started in a subdir of a pinned tree gets the pin at the first prompt" test "$out" = "$PIN"
+
+    out=$(run_shell "$TMP/plain/x" "run_precmd; cd '$TREE/a/b'; $(show)")
+    check "cd into a subdir of a pinned tree loads the pin (no .envrc in that dir)" test "$out" = "$PIN"
+
+    out=$(run_shell "$TMP/plain/x" "run_precmd; cd '$TREE/a'; cd '$TMP/plain'; $(show)")
+    check "leaving the pinned tree unloads the pin" test "$out" = "v=unset g=unset"
+
+    # envrc itself applies / removes the pin right away, no cd needed
+    mkdir -p "$TMP/fresh/sub"
+    out=$(run_shell "$TMP/fresh/sub" "run_precmd; print y | envrc work >/dev/null 2>&1; $(show)")
+    check "envrc work takes effect immediately in the current shell" test "$out" = "$PIN"
+    # direnv compares .envrc mtimes in whole seconds, so a rewrite in the same
+    # second as the previous load is invisible to it; a person never hits that.
+    sleep 1
+    out=$(run_shell "$TMP/fresh/sub" "run_precmd; print y | envrc personal >/dev/null 2>&1; $(show)")
+    check "envrc personal switches the pin immediately" test "$out" = "v=$HOME/.claude-personal g=$HOME/.config/gws-personal"
+    out=$(run_shell "$TMP/fresh/sub" "run_precmd; print y | envrc off >/dev/null 2>&1; $(show)")
+    check "envrc off removes the pin immediately (hook already loaded by the first prompt)" test "$out" = "v=unset g=unset"
+    out=$(run_shell "$TMP/fresh/sub" "print y | envrc work >/dev/null 2>&1; print y | envrc off >/dev/null 2>&1; $(show)")
+    check "envrc work then off in one shell unsets the variables" test "$out" = "v=unset g=unset"
+    check "envrc off removed the file" test ! -e "$TMP/fresh/sub/.envrc"
+fi
+
+# ---------------------------------------------------------------------------
+# cce* aliases (explicit commands beat a pin)
+# ---------------------------------------------------------------------------
+group "cc* aliases"
+ALIASES=$REPO/zsh/.aliases.sh
+# Source the real aliases file (aliases or functions, whichever the command is)
+# in a bare zsh with a pinned work environment, and show what claude receives.
+alias_out() { # alias_out <command>
+    (
+        export PATH=$FAKE:$PATH
+        export GOOGLE_WORKSPACE_CLI_CONFIG_DIR=$HOME/.config/gws-enterprise
+        export GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file
+        export CLAUDE_CONFIG_DIR=$HOME/.claude-enterprise
+        zsh -f -c "setopt aliases; source '$ALIASES' >/dev/null 2>&1; eval $1" 2>&1
+    )
+}
+for name in cce ccer ccec; do
+    out=$(alias_out $name)
+    check "$name blanks the gws pin for claude" has_fixed 'GWS=[]' <(print -r -- "$out")
+    check "$name sets the enterprise Claude dir" has_fixed "CLAUDE_CONFIG_DIR=$HOME/.claude-enterprise" <(print -r -- "$out")
+done
+for name in ccp ccpr ccpc; do
+    out=$(alias_out $name)
+    if has_fixed 'GWS=[]' <(print -r -- "$out"); then
+        check "$name blanks the gws pin for claude" true
+    else
+        skip "$name still passes the pinned gws dir through (personal cc* are converted on fix/claude-mods-hardening; blank GOOGLE_WORKSPACE_CLI_CONFIG_DIR there)"
+    fi
+done
+GWS_RC=0
+env GOOGLE_WORKSPACE_CLI_CONFIG_DIR= "$REPO/bin/gws" >/dev/null 2>&1 || GWS_RC=$?
+check "bin/gws guard blocks when the gws dir is set but empty" rc_is $GWS_RC 64
+
+# ---------------------------------------------------------------------------
+# prs / prw
+# ---------------------------------------------------------------------------
+group "prs, prw"
+ESC=$'\e'
+print -r -- '[{"number":12,"title":"Add \u001b]0;pwned\u0007thing\\nnext \u001b[31mred","headRefName":"feat/x","author":{"login":"alice"},"isDraft":true,"reviewDecision":"APPROVED"},{"number":7,"title":"Fix bug","headRefName":"fix/y","author":{"login":"bob"},"isDraft":false,"reviewDecision":""}]' >"$TMP/list.json"
+print -r -- '{"number":12,"title":"Add \u001b]0;pwned\u0007thing\\nnext \u001b[31mred"}' >"$TMP/view.json"
+export GH_LIST_JSON=$TMP/list.json GH_VIEW_JSON=$TMP/view.json GH_BUCKETS_JSON=$TMP/buckets.json
+(
+    export PATH=$FAKE:$PATH
+    : >"$GH_LOG"
+    prs >"$TMP/prs.out" 2>&1
+    cp "$GH_LOG" "$TMP/prs.log"
+    prs --author @me >/dev/null 2>&1
+    cp "$GH_LOG" "$TMP/prs2.log"
+)
+check "prs checks out the picked PR" has "checked out 12" "$TMP/prs.out"
+check "prs does not pass --ansi to fzf" lacks_fixed '--ansi' "$TMP/prs.log"
+check "prs list rows contain no escape characters" lacks "$ESC" "$FZF_IN"
+check "prs keeps the draft marker and branch" has "\[draft\] Add" "$FZF_IN"
+check "prs passes extra flags to gh pr list" has 'pr list --limit 100 --author @me' "$TMP/prs2.log"
+check "prs keeps its key bindings" has 'ctrl-o:execute-silent(gh pr view {1} --web)' "$TMP/prs.log"
+
+prw_run() { # prw_run <rc> [buckets-json|FAIL] [prw args...]
+    local rc=$1 buckets=$2
+    shift 2
+    (
+        export PATH=$FAKE:$PATH GH_CHECKS_RC=$rc
+        : >"$GH_LOG"
+        if [[ $buckets == FAIL ]]; then export GH_BUCKETS_FAIL=1; else print -r -- "$buckets" >"$GH_BUCKETS_JSON"; fi
+        prw "$@" >"$TMP/prw.out" 2>&1
+        print $? >"$TMP/prw.rc"
+    )
+}
+prw_run 0 '[]'
+check "prw: rc 0 reports all passed" has "All checks passed" "$TMP/prw.out"
+check "prw: exit status mirrors gh (0)" test "$(<"$TMP/prw.rc")" = 0
+check "prw: backslash sequences in titles are printed literally" has_fixed 'thing\nnext' "$TMP/prw.out"
+check "prw: no escape characters other than the bell reach the terminal" lacks "$ESC" "$TMP/prw.out"
+check "prw: notification is sent" has 'osascript' "$GH_LOG"
+prw_run 8 '[{"bucket":"pending"}]'
+check "prw: rc 8 reports pending" has "still pending" "$TMP/prw.out"
+prw_run 1 '[{"bucket":"pass"},{"bucket":"fail"}]'
+check "prw: failed check reports failure" has "Checks failed" "$TMP/prw.out"
+check "prw: exit status mirrors gh (1)" test "$(<"$TMP/prw.rc")" = 1
+prw_run 1 '[{"bucket":"pass"},{"bucket":"cancel"}]'
+check "prw: cancelled check is not called failed" has "Checks cancelled" "$TMP/prw.out"
+prw_run 1 FAIL
+check "prw: rc 1 with no checks reported is not 'failed'" lacks "Checks failed" "$TMP/prw.out"
+check "prw: rc 1 with no checks reported says so" has "No check result" "$TMP/prw.out"
+prw_run 1 '[]' 12 --fail-fast --required -R o/r
+check "prw: PR number and flags reach gh pr checks" has 'pr checks 12 --watch --fail-fast --required -R o/r' "$GH_LOG"
+check "prw: result query keeps --required and -R" has 'pr checks 12 --required -R o/r --json bucket' "$GH_LOG"
+(
+    export PATH=/usr/bin:/bin
+    prs >"$TMP/g.out" 2>&1
+    print $? >"$TMP/g.rc"
+    prw >>"$TMP/g.out" 2>&1
+)
+check "prs and prw fail with a hint when tools are missing" has "prs needs gh" "$TMP/g.out"
+
+# ---------------------------------------------------------------------------
+# dotdoctor
+# ---------------------------------------------------------------------------
+group "dotdoctor"
+DD=$REPO/bin/dotdoctor
+run_dd() { # run_dd [args]: run dotdoctor against the fixture repo/home; output in $TMP/dd.out, status in $DD_RC
+    (
+        export HOME=$DHOME XDG_CONFIG_HOME=$DHOME/.config PATH=$DHOME/bin:$FAKE:$PATH DOTFILES=$DREPO NO_COLOR=1
+        "$DD" "$@"
+    ) >"$TMP/dd.out" 2>&1
+    DD_RC=$?
+}
+check "dotdoctor --help exits 0" "$DD" --help
+"$DD" --nope >/dev/null 2>&1
+check "dotdoctor rejects unknown options with exit 2" rc_is $? 2
+
+if ! command -v bestow >/dev/null 2>&1; then
+    skip "bestow not installed; skipping dotdoctor fixture tests"
+else
+    DREPO=$TMP/drepo DHOME=$TMP/dhome
+    mkdir -p "$DREPO/a/.config/x" "$DREPO/b/.config/x" "$DREPO/c" "$DREPO/bin" "$DREPO/zsh" \
+        "$DREPO/claude-mods/m1/.claude-plugin" "$DREPO/claude/.claude-personal" "$DREPO/claude/.claude-enterprise" "$DREPO/.claude" \
+        "$DHOME/bin" "$DHOME/.config/sops/age" "$DHOME/.hammerspoon/Spoons/ControlEscape.spoon" "$DHOME/.tmux/plugins/tpm" \
+        "$DHOME/.claude-personal" "$DHOME/.claude-enterprise"
+    print .env >"$DREPO/.bestowignore" # like the real repo: a stray zsh/.env is never a package file
+    print 1 >"$DREPO/a/.config/x/f"
+    print 2 >"$DREPO/b/.config/x/g"
+    print 3 >"$DREPO/c/.zshrc"
+    print '{}' >"$DREPO/claude-mods/m1/.claude-plugin/plugin.json"
+    print '{}' >"$DREPO/.claude/settings.local.json"
+    print '{"env":{"CLAUDE_CODE_PLUGIN_DIRS":"~/dotfiles/claude-mods/m1"}}' | tee "$DREPO/claude/.claude-personal/settings.json" >"$DREPO/claude/.claude-enterprise/settings.json"
+    cp "$REPO/bin/gws" "$REPO/bin/dotdoctor" "$DREPO/bin/"
+    git -C "$DREPO" init -q . >/dev/null 2>&1
+    ln -s "$DREPO" "$DHOME/dotfiles"
+    ln -s "$DHOME/.claude-personal" "$DHOME/.claude"
+    ln -s ../dotfiles/.claude/settings.local.json "$DHOME/.claude-personal/settings.local.json"
+    print key >"$DHOME/.config/sops/age/keys.txt"
+    chmod 600 "$DHOME/.config/sops/age/keys.txt"
+    printf 'A=ENC[x]\nsops_mac=abc\n' >"$DHOME/.env"
+    # bestow refuses to run without a config file, even when given --source/--destination
+    mkdir -p "$DHOME/.config/bestow"
+    printf 'version: 0.1.0\nprofiles:\n  default:\n    source: %s\n    destination: %s\n' "$DREPO" "$DHOME" >"$DHOME/.config/bestow/config.yaml"
+    stow_all() {
+        XDG_CONFIG_HOME=$DHOME/.config bestow stow a b c claude --source "$DREPO" --destination "$DHOME" >/dev/null 2>&1
+        XDG_CONFIG_HOME=$DHOME/.config bestow stow bin --source "$DREPO" --destination "$DHOME/bin" >/dev/null 2>&1
+    }
+    stow_all
+
+    run_dd
+    check "healthy fixture: exit 0" rc_is $DD_RC 0
+    check "healthy fixture: packages linked" has "all files linked" "$TMP/dd.out"
+    check "healthy fixture: no failures" has "0 failed" "$TMP/dd.out"
+
+    rm "$DHOME/.zshrc"
+    run_dd
+    check "missing link: exit 1" rc_is $DD_RC 1
+    check "missing link: names the file and the fix" has "c/.zshrc" "$TMP/dd.out"
+    stow_all
+
+    rm "$DHOME/.config/x/f"
+    print local >"$DHOME/.config/x/f"
+    run_dd
+    check "blocked destination (config not active): exit 1" rc_is $DD_RC 1
+    check "blocked destination is a failure, not a warning" has "✘ packages.*blocked" "$TMP/dd.out"
+    rm -f "$DHOME/.config/x/f"
+    stow_all
+
+    # one package bestow cannot plan must not hide the status of the others
+    mkdir "$DREPO/b/priv"
+    print 4 >"$DREPO/b/priv/h"
+    chmod 000 "$DREPO/b/priv"
+    rm "$DHOME/.zshrc"
+    run_dd
+    chmod 755 "$DREPO/b/priv"
+    check "unplannable package: exit 1" rc_is $DD_RC 1
+    check "unplannable package: reported by name" has "b (exit" "$TMP/dd.out"
+    check "unplannable package: other packages are still checked" has "c/.zshrc" "$TMP/dd.out"
+    rm -rf "$DREPO/b/priv"
+    stow_all
+
+    # dangling links: only links into this repo count
+    ln -s /somewhere/else/dotfiles/gone "$DHOME/unrelated-link"
+    ln -s "$DREPO/gone" "$DHOME/stale-link"
+    ln -s dotfiles/gone-rel "$DHOME/stale-rel"
+    run_dd
+    check "dangling link into the repo is reported" has "stale-link" "$TMP/dd.out"
+    check "dangling relative link via ~/dotfiles is reported" has "stale-rel" "$TMP/dd.out"
+    check "dangling link into an unrelated */dotfiles/* path is ignored" lacks "unrelated-link" "$TMP/dd.out"
+    check "dangling links are a warning: exit stays 0" rc_is $DD_RC 0
+    rm -f "$DHOME/unrelated-link" "$DHOME/stale-link" "$DHOME/stale-rel"
+
+    # secrets
+    print 'T=plain' >"$DREPO/zsh/.env"
+    run_dd
+    check "plaintext zsh/.env in the repo: exit 1" rc_is $DD_RC 1
+    check "plaintext zsh/.env: message says it is plaintext" has "plaintext secrets inside the repo" "$TMP/dd.out"
+    printf 'T=ENC[x]\nsops_mac=abc\n' >"$DREPO/zsh/.env"
+    run_dd
+    check "sops-encrypted zsh/.env in the repo is only a warning" rc_is $DD_RC 0
+    rm -f "$DREPO/zsh/.env"
+
+    # plugin dirs: same name from another place is not accepted
+    mkdir -p "$TMP/elsewhere/m1/.claude-plugin"
+    print '{}' >"$TMP/elsewhere/m1/.claude-plugin/plugin.json"
+    print "{\"env\":{\"CLAUDE_CODE_PLUGIN_DIRS\":\"$TMP/elsewhere/m1\"}}" >"$DREPO/claude/.claude-personal/settings.json"
+    run_dd
+    check "plugin dir with a matching name outside the repo: exit 1" rc_is $DD_RC 1
+    check "plugin dir outside the repo is named" has "listed outside this repo" "$TMP/dd.out"
+    print '{"env":{"CLAUDE_CODE_PLUGIN_DIRS":"~/dotfiles/claude-mods/m1"}}' >"$DREPO/claude/.claude-personal/settings.json"
+
+    # warnings do not fail the run
+    rm -rf "$DHOME/.hammerspoon/Spoons/ControlEscape.spoon"
+    run_dd
+    check "warnings alone keep exit 0" rc_is $DD_RC 0
+    check "warning is shown" has "⚠ ControlEscape.spoon" "$TMP/dd.out"
+
+    # --full: brew runs offline, claude validate uses a throwaway config dir
+    cat >"$FAKE/brew" <<'EOF'
+#!/bin/bash
+echo "brew $* NO_AUTO_UPDATE=${HOMEBREW_NO_AUTO_UPDATE-unset} NO_ANALYTICS=${HOMEBREW_NO_ANALYTICS-unset}" >>"$BREW_LOG"
+EOF
+    cat >"$FAKE/claude" <<'EOF'
+#!/bin/bash
+echo "claude $* CLAUDE_CONFIG_DIR=${CLAUDE_CONFIG_DIR-unset}" >>"$CLAUDE_LOG"
+touch "${CLAUDE_CONFIG_DIR:?}/.claude.json"
+EOF
+    chmod +x "$FAKE/brew" "$FAKE/claude"
+    print '' >"$DREPO/Brewfile"
+    export BREW_LOG=$TMP/brew.log CLAUDE_LOG=$TMP/claude.log
+    : >"$BREW_LOG"
+    : >"$CLAUDE_LOG"
+    export TMPDIR=$TMP/tmpdir
+    mkdir -p "$TMPDIR"
+    CLAUDE_CONFIG_DIR=$TMP/active-claude run_dd --full
+    check "--full: brew bundle check runs with auto-update off" has "NO_AUTO_UPDATE=1 NO_ANALYTICS=1" "$BREW_LOG"
+    check "--full: plugin validate never sees the active CLAUDE_CONFIG_DIR" lacks "active-claude" "$CLAUDE_LOG"
+    check "--full: plugin validate runs in a throwaway config dir" has "CLAUDE_CONFIG_DIR=$TMPDIR/dotdoctor-claude" "$CLAUDE_LOG"
+    check "--full: throwaway config dir is removed" test -z "$(command ls "$TMPDIR")"
+    check "--full: active config dir untouched" test ! -e "$TMP/active-claude"
+
+    # run from a linked worktree without DOTFILES: explain the mismatch
+    WT2=$TMP/ddwt
+    git -C "$DREPO" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init >/dev/null 2>&1
+    git -C "$DREPO" worktree add -q "$WT2" -b ddwt >/dev/null 2>&1
+    mkdir -p "$WT2/bin"
+    cp "$DD" "$WT2/bin/dotdoctor"
+    (
+        export HOME=$DHOME XDG_CONFIG_HOME=$DHOME/.config PATH=$DHOME/bin:$FAKE:$PATH NO_COLOR=1
+        unset DOTFILES
+        "$WT2/bin/dotdoctor"
+    ) >"$TMP/dd.out" 2>&1
+    check "linked worktree without DOTFILES: warns about comparing against the worktree" has "linked git worktree" "$TMP/dd.out"
+fi
+
+# ---------------------------------------------------------------------------
+print
+print -r -- "Passed: $PASSES   Failed: $FAILS   Skipped: $SKIPS"
+(( FAILS == 0 ))

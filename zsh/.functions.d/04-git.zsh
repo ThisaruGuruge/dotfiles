@@ -2,7 +2,7 @@
 # ============================================================================
 # Git Functions
 # ============================================================================
-# Git helper utilities: gs(), git_ignore_local()
+# Git helper utilities: gs(), git_ignore_local(), prs(), prw()
 
 # Catppuccin Mocha palette (truecolor)
 _gs_color() {
@@ -169,14 +169,137 @@ git_ignore_local() {
         return 1
     fi
 
-    local repo_root
-    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
-
-    if [ -z "$repo_root" ]; then
+    # --git-path resolves info/exclude correctly in linked worktrees and
+    # submodules, where .git is a file and the exclude file lives elsewhere.
+    local exclude
+    if ! exclude=$(git rev-parse --git-path info/exclude 2>/dev/null) || [ -z "$exclude" ]; then
         echo "Not inside a Git repository."
         return 1
     fi
+    exclude="${exclude:A}"
 
-    echo "$1" >>"$repo_root/.git/info/exclude"
-    echo "Added '$1' to $repo_root/.git/info/exclude"
+    if [ -f "$exclude" ] && grep -qxF -- "$1" "$exclude"; then
+        echo "'$1' is already in $exclude"
+        return 0
+    fi
+
+    mkdir -p "${exclude:h}" || return 1
+    # Keep the new entry on its own line if the file lacks a trailing newline.
+    if [ -s "$exclude" ] && [ -n "$(tail -c1 "$exclude")" ]; then
+        printf '\n' >>"$exclude" || return 1
+    fi
+    if ! printf '%s\n' "$1" >>"$exclude"; then
+        echo "Could not write to $exclude"
+        return 1
+    fi
+    echo "Added '$1' to $exclude"
+}
+
+# ============================================================================
+# GitHub PR helpers: prs(), prw()
+# ============================================================================
+
+# Browse the repo's pull requests with fzf (needs gh, jq and fzf).
+#   enter   check the PR out          ctrl-o  open it in the browser
+#   ctrl-d  full diff through delta   (the preview pane shows `gh pr view`)
+# Extra arguments go to `gh pr list`, e.g. `prs --author @me`, `prs --state all`.
+# PR titles and branch names are untrusted text: control characters (including
+# ESC) are replaced with spaces before they reach the terminal, and fzf is not
+# given --ansi, so a title cannot inject escape sequences into the list.
+prs() {
+    if ! command -v gh >/dev/null 2>&1 || ! command -v fzf >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+        echo "prs needs gh, fzf and jq (brew install gh fzf jq)"
+        return 1
+    fi
+
+    local differ="${PAGER:-less}"
+    command -v delta >/dev/null 2>&1 && differ="delta --paging=always"
+
+    local json list
+    if ! json=$(gh pr list --limit 100 "$@" --json number,title,headRefName,author,isDraft,reviewDecision); then
+        return 1
+    fi
+    if ! list=$(printf '%s' "$json" | jq -r 'def clean: gsub("[[:cntrl:]]"; " ");
+        .[] | [(.number|tostring), (if .isDraft then "[draft] " else "" end) + (.title|clean), (.headRefName|clean), (.author.login|clean), (.reviewDecision // "")] | @tsv'); then
+        echo "prs: could not parse the output of gh pr list"
+        return 1
+    fi
+    if [[ -z "$list" ]]; then
+        echo "No pull requests found."
+        return 0
+    fi
+
+    local pick
+    pick=$(printf '%s\n' "$list" | fzf --delimiter=$'\t' --with-nth=1,2,3,4,5 --tabstop=2 \
+        --header $'enter: checkout   ctrl-o: browser   ctrl-d: diff' \
+        --preview 'gh pr view {1}' --preview-window 'right,60%,wrap' \
+        --bind 'ctrl-o:execute-silent(gh pr view {1} --web)' \
+        --bind "ctrl-d:execute(gh pr diff {1} | $differ)") || return 0
+
+    [[ -z "$pick" ]] && return 0
+    gh pr checkout "${pick%%$'\t'*}"
+}
+
+# Watch a PR's checks until they finish, then post a macOS notification with
+# the result. `prw` uses the current branch's PR; `prw 123` or `prw <url>`
+# picks one. Extra flags go to `gh pr checks` (e.g. `prw --fail-fast`).
+# The exit status mirrors `gh pr checks` (0 passed, 8 pending, other = failed
+# or not determinable); the message says which: failed, cancelled, still
+# pending, or "no result" when gh reports no checks or cannot be reached.
+prw() {
+    if ! command -v gh >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+        echo "prw needs gh and jq (brew install gh jq)"
+        return 1
+    fi
+
+    local target=""
+    if [[ -n "$1" && "$1" != -* ]]; then
+        target="$1"
+        shift
+    fi
+
+    local title
+    title=$(gh pr view ${target:+"$target"} --json number,title | jq -r 'def clean: gsub("[[:cntrl:]]"; " "); "#\(.number) \(.title|clean)"') || return 1
+    [[ -z "$title" ]] && return 1
+
+    gh pr checks ${target:+"$target"} --watch "$@"
+    local rc=$?
+
+    # Anything but 0/8 is ambiguous (failed checks, no checks reported, auth or
+    # network trouble), so ask gh for the final buckets of the checks.
+    local result buckets
+    case $rc in
+        0) result="All checks passed" ;;
+        8) result="Checks still pending" ;;
+        *)
+            local scope=() prev=""
+            local arg
+            for arg in "$@"; do
+                case "$arg" in
+                    --required | -R?* | --repo=*) scope+=("$arg") ;;
+                    *) [[ "$prev" == -R || "$prev" == --repo ]] && scope+=("$prev" "$arg") ;;
+                esac
+                prev="$arg"
+            done
+            if buckets=$(gh pr checks ${target:+"$target"} "${scope[@]}" --json bucket 2>/dev/null | jq -r '[.[].bucket] | unique | join(" ")' 2>/dev/null) && [[ -n "$buckets" ]]; then
+                case " $buckets " in
+                    *" fail "*) result="Checks failed" ;;
+                    *" cancel "*) result="Checks cancelled" ;;
+                    *" pending "*) result="Checks still pending" ;;
+                    *) result="Checks finished ($buckets) but gh exited $rc" ;;
+                esac
+            else
+                result="No check result (gh exited $rc: no checks reported, or gh could not be reached)"
+            fi
+            ;;
+    esac
+
+    printf '\a'
+    printf '%s: %s\n' "$title" "$result"
+    if command -v osascript >/dev/null 2>&1; then
+        osascript -e 'on run argv' \
+            -e 'display notification (item 1 of argv) with title (item 2 of argv)' \
+            -e 'end run' -- "$title" "prw: $result" >/dev/null 2>&1
+    fi
+    return $rc
 }

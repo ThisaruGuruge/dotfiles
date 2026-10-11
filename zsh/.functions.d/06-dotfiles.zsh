@@ -453,6 +453,10 @@ update_dotfiles() {
         echo "   💡 Re-run ./init.sh if you need new features"
     fi
 
+    if command -v dotdoctor >/dev/null 2>&1; then
+        echo "   🩺 Run dotdoctor to check for files that still need linking (bestow stow <pkg>)"
+    fi
+
     # Cleanup old backup branches (keep last 5)
     echo ""
     echo "🧹 Cleaning up old backups..."
