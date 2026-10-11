@@ -1,0 +1,6 @@
+{
+  "name": "conventions",
+  "version": "0.1.0",
+  "description": "Advisory post-edit checks (tab indentation, shfmt, zsh -n, stylua, token-shaped test fixtures) fed back to Claude",
+  "types": "./types/index.d.ts"
+}
