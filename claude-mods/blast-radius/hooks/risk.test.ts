@@ -1,6 +1,18 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { classify, joinPath, scrubMessages, splitSegments, stripMessageHeredocs, substitutions, tokenize } from './risk'
+import {
+  classify,
+  cleanDryRun,
+  findPreviewArgs,
+  joinPath,
+  lex,
+  parseClean,
+  sanitize,
+  scrubMessages,
+  splitSegments,
+  substitutions,
+  tokenize,
+} from './risk'
 
 const kinds = (c: string) => classify(c).map(r => r.kind)
 const only = (c: string) => [...new Set(kinds(c))]
@@ -150,6 +162,147 @@ describe('classify', () => {
     expect(only('psql <<EOF\nDROP TABLE users;\nEOF')).toEqual(['sql'])
   })
 
+  test('redirections do not hide or change a command', () => {
+    expect(kinds('git clean -fdx 2>/dev/null')).toEqual(['git-clean'])
+    expect(classify('git clean -fdx 2>/dev/null')[0]?.args).toEqual(['-fdx'])
+    expect(kinds("find . -name '*.pyc' -delete 2>/dev/null")).toEqual(['find-delete'])
+    expect(kinds('2>&1 git push -f')).toEqual(['git-push-force'])
+    expect(kinds('>out git push -f')).toEqual(['git-push-force'])
+    expect(kinds('git push origin main -f 2>&1 | tail')).toEqual(['git-push-force'])
+    expect(classify('cd repo 2>&1 && git reset --hard')[0]?.cwd).toBe('repo')
+  })
+
+  test('comments, heredoc bodies and stray quotes do not hide what runs', () => {
+    expect(kinds("# don't do this\ngit push -f")).toEqual(['git-push-force'])
+    expect(kinds("echo hi # it's fine\ngit reset --hard")).toEqual(['git-reset-hard'])
+    expect(kinds("cat > n.txt <<'EOF'\nit's done\nEOF\ngit push -f origin main")).toEqual(['git-push-force'])
+    expect(kinds("cat > n.txt <<EOF\nit's done\nEOF\ngit reset --hard")).toEqual(['git-reset-hard'])
+    expect(kinds("cat <<-EOF\n\tit's\n\tEOF\ngit push -f")).toEqual(['git-push-force'])
+    expect(kinds('echo "unterminated\ngit push -f')).toEqual(['git-push-force'])
+    expect(kinds("echo ${x:-'}\ngit push -f")).toEqual(['git-push-force'])
+    expect(kinds("echo $'a\\'b'; git push -f")).toEqual(['git-push-force'])
+    expect(kinds('x=$((1<<2))\ngit push -f')).toEqual(['git-push-force'])
+    // A heredoc a shell reads is commands
+    expect(only("bash <<'EOF'\nrm -rf /tmp/x\nEOF")).toEqual(['rm'])
+    expect(only("cat <<'EOF' | sh\ngit push -f\nEOF")).toEqual(['git-push-force'])
+    expect(only("cat <<'EOF' | psql\nDROP TABLE users;\nEOF")).toEqual(['sql'])
+  })
+
+  test('text in quoted heredocs and comments is not a command', () => {
+    const safe = [
+      "gh pr create --title x --body \"$(cat <<'EOF'\n## Summary\n- Detects `git push -f` and `rm -rf /`\n- don't break\nEOF\n)\"",
+      "cat > notes.md <<'EOF'\nRun `git push -f` carefully\nEOF",
+      "cat > notes.md <<'EOF'\ngit push -f\nrm -rf build\nEOF",
+      "git commit -m \"$(cat <<'EOF'\ndon't use rm -rf\nEOF\n)\"",
+      'git push origin main # not -f',
+      'git merge -m "drop table" x',
+    ]
+    for (const c of safe) expect(kinds(c)).toEqual([])
+  })
+
+  test('sees through more wrappers, here-strings, pipes into a shell, case and functions', () => {
+    for (const c of [
+      'caffeinate -i git push -f',
+      'caffeinate -t 60 git push -f',
+      'stdbuf -o0 git push -f',
+      'chronic git push -f',
+      'setsid git push -f',
+      'watch -n 5 git push -f',
+      "watch 'git push -f'",
+      'coproc git push -f',
+      "bash <<< 'git push -f'",
+      "sh -s <<< 'git push -f'",
+      "echo 'git push -f' | bash",
+      "printf 'git push -f\\n' | sh",
+      'case x in x) git push -f;; esac',
+      'case $1 in\n  a|b) ls ;;\n  *) git push -f ;;\nesac',
+      'f() { git push -f; }; f',
+      'function f { git push -f; }; f',
+      "git $'push' -f",
+    ])
+      expect(only(c)).toEqual(['git-push-force'])
+    expect(kinds("echo 'git push -f' | bash script.sh")).toEqual([])
+  })
+
+  test('ssh payloads are flagged as remote', () => {
+    const [r] = classify("ssh -p 22 host 'cd /srv && rm -rf app'")
+    expect(r?.kind).toBe('rm')
+    expect(r?.remote).toBe('host')
+    expect(r?.cwd).toBeUndefined()
+    expect(kinds('ssh host ls')).toEqual([])
+  })
+
+  test('git accepts abbreviated long options', () => {
+    expect(kinds('git reset --ha')).toEqual(['git-reset-hard'])
+    expect(kinds('git reset --h')).toEqual(['git-reset-hard'])
+    expect(kinds('git push --forc')).toEqual(['git-push-force'])
+    expect(kinds('git push --delet origin x')).toEqual(['git-push-delete'])
+    expect(kinds('git push --mirro')).toEqual(['git-push-delete'])
+    expect(kinds('git push --prun origin')).toEqual(['git-push-delete'])
+    expect(kinds('git clean --forc -d')).toEqual(['git-clean'])
+    expect(kinds('git clean -f --dry')).toEqual([])
+    expect(kinds('git push --force-with-lease --force-if-includes')).toEqual([])
+    expect(kinds('git push --force-w origin main')).toEqual([])
+  })
+
+  test('git clean options are read as git reads them', () => {
+    // -n here is -e's value, not a dry run
+    expect(kinds('git clean -fdx -e -n')).toEqual(['git-clean'])
+    expect(kinds('git clean -fn')).toEqual([])
+  })
+
+  test('flags other ways to lose work', () => {
+    expect(kinds('git checkout -f main')).toEqual(['git-discard'])
+    expect(kinds('git checkout -- .')).toEqual(['git-discard'])
+    expect(kinds('git checkout .')).toEqual(['git-discard'])
+    expect(kinds('git restore .')).toEqual(['git-discard'])
+    expect(kinds('git restore --worktree :/')).toEqual(['git-discard'])
+    expect(kinds('git restore -SW .')).toEqual(['git-discard'])
+    expect(kinds('git switch --discard-changes main')).toEqual(['git-discard'])
+    expect(kinds('git stash clear')).toEqual(['git-stash-clear'])
+    expect(kinds("find . -name '*.o' -exec rm {} +")).toEqual(['find-delete'])
+    expect(kinds('find . -exec rm -rf {} \\;')).toEqual(['find-delete'])
+    expect(kinds('git ls-files -z | xargs -0 rm')).toEqual(['rm'])
+    expect(classify('git ls-files | xargs rm')[0]?.fromXargs).toBe(true)
+    const safe = [
+      'git checkout main',
+      'git checkout -b feature',
+      'git checkout -- src/app.ts',
+      'git restore --staged .',
+      'git restore src/app.ts',
+      'git switch -c feature',
+      'git stash drop',
+      'git branch -D old',
+      'find . -exec grep -l x {} +',
+      'xargs echo',
+    ]
+    for (const c of safe) expect(kinds(c)).toEqual([])
+  })
+
+  test('nesting past the parsed depth still asks when it looks destructive', () => {
+    expect(kinds('bash -c "bash -c \'bash -c \\"git push -f\\"\'"')).toEqual(['nested'])
+    expect(kinds('eval "$(echo "$(echo "$(git push -f)")")"')).toEqual(['nested'])
+    expect(kinds('bash -c "bash -c \'bash -c \\"echo hi\\"\'"')).toEqual([])
+  })
+
+  test('stays fast on long adversarial input', () => {
+    const N = 80000
+    const inputs = [
+      `rm -${'r'.repeat(N)}_`,
+      Array.from({ length: N / 30 }, () => `git commit -m "$(cat <<'EOF'`).join('\n'),
+      Array.from({ length: N / 22 }, () => 'git commit -F - <<EOF').join('\n'),
+      '"'.repeat(N),
+      "'".repeat(N),
+      '$('.repeat(N / 2),
+      `cat > big.ts <<'EOF'\n${"const x = \"it's\"; // don't $(rm -rf x)\n".repeat(N / 40)}EOF`,
+    ]
+    for (const c of inputs) {
+      const t = Date.now()
+      classify(c)
+      expect(Date.now() - t).toBeLessThan(2000)
+    }
+  })
+
   test('records where the command runs', () => {
     expect(classify('cd sub && rm -rf build')[0]?.cwd).toBe('sub')
     expect(classify('cd /srv && cd app && git clean -fd')[0]?.cwd).toBe('/srv/app')
@@ -162,6 +315,7 @@ describe('classify', () => {
     expect(classify('rm -rf build')[0]?.cwd).toBeUndefined()
     // A subshell's cd ends with it
     expect(classify('(cd x && make); rm -rf build')[0]?.cwd).toBeUndefined()
+    expect(classify('(cd x; make) 2>&1; rm -rf build')[0]?.cwd).toBeUndefined()
     expect(classify('git --git-dir=/r/.git reset --hard')[0]?.gitArgs).toEqual(['--git-dir=/r/.git'])
   })
 })
@@ -187,9 +341,48 @@ describe('parsing', () => {
     expect(scrubMessages('echo -m "rm -rf x"')).toBe('echo -m "rm -rf x"')
   })
 
-  test('drops only git message heredocs', () => {
-    expect(stripMessageHeredocs("git commit -F - <<'EOF'\nbody\nEOF\nls")).toBe("git commit -F - <<'EOF'\nEOF\nls")
-    expect(stripMessageHeredocs("cat <<'EOF'\nbody\nEOF")).toBe("cat <<'EOF'\nbody\nEOF")
+  test('takes out comments and heredoc bodies', () => {
+    expect(sanitize("git commit -F - <<'EOF'\nbody\nEOF\nls").code).toBe("git commit -F - <<'EOF'\nls")
+    expect(sanitize("cat <<'EOF'\nit's $(x)\nEOF").code).toBe("cat <<'EOF'\n")
+    // An unquoted delimiter expands what is in the body
+    expect(sanitize('cat <<EOF\nit\'s $(date)\nEOF').code).toBe('cat <<EOF\n$(date)\n')
+    // A shell reads the body as commands
+    expect(sanitize("bash <<'EOF'\nls # it's\nEOF").code).toBe("bash <<'EOF'\nls \n\n")
+    // SQL reads it as data, for the SQL check only
+    expect(sanitize("psql <<'EOF'\nDROP TABLE t;\nEOF").texts).toEqual(['DROP TABLE t;\n'])
+    expect(sanitize('ls # a comment\necho a#b').code).toBe('ls \necho a#b')
+    // A heredoc that never ends is left as code; arithmetic is not a heredoc
+    expect(sanitize("cat <<'EOF'\ngit push -f").code).toBe("cat <<'EOF'\ngit push -f")
+    expect(sanitize('x=$((a<<b))\nls').code).toBe('x=$((a<<b))\nls')
+    // A quote that never closes is read as a literal
+    expect(sanitize('echo "abc\nls').code).toBe('echo \\"abc\nls')
+  })
+
+  test('drops redirections and keeps here-strings apart', () => {
+    expect(lex('git clean -fdx 2>/dev/null').words).toEqual(['git', 'clean', '-fdx'])
+    expect(lex('2>&1 git push -f >out').words).toEqual(['git', 'push', '-f'])
+    expect(lex('find . -delete > /tmp/log 2>&1').words).toEqual(['find', '.', '-delete'])
+    expect(lex('cmd &>/dev/null {fd}>x a>b').words).toEqual(['cmd', 'a'])
+    expect(lex("bash <<< 'git push -f'")).toEqual({ words: ['bash'], hereStrings: ['git push -f'] })
+    expect(lex("cat <<'EOF' >x").words).toEqual(['cat'])
+    expect(lex('diff <(ls a) b').words).toEqual(['diff', '<(ls', 'a', 'b'])
+    expect(lex("echo $'a\\'b' \"2>x\"").words).toEqual(['echo', "a'b", '2>x'])
+    expect(splitSegments('a 2>&1 && b &>/dev/null & c >&2')).toEqual(['a 2>&1', 'b &>/dev/null', 'c >&2'])
+  })
+
+  test('parses git clean as git does', () => {
+    expect(parseClean(['-fdx', '-e', '-n'])).toEqual({ force: 1, dry: false, letters: ['d', 'x'], excludes: ['-n'], paths: [] })
+    expect(parseClean(['-fexyz']).excludes).toEqual(['xyz'])
+    expect(parseClean(['--forc', '--dry']).dry).toBe(true)
+    expect(cleanDryRun(['-ffdx'])).toEqual(['clean', '-n', '-ffdx'])
+    expect(cleanDryRun(['-fexyz'])).toEqual(['clean', '-n', '-e', 'xyz'])
+    expect(cleanDryRun(['-f', '--exclude=a', '--', '-x'])).toEqual(['clean', '-n', '-e', 'a', '--', '-x'])
+  })
+
+  test('previews find without its delete actions', () => {
+    expect(findPreviewArgs(['.', '-name', '*.o', '-exec', 'rm', '{}', '+'])).toEqual(['.', '-name', '*.o'])
+    expect(findPreviewArgs(['.', '-execdir', '/bin/rm', '-f', '{}', ';', '-print'])).toEqual(['.', '-print'])
+    expect(findPreviewArgs(['.', '-exec', 'touch', '{}', ';', '-delete'])).toBeNull()
   })
 
   test('joins directories', () => {

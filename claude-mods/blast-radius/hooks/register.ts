@@ -1,6 +1,6 @@
 import type { Register } from 'claude-code'
 
-import { LABELS, classify, cleanDryRun, clip, human, isGlob, rmTargets } from './risk'
+import { LABELS, classify, cleanDryRun, clip, cluster, findPreviewArgs, human, isGlob, isLong, rmTargets } from './risk'
 import type { Risk } from './risk'
 
 const RUN = 'Run it'
@@ -12,7 +12,7 @@ type Sh = {
   process: {
     run: (
       argv: readonly string[],
-      init?: { cwd?: string; timeoutMs?: number },
+      init?: { cwd?: string; env?: Record<string, string>; timeoutMs?: number },
     ) => Promise<{ exitCode: number; stdout: string; stderr: string }>
   }
   fs: { stat: (path: string) => Promise<{ kind: string; size: number }> }
@@ -34,11 +34,17 @@ async function where($: Sh, risk: Risk): Promise<Where> {
   return { cwd: expandHome(risk.cwd, home), home }
 }
 
-const run = ($: Sh, w: Where, argv: string[]) =>
-  $.process.run(argv, { ...(w.cwd !== undefined ? { cwd: w.cwd } : {}), timeoutMs: TIMEOUT_MS })
+const run = ($: Sh, w: Where, argv: string[], env?: Record<string, string>) =>
+  $.process.run(argv, { ...(w.cwd !== undefined ? { cwd: w.cwd } : {}), ...(env ? { env } : {}), timeoutMs: TIMEOUT_MS })
+
+// The preview runs git in a directory the command names, before anyone agreed
+// to run anything there: no fsmonitor hook (repo config can name a program),
+// no untracked cache writes, no optional index lock.
+export const GIT_SAFE = ['-c', 'core.fsmonitor=false', '-c', 'core.untrackedCache=false']
+const GIT_ENV = { GIT_OPTIONAL_LOCKS: '0' }
 
 async function git($: Sh, w: Where, risk: Risk, args: string[]): Promise<string> {
-  const r = await run($, w, ['git', ...(risk.gitArgs ?? []), ...args])
+  const r = await run($, w, ['git', ...GIT_SAFE, ...(risk.gitArgs ?? []), ...args], GIT_ENV)
   if (r.exitCode !== 0) {
     throw new Error(`git ${args[0]} failed: ${r.stderr.trim().slice(0, 200)}`)
   }
@@ -114,10 +120,19 @@ async function previewChmod($: Sh, w: Where, risk: Risk): Promise<string[]> {
 }
 
 async function previewFor($: Sh, risk: Risk): Promise<string[]> {
+  if (risk.remote !== undefined) return [`Runs on ${risk.remote}; nothing there can be previewed from here.`]
+  if (risk.kind === 'nested') {
+    return [
+      'It is nested deeper (bash -c, eval, $(...) inside each other) than is parsed, and mentions a destructive command.',
+      `Command: ${risk.segment.slice(0, 300)}`,
+    ]
+  }
+  if (risk.fromXargs) return ['rm under xargs: the paths come from its input, so they cannot be listed here.']
   const w = await where($, risk)
   switch (risk.kind) {
     case 'rm':
       return previewRm($, w, risk)
+    case 'git-discard':
     case 'git-reset-hard': {
       const status = await git($, w, risk, ['status', '--short'])
       const out = [
@@ -144,18 +159,22 @@ async function previewFor($: Sh, risk: Risk): Promise<string[]> {
     }
     case 'git-push-delete': {
       const pos = risk.args.filter(a => !a.startsWith('-'))
-      const isDelete = risk.args.includes('--delete') || risk.args.some(a => /^-[A-Za-z]*d[A-Za-z]*$/.test(a))
+      const isDelete = risk.args.some(a => isLong(a, '--delete') || cluster(a, 'd'))
       const refs = isDelete ? pos.slice(1) : pos.filter(a => a.startsWith(':')).map(a => a.slice(1))
       const out: string[] = []
       if (refs.length) out.push(`Remote refs that would be deleted on ${pos[0] ?? 'the remote'}:`, ...clip(refs, 8))
-      if (risk.args.includes('--mirror')) out.push('--mirror deletes every remote ref that does not exist locally.')
-      if (risk.args.includes('--prune')) out.push('--prune deletes remote refs that have no local counterpart.')
+      if (risk.args.some(a => isLong(a, '--mirror'))) out.push('--mirror deletes every remote ref that does not exist locally.')
+      if (risk.args.some(a => isLong(a, '--prune'))) out.push('--prune deletes remote refs that have no local counterpart.')
       out.push('Deleted remote branches and tags cannot be restored from here.')
       return out
     }
     case 'git-clean': {
       const dry = await git($, w, risk, cleanDryRun(risk.args))
       return dry ? ['Would remove:', ...clip(dry.split('\n'))] : ['Nothing to remove right now']
+    }
+    case 'git-stash-clear': {
+      const list = await git($, w, risk, ['stash', 'list'])
+      return list ? ['Stashes that would be dropped:', ...clip(list.split('\n'), 8)] : ['(no stashes)']
     }
     case 'adopt': {
       const status = await git($, w, risk, ['status', '--short'])
@@ -178,14 +197,18 @@ async function previewFor($: Sh, risk: Risk): Promise<string[]> {
         'All data on it is lost.',
       ]
     case 'find-delete': {
-      // Never run a find that would act on its own (-exec, -ok, -fprint...); -delete itself is dropped
-      if (risk.args.some(a => /^-(exec|execdir|ok|okdir|fprint|fprint0|fprintf|fls)$/.test(a))) {
-        return ['find with -exec/-ok and -delete: not previewed, it would run them.']
-      }
-      const argv = ['find', ...risk.args.filter(a => a !== '-delete')]
-      const r = await run($, w, argv)
+      // Never run a find that would act on its own (-exec, -ok, -fprint...); -delete and -exec rm are dropped
+      const args = findPreviewArgs(risk.args)
+      if (args === null) return ['find with another -exec/-ok action: not previewed, it would run it.']
+      const r = await run($, w, ['find', ...args])
       const hits = r.stdout.split('\n').filter(Boolean)
-      return hits.length ? [`Would delete ${hits.length} entries:`, ...clip(hits)] : ['Nothing matches right now']
+      // find exits non-zero on a bad expression and on unreadable directories; only the first means "unknown"
+      if (r.exitCode !== 0 && hits.length === 0) {
+        throw new Error(`find exited ${r.exitCode}: ${r.stderr.trim().slice(0, 200)}`)
+      }
+      const out = hits.length ? [`Would delete ${hits.length} entries:`, ...clip(hits)] : ['Nothing matches right now']
+      if (r.exitCode !== 0) out.push(`(find also reported errors: ${r.stderr.trim().split('\n')[0]?.slice(0, 150) ?? ''})`)
+      return out
     }
     case 'rsync-delete': {
       const pos = risk.args.filter(a => !a.startsWith('-'))
@@ -218,32 +241,35 @@ async function buildPreview($: Sh, risks: Risk[]): Promise<string> {
   return parts.join('\n')
 }
 
+/**
+ * Asks about a risky command. Undefined: nothing risky, or the person said to
+ * run it. A preview that fails still asks; a question nobody answers denies.
+ */
+async function check($: Sh & { ui: { ask: (q: string, o: { options: string[]; header: string }) => Promise<string> } }, command: string) {
+  const risks = classify(command)
+  if (risks.length === 0) return undefined
+  const preview = await buildPreview($, risks)
+  let answer: string
+  try {
+    const question = `Risky command: ${command.slice(0, 300)}\n\n${preview.slice(0, 1500)}\n\nRun it?`
+    answer = await $.ui.ask(question, { options: [RUN, CANCEL], header: 'Blast radius' })
+  } catch {
+    return {
+      deny: `blast-radius: "${command.slice(0, 120)}" needs your confirmation and nobody answered. Not run.\n${preview.slice(0, 800)}`,
+    }
+  }
+  return answer === RUN ? undefined : { deny: `blast-radius: you cancelled "${command.slice(0, 120)}".` }
+}
+
+const failed = 'blast-radius: its guard failed, so the command was not run.'
+
 export const register: Register = on => {
-  on('tool.call', { tool: 'Bash' }, async ($, e, next) => {
-    const risks = classify(e.command)
-    if (risks.length === 0) {
-      return next(e)
-    }
-
-    // A preview that fails still asks. Anything else that fails, or a question
-    // nobody answers, denies the call.
-    const preview = await buildPreview($, risks)
-
-    let answer: string
-    try {
-      const question = `Risky command: ${e.command.slice(0, 300)}\n\n${preview.slice(0, 1500)}\n\nRun it?`
-      answer = await $.ui.ask(question, { options: [RUN, CANCEL], header: 'Blast radius' })
-    } catch {
-      return {
-        deny: `blast-radius: "${e.command.slice(0, 120)}" needs your confirmation and nobody answered. Not run.\n${preview.slice(0, 800)}`,
-      }
-    }
-
-    if (answer !== RUN) {
-      return { deny: `blast-radius: you cancelled "${e.command.slice(0, 120)}".` }
-    }
-    return next(e)
-  }).catch(($, e, next) =>
-    next.called ? next(e) : { deny: 'blast-radius: its guard failed, so the command was not run.' },
+  on('tool.call', { tool: 'Bash' }, async ($, e, next) => (await check($, e.command)) ?? next(e)).catch(($, e, next) =>
+    next.called ? next(e) : { deny: failed },
   )
+
+  // Monitor runs a shell command too (each line it prints is an event)
+  on('tool.call', { tool: 'Monitor' }, async ($, e, next) =>
+    e.command === undefined ? next(e) : ((await check($, e.command)) ?? next(e)),
+  ).catch(($, e, next) => (next.called ? next(e) : { deny: failed }))
 }

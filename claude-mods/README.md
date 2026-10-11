@@ -30,18 +30,25 @@ git-ignored. Mods load at session start, so restart a session after editing one.
 
 ## What the guards catch
 
-`blast-radius` asks before `rm -r`, `git reset --hard`, forced pushes (not `--force-with-lease`), pushes
-that delete remote refs (`--delete`, `:branch`, `--mirror`, `--prune`), `git clean -f`, `stow/bestow --adopt`,
-`chmod/chown -R`, `dd`, `mkfs`, `find -delete`, `rsync --delete` and destructive SQL or migrations. It sees
-through git's global options (`git -C dir`, `-c k=v`), wrapper options (`sudo -u root`, `env -C dir`,
-`nice -n 10`, `xargs -n 1`, `timeout 5`), subshells, `bash -c`, `eval` and `$(...)`, and ignores commit and
-tag messages. The preview runs where the command would (a leading `cd`, `git -C`); a preview that fails
-says so and still asks. Anything nobody answers is denied.
+`blast-radius` asks before `rm -r` (and any `xargs rm`), `git reset --hard`, forced pushes (not
+`--force-with-lease`), pushes that delete remote refs (`--delete`, `:branch`, `--mirror`, `--prune`),
+`git clean -f`, `git checkout -f`, `git checkout .`/`git restore .`, `git stash clear`, `stow/bestow --adopt`,
+`chmod/chown -R`, `dd`, `mkfs`, `find -delete`/`-exec rm`, `rsync --delete` and destructive SQL or
+migrations, in `Bash` and `Monitor` commands. It sees through git's global and abbreviated options
+(`git -C dir`, `-c k=v`, `--ha`), wrapper options (`sudo -u root`, `env -C dir`, `nice -n 10`,
+`xargs -n 1`, `timeout 5`, `caffeinate -i`, `watch`), subshells, `bash -c`, `eval`, `$(...)`, here-strings
+and pipes into a shell, `ssh host '...'`, comments, redirections and heredocs, and ignores commit, tag and
+merge messages and quoted heredocs written to files. Two levels of nesting are parsed; deeper ones ask
+when they mention a destructive command. The preview runs where the command would (a leading `cd`,
+`git -C`), with git's fsmonitor off; a preview that fails says so and still asks. Anything nobody answers
+is denied.
 
 `redact` hides distinctive tokens (AWS, GitHub, GitLab, npm, Hugging Face, Stripe, Anthropic/OpenAI,
 Slack, Google, JWTs, private and age keys), Bearer tokens and `Authorization` headers, URL passwords, and
 the values of credential-named settings (`*_TOKEN=`, `*PAT=`, `password:`, `secret_key=`, `apiKey:`). It
-leaves code that only names a secret (`config.apiKey`, `process.env.API_KEY2`) alone so edits still match.
+leaves code that only names a secret (`config.apiKey`, `process.env.API_KEY2`) and demo credentials
+(`postgres:postgres@`, `guest:guest@`, `localhost` URLs, `YOUR_TOKEN_HERE`) alone so edits still match and
+files round-trip.
 
 ## Outside the mods
 
