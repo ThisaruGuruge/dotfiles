@@ -24,13 +24,18 @@ cd() {
     fi
 }
 
-# Enhanced user confirmation function with single key press
+# Enhanced user confirmation function with single key press.
+# Returns 0 for yes, 1 for no, 2 for quit (or no input available). It never
+# exits the shell: callers run in the live interactive shell, where `exit`
+# would close the terminal. Callers that only care yes/no can treat any
+# non-zero status as "no".
 confirm() {
+    local key
     while true; do
         echo ""
         echo -en "  ${YELLOW}$1 (y/n/q): ${NC}"
-        read -rk1 -s key
-        echo                # Print newline after keypress
+        read -rk1 -s key || return 2 # EOF/no input: bail out instead of looping forever
+        echo                         # Print newline after keypress
 
         case "$key" in
             [Yy])
@@ -47,7 +52,7 @@ confirm() {
                 echo -e "  ${YELLOW}→ Quit${NC}"
                 echo ""
                 echo "  Cancelled by user"
-                exit 0
+                return 2
                 ;;
             *)
                 echo -e "  ${YELLOW}⚠️ Please press 'y' for yes, 'n' for no, or 'q' to quit.${NC}"

@@ -19,12 +19,15 @@ if [[ -n "$HOMEBREW_PREFIX" ]]; then
     export INFOPATH="$HOMEBREW_PREFIX/share/info:${INFOPATH:-}"
 fi
 
-# XDG Paths
-export XDG_CONFIG_HOME="$HOME/.config"
-export XDG_CACHE_HOME="$HOME/Library/Caches"
-export XDG_DATA_HOME="$HOME/.local/share"
-export XDG_STATE_HOME="$HOME/.local/state"
-export XDG_BIN_HOME="$HOME/.local/bin"
+# XDG paths are exported from .zshenv.
 
 # Added by Toolbox App
 export PATH="$PATH:/usr/local/bin"
+
+# Login shells: /etc/zprofile (path_helper) and the Homebrew PATH above push
+# Homebrew's node in front of the nvm default that .zshenv already put first.
+# Move the nvm default's bin back to the front (only a real nvm version dir,
+# so an unresolved default can never promote something like /bin).
+if [[ -n "$NVM_DEFAULT_BIN" && "$NVM_DEFAULT_BIN" == "$NVM_DIR"/versions/node/*/bin && -d "$NVM_DEFAULT_BIN" ]]; then
+    path=("$NVM_DEFAULT_BIN" $path)
+fi

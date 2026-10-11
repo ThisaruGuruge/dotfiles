@@ -109,23 +109,23 @@ It is a script in `bin/`, so it works from any shell. It checks the repo the scr
 `bin/test-shell-helpers` exercises it (exit codes, hard errors, worktrees, `--full`) together with `envrc`, `prs`/`prw` and the direnv hook, using a scratch `HOME` and fake `gh`/`fzf`/`claude`/`brew`; `test-zsh` runs it.
 
 ### `sync-brewfile`
-Update your Brewfile with all currently installed Homebrew packages.
+Report drift between what Homebrew has installed and what the Brewfiles declare. Also available as the `brew-sync` alias.
 
 **Usage:**
 ```bash
 ./bin/sync-brewfile
 ```
 
-**What it does:**
-1. Creates backup of current Brewfile
-2. Generates new Brewfile from installed packages
-3. Shows diff of changes
-4. Prompts you to review and commit
+**What it does (read-only):**
+1. Lists formulae and casks that are installed but appear in no Brewfile (`Brewfile` or `packages/*.brewfile`)
+2. Lists packages a Brewfile declares that are not installed
+3. Changes nothing: it never rewrites a Brewfile or installs/removes anything
 
 **Use this when:**
-- You installed a new package with `brew install`
-- You want to sync your Brewfile with current state
-- Setting up dotfiles and want to capture all installed tools
+- You installed a package with `brew install` and want to know whether it is tracked
+- You want to spot packages you declared but never installed
+
+Adopt a package by adding a line to `Brewfile` (core) or the right `packages/<category>.brewfile` yourself.
 
 ## Workflow Examples
 
@@ -142,7 +142,7 @@ echo "--theme=TwoDark" > ~/dotfiles/bat/.config/bat/config
 # 3. Stow it
 cd ~/dotfiles && bestow stow bat
 
-# 4. Update Brewfile
+# 4. Add it to Brewfile by hand (./bin/sync-brewfile shows what is untracked)
 ./bin/sync-brewfile
 
 # 5. Commit everything
@@ -181,6 +181,6 @@ cd ~/dotfiles
 
 - Run `dotdoctor` after pulling or adding files to catch unlinked configs and drift
 - Run `./bin/audit-configs` periodically to catch new configs
-- Use `./bin/sync-brewfile` after installing new tools
+- Use `./bin/sync-brewfile` after installing new tools to see what is not yet in a Brewfile
 - Always review `.bestowignore` files before committing
 - Test your init.sh on a fresh VM/container periodically

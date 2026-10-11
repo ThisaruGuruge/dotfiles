@@ -1,0 +1,6 @@
+#compdef extract
+
+# Complete only archive files (and directories, to navigate into) for extract().
+# Several archives may be given, so this keeps offering files after each one.
+
+_files -g '*.(tar.bz2|tbz2|tar.gz|tgz|tar.xz|txz|tar.zst|tar|bz2|gz|xz|Z|rar|7z|zip)(-.) *(-/)'

@@ -30,11 +30,12 @@ update_check = false
 search_mode = "fuzzy"
 
 ## Default filter mode: global, host, session, directory, workspace
-## directory is safe in any context (git or not); workspace auto-applies in git repos
-filter_mode = "directory"
+## global: Ctrl+R finds a command from anywhere ("that docker command from last week");
+## press Ctrl+R again to narrow (see [search] filters below)
+filter_mode = "global"
 
 ## Enable workspace filtering (filter within git repository trees)
-## Great for project-specific command recall
+## Makes the "workspace" filter available while inside a git repo
 workspaces = true
 
 ## Up-arrow behavior: broad scope so prefix-typed commands (e.g. ./gradlew) match
@@ -47,7 +48,7 @@ search_mode_shell_up_key_binding = "prefix"
 # ============================================================================
 
 ## Style: auto, full, compact
-style = "auto"
+style = "full"
 
 ## Inline height (0 = full screen, or set a specific height)
 inline_height = 0
@@ -56,7 +57,7 @@ inline_height = 0
 inline_height_shell_up_key_binding = 40
 
 ## Invert UI (search bar at top)
-invert = false
+invert = true
 
 ## Show command preview (useful for long commands)
 show_preview = true
@@ -110,7 +111,7 @@ exit_mode = "return-original"
 # show_help = true
 
 ## Configure whether or not to show tabs for search and inspect
-# show_tabs = true
+show_tabs = true
 
 ## Configure whether or not the tabs row may be auto-hidden, which includes the current Atuin
 ## tab, such as Search or Inspector, and other tabs you may wish to see. This will
@@ -245,7 +246,9 @@ records = true
 # debug = true
 
 [search]
-## Filter modes in order (Ctrl+R cycles through them narrow → broad)
-## workspace: git repo tree; directory: current dir; host: this machine; global: everything
+## Filter modes in order. The first one is what Ctrl+R opens with; Ctrl+R again
+## cycles to the next (broad → narrow).
+## global: everything; workspace: git repo tree; directory: current dir;
+## host: this machine; session: this shell session
 ## workspace is skipped automatically when not in a git repo
-filters = [ "workspace", "directory", "host", "session", "global" ]
+filters = [ "global", "workspace", "directory", "host", "session" ]

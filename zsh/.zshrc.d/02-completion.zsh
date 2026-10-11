@@ -8,6 +8,12 @@ if [[ -d "${HOMEBREW_PREFIX:-/opt/homebrew}/share/zsh/site-functions" ]]; then
   FPATH="${HOMEBREW_PREFIX:-/opt/homebrew}/share/zsh/site-functions:${FPATH}"
 fi
 
+# Custom completions (zsh/completions/ is stowed to ~/completions/). Must be on
+# fpath before compinit runs; after adding a new _file, delete ~/.zcompdump* once.
+if [[ -d "$HOME/completions" ]]; then
+  FPATH="$HOME/completions:${FPATH}"
+fi
+
 # Optimized completion system - regenerate dump only once per day
 # This reduces startup time from ~360ms to ~50ms
 # Note: (#qNmh-20) is a zsh glob qualifier meaning "modified less than 20 hours ago"

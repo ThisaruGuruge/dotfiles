@@ -9,8 +9,28 @@ c() {
 }
 alias cls="clear;ls"
 alias mk="mkdir -p "
-alias cp="cp -riv"
-alias mv="mv -iv"
+
+# cp/mv prompt before overwriting, but only when a human is at the terminal.
+# They are functions rather than aliases because zsh expands aliases inside
+# function bodies too, so an `mv -iv` alias made every script/function that
+# calls mv (and `cp -R`, via the extra -r) prompt, fail or silently skip the
+# overwrite when no terminal was attached. With no tty they run the real
+# command untouched. -r is deliberately not forced: pass -R/-r yourself.
+unalias cp mv 2>/dev/null
+cp() {
+    if [[ -o interactive && -t 0 ]]; then
+        command cp -iv "$@"
+    else
+        command cp "$@"
+    fi
+}
+mv() {
+    if [[ -o interactive && -t 0 ]]; then
+        command mv -iv "$@"
+    else
+        command mv "$@"
+    fi
+}
 alias qfind="find . -name "
 
 if (($+commands[eza])); then
@@ -79,7 +99,6 @@ alias edit-lazygit="nvim ~/.config/lazygit/config.yml"
 alias edit-ripgrep="nvim ~/.config/ripgrep/config"
 
 # Navigation
-alias .="pwd"
 alias ..="cd ../"
 alias ...="cd ../../"
 alias ....="cd ../../../"
@@ -166,7 +185,15 @@ alias gstp='git stash pop'
 alias gstl='git stash list'
 
 # Tools
-alias lg='lazygit; printf "\033(B\033[m"'
+# lg forwards its arguments to lazygit (e.g. `lg log`, `lg -p ~/dotfiles`) and
+# resets the terminal charset afterwards in case lazygit leaves it garbled.
+unalias lg 2>/dev/null
+lg() {
+    lazygit "$@"
+    local rc=$?
+    printf '\033(B\033[m'
+    return $rc
+}
 alias gunstage='git unstage'
 alias gundo='git undo'
 alias gcleanup='git cleanup'
@@ -310,10 +337,10 @@ fi
 alias test-zsh='$HOME/dotfiles/bin/test-zsh-config'
 
 # Package Management
-alias brew-sync='brew bundle dump --force --describe --file=$HOME/dotfiles/Brewfile'
-alias brew-sync-optional='brew bundle dump --force --describe --file=$HOME/dotfiles/Brewfile.optional'
+# brew-sync is a read-only drift report (see bin/sync-brewfile): it never
+# rewrites a Brewfile. brew-check verifies the core Brewfile is satisfied.
+alias brew-sync='$HOME/dotfiles/bin/sync-brewfile'
 alias brew-check='brew bundle check --file=$HOME/dotfiles/Brewfile'
-alias brew-check-optional='brew bundle check --file=$HOME/dotfiles/Brewfile.optional'
 
 # Claude Code account switching
 alias ccp='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude'
@@ -323,5 +350,4 @@ alias ccer='GOOGLE_WORKSPACE_CLI_CONFIG_DIR= CLAUDE_CONFIG_DIR="$HOME/.claude-en
 alias ccpc='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude --continue'
 alias ccec='GOOGLE_WORKSPACE_CLI_CONFIG_DIR= CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" claude --continue'
 
-# Keep the machine awake
-alias dont_sleep='caffeinate -d'
+# Keeping the machine awake is the `awake` function (.functions.d/05-system.zsh).
