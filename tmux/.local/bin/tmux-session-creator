@@ -43,8 +43,14 @@ if [[ -z "$session_dir" ]]; then
     session_dir="$HOME"
 fi
 
-# Create the new session
-tmux new-session -ds "$session_name" -c "$session_dir"
+# Create the new session (Long Runs / CLAUDE / NVim windows; SESSIONIZER_LAYOUT=bare
+# for a single shell window). Falls back to a plain session if the helper is missing.
+layout_helper="$(cd "$(dirname "$0")" && pwd)/tmux-session-layout"
+if [[ -x "$layout_helper" ]]; then
+    "$layout_helper" "$session_name" "$session_dir"
+else
+    tmux new-session -ds "$session_name" -c "$session_dir"
+fi
 printf "\033[1;32m Created session '%s' in %s\033[0m\n" "$session_name" "$session_dir"
 sleep 0.4
 # Switch must be the last command — popup exits immediately after, matching

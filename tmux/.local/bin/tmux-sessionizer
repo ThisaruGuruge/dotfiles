@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # TMux Sessionizer - Fuzzy find projects and switch to named sessions
 # Inspired by ThePrimeagen's sessionizer
+#
+# New sessions get the standard layout from tmux-session-layout (Long Runs / CLAUDE /
+# NVim windows); SESSIONIZER_LAYOUT=bare keeps a single shell window. Existing sessions
+# are never touched. Two projects with the same folder name get parent-qualified
+# session names (e.g. "work/api" and "personal/api").
 
 # Configuration
 PROJECTS_DIR="$HOME/Projects"
-SEARCH_DEPTH=2  # Search 2 levels deep in Projects (for category/project structure)
+SEARCH_DEPTH=2 # Search 2 levels deep in Projects (for category/project structure)
 EXTRA_DIRS=(
     "$HOME/dotfiles"
 )
@@ -30,6 +35,46 @@ get_selected() {
     echo "$dirs" | grep -v '^$' | fzf --height=40% --reverse --border --prompt="Project > "
 }
 
+# Session names cannot contain "." or ":" (tmux replaces them)
+sanitize() {
+    printf '%s' "$1" | tr '.:' '__'
+}
+
+# Start directory of an existing session ("" when there is no such session)
+session_dir_of() {
+    tmux list-sessions -F $'#{session_name}\t#{session_path}' 2>/dev/null |
+        awk -F'\t' -v n="$1" '$1 == n { print $2; exit }'
+}
+
+# Pick the session name for a directory: the folder name, or parent/folder when another
+# project already owns that name (numbered as a last resort). Reuses a session that
+# already points at this directory.
+pick_session_name() {
+    local dir="${1%/}"
+    local base parent candidate existing n
+    base=$(sanitize "$(basename "$dir")")
+    parent=$(sanitize "$(basename "$(dirname "$dir")")")
+
+    for candidate in "$base" "$parent/$base"; do
+        existing=$(session_dir_of "$candidate")
+        if [[ -z "$existing" || "${existing%/}" == "$dir" ]]; then
+            printf '%s' "$candidate"
+            return
+        fi
+    done
+
+    n=2
+    while :; do
+        candidate="$parent/$base-$n"
+        existing=$(session_dir_of "$candidate")
+        if [[ -z "$existing" || "${existing%/}" == "$dir" ]]; then
+            printf '%s' "$candidate"
+            return
+        fi
+        n=$((n + 1))
+    done
+}
+
 # If argument provided, use it directly
 if [[ $# -eq 1 ]]; then
     selected=$1
@@ -42,26 +87,29 @@ if [[ -z "$selected" ]]; then
     exit 0
 fi
 
-# Create session name from directory name (replace dots with underscores for tmux)
-selected_name=$(basename "$selected" | tr '.' '_')
-
 # Check if tmux is running
 tmux_running=$(pgrep tmux)
 
-# If not in tmux and tmux is not running, start new session
-if [[ -z "$TMUX" ]] && [[ -z "$tmux_running" ]]; then
-    tmux new-session -s "$selected_name" -c "$selected"
-    exit 0
+# With no server yet there are no sessions, so there is nothing to collide with
+if [[ -z "$tmux_running" ]]; then
+    selected_name=$(sanitize "$(basename "${selected%/}")")
+else
+    selected_name=$(pick_session_name "$selected")
 fi
 
-# If session doesn't exist, create it (detached)
+# If session doesn't exist, create it (detached) with the standard layout
 if ! tmux has-session -t="$selected_name" 2>/dev/null; then
-    tmux new-session -ds "$selected_name" -c "$selected"
+    layout_helper="$(cd "$(dirname "$0")" && pwd)/tmux-session-layout"
+    if [[ -x "$layout_helper" ]]; then
+        "$layout_helper" "$selected_name" "$selected"
+    else
+        tmux new-session -ds "$selected_name" -c "$selected"
+    fi
 fi
 
 # Switch to the session
 if [[ -z "$TMUX" ]]; then
-    tmux attach-session -t "$selected_name"
+    tmux attach-session -t="$selected_name"
 else
-    tmux switch-client -t "$selected_name"
+    tmux switch-client -t="$selected_name"
 fi
