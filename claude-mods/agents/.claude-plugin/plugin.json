@@ -1,0 +1,6 @@
+{
+  "name": "agents",
+  "version": "0.1.0",
+  "description": "Subagent pane and strip above the prompt: a crab per agent type with model, effort, context, tokens, requests and the latest tool call.",
+  "types": "./types/index.d.ts"
+}

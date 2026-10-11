@@ -33,28 +33,41 @@ fi
 # ── Other fields ─────────────────────────────────────────────────────────────
 vim_mode=$(echo "$input" | jq -r '.vim.mode // empty')
 model=$(echo "$input" | jq -r '.model.display_name // empty')
-cost=$(echo "$input" | jq -r '.session.cost_usd // empty')
+cost=$(echo "$input" | jq -r '.cost.total_cost_usd // .session.cost_usd // empty')
 tokens_used=$(echo "$input" | jq -r '.context_window.total_input_tokens // empty')
 tokens_max=$(echo "$input" | jq -r '.context_window.context_window_size // empty')
 
 # ── Colors (Catppuccin Mocha palette, ANSI true-color) ───────────────────────
-RESET='\033[0m'
-DIR_BG='\033[48;2;49;50;68m'
-DIR_FG='\033[38;2;205;214;244m'
-GIT_FG='\033[38;2;166;227;161m'
-MODEL_FG='\033[38;2;137;220;235m'
-GREEN_FG='\033[38;2;166;227;161m'
-YELLOW_FG='\033[38;2;249;226;175m'
-DIM='\033[2m'
-TOKENS_FG='\033[38;2;147;153;178m'
-COST_FG='\033[38;2;245;194;231m'
-BLUE_FG='\033[38;2;137;180;250m'
-ACCOUNT_FG='\033[38;2;250;179;135m'
+ESC=$(printf '\033')
+RESET="${ESC}[0m"
+DIR_BG="${ESC}[48;2;49;50;68m"
+DIR_FG="${ESC}[38;2;205;214;244m"
+GIT_FG="${ESC}[38;2;166;227;161m"
+MODEL_FG="${ESC}[38;2;137;220;235m"
+GREEN_FG="${ESC}[38;2;166;227;161m"
+YELLOW_FG="${ESC}[38;2;249;226;175m"
+DIM="${ESC}[2m"
+TOKENS_FG="${ESC}[38;2;147;153;178m"
+COST_FG="${ESC}[38;2;245;194;231m"
+BLUE_FG="${ESC}[38;2;137;180;250m"
+ACCOUNT_FG="${ESC}[38;2;250;179;135m"
 
 # ── Assemble output ───────────────────────────────────────────────────────────
+# Each segment is added with its visible width, then the segments are spread across the
+# terminal: the gap is whatever width is left over, kept between 3 and 8 columns.
+SEP=$(printf '\037')
+segs=""
+count=0
+total=0
+add() {
+    segs="${segs}${2}${SEP}"
+    count=$((count + 1))
+    total=$((total + $1))
+}
 
 # Account indicator
-printf '%b● WORK%b' "$ACCOUNT_FG" "$RESET"
+account_label="WORK"
+add $((${#account_label} + 2)) "${ACCOUNT_FG}● ${account_label}${RESET}"
 
 # Vim mode segment
 if [ -n "$vim_mode" ]; then
@@ -80,31 +93,69 @@ if [ -n "$vim_mode" ]; then
             vim_label="$vim_mode"
             ;;
     esac
-    printf "  ${VIM_FG}%s${RESET}" "$vim_label"
+    add ${#vim_label} "${VIM_FG}${vim_label}${RESET}"
 fi
 
-# Directory segment
-printf "  ${DIR_BG}${DIR_FG} %s ${RESET}" "$dir_name"
-
-# Git segment: branch + staged/unstaged/untracked counts
+# Directory + git segment: branch and staged/unstaged/untracked counts
+dir_seg="${DIR_BG}${DIR_FG} ${dir_name} ${RESET}"
+dir_len=$((${#dir_name} + 2))
 if [ -n "$git_branch" ]; then
-    printf " ${GIT_FG} %s${RESET}" "$git_branch"
-    [ "$git_staged" -gt 0 ] && printf " ${GREEN_FG}+%d${RESET}" "$git_staged"
-    [ "$git_unstaged" -gt 0 ] && printf " ${YELLOW_FG}~%d${RESET}" "$git_unstaged"
-    [ "$git_untracked" -gt 0 ] && printf " ${TOKENS_FG}?%d${RESET}" "$git_untracked"
+    dir_seg="${dir_seg} ${GIT_FG}${git_branch}${RESET}"
+    dir_len=$((dir_len + 1 + ${#git_branch}))
+    if [ "$git_staged" -gt 0 ]; then
+        dir_seg="${dir_seg} ${GREEN_FG}+${git_staged}${RESET}"
+        dir_len=$((dir_len + 2 + ${#git_staged}))
+    fi
+    if [ "$git_unstaged" -gt 0 ]; then
+        dir_seg="${dir_seg} ${YELLOW_FG}~${git_unstaged}${RESET}"
+        dir_len=$((dir_len + 2 + ${#git_unstaged}))
+    fi
+    if [ "$git_untracked" -gt 0 ]; then
+        dir_seg="${dir_seg} ${TOKENS_FG}?${git_untracked}${RESET}"
+        dir_len=$((dir_len + 2 + ${#git_untracked}))
+    fi
 fi
+add "$dir_len" "$dir_seg"
 
 # Model segment
 if [ -n "$model" ]; then
-    printf "  ${DIM}${MODEL_FG}%s${RESET}" "$model"
+    add ${#model} "${DIM}${MODEL_FG}${model}${RESET}"
 fi
 
 # Session cost: always visible (company spend)
-printf "  ${COST_FG}%s${RESET}" "$(printf '$%.2f' "${cost:-0}")"
+cost_text=$(printf '$%.2f' "${cost:-0}")
+add ${#cost_text} "${COST_FG}${cost_text}${RESET}"
 
 # Absolute token count
 if [ -n "$tokens_used" ] && [ -n "$tokens_max" ]; then
-    printf "  ${TOKENS_FG}%dk/%dk${RESET}" "$((tokens_used / 1000))" "$((tokens_max / 1000))"
+    tokens_text="$((tokens_used / 1000))k/$((tokens_max / 1000))k"
+    add ${#tokens_text} "${TOKENS_FG}${tokens_text}${RESET}"
 fi
 
-printf "\n"
+# Terminal width: stty needs a controlling terminal, which a status line may not have
+cols=$({ stty size </dev/tty; } 2>/dev/null | cut -d' ' -f2)
+case "$cols" in
+    '' | *[!0-9]*) cols=${COLUMNS:-0} ;;
+esac
+case "$cols" in
+    '' | *[!0-9]*) cols=0 ;;
+esac
+gap=5
+if [ "$cols" -gt 0 ] && [ "$count" -gt 1 ]; then
+    gap=$(((cols - 4 - total) / (count - 1)))
+    [ "$gap" -lt 3 ] && gap=3
+    [ "$gap" -gt 8 ] && gap=8
+fi
+
+# Two no-break spaces start the line (plain spaces get trimmed), then the segments
+printf '\302\240\302\240'
+n=0
+OLD_IFS=$IFS
+IFS=$SEP
+for seg in $segs; do
+    n=$((n + 1))
+    [ "$n" -gt 1 ] && printf '%*s' "$gap" ''
+    printf '%s' "$seg"
+done
+IFS=$OLD_IFS
+printf '\n'

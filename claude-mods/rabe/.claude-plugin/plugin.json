@@ -1,0 +1,31 @@
+{
+  "name": "rabe",
+  "version": "0.4.4",
+  "description": "Watch Claude Code's background work: subagents, Codex jobs, shells, monitors, cron jobs and workflows.",
+  "author": {
+    "name": "Lorenz Hilpert"
+  },
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "hideBuiltinTasks": {
+      "type": "boolean",
+      "title": "Hide Claude Code's own background count",
+      "default": true,
+      "description": "Removes the shells and monitors count and its '\u2193 to manage' from the hint under the prompt, and the 'still running' part from the line that ends a turn, since Rabe's band shows them. The agent list under the prompt cannot be hidden."
+    },
+    "pricesFile": {
+      "type": "file",
+      "title": "Your own price table",
+      "default": "",
+      "description": "A CSV file in the format of Rabe's data/prices.csv (an absolute path, or one that starts with ~/). Its rows come before Rabe's, for the same model or one Rabe does not know. Empty: Rabe's table only. A file that cannot be read makes every cost n/a."
+    },
+    "timelineHours": {
+      "type": "number",
+      "title": "Hours the Timeline tab shows",
+      "default": 4,
+      "min": 0,
+      "description": "The Timeline tab shows the last this many hours; older finished items fold into one line. 0 shows the whole session. A key on the tab widens the window for the open pane."
+    }
+  }
+}

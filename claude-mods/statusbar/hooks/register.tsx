@@ -319,7 +319,8 @@ export const register: Register = (on, options) => {
     if (list) items.push({ key: 'compact', swatch: '┃', color: '#cdd6f4', text: `compact ${fmt(Math.round(threshold))}` })
     const cacheLeft = l ? Math.round(ttl - (wall - l.endedAt) / 1000) : null
     const cache = cacheState(cacheLeft)
-    const limitCells = cols < 100 ? 6 : 10
+    // Each limit line is about 15 columns of text around its bar; the two bars share what is left, up to 40 cells
+    const limitCells = Math.max(6, Math.min(40, Math.floor((cols - 3 - 9 - 30) / 2)))
     const gap = isNarrow ? 2 : 3
     const rowGap = isNarrow ? 3 : 4
     const blank = 0
@@ -358,7 +359,12 @@ export const register: Register = (on, options) => {
     const lane = (nodes: unknown[]) =>
       nodes.map((n, i) => <Box key={String(i)}>{n as never}</Box>)
 
+    // Other mods draw here too (agents, rabe): keep what they draw instead of replacing it
+    const below = await next(e)
+
     return (
+      <Box flexDirection="column">
+      {below}
       <Box flexDirection="column" marginTop={1}>
         <Box flexDirection="row">
           <Box width={3}><Text dimColor>◔</Text></Box>
@@ -405,6 +411,7 @@ export const register: Register = (on, options) => {
             </Box>
           </Box>
         )}
+      </Box>
       </Box>
     )
   })

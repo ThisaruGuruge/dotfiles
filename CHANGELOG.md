@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added the `agents` mod (`claude-mods/agents`): a `/agents` pane that opens when the first subagent of a batch starts, and one row per running subagent above the prompt, which stays visible when the engine's diff panel takes the pane's seat. Each subagent gets a crab costume by type (Explore, Plan, review, security, test, guide, design, fork, general) and shows its model, effort, a context-fill bar, output tokens, model requests, tool calls, the latest tool call and elapsed time. It registers no tools and makes no network or process calls
+- Added `rabe` as a vendored, unmodified mod (`claude-mods/rabe`, pinned commit in `VENDORED.md`) for background shells, monitors, cron jobs, workflows and Codex jobs
+
+### Changed
+
+- Changed the `statusbar` band to draw alongside other mods that use the area above the prompt instead of replacing them
+- Changed the status bar under the prompt (`statusline-command.sh`, both accounts) to start two no-break spaces in from the left edge and spread its segments across the terminal width instead of clustering them on the left: the gap between segments is whatever width is left over, kept between 3 and 8 columns (5 when the terminal width can't be read). Segments are now measured and joined before printing, with the colours held as real escape bytes
+- Changed the 5h and 7d limit bars in the `statusbar` mod to grow with the terminal width (6 to 40 cells, from a fixed 10) so they line up with the context bar above them
+
+### Removed
+
+- Removed the `mission-control` mod; `agents` replaces it. It recorded only an agent's type, label and running or done, and none of the model, effort or token data
+
 ## [2.6.1] - 2026-10-06
 
 ### Changed
