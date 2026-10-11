@@ -12,7 +12,7 @@
 #   ├── 02-navigation.zsh # take(), takedir(), takegit(), takeurl()
 #   ├── 03-archives.zsh   # compress(), extract()
 #   ├── 04-git.zsh        # git_ignore_local()
-#   ├── 05-system.zsh     # checkPort(), kill_by_port()
+#   ├── 05-system.zsh     # checkPort(), kill_by_port(), awake()
 #   ├── 06-dotfiles.zsh   # edit_secrets(), edit_dotfiles(), update_dotfiles()
 #   ├── 07-docs.zsh       # show_tools(), alias_help(), alias_docs()
 #   └── 08-packages.zsh   # list_dotfiles_tools(), install_lazygit_latest()

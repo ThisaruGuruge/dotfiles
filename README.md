@@ -135,6 +135,8 @@ brew bundle --file=packages/editors.brewfile     # Add editors
 
 Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 
+`brew-sync` (or `./bin/sync-brewfile`) is a read-only drift report: it lists formulae and casks that are installed but in no Brewfile, and declared packages that are not installed. It never rewrites a Brewfile; add or remove lines by hand. `brew-check` verifies the core Brewfile is satisfied.
+
 ## Repository Layout & Symlink Packages
 
 | Path                     | Notes                                                                                             |
@@ -223,19 +225,21 @@ show_tools                                 # Overview of installed CLI upgrades
 alias_search git                           # Search for aliases by keyword
 edit_secrets                               # Safely edit encrypted ~/.env via SOPS
 take my-service && code .                  # Smart project bootstrap / clone helper
-kill_by_port 3000                          # Kill whatever binds to port 3000
+kill_by_port 3000                          # Stop the process LISTENING on port 3000 (TERM, then KILL); clients are left alone
+awake                                      # Keep the Mac from idle-sleeping (awake stop | status | for 2h | screen | ac)
 dotdoctor                                  # Health check (changes nothing): unlinked files, dangling links, secrets, mods (--full adds brew + plugin validation)
 prs                                        # Browse PRs with fzf: enter=checkout, ctrl-o=browser, ctrl-d=diff via delta
 prw                                        # Watch the current PR's checks, then notify with the result
 envrc work|personal|status|off             # Pin the Claude Code + gws account for this directory via direnv
-lg                                         # Launch lazygit with our config
+lg                                         # Launch lazygit with our config (arguments are forwarded, e.g. lg log)
 lzd                                        # Launch lazydocker for Docker management
 gw build                                   # Run Gradle build from any subdirectory
 gwt                                        # Alias for: gw test
 gwc                                        # Alias for: gw clean
 gwcb                                       # Alias for: gw clean build
-Ctrl+R                                     # Atuin search UI (fuzzy search all history)
+Ctrl+R                                     # Atuin search UI (fuzzy search all history; Ctrl+R again narrows the filter)
 Up arrow                                   # Atuin prefix search (as you type)
+Ctrl+T / Alt+C                             # fzf file / directory picker with a preview (Ctrl+/ toggles it)
 ```
 
 ### Per-project accounts (`envrc`)
@@ -264,6 +268,13 @@ Inside a pinned tree a bare `gws` therefore acts on the pinned account instead o
 - `prw [pr]` – `gh pr checks --watch` for the current branch's PR (or the given number/URL), then a macOS notification with the result; the exit status mirrors `gh pr checks`
 
 Both need `gh` and `jq`; `prs` also needs `fzf`. PR titles are untrusted text: control characters (including ESC) are replaced with spaces before they are shown, and `prw` prints titles verbatim (no backslash interpretation). `prw` says whether the checks failed, were cancelled or are still pending, or that gh reported no result (no checks, or gh could not be reached), instead of calling every non-zero exit "failed".
+
+### Shell behaviour worth knowing
+
+- **`cp` / `mv`** are small functions, not aliases: they prompt before overwriting (`-i`, verbose) only when a human is at the terminal, and run the plain command otherwise (scripts, agents, pipes). They do not force `-r`; copy directories with `cp -R`.
+- **`awake`** keeps the Mac from idle-sleeping in the background (`caffeinate -i`: the display may still sleep or lock, and it works on AC and battery). `awake screen` also keeps the display on, `awake ac` holds only while plugged in, `awake for 2h|30m|90s|<pid>` is timed or tied to a process, and `awake stop` / `awake status` release it or show the mode, start time, battery and floor. A watcher checks the battery every 60 seconds and, when you are on battery at or below the floor (default 20%, `AWAKE_BATTERY_FLOOR` or `--floor N`), releases the hold and posts a macOS notification so the Mac can sleep. Closing the lid still sleeps the Mac unless it is on AC power with an external display. The pidfile is `${TMPDIR:-/tmp}/dotfiles-awake.pid`. This replaces `dont_sleep`, `stay_awake`, `stay_awake_stop` and `stay_awake_for`.
+- **Atuin** opens Ctrl+R on `global` history (the whole machine) and cycles global, workspace, directory, host, session; the UI is full-style with the search bar on top and tabs shown. Failed commands are still recorded.
+- **Completions** for custom functions live in `zsh/completions/` (stowed to `~/completions/`, on `fpath` before `compinit`): `extract`, `kill_by_port`, `awake`, `edit-*` and `reload`. After pulling a new completion file, run `rm ~/.zcompdump*` once.
 
 ## Suffix Aliases
 

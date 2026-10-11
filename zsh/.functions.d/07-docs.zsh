@@ -18,9 +18,9 @@ show_tools() {
     fi
 
     if command -v bat &>/dev/null; then
-        echo "📄 bat (enhanced cat):"
-        echo "  cat file.js    - View with syntax highlighting"
-        echo "  less README.md - Page through with highlighting"
+        echo "📄 bat (enhanced cat; cat and less themselves are unchanged):"
+        echo "  bat file.js    - View with syntax highlighting and git markers"
+        echo "  bat -p README.md - Plain output (no line numbers/frame), still paged"
         echo ""
     fi
 
@@ -33,7 +33,9 @@ show_tools() {
 
     if command -v rg &>/dev/null; then
         echo "🔍 ripgrep (fast grep):"
-        echo "  grep 'pattern'     - Search with ripgrep"
+        echo "  g 'pattern'        - Search with ripgrep (g = rg)"
+        echo "  rgh 'pattern'      - Include hidden files"
+        echo "  rga 'pattern'      - Include hidden and gitignored files"
         echo "  rg 'TODO' --type js - Search in JS files only"
         echo ""
     fi
@@ -55,8 +57,10 @@ show_tools() {
 
     if command -v fd &>/dev/null; then
         echo "🔎 fd (fast find):"
-        echo "  find . -name '*.js' - Search for JavaScript files"
-        echo "  fd -e js            - Same as above, shorter syntax"
+        echo "  f config            - Regex search by name (f = fd)"
+        echo "  fdg '*.js'          - Glob search"
+        echo "  fdh / fda           - Include hidden / hidden + gitignored files"
+        echo "  fd -e js            - Search by extension"
         echo ""
     fi
 
@@ -77,12 +81,17 @@ show_tools() {
 
     if command -v atuin &>/dev/null; then
         echo "📚 atuin (enhanced shell history):"
-        echo "  hs                 - Interactive history search"
-        echo "  Option+H           - Quick history search (keybinding)"
+        echo "  Ctrl+R             - Interactive history search (Ctrl+R again cycles filters)"
+        echo "  hs                 - Same search as a command"
         echo "  hstats             - Show command statistics"
         echo ""
     fi
 
+    echo "⚙️  System helpers:"
+    echo "  awake              - Keep the Mac from idle-sleeping (awake status | awake stop)"
+    echo "  kill_by_port 3000  - Stop whatever is listening on port 3000"
+    echo "  extract / compress - Unpack / pack archives"
+    echo ""
     echo "💡 Pro tip: Type 'alias' to see all available shortcuts!"
 }
 
@@ -137,24 +146,27 @@ alias_help() {
             echo "       Example: lt # shows directory structure"
             ;;
 
-        "cat" | "less" | "bat")
-            echo "📄 File Viewing Aliases (bat-powered)"
+        "bat")
+            echo "📄 File Viewing (bat)"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "cat    Syntax-highlighted file viewer"
-            echo "       Example: cat package.json"
-            echo "       Features: syntax highlighting, git integration"
-            echo ""
-            echo "less   Paginated file viewer with highlighting"
-            echo "       Example: less README.md"
-            echo "       Keys: q (quit), / (search), n (next match)"
+            echo "There are no cat/less aliases; call bat directly."
+            echo "bat    Syntax-highlighted file viewer with git markers"
+            echo "       Example: bat package.json"
+            echo "       Keys (pager): q (quit), / (search), n (next match)"
+            echo "bat -p Plain output without line numbers or frame"
             ;;
 
-        "grep" | "rg")
-            echo "🔍 Search Aliases (ripgrep-powered)"
+        "g" | "rg" | "rgh" | "rga" | "f" | "fd" | "fdg" | "fdh" | "fda")
+            echo "🔍 Search Aliases (ripgrep and fd)"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "grep   Fast text search with ripgrep"
-            echo "       Example: grep 'TODO' *.js"
+            echo "g      Fast text search with ripgrep (grep itself is unchanged)"
+            echo "       Example: g 'TODO' src/"
             echo "       Features: automatic .gitignore respect, 10x faster"
+            echo "rgh    rg --hidden (include dotfiles)"
+            echo "rga    rg --hidden --no-ignore (search everything)"
+            echo ""
+            echo "f      fd (regex file search); fdg glob, fdh hidden, fda hidden + gitignored"
+            echo "       Details: docs/SEARCH_CHEATSHEET.md"
             echo ""
             echo "Advanced ripgrep usage:"
             echo "  rg 'pattern' --type js    # Search only JavaScript files"
@@ -183,13 +195,27 @@ alias_help() {
             echo "  lg      lazygit (interactive git TUI)"
             echo "  glog    beautiful git log with graph"
             echo "  gundo   undo last commit (keep changes)"
-            echo "  gamend  amend last commit message"
+            echo "  gca     amend last commit, keep its message"
             echo ""
             echo "GitHub pull requests (needs gh):"
             echo "  prs     fzf over PRs: enter=checkout, ctrl-o=browser, ctrl-d=diff (delta)"
             echo "  prw     watch the PR's checks, then notify with the result"
             echo ""
             echo "💡 Pro tip: Use 'lg' for complex git operations!"
+            ;;
+
+        # Keep awake / ports
+        "awake")
+            echo "☕ awake - keep the Mac from idle-sleeping"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "  awake                 Hold in the background (display may still sleep/lock)"
+            echo "  awake screen          Also keep the display on"
+            echo "  awake ac              AC power only; drops when unplugged"
+            echo "  awake for 2h|30m|pid  Timed, or until a process exits"
+            echo "  awake stop | status   Release / show mode, since, battery %, floor"
+            echo "  --floor N             On battery, release at N% (default 20, env AWAKE_BATTERY_FLOOR)"
+            echo ""
+            echo "💡 Closing the lid still sleeps the Mac unless it is on AC with an external display."
             ;;
 
         # Gradle Operations
@@ -307,11 +333,12 @@ alias_help() {
             echo "  hstats      atuin stats (show command statistics)"
             echo "  hsync       atuin sync (sync to server if configured)"
             echo ""
-            echo "Search Modes (press Ctrl+R then Tab to cycle):"
+            echo "Search filters (Ctrl+R again cycles: global > workspace > directory > host > session):"
             echo "  global      Search all history (default)"
-            echo "  host        Search history from this machine only"
-            echo "  session     Search current session only"
-            echo "  directory   Search commands run in current directory"
+            echo "  workspace   Commands run inside the current git repository"
+            echo "  directory   Commands run in the current directory"
+            echo "  host        History from this machine only"
+            echo "  session     Current shell session only"
             echo ""
             echo "💡 Features:"
             echo "  • Fuzzy search through entire command history"
@@ -325,7 +352,7 @@ alias_help() {
             echo "❓ Alias '$alias_name' not found in documentation."
             echo ""
             echo "Available categories:"
-            echo "  File operations: ls, ll, cat, grep"
+            echo "  File operations: ls, ll, bat, g (ripgrep), f (fd)"
             echo "  Git workflow: git, gs, lg, glog"
             echo "  Gradle build: gw, gwb, gwc, gwt, gwcb"
             echo "  Docker: docker, dps, dex, dlog, colima-start, colima-stop"
@@ -344,7 +371,7 @@ alias_docs() {
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "Select a category:"
-    echo "1) 📁 File Operations (ls, cat, grep)"
+    echo "1) 📁 File Operations (ls, bat, g, f)"
     echo "2) 🌿 Git Workflow (git, lg, glog)"
     echo "3) 🐳 Docker Management (dps, dex, dlog)"
     echo "4) 📺 Tmux Sessions (t, ta, tl)"
@@ -368,8 +395,10 @@ alias_docs() {
             echo "take <git-url>        Clone repo and enter it"
             echo "take <archive-url>    Download, extract and enter"
             echo ""
-            echo "kill_by_port <port>   Kill processes on port"
-            echo "kill_by_port -d <port>  Dry run (show what would be killed)"
+            echo "kill_by_port <port>   Stop the process listening on a port (TERM, then KILL)"
+            echo "kill_by_port -d <port>  Dry run (show what would be stopped)"
+            echo ""
+            echo "awake                 Keep the Mac awake (awake status | awake stop | awake for 2h)"
             echo ""
             echo "show_tools            Show all modern CLI tools"
             echo "dotdoctor [--full]    Read-only health check of the dotfiles setup"
@@ -398,13 +427,13 @@ alias_categories() {
     echo ""
     echo "📁 FILE OPERATIONS:"
     echo "   ls, ll, la, lt - Enhanced file listing (eza)"
-    echo "   cat, less - Syntax highlighted viewing (bat)"
-    echo "   grep - Fast text search (ripgrep)"
+    echo "   bat - Syntax highlighted viewing"
+    echo "   g, rgh, rga - Fast text search (ripgrep); f, fdg, fdh, fda - file search (fd)"
     echo ""
     echo "🌿 GIT WORKFLOW:"
     echo "   gs, ga, gaa, gb, gco - Basic git operations"
     echo "   gl, gp, gf - Remote operations"
-    echo "   lg, glog, gundo, gamend - Advanced git tools"
+    echo "   lg, glog, gundo, gca - Advanced git tools"
     echo ""
     echo "🐳 DOCKER:"
     echo "   dps, dpsa, dimg - Container/image status"
@@ -418,7 +447,7 @@ alias_categories() {
     echo "   myip, localip, ping - Network utilities"
     echo ""
     echo "🔧 DEVELOPMENT:"
-    echo "   take, kill_by_port, show_tools - Dev utilities"
+    echo "   take, kill_by_port, awake, show_tools - Dev utilities"
     echo "   dotdoctor - Dotfiles health check; envrc - pin Claude/gws account per directory"
     echo "   prs, prw - GitHub PR browser and check watcher"
     echo "   profile_startup - Test shell startup performance"

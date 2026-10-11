@@ -327,6 +327,291 @@ else
 fi
 
 # ============================================================================
+# SHELL CORE (self-contained: exercises the repo files, not the live shell)
+# ============================================================================
+print_header "Shell Core (repo files)"
+
+# ${0:A:h:h} resolves symlinks, so this works from ~/bin, a worktree or a clone.
+local sc_repo="${0:A:h:h}"
+local sc_tmp
+sc_tmp="$(mktemp -d "${TMPDIR:-/tmp}/zsh-core-test.XXXXXX")"
+local sc_prelude='source "$R/zsh/.aliases.sh"; for f in "$R"/zsh/.functions.d/*.zsh; do source "$f"; done'
+
+# sc_check <name> <detail-on-failure> <command...>: pass when the command succeeds.
+sc_check() {
+    local name="$1" detail="$2"
+    shift 2
+    if "$@" >/dev/null 2>&1; then
+        print_test "$name" "pass" ""
+    else
+        print_test "$name" "fail" "$detail"
+    fi
+}
+
+# --- cp / mv are tty-guarded functions ---------------------------------------
+local sc_out
+sc_out="$(R=$sc_repo zsh -f -c "$sc_prelude"'; print -r -- "$(whence -w cp) | $(whence -w mv) | $(whence -w lg)"; alias . >/dev/null 2>&1 && print "dot-alias-present"' 2>&1)"
+if [[ "$sc_out" == "cp: function | mv: function | lg: function" ]]; then
+    print_test "cp, mv, lg are functions (no -riv/-iv aliases, no '.' alias)" "pass" ""
+else
+    print_test "cp, mv, lg are functions (no -riv/-iv aliases, no '.' alias)" "fail" "$sc_out"
+fi
+
+(
+    cd "$sc_tmp" || exit 1
+    mkdir -p cpmv/d && : >cpmv/d/x && print new >cpmv/a && print old >cpmv/b
+    R=$sc_repo zsh -f -c "$sc_prelude"'; cd cpmv && mv a b && cp -R d e' </dev/null
+    [[ "$(<cpmv/b)" == new && ! -e cpmv/a && -f cpmv/e/x ]]
+) >/dev/null 2>&1
+if [[ $? -eq 0 ]]; then
+    print_test "mv overwrites and cp -R copies with no terminal attached" "pass" ""
+else
+    print_test "mv overwrites and cp -R copies with no terminal attached" "fail" "alias-style -i/-r flags are back?"
+fi
+
+# --- confirm never exits the shell --------------------------------------------
+if command -v script >/dev/null 2>&1; then
+    local sc_inner="$sc_tmp/confirm-inner.zsh"
+    {
+        print -r -- 'for f in 00-colors 01-core; do source "$R/zsh/.functions.d/$f.zsh"; done'
+        print -r -- 'confirm "go?"'
+        print -r -- 'print "RC=$? ALIVE"'
+    } >"$sc_inner"
+    local sc_key sc_rc_ok=true
+    for sc_key in y:0 n:1 q:2; do
+        sc_out="$( (sleep 0.5; printf '%s' "${sc_key%%:*}") | R=$sc_repo script -q /dev/null zsh -f "$sc_inner" 2>&1 | tr -d '\r')"
+        [[ "$sc_out" == *"RC=${sc_key##*:} ALIVE"* ]] || sc_rc_ok=false
+    done
+    if $sc_rc_ok; then
+        print_test "confirm: y=0, n=1, q=2 and the shell stays alive" "pass" ""
+    else
+        print_test "confirm: y=0, n=1, q=2 and the shell stays alive" "fail" "last output: $sc_out"
+    fi
+else
+    print_test "confirm return codes" "warn" "script(1) not available"
+fi
+
+# --- kill_by_port only touches the listener -----------------------------------
+if command -v python3 >/dev/null 2>&1 && command -v lsof >/dev/null 2>&1; then
+    local sc_port=$((20000 + RANDOM % 20000)) sc_srv sc_cli
+    python3 -I -c "
+import socket, time
+s = socket.socket(); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(('127.0.0.1', $sc_port)); s.listen(5); c, _ = s.accept(); time.sleep(120)" &
+    sc_srv=$!
+    sleep 0.6
+    python3 -I -c "
+import socket, time
+c = socket.create_connection(('127.0.0.1', $sc_port)); time.sleep(120)" &
+    sc_cli=$!
+    sleep 0.6
+    R=$sc_repo zsh -f -c "$sc_prelude; kill_by_port $sc_port" >/dev/null 2>&1
+    sleep 0.3
+    if ! kill -0 "$sc_srv" 2>/dev/null && kill -0 "$sc_cli" 2>/dev/null; then
+        print_test "kill_by_port stops the listener and leaves the client alone" "pass" ""
+    else
+        print_test "kill_by_port stops the listener and leaves the client alone" "fail" "listener alive: $(kill -0 "$sc_srv" 2>/dev/null && echo yes || echo no), client alive: $(kill -0 "$sc_cli" 2>/dev/null && echo yes || echo no)"
+    fi
+    kill "$sc_srv" "$sc_cli" 2>/dev/null
+    wait "$sc_srv" "$sc_cli" 2>/dev/null
+else
+    print_test "kill_by_port listener-only" "warn" "python3 or lsof not available"
+fi
+
+# --- compress / extract -------------------------------------------------------
+(
+    cd "$sc_tmp" || exit 1
+    mkdir -p arch/proj && print hi >arch/proj/f && cd arch || exit 1
+    R=$sc_repo zsh -f -c "$sc_prelude"'
+        compress proj/ >/dev/null 2>&1 || exit 11
+        [[ -f proj.tar.gz && ! -e .tar.gz ]] || exit 12
+        compress >/dev/null 2>&1 && exit 13
+        extract >/dev/null 2>&1 && exit 14
+        extract nothing.tar.gz >/dev/null 2>&1 && exit 15
+        rm -r proj && extract proj.tar.gz >/dev/null 2>&1 || exit 16
+        [[ "$(<proj/f)" == hi ]] || exit 17
+        extract proj.tar.gz proj.tar.gz >/dev/null 2>&1; true' </dev/null
+)
+sc_out=$?
+if [[ $sc_out -eq 0 ]]; then
+    print_test "compress/extract: trailing slash, usage errors, round trip" "pass" ""
+else
+    print_test "compress/extract: trailing slash, usage errors, round trip" "fail" "step exit code $sc_out"
+fi
+
+# --- awake (stubbed pmset / caffeinate / osascript) ----------------------------
+local sc_stub="$sc_tmp/stub"
+mkdir -p "$sc_stub" "$sc_tmp/awake"
+printf '%s\n' '#!/bin/sh' 'echo "$@" >> "$AWAKE_TEST_LOG"' 'trap "kill \$p 2>/dev/null; exit 0" TERM' 'sleep 3607 & p=$!' 'wait $p' >"$sc_stub/caffeinate"
+printf '%s\n' '#!/bin/sh' 'cat "$AWAKE_TEST_BATT"' >"$sc_stub/pmset"
+printf '%s\n' '#!/bin/sh' 'echo "$@" >> "$AWAKE_TEST_NOTIFY"' >"$sc_stub/osascript"
+chmod +x "$sc_stub"/*
+printf "Now drawing from 'AC Power'\n -InternalBattery-0 (id=1)\t90%%; charging; 0:30 remaining present: true\n" >"$sc_tmp/awake/batt"
+cat >"$sc_tmp/awake/run.zsh" <<'AWAKE_EOF'
+source "$R/zsh/.functions.d/05-system.zsh"
+batt() { printf "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=1)\t%s%%; discharging; 3:00 remaining present: true\n" "$1" >"$AWAKE_TEST_BATT"; }
+last() { tail -1 "$AWAKE_TEST_LOG"; }
+awake >/dev/null; sleep 0.4
+[[ "$(last)" == "-i" ]] || { echo "default flags: $(last)"; exit 21; }
+pid=$(<"$AWAKE_PIDFILE")
+awake | grep -q 'already active' || exit 22
+[[ "$(<"$AWAKE_PIDFILE")" == "$pid" ]] || exit 23
+awake status | grep -q 'awake: active' || exit 24
+awake ac >/dev/null; sleep 0.4
+[[ "$(last)" == "-s" ]] || { echo "ac flags: $(last)"; exit 25; }
+awake screen >/dev/null; sleep 0.4
+[[ "$(last)" == "-i -d" ]] || { echo "screen flags: $(last)"; exit 26; }
+awake for 2h >/dev/null; sleep 0.4
+[[ "$(last)" == "-i -t 7200" ]] || { echo "for flags: $(last)"; exit 27; }
+awake for nonsense >/dev/null 2>&1 && exit 28
+awake stop >/dev/null
+[[ ! -e "$AWAKE_PIDFILE" ]] || exit 29
+# battery watcher: above the floor keeps the hold, at the floor releases + notifies
+batt 50
+awake --floor 20 >/dev/null; sleep 0.4
+pid=$(<"$AWAKE_PIDFILE")
+sleep 2.2
+kill -0 "$pid" 2>/dev/null || exit 31
+batt 20
+sleep 2.5
+kill -0 "$pid" 2>/dev/null && exit 32
+grep -q 'released the awake hold' "$AWAKE_TEST_NOTIFY" || exit 33
+sleep 0.4
+[[ ! -e "$AWAKE_PIDFILE" ]] || exit 34
+batt 15
+awake >/dev/null 2>&1 && exit 35
+exit 0
+AWAKE_EOF
+(
+    export PATH="$sc_stub:$PATH" TMPDIR="$sc_tmp/awake" AWAKE_POLL_SECS=1 R="$sc_repo"
+    export AWAKE_TEST_LOG="$sc_tmp/awake/log" AWAKE_TEST_BATT="$sc_tmp/awake/batt" AWAKE_TEST_NOTIFY="$sc_tmp/awake/notify"
+    zsh -f "$sc_tmp/awake/run.zsh" </dev/null
+    rc=$?
+    # never leave a hold or watcher behind, whatever happened
+    zsh -f -c 'source "$R/zsh/.functions.d/05-system.zsh"; awake stop' >/dev/null 2>&1
+    exit $rc
+) >"$sc_tmp/awake/out" 2>&1
+sc_out=$?
+pkill -f 'sleep 3607' 2>/dev/null
+if [[ $sc_out -eq 0 ]]; then
+    print_test "awake: flags, idempotent start, stop, battery-floor release + notification" "pass" ""
+else
+    print_test "awake: flags, idempotent start, stop, battery-floor release + notification" "fail" "exit $sc_out: $(head -c 300 "$sc_tmp/awake/out")"
+fi
+
+# --- tool-init cache: failed init is never cached; success is header-keyed ----
+mkdir -p "$sc_tmp/cache/bin" "$sc_tmp/cache/home"
+printf '%s\n' '#!/bin/sh' 'echo run >> "$CACHE_COUNT"' 'echo "FAKE_INIT=1"' >"$sc_tmp/cache/bin/faketool"
+printf '%s\n' '#!/bin/sh' 'exit 1' >"$sc_tmp/cache/bin/badtool"
+chmod +x "$sc_tmp/cache/bin"/*
+sed -n '/^_cache_tool_init() {/,/^}/p' "$sc_repo/zsh/.zshrc.d/05-shell-integrations.zsh" >"$sc_tmp/cache/fn.zsh"
+(
+    export HOME="$sc_tmp/cache/home" PATH="$sc_tmp/cache/bin:$PATH" CACHE_COUNT="$sc_tmp/cache/count"
+    zsh -f -c '
+        source "$HOME/../fn.zsh"
+        _cache_tool_init badtool "badtool"
+        [[ ! -s "$HOME/.cache/zsh/badtool_init.zsh" ]] || exit 41
+        _cache_tool_init faketool "faketool"
+        _cache_tool_init faketool "faketool"
+        [[ "$FAKE_INIT" == 1 ]] || exit 42
+        [[ "$(wc -l <"$CACHE_COUNT" | tr -d " ")" == 1 ]] || exit 43
+        [[ "$(head -1 "$HOME/.cache/zsh/faketool_init.zsh")" == "# tool-path: "* ]] || exit 44
+        exit 0' </dev/null
+)
+sc_out=$?
+if [[ $sc_out -eq 0 ]]; then
+    print_test "init cache: failed init not cached, good init cached once" "pass" ""
+else
+    print_test "init cache: failed init not cached, good init cached once" "fail" "exit $sc_out"
+fi
+
+# --- login shell: no ~/.local/bin/env, nvm default first, XDG from .zshenv ----
+local sc_home="$sc_tmp/loginhome"
+mkdir -p "$sc_home/.nvm/alias" "$sc_home/.nvm/versions/node/v22.2.0/bin" "$sc_home/.nvm/versions/node/v22.22.2/bin"
+print 22.2 >"$sc_home/.nvm/alias/default"
+ln -sf "$sc_repo/zsh/.zshenv" "$sc_home/.zshenv"
+ln -sf "$sc_repo/zsh/.zprofile" "$sc_home/.zprofile"
+ln -sf "$sc_repo/bash/.profile" "$sc_home/.profile"
+sc_out="$(env -i HOME="$sc_home" PATH=/usr/bin:/bin zsh -l -c 'print -r -- "${path[1]}|$XDG_CONFIG_HOME|$XDG_CACHE_HOME"' 2>&1)"
+sc_rc=$?
+if [[ $sc_rc -eq 0 ]]; then
+    print_test "login zsh exits 0 without ~/.local/bin/env" "pass" ""
+else
+    print_test "login zsh exits 0 without ~/.local/bin/env" "fail" "rc=$sc_rc: $sc_out"
+fi
+if [[ "$sc_out" == "$sc_home/.nvm/versions/node/v22.2.0/bin|$sc_home/.config|$sc_home/Library/Caches" ]]; then
+    print_test "login zsh: nvm default (anchored version) first on PATH; XDG_* from .zshenv" "pass" ""
+else
+    print_test "login zsh: nvm default (anchored version) first on PATH; XDG_* from .zshenv" "fail" "$sc_out"
+fi
+
+# --- global gitignore ---------------------------------------------------------
+if command -v git >/dev/null 2>&1; then
+    mkdir -p "$sc_tmp/ig" && git -C "$sc_tmp/ig" init -q 2>/dev/null
+    local sc_ign="$sc_repo/git/.config/git/ignore" sc_bad="" sc_p
+    for sc_p in gradle/wrapper/gradle-wrapper.jar sub/gradle/wrapper/gradle-wrapper.jar Cargo.lock vendor/github.com/x/y.go; do
+        git -C "$sc_tmp/ig" -c core.excludesFile="$sc_ign" check-ignore -q "$sc_p" && sc_bad+=" ignored:$sc_p"
+    done
+    for sc_p in lib/other.jar node_modules/x .env vendor/bundle/x.rb; do
+        git -C "$sc_tmp/ig" -c core.excludesFile="$sc_ign" check-ignore -q "$sc_p" || sc_bad+=" not-ignored:$sc_p"
+    done
+    if [[ -z "$sc_bad" ]]; then
+        print_test "global gitignore keeps wrapper jar, Cargo.lock, vendor/ and still ignores jars/.env" "pass" ""
+    else
+        print_test "global gitignore keeps wrapper jar, Cargo.lock, vendor/ and still ignores jars/.env" "fail" "$sc_bad"
+    fi
+fi
+
+# --- completions --------------------------------------------------------------
+local sc_missing="" sc_c
+for sc_c in _extract _kill_by_port _awake _reload _edit_commands; do
+    if [[ ! -f "$sc_repo/zsh/completions/$sc_c" ]] || ! head -1 "$sc_repo/zsh/completions/$sc_c" | grep -q '^#compdef ' || ! zsh -n "$sc_repo/zsh/completions/$sc_c" 2>/dev/null; then
+        sc_missing+=" $sc_c"
+    fi
+    grep -q "\`$sc_c\`" "$sc_repo/zsh/completions/README.md" || sc_missing+=" README:$sc_c"
+done
+grep -q 'completions' "$sc_repo/zsh/.zshrc.d/02-completion.zsh" || sc_missing+=" fpath-entry"
+if [[ -z "$sc_missing" ]]; then
+    print_test "completions: files valid, listed in README, ~/completions on fpath" "pass" ""
+else
+    print_test "completions: files valid, listed in README, ~/completions on fpath" "fail" "$sc_missing"
+fi
+
+# --- names documented anywhere must exist; removed names must be gone --------
+local -a sc_documented=(lg glog gca gundo awake kill_by_port extract compress show_tools alias_help alias_docs alias_search brew-sync brew-check)
+(( $+commands[fd] )) && sc_documented+=(f fdg fdh fda)
+(( $+commands[rg] )) && sc_documented+=(g rgh rga)
+(( $+commands[dust] )) && sc_documented+=(d)
+sc_out="$(R=$sc_repo zsh -f -c "$sc_prelude"'; for n in "$@"; do whence -w "$n" | grep -Eq ": (alias|function)$" || print -n "$n "; done' _ "${sc_documented[@]}" 2>&1)"
+if [[ -z "$sc_out" ]]; then
+    print_test "every alias/function named in the docs exists (whence)" "pass" ""
+else
+    print_test "every alias/function named in the docs exists (whence)" "fail" "missing: $sc_out"
+fi
+sc_out="$(R=$sc_repo zsh -f -c "$sc_prelude"'; for n in dont_sleep stay_awake stay_awake_stop stay_awake_for brew-sync-optional brew-check-optional remove_dotfiles_tool adopt-config; do whence -w "$n" | grep -Eq ": (alias|function)$" && print -n "$n "; done' 2>&1)"
+if [[ -z "$sc_out" ]]; then
+    print_test "removed aliases/functions are gone" "pass" ""
+else
+    print_test "removed aliases/functions are gone" "fail" "still defined: $sc_out"
+fi
+if ! grep -Eq '(^|`)(fg|fh|fa|gh) ' "$sc_repo/docs/SEARCH_CHEATSHEET.md" && ! grep -Eq 'gamend|Option\+H' "$sc_repo/zsh/.functions.d/07-docs.zsh"; then
+    print_test "docs use real alias names (no fg/fh/fa/gh, gamend, Option+H)" "pass" ""
+else
+    print_test "docs use real alias names (no fg/fh/fa/gh, gamend, Option+H)" "fail" "stale names in docs/SEARCH_CHEATSHEET.md or 07-docs.zsh"
+fi
+
+# --- config details -----------------------------------------------------------
+sc_check "bin/sync-brewfile is read-only (no dump / --force)" "script rewrites a Brewfile" \
+    bash -c '! grep -v "^[[:space:]]*#" "$1" | grep -Eq "bundle dump|--force"' _ "$sc_repo/bin/sync-brewfile"
+sc_check "atuin: global filter, invert, full style, tabs; failed commands not suppressed" "unexpected atuin settings" \
+    bash -c 'f="$1"; grep -q "^filter_mode = \"global\"" "$f" && grep -q "^invert = true" "$f" && grep -q "^style = \"full\"" "$f" && grep -q "^show_tabs = true" "$f" && grep -q "filters = \[ \"global\", \"workspace\"" "$f" && ! grep -Eq "^store_failed" "$f"' _ "$sc_repo/atuin/.config/atuin/config.toml"
+sc_check "fzf Ctrl-T / Alt-C previews configured" "FZF_CTRL_T_OPTS / FZF_ALT_C_OPTS missing" \
+    bash -c 'grep -q "^export FZF_CTRL_T_OPTS" "$1" && grep -q "^export FZF_ALT_C_OPTS" "$1" && ! grep -q "^export FZF_DEFAULT_OPTS" "$1"' _ "$sc_repo/zsh/.zshrc.d/05-shell-integrations.zsh"
+
+rm -rf "$sc_tmp"
+unfunction sc_check 2>/dev/null
+
+# ============================================================================
 # ENVIRONMENT FILES
 # ============================================================================
 print_header "Configuration Files"
