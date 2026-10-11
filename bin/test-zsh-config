@@ -371,30 +371,38 @@ else
     print_test "~/.env backups encrypted" "pass" ""
 fi
 
-if [[ -e "$HOME/.cache/zsh/env_cache" ]]; then
+local env_cache="$HOME/.cache/zsh/env_cache.v2"
+if [[ -e "$env_cache" ]]; then
     local cache_mode cache_dir_mode
-    cache_mode=$(stat -f %Lp "$HOME/.cache/zsh/env_cache")
+    cache_mode=$(stat -f %Lp "$env_cache")
     cache_dir_mode=$(stat -f %Lp "$HOME/.cache/zsh")
     if [[ "$cache_mode" == 600 && "$cache_dir_mode" == 700 ]]; then
         print_test "Decrypted env cache private" "pass" "File 600, directory 700"
     else
-        print_test "Decrypted env cache private" "warn" "File $cache_mode, directory $cache_dir_mode (want 600/700); open a new shell after: rm ~/.cache/zsh/env_cache"
+        print_test "Decrypted env cache private" "warn" "File $cache_mode, directory $cache_dir_mode (want 600/700); the shell ignores it and decrypts again"
     fi
 fi
+# The pre-v2 cache could be a readable copy of the ciphertext; any new shell
+# deletes it
+if [[ -e "$HOME/.cache/zsh/env_cache" || -L "$HOME/.cache/zsh/env_cache" ]]; then
+    print_test "No old env cache" "warn" "~/.cache/zsh/env_cache is left from the old loader; open a new shell (or rm it)"
+fi
 
-# ~/.sops.yaml is per machine: a real file listing this machine's age key
-if [[ -L "$HOME/.sops.yaml" ]]; then
-    print_test "~/.sops.yaml" "warn" "Symlink to $(readlink "$HOME/.sops.yaml"); run ./init.sh to write a per-machine file"
+# ~/.sops.yaml is per machine: a file listing this machine's age key
+local age_public_key
+age_public_key=$(age-keygen -y "$HOME/.config/sops/age/keys.txt" 2>/dev/null | head -n 1)
+if [[ -L "$HOME/.sops.yaml" && ! -e "$HOME/.sops.yaml" ]]; then
+    print_test "~/.sops.yaml" "warn" "Dangling symlink (to $(readlink "$HOME/.sops.yaml")); fix: rm ~/.sops.yaml && ./init.sh"
 elif [[ -f "$HOME/.sops.yaml" ]]; then
-    local age_public_key
-    age_public_key=$(grep '^# public key:' "$HOME/.config/sops/age/keys.txt" 2>/dev/null | cut -d' ' -f4)
+    local sops_where="File"
+    [[ -L "$HOME/.sops.yaml" ]] && sops_where="Symlink to ${${:-$HOME/.sops.yaml}:A}"
     if [[ -n "$age_public_key" ]] && grep -qF -- "$age_public_key" "$HOME/.sops.yaml"; then
-        print_test "~/.sops.yaml" "pass" "Lists this machine's age key"
+        print_test "~/.sops.yaml" "pass" "$sops_where lists this machine's age key"
     else
-        print_test "~/.sops.yaml" "warn" "Doesn't list this machine's age key; new secrets would be unreadable here"
+        print_test "~/.sops.yaml" "warn" "$sops_where doesn't list this machine's age key; new secrets would be unreadable here"
     fi
 else
-    print_test "~/.sops.yaml" "warn" "Missing; run ./init.sh (edit_secrets needs it)"
+    print_test "~/.sops.yaml" "warn" "Missing; edit_secrets encrypts to this machine's key, ./init.sh writes the file"
 fi
 
 # ============================================================================
@@ -402,7 +410,7 @@ fi
 # ============================================================================
 print_header "Touch ID for sudo"
 
-if [[ -f /etc/pam.d/sudo_local ]] && grep -q "pam_tid.so" /etc/pam.d/sudo_local 2>/dev/null; then
+if [[ -f /etc/pam.d/sudo_local ]] && grep -Eq '^[[:space:]]*auth[[:space:]].*pam_tid\.so' /etc/pam.d/sudo_local 2>/dev/null; then
     print_test "Touch ID for sudo" "pass" "Enabled via /etc/pam.d/sudo_local"
 
     local reattach_lib
@@ -410,30 +418,35 @@ if [[ -f /etc/pam.d/sudo_local ]] && grep -q "pam_tid.so" /etc/pam.d/sudo_local 
     if [[ -n "$reattach_lib" ]]; then
         print_test "Touch ID in tmux (pam_reattach)" "pass" "Configured ($reattach_lib)"
 
-        # sudo loads the module as root, so it (and its directory) must be a
-        # root-owned real file nobody else can write; a copy in the
-        # user-writable Homebrew prefix is a local root escalation path
-        local reattach_problem=""
+        # sudo loads the module as root, so it must be a real file, and it and
+        # every directory above it must be root-owned and not writable by
+        # group/others: whoever can write any of them can swap the module (a
+        # copy in the user-writable Homebrew prefix is a local root escalation)
+        local reattach_problem="" reattach_path reattach_owner reattach_mode
         if [[ ! -e "$reattach_lib" ]]; then
-            reattach_problem="file is missing"
+            reattach_problem="$reattach_lib is missing"
         elif [[ -L "$reattach_lib" ]]; then
-            reattach_problem="is a symlink (to $(readlink "$reattach_lib"))"
+            reattach_problem="$reattach_lib is a symlink (to $(readlink "$reattach_lib"))"
         else
-            local lib_owner dir_owner lib_mode dir_mode
-            lib_owner=$(stat -f %Su "$reattach_lib")
-            dir_owner=$(stat -f %Su "${reattach_lib:h}")
-            lib_mode=$(stat -f %Lp "$reattach_lib")
-            dir_mode=$(stat -f %Lp "${reattach_lib:h}")
-            if [[ "$lib_owner" != root || "$dir_owner" != root ]]; then
-                reattach_problem="owned by $lib_owner (directory by $dir_owner), not root"
-            elif (( (8#$lib_mode | 8#$dir_mode) & 8#022 )); then
-                reattach_problem="writable by group/others (file $lib_mode, directory $dir_mode)"
-            fi
+            reattach_path=${reattach_lib:A}
+            while :; do
+                reattach_owner=$(stat -f %Su "$reattach_path")
+                reattach_mode=$(stat -f %Lp "$reattach_path")
+                if [[ "$reattach_owner" != root ]]; then
+                    reattach_problem="$reattach_path is owned by $reattach_owner, not root"
+                    break
+                elif (( 8#$reattach_mode & 8#022 )); then
+                    reattach_problem="$reattach_path is writable by group/others (mode $reattach_mode)"
+                    break
+                fi
+                [[ "$reattach_path" == / ]] && break
+                reattach_path=${reattach_path:h}
+            done
         fi
         if [[ -z "$reattach_problem" ]]; then
-            print_test "pam_reattach ownership" "pass" "Root-owned and read-only for others"
+            print_test "pam_reattach ownership" "pass" "Root-owned (file and every parent directory), not writable by others"
         else
-            print_test "pam_reattach ownership" "fail" "$reattach_lib $reattach_problem; run ./init.sh (Touch ID step) to move it to /opt/pam"
+            print_test "pam_reattach ownership" "fail" "$reattach_problem; run ./init.sh (Touch ID step) to move it to /opt/pam"
         fi
     else
         print_test "Touch ID in tmux (pam_reattach)" "warn" "Not configured (Touch ID won't work in tmux)"
