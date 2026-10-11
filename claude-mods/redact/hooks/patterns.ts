@@ -1,6 +1,43 @@
 export type Counts = Record<string, number>
 
-type Rule = { kind: string; re: RegExp; group?: number }
+/**
+ * A rule hides its whole match, or, with `prefix`, only what follows the
+ * text group 1 matched (group 2), and only when `check` says it looks like a
+ * secret (isSecretLike by default).
+ */
+type Rule = { kind: string; re: RegExp; prefix?: true; check?: (v: string) => boolean }
+
+const PLACEHOLDER = /^(\$|\{|<|%|\[REDACTED|ENC\[|\*+$|x+$|\.+$)/i
+const LOOKS_RANDOM = /^[A-Za-z0-9!@#$%^&*_+\-=/.~]+$/
+
+// A code word: letters and underscores, with up to 3 trailing digits (apiKey, SECRET_KEY, password2).
+const WORDY = /^[A-Za-z_][A-Za-z_]*\d{0,3}$/
+
+/**
+ * Code that names a value rather than holding it: member access whose every
+ * part is a code word (`process.env.API_KEY2`, `config.apiKey`), or one
+ * camelCase or snake_case code word (`secretKey`, `db_password`).
+ */
+export function looksLikeCode(v: string): boolean {
+  const parts = v.split('.')
+  if (parts.length > 1) return parts.every(p => WORDY.test(p))
+  return WORDY.test(v) && (/[a-z][A-Z]/.test(v) || /[A-Za-z]_[A-Za-z]/.test(v))
+}
+
+export function isSecretLike(v: string): boolean {
+  return (
+    !PLACEHOLDER.test(v) &&
+    LOOKS_RANDOM.test(v) &&
+    /[0-9]/.test(v) &&
+    /[A-Za-z]/.test(v) &&
+    !looksLikeCode(v) &&
+    !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(v) // commit and file hashes
+  )
+}
+
+// What follows a credential's name: an optional closing quote, `:` or `=`, an optional opening quote
+const ASSIGN = `["']?\\s*[:=]\\s*["']?`
+const VALUE = "([^\\s\"'`,;]{8,})"
 
 // Conservative: each rule needs a distinctive prefix or shape.
 const RULES: Rule[] = [
@@ -12,6 +49,10 @@ const RULES: Rule[] = [
   { kind: 'aws-access-key', re: /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g },
   { kind: 'github-token', re: /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{30,}\b/g },
   { kind: 'github-token', re: /\bgithub_pat_[A-Za-z0-9_]{40,}\b/g },
+  { kind: 'gitlab-token', re: /\bglpat-[A-Za-z0-9_-]{20,}/g },
+  { kind: 'npm-token', re: /\bnpm_[A-Za-z0-9]{36,}\b/g },
+  { kind: 'huggingface-token', re: /\bhf_[A-Za-z0-9]{30,}\b/g },
+  { kind: 'stripe-key', re: /\b[sr]k_(?:live|test)_[A-Za-z0-9]{16,}\b/g },
   { kind: 'anthropic-key', re: /\bsk-ant-[A-Za-z0-9_-]{20,}/g },
   { kind: 'api-key', re: /\bsk-(?:proj-|live-|test-)?[A-Za-z0-9_-]{32,}/g },
   { kind: 'slack-token', re: /\bxox[abprs]-[A-Za-z0-9-]{10,}/g },
@@ -21,39 +62,67 @@ const RULES: Rule[] = [
     re: /\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g,
   },
   {
+    // Authorization: Basic|Bearer|Token|Digest <value>
+    kind: 'auth-header',
+    re: /(\bAuthorization["']?\s*:\s*["']?(?:Basic|Bearer|Token|Digest)\s+)([^\s"'`,;]{8,})/gi,
+    prefix: true,
+    check: v => !PLACEHOLDER.test(v),
+  },
+  {
+    kind: 'bearer',
+    re: /(\bBearer\s+)([A-Za-z0-9._~+/-]{16,}=*)/gi,
+    prefix: true,
+    check: v => !PLACEHOLDER.test(v) && /[0-9]/.test(v) && /[A-Za-z]/.test(v),
+  },
+  {
+    // scheme://user:password@host: only the password
+    kind: 'url-password',
+    re: /(\b[A-Za-z][A-Za-z0-9+.-]*:\/\/[^\s:@/]+:)([^\s@/]+)(?=@)/g,
+    prefix: true,
+    check: v => !PLACEHOLDER.test(v),
+  },
+  {
     // name = value: only the value is replaced, and only when it looks random
     kind: 'password',
-    re: /(?<![A-Za-z0-9])(?:password|passwd|secret|api[_-]?key|access[_-]?key|auth[_-]?token|client[_-]?secret)\b["']?\s*[:=]\s*["']?([^\s"'`,;]{8,})/gi,
-    group: 1,
+    re: new RegExp(
+      `((?<![A-Za-z0-9])(?:password|passwd|secret(?:[_-]?key)?|api[_-]?key|access[_-]?key|auth[_-]?token|client[_-]?secret)${ASSIGN})${VALUE}`,
+      'gi',
+    ),
+    prefix: true,
+  },
+  {
+    // GITHUB_TOKEN=, NPM_AUTH_TOKEN:, packagePAT=, githubToken:, "private_key": ...
+    kind: 'credential',
+    re: new RegExp(
+      `((?<![A-Za-z0-9])(?:[A-Za-z0-9]+[_-])*(?:token|pat|private[_-]?key|credentials?)${ASSIGN})${VALUE}`,
+      'gi',
+    ),
+    prefix: true,
+  },
+  {
+    kind: 'credential',
+    re: new RegExp(
+      `((?<![A-Za-z0-9_])[A-Za-z0-9_]*(?:PAT|TOKEN|SECRET|PASSWORD|PASSWD|APIKEY|API_KEY|Token|Secret|Password|ApiKey|Pat)${ASSIGN})${VALUE}`,
+      'g',
+    ),
+    prefix: true,
   },
 ]
-
-const PLACEHOLDER = /^(\$|\{|<|%|\[REDACTED|ENC\[|\*+$|x+$|\.+$)/i
-const LOOKS_RANDOM = /^[A-Za-z0-9!@#$%^&*_+\-=/.~]+$/
-
-function isSecretLike(v: string): boolean {
-  return (
-    !PLACEHOLDER.test(v) &&
-    LOOKS_RANDOM.test(v) &&
-    /[0-9]/.test(v) &&
-    /[A-Za-z]/.test(v) &&
-    !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(v) // commit and file hashes
-  )
-}
 
 export function redactText(text: string, counts: Counts): string {
   let out = text
   for (const rule of RULES) {
     out = out.replace(rule.re, (...m: unknown[]) => {
       const whole = m[0] as string
-      if (rule.group === undefined) {
+      if (!rule.prefix) {
         counts[rule.kind] = (counts[rule.kind] ?? 0) + 1
         return `[REDACTED:${rule.kind}]`
       }
-      const value = m[rule.group] as string
-      if (!isSecretLike(value)) return whole
+      const head = m[1] as string
+      const value = m[2] as string
+      if (!(rule.check ?? isSecretLike)(value)) return whole
       counts[rule.kind] = (counts[rule.kind] ?? 0) + 1
-      return whole.replace(value, `[REDACTED:${rule.kind}]`)
+      return `${head}[REDACTED:${rule.kind}]${whole.slice(head.length + value.length)}`
     })
   }
   return out
