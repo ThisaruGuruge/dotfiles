@@ -393,29 +393,39 @@ fi
 
 # --- kill_by_port only touches the listener -----------------------------------
 if command -v python3 >/dev/null 2>&1 && command -v lsof >/dev/null 2>&1; then
-    local sc_port=$((20000 + RANDOM % 20000)) sc_srv sc_cli
-    python3 -I -c "
-import socket, time
+    local sc_port=$((20000 + RANDOM % 20000)) sc_srv="" sc_cli="" sc_i
+    # Started detached (not children of this script), so a killed listener is
+    # reaped at once instead of lingering as a zombie that `kill -0` still sees.
+    # Each writes its PID once it is listening / connected.
+    (python3 -I -c "
+import os, socket, time
 s = socket.socket(); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-s.bind(('127.0.0.1', $sc_port)); s.listen(5); c, _ = s.accept(); time.sleep(120)" &
-    sc_srv=$!
-    sleep 0.6
-    python3 -I -c "
-import socket, time
-c = socket.create_connection(('127.0.0.1', $sc_port)); time.sleep(120)" &
-    sc_cli=$!
-    sleep 0.6
+s.bind(('127.0.0.1', $sc_port)); s.listen(5)
+open('$sc_tmp/kbp.srv', 'w').write(str(os.getpid()))
+c, _ = s.accept(); time.sleep(120)" >/dev/null 2>&1 &)
+    for sc_i in {1..100}; do [[ -s "$sc_tmp/kbp.srv" ]] && break; sleep 0.05; done
+    (python3 -I -c "
+import os, socket, time
+c = socket.create_connection(('127.0.0.1', $sc_port))
+open('$sc_tmp/kbp.cli', 'w').write(str(os.getpid())); time.sleep(120)" >/dev/null 2>&1 &)
+    for sc_i in {1..100}; do [[ -s "$sc_tmp/kbp.cli" ]] && break; sleep 0.05; done
+    sc_srv="$(cat "$sc_tmp/kbp.srv" 2>/dev/null)" sc_cli="$(cat "$sc_tmp/kbp.cli" 2>/dev/null)"
     R=$sc_repo zsh -f -c "$sc_prelude; kill_by_port $sc_port" >/dev/null 2>&1
-    sleep 0.3
-    if ! kill -0 "$sc_srv" 2>/dev/null && kill -0 "$sc_cli" 2>/dev/null; then
+    if [[ "$sc_srv" == <-> && "$sc_cli" == <-> ]] && ! kill -0 "$sc_srv" 2>/dev/null && kill -0 "$sc_cli" 2>/dev/null; then
         print_test "kill_by_port stops the listener and leaves the client alone" "pass" ""
     else
         print_test "kill_by_port stops the listener and leaves the client alone" "fail" "listener alive: $(kill -0 "$sc_srv" 2>/dev/null && echo yes || echo no), client alive: $(kill -0 "$sc_cli" 2>/dev/null && echo yes || echo no)"
     fi
-    kill "$sc_srv" "$sc_cli" 2>/dev/null
-    wait "$sc_srv" "$sc_cli" 2>/dev/null
+    [[ "$sc_srv" == <-> ]] && kill "$sc_srv" 2>/dev/null
+    [[ "$sc_cli" == <-> ]] && kill "$sc_cli" 2>/dev/null
 else
     print_test "kill_by_port listener-only" "warn" "python3 or lsof not available"
+fi
+sc_out="$(R=$sc_repo zsh -f -c "$sc_prelude"'; kill_by_port 1 2 >/dev/null && print accepted-two-ports; kill_by_port -h | grep -q "TCP only" || print no-tcp-note' 2>&1)"
+if [[ -z "$sc_out" ]]; then
+    print_test "kill_by_port: refuses two ports; help says TCP only" "pass" ""
+else
+    print_test "kill_by_port: refuses two ports; help says TCP only" "fail" "$sc_out"
 fi
 
 # --- compress / extract -------------------------------------------------------
@@ -440,51 +450,94 @@ else
 fi
 
 # --- awake (stubbed pmset / caffeinate / osascript) ----------------------------
+# The caffeinate stub logs its flags and PID, then execs a symlink to sleep that
+# is named caffeinate, so `ps -o comm=` reports caffeinate like the real one.
 local sc_stub="$sc_tmp/stub"
-mkdir -p "$sc_stub" "$sc_tmp/awake"
-printf '%s\n' '#!/bin/sh' 'echo "$@" >> "$AWAKE_TEST_LOG"' 'trap "kill \$p 2>/dev/null; exit 0" TERM' 'sleep 3607 & p=$!' 'wait $p' >"$sc_stub/caffeinate"
+mkdir -p "$sc_stub/real" "$sc_tmp/awake"
+ln -s /bin/sleep "$sc_stub/real/caffeinate"
+printf '%s\n' '#!/bin/sh' 'echo "$@" >> "$AWAKE_TEST_LOG"' 'echo $$ >> "$AWAKE_TEST_PIDS"' 'exec "${0%/*}/real/caffeinate" 3607' >"$sc_stub/caffeinate"
 printf '%s\n' '#!/bin/sh' 'cat "$AWAKE_TEST_BATT"' >"$sc_stub/pmset"
 printf '%s\n' '#!/bin/sh' 'echo "$@" >> "$AWAKE_TEST_NOTIFY"' >"$sc_stub/osascript"
-chmod +x "$sc_stub"/*
+chmod +x "$sc_stub/caffeinate" "$sc_stub/pmset" "$sc_stub/osascript"
+: >"$sc_tmp/awake/pids"
 printf "Now drawing from 'AC Power'\n -InternalBattery-0 (id=1)\t90%%; charging; 0:30 remaining present: true\n" >"$sc_tmp/awake/batt"
 cat >"$sc_tmp/awake/run.zsh" <<'AWAKE_EOF'
 source "$R/zsh/.functions.d/05-system.zsh"
 batt() { printf "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=1)\t%s%%; discharging; 3:00 remaining present: true\n" "$1" >"$AWAKE_TEST_BATT"; }
 last() { tail -1 "$AWAKE_TEST_LOG"; }
-awake >/dev/null; sleep 0.4
+live() { local n=0 p; for p in $(<"$AWAKE_TEST_PIDS"); do _awake_alive "$p" && ((n++)); done; print $n; }
+until_ok() { local i; for i in {1..60}; do eval "$1" && return 0; sleep 0.05; done; return 1; }
+pf="$TMPDIR/dotfiles-awake.pid"
+awake >/dev/null || exit 20
 [[ "$(last)" == "-i" ]] || { echo "default flags: $(last)"; exit 21; }
-pid=$(<"$AWAKE_PIDFILE")
+pid=$(<"$pf")
 awake | grep -q 'already active' || exit 22
-[[ "$(<"$AWAKE_PIDFILE")" == "$pid" ]] || exit 23
+[[ "$(<"$pf")" == "$pid" ]] || exit 23
 awake status | grep -q 'awake: active' || exit 24
-awake ac >/dev/null; sleep 0.4
+awake ac >/dev/null
 [[ "$(last)" == "-s" ]] || { echo "ac flags: $(last)"; exit 25; }
-awake screen >/dev/null; sleep 0.4
+awake status | grep -q 'AC-only hold drops if unplugged' || exit 251
+awake screen >/dev/null
 [[ "$(last)" == "-i -d" ]] || { echo "screen flags: $(last)"; exit 26; }
-awake for 2h >/dev/null; sleep 0.4
+awake for 2h >/dev/null
 [[ "$(last)" == "-i -t 7200" ]] || { echo "for flags: $(last)"; exit 27; }
 awake for nonsense >/dev/null 2>&1 && exit 28
+awake for 0 >/dev/null 2>&1 && exit 281
+awake for 1 >/dev/null 2>&1 && exit 282
+[[ "$(live)" == 1 ]] || { echo "live holds after replacing: $(live)"; exit 283; }
 awake stop >/dev/null
-[[ ! -e "$AWAKE_PIDFILE" ]] || exit 29
+[[ ! -e "$pf" ]] || exit 29
+# stale state naming an unrelated process as the watcher: it is left alone
+sleep 30 &
+other=$!
+print 99999 >"$pf"
+print "watcher=$other" >"${pf%.pid}.state"
+awake stop >/dev/null
+kill -0 "$other" 2>/dev/null || exit 291
+kill "$other"
+# a process that merely mentions caffeinate in its arguments is not a hold
+zsh -f -c 'zmodload zsh/zselect; zselect -t 3000' x caffeinate.md &
+other=$!
+_awake_alive "$other" && exit 292
+kill "$other"
+# function-only shell snapshot (no global variables survive): still works
+typeset -f >"$TMPDIR/snap.zsh"
+zsh -f -c 'source "$TMPDIR/snap.zsh"; awake >/dev/null && [[ -f "$TMPDIR/dotfiles-awake.pid" ]] && awake stop >/dev/null' || exit 293
+# three shells starting at once leave exactly one hold
+awake >/dev/null &
+awake screen >/dev/null &
+awake ac >/dev/null &
+wait
+[[ "$(live)" == 1 ]] || { echo "live holds after concurrent starts: $(live)"; exit 294; }
+awake stop >/dev/null
 # battery watcher: above the floor keeps the hold, at the floor releases + notifies
 batt 50
-awake --floor 20 >/dev/null; sleep 0.4
-pid=$(<"$AWAKE_PIDFILE")
-sleep 2.2
-kill -0 "$pid" 2>/dev/null || exit 31
-batt 20
-sleep 2.5
-kill -0 "$pid" 2>/dev/null && exit 32
-grep -q 'released the awake hold' "$AWAKE_TEST_NOTIFY" || exit 33
+awake --floor 20 >/dev/null
+pid=$(<"$pf")
 sleep 0.4
-[[ ! -e "$AWAKE_PIDFILE" ]] || exit 34
+_awake_alive "$pid" || exit 31
+batt 20
+until_ok '! _awake_alive "$pid"' || exit 32
+until_ok 'grep -q "released the awake hold" "$AWAKE_TEST_NOTIFY"' || exit 33
+until_ok '[[ ! -e "$pf" ]]' || exit 34
+# below the floor: refuse to start; a refused replacement keeps the current hold
 batt 15
 awake >/dev/null 2>&1 && exit 35
+awake --floor 10 >/dev/null || exit 36
+pid=$(<"$pf")
+awake screen >/dev/null 2>&1 && exit 37
+_awake_alive "$pid" || exit 38
+awake stop >/dev/null
+# the pidfile cannot be written: the start fails and no hold is left behind
+mkdir "$pf"
+awake >/dev/null 2>&1 && exit 39
+rmdir "$pf"
+until_ok '[[ "$(live)" == 0 ]]' || exit 40
 exit 0
 AWAKE_EOF
 (
-    export PATH="$sc_stub:$PATH" TMPDIR="$sc_tmp/awake" AWAKE_POLL_SECS=1 R="$sc_repo"
-    export AWAKE_TEST_LOG="$sc_tmp/awake/log" AWAKE_TEST_BATT="$sc_tmp/awake/batt" AWAKE_TEST_NOTIFY="$sc_tmp/awake/notify"
+    export PATH="$sc_stub:$PATH" TMPDIR="$sc_tmp/awake" AWAKE_POLL_SECS=0.2 R="$sc_repo"
+    export AWAKE_TEST_LOG="$sc_tmp/awake/log" AWAKE_TEST_PIDS="$sc_tmp/awake/pids" AWAKE_TEST_BATT="$sc_tmp/awake/batt" AWAKE_TEST_NOTIFY="$sc_tmp/awake/notify"
     zsh -f "$sc_tmp/awake/run.zsh" </dev/null
     rc=$?
     # never leave a hold or watcher behind, whatever happened
@@ -492,11 +545,20 @@ AWAKE_EOF
     exit $rc
 ) >"$sc_tmp/awake/out" 2>&1
 sc_out=$?
-pkill -f 'sleep 3607' 2>/dev/null
+# Clean up only what this test started: stub holds by recorded PID (and only
+# while they are still the stub), watchers by their marker plus this test's
+# private pidfile path.
+local sc_hp="" sc_line=""
+for sc_hp in $(<"$sc_tmp/awake/pids"); do
+    [[ "$(ps -p "$sc_hp" -o args= 2>/dev/null)" == "$sc_stub/real/caffeinate"* ]] && kill "$sc_hp" 2>/dev/null
+done
+for sc_line in "${(@f)$(ps -axww -o pid=,args= 2>/dev/null)}"; do
+    [[ "$sc_line" == *" dotfiles-awake-watch "*" $sc_tmp/awake/dotfiles-awake.pid "* ]] && kill "${${=sc_line}[1]}" 2>/dev/null
+done
 if [[ $sc_out -eq 0 ]]; then
-    print_test "awake: flags, idempotent start, stop, battery-floor release + notification" "pass" ""
+    print_test "awake: flags, idempotent start, stop, lock, stale state, battery floor" "pass" ""
 else
-    print_test "awake: flags, idempotent start, stop, battery-floor release + notification" "fail" "exit $sc_out: $(head -c 300 "$sc_tmp/awake/out")"
+    print_test "awake: flags, idempotent start, stop, lock, stale state, battery floor" "fail" "exit $sc_out: $(head -c 300 "$sc_tmp/awake/out")"
 fi
 
 # --- tool-init cache: failed init is never cached; success is header-keyed ----

@@ -55,21 +55,70 @@ da() {
 #   --floor N              battery floor in percent (default 20, or set
 #                          AWAKE_BATTERY_FLOOR)
 #
-# Battery safety: a watcher polls `pmset -g batt` every 60s (AWAKE_POLL_SECS
-# overrides, mainly for tests). On battery at or below the floor it releases the
-# hold and posts a macOS notification, so the Mac sleeps normally instead of
-# draining to zero.
+# Battery safety: a watcher process (`zsh -f -c ... dotfiles-awake-watch
+# <hold-pid> ...`, started with `zsh -f` so it inherits none of the
+# interactive shell's traps, hooks or options) polls `pmset -g batt` every 60s
+# (AWAKE_POLL_SECS overrides, mainly for tests). On battery at or below the
+# floor it releases the hold and posts a macOS notification, so the Mac sleeps
+# normally instead of draining to zero.
 #
 # Honest limit: this does not stop lid-close sleep. Closing the lid still
 # sleeps the Mac unless it is on AC power with an external display attached
 # (clamshell mode).
 #
-# State: ${TMPDIR:-/tmp}/dotfiles-awake.pid holds the caffeinate PID (one line;
-# other tools, e.g. a tmux status segment, may test it with `kill -0`);
-# dotfiles-awake.state next to it holds mode/since/floor/watcher for `status`.
+# State: ${TMPDIR:-/tmp}/dotfiles-awake.pid holds only the caffeinate PID (one
+# line; other tools, e.g. a tmux status segment, may test it with `kill -0`);
+# dotfiles-awake.state next to it holds mode/since/floor/watcher for `status`,
+# and dotfiles-awake.lock serialises start/stop between shells. On macOS
+# TMPDIR is the per-user /var/folders/.../T directory; a shell that overrides
+# TMPDIR (some sandboxes do) sees its own, separate hold. The paths are
+# resolved on every call rather than kept in global variables, because
+# function-only shell snapshots (Claude Code's) drop plain variables.
 # ----------------------------------------------------------------------------
-AWAKE_PIDFILE="${TMPDIR:-/tmp}/dotfiles-awake.pid"
-AWAKE_STATEFILE="${AWAKE_PIDFILE%.pid}.state"
+
+# Set the caller's local pidfile/statefile/lockfile (callers declare them).
+_awake_paths() {
+    pidfile="${TMPDIR:-/tmp}/dotfiles-awake.pid"
+    statefile="${pidfile%.pid}.state"
+    lockfile="${pidfile%.pid}.lock"
+}
+
+# Take the start/stop lock into the caller's local lockfd. fcntl locks belong
+# to the process holding them: they go away when it exits and are not
+# inherited by the hold or the watcher, so nothing can leave the lock stuck.
+_awake_lock() {
+    zmodload -F zsh/system b:zsystem 2>/dev/null || return 0
+    { : >>"$lockfile"; } 2>/dev/null || return 2
+    zsystem flock -t "${1:-5}" -i 0.05 -f lockfd "$lockfile" 2>/dev/null
+}
+
+_awake_unlock() {
+    [[ -n "$lockfd" ]] && zsystem flock -u "$lockfd" 2>/dev/null
+    return 0
+}
+
+# Run "$@" while holding the lock.
+_awake_locked() {
+    local pidfile statefile lockfile lockfd=""
+    _awake_paths
+    _awake_lock
+    case $? in
+        0) ;;
+        2)
+            echo "awake: cannot create $lockfile (is ${TMPDIR:-/tmp} writable?)" >&2
+            return 1
+            ;;
+        *)
+            echo "awake: another 'awake' is starting or stopping; try again." >&2
+            return 1
+            ;;
+    esac
+    {
+        "$@"
+    } always {
+        _awake_unlock
+    }
+}
 
 # Print "<battery|ac> <percent>" ("ac " when the Mac has no battery).
 _awake_power() {
@@ -80,29 +129,40 @@ _awake_power() {
     print -r -- "$src $pct"
 }
 
-# True when <pid> is a live caffeinate process (guards against PID reuse).
+# True when <pid> is a live process whose executable is named caffeinate. It
+# checks the executable name (ps comm), not the argument list, so a reused PID
+# or something like `vim caffeinate.md` never counts.
 _awake_alive() {
-    local pid="$1" cmd
-    [[ "$pid" == <-> ]] || return 1
-    kill -0 "$pid" 2>/dev/null || return 1
-    cmd="$(ps -p "$pid" -o command= 2>/dev/null)"
-    [[ "$cmd" == *caffeinate* ]]
+    local pid="$1" comm
+    [[ "$pid" == <-> ]] && ((pid > 1)) || return 1
+    comm="$(ps -p "$pid" -o comm= 2>/dev/null)" || return 1
+    comm="${comm:t}"
+    [[ "${comm%% *}" == caffeinate ]]
 }
 
-# True when the pidfile points at a live hold.
+# True when <pid> is the watcher of hold <hold>, matched on its marker
+# argument, so a stale state file plus PID reuse can never kill an unrelated
+# process (another shell, an editor, a build).
+_awake_is_watcher() {
+    local pid="$1" hold="$2" args
+    [[ "$pid" == <-> && "$hold" == <-> ]] && ((pid > 1)) || return 1
+    args="$(ps -ww -p "$pid" -o args= 2>/dev/null)" || return 1
+    [[ "$args" == *" dotfiles-awake-watch $hold "* ]]
+}
+
+# True when the pidfile points at a live hold (caller has run _awake_paths).
 _awake_active() {
-    [[ -f "$AWAKE_PIDFILE" ]] && _awake_alive "$(<"$AWAKE_PIDFILE")"
+    [[ -f "$pidfile" ]] && _awake_alive "$(<"$pidfile")"
 }
 
-# Load the state file into the global associative array _AWAKE.
+# Load the state file into the caller's local associative array awake_state.
 _awake_load() {
-    typeset -gA _AWAKE
-    _AWAKE=()
-    [[ -r "$AWAKE_STATEFILE" ]] || return 1
+    awake_state=()
+    [[ -r "$statefile" ]] || return 1
     local k v
     while IFS='=' read -r k v; do
-        [[ -n "$k" ]] && _AWAKE[$k]="$v"
-    done <"$AWAKE_STATEFILE"
+        [[ -n "$k" ]] && awake_state[$k]="$v"
+    done <"$statefile"
 }
 
 _awake_notify() {
@@ -136,11 +196,15 @@ _awake_fmt_secs() {
     fi
 }
 
-# Background watcher: <hold-pid> <floor>. Releases the hold when on battery at
-# or below the floor (floor -1 disables that), and removes the state files once
-# the hold ends for any reason.
+# Watcher body, run in its own `zsh -f` process:
+#   <hold-pid> <floor> <pidfile> <statefile> <lockfile>
+# Releases the hold when on battery at or below the floor (floor -1 disables
+# that), and removes the state files once the hold ends for any reason.
 _awake_watch() {
-    local hold="$1" floor="$2" poll="${AWAKE_POLL_SECS:-60}" power src pct
+    local hold="$1" floor="$2" pidfile="$3" statefile="$4" lockfile="$5"
+    local poll="${AWAKE_POLL_SECS:-60}" power src pct napper="" lockfd=""
+    [[ "$poll" == <->(|.<->) ]] && ((poll > 0)) || poll=60
+    trap '[[ -n "$napper" ]] && kill "$napper" 2>/dev/null; exit 0' TERM
     while _awake_alive "$hold"; do
         power="$(_awake_power)"
         src="${power%% *}"
@@ -150,63 +214,75 @@ _awake_watch() {
             _awake_notify "Battery at ${pct}% (floor ${floor}%): released the awake hold so the Mac can sleep."
             break
         fi
-        sleep "$poll"
+        sleep "$poll" &
+        napper=$!
+        wait "$napper"
+        napper=""
     done
-    if [[ -f "$AWAKE_PIDFILE" && "$(<"$AWAKE_PIDFILE")" == "$hold" ]]; then
-        rm -f "$AWAKE_PIDFILE" "$AWAKE_STATEFILE"
+    _awake_lock
+    if [[ -f "$pidfile" && "$(<"$pidfile")" == "$hold" ]]; then
+        rm -f "$pidfile" "$statefile"
     fi
+    _awake_unlock
 }
 
+# Release the hold. "quiet" skips the messages.
 _awake_stop() {
-    local quiet="$1" pid="" wpid=""
-    if [[ ! -f "$AWAKE_PIDFILE" ]]; then
+    local quiet="$1" pidfile statefile lockfile pid
+    local -A awake_state
+    _awake_paths
+    if [[ ! -f "$pidfile" ]]; then
+        rm -f "$statefile"
         [[ -n "$quiet" ]] || echo "awake: not active."
         return 0
     fi
-    pid="$(<"$AWAKE_PIDFILE")"
+    pid="$(<"$pidfile")"
     _awake_load
-    wpid="${_AWAKE[watcher]}"
+    # The watcher goes first, so it cannot clean up state that a new hold is
+    # about to write. It is only killed when it is verifiably this hold's
+    # watcher; otherwise it exits on its own at its next poll.
+    if _awake_is_watcher "${awake_state[watcher]}" "$pid"; then
+        kill "${awake_state[watcher]}" 2>/dev/null
+    fi
     if _awake_alive "$pid"; then
         kill "$pid" 2>/dev/null
         [[ -n "$quiet" ]] || echo "awake: stopped (PID $pid)."
     else
         [[ -n "$quiet" ]] || echo "awake: was not running (cleaned up stale state)."
     fi
-    if [[ "$wpid" == <-> ]] && kill -0 "$wpid" 2>/dev/null &&
-        [[ "$(ps -p "$wpid" -o command= 2>/dev/null)" == *zsh* ]]; then
-        pkill -P "$wpid" 2>/dev/null
-        kill "$wpid" 2>/dev/null
-    fi
-    rm -f "$AWAKE_PIDFILE" "$AWAKE_STATEFILE"
+    rm -f "$pidfile" "$statefile"
 }
 
 _awake_status() {
-    local power src pct pid since floor_txt
+    local pidfile statefile lockfile power src pct pid since floor_txt ac_hold=0
+    local -A awake_state
+    _awake_paths
     if _awake_active; then
-        pid="$(<"$AWAKE_PIDFILE")"
+        pid="$(<"$pidfile")"
         _awake_load
         echo "awake: active"
-        if [[ "${_AWAKE[ac]}" == 1 ]]; then
+        if [[ "${awake_state[ac]}" == 1 ]]; then
+            ac_hold=1
             echo "  mode:    AC only (caffeinate -s): holds while plugged in, drops on unplug"
-            [[ "${_AWAKE[screen]}" == 1 ]] && echo "           plus display kept on (-d)"
-        elif [[ "${_AWAKE[screen]}" == 1 ]]; then
+            [[ "${awake_state[screen]}" == 1 ]] && echo "           plus display kept on (-d)"
+        elif [[ "${awake_state[screen]}" == 1 ]]; then
             echo "  mode:    idle sleep and display sleep blocked (caffeinate -i -d)"
         else
             echo "  mode:    idle sleep blocked (caffeinate -i); the display may sleep/lock"
         fi
-        since="${_AWAKE[since]}"
+        since="${awake_state[since]}"
         if [[ "$since" == <-> ]]; then
             echo "  since:   $(date -r "$since" '+%a %H:%M') ($(_awake_fmt_secs $(($(date +%s) - since))) ago)"
         fi
-        if [[ "${_AWAKE[until]}" == <-> ]]; then
-            echo "  ends:    $(date -r "${_AWAKE[until]}" '+%a %H:%M') (timed)"
-        elif [[ -n "${_AWAKE[waitpid]}" ]]; then
-            echo "  ends:    when PID ${_AWAKE[waitpid]} exits"
+        if [[ "${awake_state[until]}" == <-> ]]; then
+            echo "  ends:    $(date -r "${awake_state[until]}" '+%a %H:%M') (timed)"
+        elif [[ -n "${awake_state[waitpid]}" ]]; then
+            echo "  ends:    when PID ${awake_state[waitpid]} exits"
         fi
         echo "  hold:    caffeinate PID $pid"
-        floor_txt="${_AWAKE[floor]}"
+        floor_txt="${awake_state[floor]}"
     else
-        [[ -f "$AWAKE_PIDFILE" ]] && rm -f "$AWAKE_PIDFILE" "$AWAKE_STATEFILE"
+        [[ -f "$pidfile" ]] && rm -f "$pidfile" "$statefile"
         echo "awake: not active"
         floor_txt="${AWAKE_BATTERY_FLOOR:-20}"
     fi
@@ -215,9 +291,17 @@ _awake_status() {
     src="${power%% *}"
     pct="${power#* }"
     if [[ "$src" == battery ]]; then
-        echo "  power:   battery ${pct:-?}%; released automatically at <= ${floor_txt}%"
+        if ((ac_hold)); then
+            echo "  power:   battery ${pct:-?}%; the AC-only hold does not apply on battery"
+        else
+            echo "  power:   battery ${pct:-?}%; released automatically at <= ${floor_txt}%"
+        fi
     elif [[ -n "$pct" ]]; then
-        echo "  power:   AC, battery ${pct}%; floor ${floor_txt}% applies if unplugged"
+        if ((ac_hold)); then
+            echo "  power:   AC, battery ${pct}%; the AC-only hold drops if unplugged"
+        else
+            echo "  power:   AC, battery ${pct}%; floor ${floor_txt}% applies if unplugged"
+        fi
     else
         echo "  power:   AC (no battery)"
     fi
@@ -244,12 +328,84 @@ Closing the lid still sleeps the Mac unless it is on AC with an external display
 USAGE
 }
 
+# Start (or replace) the hold. Runs under _awake_locked and reads awake()'s
+# locals: ac, screen, floor, flags, sig, secs, waitpid, until_epoch.
+_awake_start() {
+    local -A awake_state
+    local replacing=0 hold watcher i watch_floor="$floor"
+    if _awake_active; then
+        _awake_load
+        if [[ "${awake_state[sig]}" == "$sig" ]]; then
+            echo "awake: already active (PID $(<"$pidfile")). 'awake status' for details."
+            return 0
+        fi
+        replacing=1
+    fi
+
+    # Start the new hold before touching the old one, so a failed start
+    # leaves the existing hold in place.
+    nohup caffeinate "${flags[@]}" >/dev/null 2>&1 </dev/null &|
+    hold=$!
+    for i in {1..10}; do
+        sleep 0.1
+        _awake_alive "$hold" && break
+        kill -0 "$hold" 2>/dev/null || break
+    done
+    if ! _awake_alive "$hold"; then
+        kill "$hold" 2>/dev/null
+        echo "awake: caffeinate did not start (flags: ${flags[*]})" >&2
+        ((replacing)) && echo "       The previous hold is unchanged." >&2
+        return 1
+    fi
+    if ((replacing)); then
+        _awake_stop quiet
+        echo "awake: replaced the previous hold with the new settings."
+    fi
+
+    ((ac)) && watch_floor=-1
+    AWAKE_WATCH_SRC="$(typeset -f _awake_alive _awake_power _awake_notify _awake_lock _awake_unlock _awake_watch)" \
+        nohup "${commands[zsh]:-/bin/zsh}" -f -c 'eval "$AWAKE_WATCH_SRC"; unset AWAKE_WATCH_SRC; _awake_watch "$@"' \
+        dotfiles-awake-watch "$hold" "$watch_floor" "$pidfile" "$statefile" "$lockfile" \
+        </dev/null >/dev/null 2>&1 &|
+    watcher=$!
+
+    if ! {
+        print -r -- "$hold" >"$pidfile" &&
+            {
+                print -r -- "sig=$sig"
+                print -r -- "ac=$ac"
+                print -r -- "screen=$screen"
+                print -r -- "floor=$floor"
+                print -r -- "since=$(date +%s)"
+                print -r -- "watcher=$watcher"
+                [[ -n "$until_epoch" ]] && print -r -- "until=$until_epoch"
+                [[ -n "$waitpid" ]] && print -r -- "waitpid=$waitpid"
+                true
+            } >"$statefile"
+    } 2>/dev/null; then
+        kill "$watcher" "$hold" 2>/dev/null
+        rm -f "$pidfile" "$statefile" 2>/dev/null
+        echo "awake: could not write $pidfile or its state file; released the hold." >&2
+        return 1
+    fi
+
+    local desc="idle sleep blocked"
+    ((ac)) && desc="AC power only"
+    ((screen)) && desc="$desc, display kept on"
+    echo "awake: holding ($desc), PID $hold."
+    [[ -n "$secs" ]] && echo "       for $(_awake_fmt_secs "$secs")."
+    [[ -n "$waitpid" ]] && echo "       until PID $waitpid exits."
+    ((! ac)) && echo "       On battery it releases itself at ${floor}% or below."
+    echo "       Release with 'awake stop'."
+    return 0
+}
+
 awake() {
     setopt local_options no_monitor no_notify
 
     case "${1:-}" in
         stop)
-            _awake_stop
+            _awake_locked _awake_stop
             return $?
             ;;
         status)
@@ -303,7 +459,9 @@ awake() {
             flags+=(-t "$secs")
             until_epoch=$(($(date +%s) + secs))
         elif [[ "$target" == <-> ]]; then
-            if ! kill -0 "$target" 2>/dev/null; then
+            # ps -p (not kill -0, which fails with EPERM for other users'
+            # processes); PIDs 0 and 1 are never a meaningful target.
+            if ((target <= 1)) || ! ps -p "$target" >/dev/null 2>&1; then
                 echo "awake: no running process with PID $target" >&2
                 return 1
             fi
@@ -315,66 +473,20 @@ awake() {
         fi
     fi
 
-    local sig="ac=$ac screen=$screen target=$target floor=$floor"
-    if _awake_active; then
-        _awake_load
-        if [[ "${_AWAKE[sig]}" == "$sig" ]]; then
-            echo "awake: already active (PID $(<"$AWAKE_PIDFILE")). 'awake status' for details."
-            return 0
-        fi
-        echo "awake: replacing the active hold with the new settings."
-    fi
-    _awake_stop quiet
-
-    # Starting on battery already below the floor would be released at once.
+    # Validate before touching any existing hold: starting on battery already
+    # below the floor would be released at once.
     local power src pct
     power="$(_awake_power)"
     src="${power%% *}"
     pct="${power#* }"
-    if ((!ac)) && [[ "$src" == battery && "$pct" == <-> ]] && ((pct <= floor)); then
+    if ((! ac)) && [[ "$src" == battery && "$pct" == <-> ]] && ((pct <= floor)); then
         echo "awake: battery is at ${pct}% (floor ${floor}%), so the hold would be released at once." >&2
         echo "       Plug in, or lower the floor: awake --floor N" >&2
         return 1
     fi
 
-    nohup caffeinate "${flags[@]}" >/dev/null 2>&1 </dev/null &
-    local hold=$!
-    disown
-    sleep 0.2
-    if ! _awake_alive "$hold"; then
-        echo "awake: caffeinate did not start (flags: ${flags[*]})" >&2
-        return 1
-    fi
-
-    local watch_floor="$floor"
-    ((ac)) && watch_floor=-1
-    (
-        trap '' HUP
-        exec </dev/null >/dev/null 2>&1
-        _awake_watch "$hold" "$watch_floor"
-    ) &!
-    local watcher=$!
-
-    print -r -- "$hold" >"$AWAKE_PIDFILE"
-    {
-        print -r -- "sig=$sig"
-        print -r -- "ac=$ac"
-        print -r -- "screen=$screen"
-        print -r -- "floor=$floor"
-        print -r -- "since=$(date +%s)"
-        print -r -- "watcher=$watcher"
-        [[ -n "$until_epoch" ]] && print -r -- "until=$until_epoch"
-        [[ -n "$waitpid" ]] && print -r -- "waitpid=$waitpid"
-    } >"$AWAKE_STATEFILE"
-
-    local desc="idle sleep blocked"
-    ((ac)) && desc="AC power only"
-    ((screen)) && desc="$desc, display kept on"
-    echo "awake: holding ($desc), PID $hold."
-    [[ -n "$secs" ]] && echo "       for $(_awake_fmt_secs "$secs")."
-    [[ -n "$waitpid" ]] && echo "       until PID $waitpid exits."
-    ((!ac)) && echo "       On battery it releases itself at ${floor}% or below."
-    echo "       Release with 'awake stop'."
+    local sig="ac=$ac screen=$screen target=$target floor=$floor"
+    _awake_locked _awake_start
 }
 
 kill_by_port() {
@@ -392,7 +504,8 @@ kill_by_port() {
                 echo "Usage: kill_by_port [OPTIONS] PORT"
                 echo "Stop the process LISTENING on a TCP port (clients connected to it,"
                 echo "such as a browser, are left alone). Sends SIGTERM, waits about 1s,"
-                echo "then SIGKILLs anything still running."
+                echo "then SIGKILLs anything still running. TCP only: UDP sockets are"
+                echo "not looked at. The current shell and its parent are never killed."
                 echo ""
                 echo "Options:"
                 echo "  -d, --dry-run    List processes without killing them"
@@ -409,6 +522,11 @@ kill_by_port() {
                 return 1
                 ;;
             *)
+                if [ -n "$port_arg" ]; then
+                    echo "Error: only one port at a time (got '$port_arg' and '$1')"
+                    echo "Use -h or --help for usage information"
+                    return 1
+                fi
                 port_arg="$1"
                 shift
                 ;;
@@ -458,6 +576,15 @@ kill_by_port() {
 
     local -a pids
     pids=(${(u)${(f)"$(lsof -t -nP -iTCP:"$port_arg" -sTCP:LISTEN 2>/dev/null)"}})
+    # Never take down the shell running this (or its parent, e.g. the terminal
+    # or tmux pane process) if it happens to own the listening socket.
+    local self
+    for self in $$ $PPID; do
+        if ((${pids[(Ie)$self]})); then
+            echo "Skipping PID $self: it is this shell or its parent"
+            pids=(${pids:#$self})
+        fi
+    done
     if ((${#pids} == 0)); then
         echo "Warning: No PIDs found to kill"
         return 1
