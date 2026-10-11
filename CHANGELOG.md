@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added `bin/lint`, a single lint entry point (also run by CI): `shellcheck` and `shfmt -i 4 -ci -d` on an explicit list of bash scripts, `zsh -n` on the zsh modules and zsh scripts, `stylua --check nvim/`, and `claude plugin test` for every mod in `claude-mods/` (skipped when `claude` is not installed). `validate.yml` now calls it
+- Added `bin/lint`, a single lint entry point (also run by CI): `shellcheck` and `shfmt -i 4 -ci -d` on an explicit list of bash scripts, `zsh -n` on the zsh modules and zsh scripts, `stylua --check nvim/.config/nvim`, and `claude plugin test` for every mod in `claude-mods/` with hooks (local only; skipped when `claude` is not installed, as in CI). It fails when a script in `bin/` is missing from its file lists, and also covers the Claude `statusline-command.sh` scripts. `validate.yml` now calls it
 - Added a script index to `bin/README.md` covering every script in `bin/` with its language
 - `test-zsh` now runs `brew bundle check --no-upgrade` against the `Brewfile` and warns about missing entries
 

@@ -1,7 +1,6 @@
 #!/bin/zsh
 # ============================================================================
 # Package Management Functions
-
 # Tool management: list_dotfiles_tools(), remove_dotfiles_tool(), install_lazygit_latest()
 
 # List every tool declared in Brewfile and packages/*.brewfile (the single
@@ -41,7 +40,11 @@ list_dotfiles_tools() {
                     desc = substr($0, RSTART + 1)
                     sub(/^[[:space:]]+/, "", desc)
                 }
-                printf "   %-5s %-32s %s\n", kind, name, desc
+                if (desc == "") {
+                    printf "   %-5s %s\n", kind, name
+                } else {
+                    printf "   %-5s %-32s %s\n", kind, name, desc
+                }
             }
         ' "$file"
     done

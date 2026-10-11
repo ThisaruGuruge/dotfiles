@@ -109,7 +109,7 @@ This validates:
 
 ### Linting
 
-`./bin/lint` is the single lint entry point (CI runs it too): `shellcheck` and `shfmt -i 4 -ci -d` on the bash scripts, `zsh -n` on the zsh files, `stylua --check nvim/`, and `claude plugin test` for each mod in `claude-mods/` (skipped when `claude` is not installed). Tools that are missing are reported as skipped locally.
+`./bin/lint` is the single lint entry point (CI runs it too): `shellcheck` and `shfmt -i 4 -ci -d` on the bash scripts, `zsh -n` on the zsh files, `stylua --check nvim/.config/nvim` (stylua skips hidden directories, so `nvim/` alone checks nothing), and `claude plugin test` for each mod in `claude-mods/` that has hooks (local only: CI does not install `claude`, so the mod tests are skipped there). `bin/lint` also fails when a script in `bin/` is not in its file lists. Tools that are missing are reported as skipped locally and as failures with `CI=true`.
 
 ### CI/CD Validation
 

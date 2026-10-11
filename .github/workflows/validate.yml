@@ -69,7 +69,7 @@ jobs:
     - name: Lint (bin/lint)
       run: |
         npm install -g @johnnymorganz/stylua-bin@2.5.2
-        CI=true bin/lint
+        bin/lint
 
     - name: Validate JSON files
       run: |

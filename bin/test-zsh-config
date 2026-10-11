@@ -203,7 +203,7 @@ elif [[ ! -f "$BREWFILE_PATH" ]]; then
 elif brew bundle check --no-upgrade --file="$BREWFILE_PATH" >/dev/null 2>&1; then
     print_test "brew bundle" "pass" "All Brewfile entries are installed"
 else
-    print_test "brew bundle" "warn" "Missing Brewfile entries (run: brew bundle --file=$BREWFILE_PATH)"
+    print_test "brew bundle" "warn" "Missing Brewfile entries (run: brew bundle --file=$BREWFILE_PATH; list them with: brew bundle check --verbose --file=$BREWFILE_PATH; ballerina is listed in Brewfile but may be a direct install)"
 fi
 
 # ============================================================================

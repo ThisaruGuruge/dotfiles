@@ -3,18 +3,33 @@
 #
 #   bin/lint            run every check; missing tools are skipped locally
 #   CI=true bin/lint    missing tools are failures (claude is always optional)
+#                       (only the exact value "true" counts as CI)
 #
 # Checks:
 #   1. shellcheck + `shfmt -i 4 -ci -d` on an explicit list of bash scripts
 #   2. `zsh -n` on zsh modules and zsh-shebang scripts
-#   3. `stylua --check nvim/`
-#   4. `claude plugin test` for each mod in claude-mods/ (skipped without `claude`)
+#   3. `stylua --check nvim/.config/nvim` (stylua skips hidden dirs, so the
+#      path must point inside nvim/.config)
+#   4. `claude plugin test` for each mod with hooks/ in claude-mods/ (local
+#      only: skipped without `claude`, which CI does not install)
+#
+# Every non-README file in bin/ must be listed below (by shebang), so a new
+# script cannot silently escape linting.
 #
 # zsh files are never fed to shellcheck/shfmt (neither parses zsh).
 
 set -u
 
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve symlinks (bin/ is stowed per file into ~/bin) before locating the repo.
+SRC="${BASH_SOURCE[0]}"
+while [ -L "$SRC" ]; do
+    LINK="$(readlink "$SRC")"
+    case "$LINK" in
+        /*) SRC="$LINK" ;;
+        *) SRC="$(dirname "$SRC")/$LINK" ;;
+    esac
+done
+REPO="$(cd -P "$(dirname "$SRC")/.." && pwd)"
 cd "$REPO" || exit 1
 
 FAILED=0
@@ -32,7 +47,7 @@ need() {
     if command -v "$1" >/dev/null 2>&1; then
         return 0
     fi
-    if [ -n "${CI:-}" ] && [ "${2:-}" != "optional" ]; then
+    if [ "${CI:-}" = true ] && [ "${2:-}" != "optional" ]; then
         fail "$1 not installed"
     else
         printf '  skip  %s not installed\n' "$1"
@@ -56,6 +71,8 @@ BASH_FILES=(
     bin/profile-startup
     bin/reset-dotfiles
     bin/sync-brewfile
+    claude/.claude-enterprise/statusline-command.sh
+    claude/.claude-personal/statusline-command.sh
 )
 
 # zsh files: modules plus zsh-shebang scripts.
@@ -72,6 +89,32 @@ ZSH_FILES=(
     bin/tmux-status-battery
     bin/tmux-status-sysinfo
 )
+
+step "bin/ coverage (every script is listed)"
+unlisted=0
+for f in bin/*; do
+    case "$f" in bin/README.md) continue ;; esac
+    [ -f "$f" ] || continue
+    listed=0
+    for g in "${BASH_FILES[@]}" "${ZSH_FILES[@]}"; do
+        [ "$g" = "$f" ] && listed=1 && break
+    done
+    if [ "$listed" -eq 0 ]; then
+        fail "$f is not in BASH_FILES or ZSH_FILES in bin/lint"
+        unlisted=1
+    fi
+done
+[ "$unlisted" -eq 0 ] && ok "all bin/ scripts listed"
+
+step "listed files exist"
+missing=0
+for f in "${BASH_FILES[@]}" "${ZSH_FILES[@]}"; do
+    if [ ! -f "$f" ]; then
+        fail "listed file missing: $f"
+        missing=1
+    fi
+done
+[ "$missing" -eq 0 ] && ok "all listed files exist"
 
 step "shellcheck (bash scripts)"
 if need shellcheck; then
@@ -94,7 +137,6 @@ fi
 step "zsh -n (zsh files)"
 if need zsh; then
     for f in "${ZSH_FILES[@]}"; do
-        [ -f "$f" ] || continue
         if zsh -n "$f"; then
             ok "$f"
         else
@@ -103,19 +145,25 @@ if need zsh; then
     done
 fi
 
-step "stylua --check nvim/"
+step "stylua --check nvim/.config/nvim"
 if need stylua; then
-    if stylua --check nvim/; then
-        ok "nvim/"
+    # Not `nvim/`: stylua skips hidden directories, which would check nothing.
+    if [ -z "$(find nvim/.config/nvim -name '*.lua' -print -quit)" ]; then
+        fail "no Lua files found under nvim/.config/nvim"
+    elif stylua --check nvim/.config/nvim; then
+        ok "nvim/.config/nvim"
     else
-        fail "stylua found formatting drift (fix with: stylua nvim/)"
+        fail "stylua found formatting drift (fix with: stylua nvim/.config/nvim)"
     fi
 fi
 
 step "claude plugin test (claude-mods/*)"
 if need claude optional; then
     for dir in claude-mods/*/; do
-        [ -d "${dir}hooks" ] || continue
+        if [ ! -d "${dir}hooks" ]; then
+            printf '  skip  %s (no hooks/)\n' "$dir"
+            continue
+        fi
         if claude plugin test "$dir" >/dev/null 2>&1; then
             ok "$dir"
         else
