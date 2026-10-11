@@ -22,8 +22,9 @@ return {
     dashboard.section.buttons.val = {
       dashboard.button("f", "  Find File", "<cmd>Telescope find_files<cr>"),
       dashboard.button("r", "  Recent Files", "<cmd>Telescope oldfiles<cr>"),
-      dashboard.button("g", "  Live Grep", ":lua require('telescope').extensions.live_grep_args.live_grep_args()<cr>"),
+      dashboard.button("g", "  Live Grep", "<cmd>Telescope live_grep<cr>"),
       dashboard.button("e", "  File Explorer", "<cmd>Yazi cwd<cr>"),
+      dashboard.button("s", "  Restore Session", "<cmd>lua require('persistence').load()<cr>"),
       dashboard.button("l", "󰒲  Lazy", "<cmd>Lazy<cr>"),
       dashboard.button("q", "  Quit", "<cmd>qa<cr>"),
     }
