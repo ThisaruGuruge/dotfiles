@@ -42,11 +42,12 @@ SIZE=$(du -sh "$CONFIG_SOURCE" | awk '{print $1}')
 echo "Size: $SIZE"
 echo ""
 
-# Check if it contains sensitive data
-if grep -r -i -E "(token|password|key|secret|credential)" "$CONFIG_SOURCE" 2>/dev/null | head -5; then
+# Check if it contains sensitive data. List file names only (-l): printing the
+# matching lines would put the secrets themselves on screen and in scrollback.
+if grep -r -l -I -i -E "(token|password|key|secret|credential)" "$CONFIG_SOURCE" 2>/dev/null | head -10; then
     echo ""
-    echo -e "${YELLOW}⚠️  Warning: This config may contain sensitive data!${NC}"
-    echo -e "${YELLOW}Make sure to add appropriate .bestowignore entries${NC}"
+    echo -e "${YELLOW}⚠️  Warning: the files above may contain sensitive data!${NC}"
+    echo -e "${YELLOW}Make sure to add appropriate .bestowignore and .gitignore entries${NC}"
     echo ""
 fi
 
@@ -89,6 +90,19 @@ bestow stow "$APP_NAME"
 echo -e "${GREEN}✓ Successfully adopted $APP_NAME${NC}"
 echo -e "${GREEN}✓ Symlink created: $CONFIG_SOURCE -> $CONFIG_DEST${NC}"
 echo ""
+
+# Files git ignores were still moved into the repo's working tree. They won't
+# be committed by `git add`, but `git add -f`, `git stash -u` or copying the
+# checkout would take them along — keep secrets out of the package instead.
+IGNORED_FILES=$(git -C "$DOTFILES_DIR" ls-files --others --ignored --exclude-standard -- "$APP_NAME" 2>/dev/null)
+if [ -n "$IGNORED_FILES" ]; then
+    echo -e "${YELLOW}⚠️  These git-ignored files now live inside the repo working tree:${NC}"
+    while IFS= read -r ignored_file; do
+        echo "    $ignored_file"
+    done <<<"$IGNORED_FILES"
+    echo -e "${YELLOW}If any hold secrets, move them back out of $PACKAGE_ROOT and keep them in .bestowignore${NC}"
+    echo ""
+fi
 echo "Next steps:"
 echo "1. Review $PACKAGE_ROOT/.bestowignore"
 echo "2. Git commit the new config"
