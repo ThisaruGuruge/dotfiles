@@ -66,6 +66,11 @@ jobs:
         echo "Checking zsh config formatting..."
         find . -name ".functions.sh" -o -name ".paths.sh" | xargs shfmt -d -i 4 -ci
 
+    - name: Lint (bin/lint)
+      run: |
+        npm install -g @johnnymorganz/stylua-bin@2.5.2
+        bin/lint
+
     - name: Validate JSON files
       run: |
         echo "Checking JSON syntax..."

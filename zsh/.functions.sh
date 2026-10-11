@@ -15,7 +15,7 @@
 #   ├── 05-system.zsh     # checkPort(), kill_by_port()
 #   ├── 06-dotfiles.zsh   # edit_secrets(), edit_dotfiles(), update_dotfiles()
 #   ├── 07-docs.zsh       # show_tools(), alias_help(), alias_docs()
-#   └── 08-packages.zsh   # manage_packages(), install_lazygit_latest()
+#   └── 08-packages.zsh   # list_dotfiles_tools(), install_lazygit_latest()
 
 # Source all modular function files
 for file in "$HOME/.functions.d"/*.zsh; do

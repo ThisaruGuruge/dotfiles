@@ -1,0 +1,180 @@
+#!/bin/bash
+# Single lint entry point for the dotfiles repo (also run by CI).
+#
+#   bin/lint            run every check; missing tools are skipped locally
+#   CI=true bin/lint    missing tools are failures (claude is always optional)
+#                       (only the exact value "true" counts as CI)
+#
+# Checks:
+#   1. shellcheck + `shfmt -i 4 -ci -d` on an explicit list of bash scripts
+#   2. `zsh -n` on zsh modules and zsh-shebang scripts
+#   3. `stylua --check nvim/.config/nvim` (stylua skips hidden dirs, so the
+#      path must point inside nvim/.config)
+#   4. `claude plugin test` for each mod with hooks/ in claude-mods/ (local
+#      only: skipped without `claude`, which CI does not install)
+#
+# Every non-README file in bin/ must be listed below (by shebang), so a new
+# script cannot silently escape linting.
+#
+# zsh files are never fed to shellcheck/shfmt (neither parses zsh).
+
+set -u
+
+# Resolve symlinks (bin/ is stowed per file into ~/bin) before locating the repo.
+SRC="${BASH_SOURCE[0]}"
+while [ -L "$SRC" ]; do
+    LINK="$(readlink "$SRC")"
+    case "$LINK" in
+        /*) SRC="$LINK" ;;
+        *) SRC="$(dirname "$SRC")/$LINK" ;;
+    esac
+done
+REPO="$(cd -P "$(dirname "$SRC")/.." && pwd)"
+cd "$REPO" || exit 1
+
+FAILED=0
+SKIPPED=0
+
+step() { printf '\n==> %s\n' "$1"; }
+fail() {
+    printf '  FAIL  %s\n' "$1"
+    FAILED=$((FAILED + 1))
+}
+ok() { printf '  ok    %s\n' "$1"; }
+
+# Missing tool: failure in CI (unless optional), skip locally.
+need() {
+    if command -v "$1" >/dev/null 2>&1; then
+        return 0
+    fi
+    if [ "${CI:-}" = true ] && [ "${2:-}" != "optional" ]; then
+        fail "$1 not installed"
+    else
+        printf '  skip  %s not installed\n' "$1"
+        SKIPPED=$((SKIPPED + 1))
+    fi
+    return 1
+}
+
+# Bash scripts (explicit list: bin/ also holds zsh scripts and README.md).
+BASH_FILES=(
+    init.sh
+    cleanup.sh
+    zsh/.paths.sh
+    bin/adopt-config
+    bin/audit-configs
+    bin/gws
+    bin/gws-account
+    bin/gwse
+    bin/gwsp
+    bin/lint
+    bin/profile-startup
+    bin/reset-dotfiles
+    bin/sync-brewfile
+    claude/.claude-enterprise/statusline-command.sh
+    claude/.claude-personal/statusline-command.sh
+)
+
+# zsh files: modules plus zsh-shebang scripts.
+ZSH_FILES=(
+    zsh/.zshrc
+    zsh/.zshenv
+    zsh/.zprofile
+    zsh/.functions.sh
+    zsh/.aliases.sh
+    zsh/.functions.d/*.zsh
+    zsh/.zshrc.d/*.zsh
+    bin/profile-zsh-startup
+    bin/test-zsh-config
+    bin/tmux-status-battery
+    bin/tmux-status-sysinfo
+)
+
+step "bin/ coverage (every script is listed)"
+unlisted=0
+for f in bin/*; do
+    case "$f" in bin/README.md) continue ;; esac
+    [ -f "$f" ] || continue
+    listed=0
+    for g in "${BASH_FILES[@]}" "${ZSH_FILES[@]}"; do
+        [ "$g" = "$f" ] && listed=1 && break
+    done
+    if [ "$listed" -eq 0 ]; then
+        fail "$f is not in BASH_FILES or ZSH_FILES in bin/lint"
+        unlisted=1
+    fi
+done
+[ "$unlisted" -eq 0 ] && ok "all bin/ scripts listed"
+
+step "listed files exist"
+missing=0
+for f in "${BASH_FILES[@]}" "${ZSH_FILES[@]}"; do
+    if [ ! -f "$f" ]; then
+        fail "listed file missing: $f"
+        missing=1
+    fi
+done
+[ "$missing" -eq 0 ] && ok "all listed files exist"
+
+step "shellcheck (bash scripts)"
+if need shellcheck; then
+    if shellcheck -e SC1091,SC2039 "${BASH_FILES[@]}"; then
+        ok "${#BASH_FILES[@]} files"
+    else
+        fail "shellcheck reported issues"
+    fi
+fi
+
+step "shfmt -i 4 -ci -d (bash scripts)"
+if need shfmt; then
+    if shfmt -i 4 -ci -d "${BASH_FILES[@]}"; then
+        ok "${#BASH_FILES[@]} files"
+    else
+        fail "shfmt found formatting drift (fix with: shfmt -i 4 -ci -w <file>)"
+    fi
+fi
+
+step "zsh -n (zsh files)"
+if need zsh; then
+    for f in "${ZSH_FILES[@]}"; do
+        if zsh -n "$f"; then
+            ok "$f"
+        else
+            fail "$f"
+        fi
+    done
+fi
+
+step "stylua --check nvim/.config/nvim"
+if need stylua; then
+    # Not `nvim/`: stylua skips hidden directories, which would check nothing.
+    if [ -z "$(find nvim/.config/nvim -name '*.lua' -print -quit)" ]; then
+        fail "no Lua files found under nvim/.config/nvim"
+    elif stylua --check nvim/.config/nvim; then
+        ok "nvim/.config/nvim"
+    else
+        fail "stylua found formatting drift (fix with: stylua nvim/.config/nvim)"
+    fi
+fi
+
+step "claude plugin test (claude-mods/*)"
+if need claude optional; then
+    for dir in claude-mods/*/; do
+        if [ ! -d "${dir}hooks" ]; then
+            printf '  skip  %s (no hooks/)\n' "$dir"
+            continue
+        fi
+        if claude plugin test "$dir" >/dev/null 2>&1; then
+            ok "$dir"
+        else
+            fail "$dir (rerun: claude plugin test $dir)"
+        fi
+    done
+fi
+
+printf '\n'
+if [ "$FAILED" -gt 0 ]; then
+    printf 'lint: %d failure(s), %d skipped\n' "$FAILED" "$SKIPPED"
+    exit 1
+fi
+printf 'lint: all checks passed (%d skipped)\n' "$SKIPPED"

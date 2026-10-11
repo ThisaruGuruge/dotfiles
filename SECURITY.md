@@ -154,7 +154,7 @@ cat init.sh
 
 The installation script:
 
-- Installs Homebrew packages from packages.json
+- Installs Homebrew packages from `Brewfile` (plus any optional `packages/*.brewfile` you choose)
 - Creates encrypted environment files
 - Sets up SOPS/age encryption
 - Creates symlinks with bestow
