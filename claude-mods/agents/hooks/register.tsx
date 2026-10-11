@@ -5,6 +5,7 @@ import type { AgentRec } from '../types'
 import { CRAB, clip, costumeOf, fillBar, fmt, fmtTime, modelName, targetOf, windowOf } from './format'
 
 const PANE = 'agents'
+const COMMAND = 'agents-pane'
 const MAX_AGENTS = 100
 
 const list = atom({ plugin: 'agents', key: 'list' } as const, [])
@@ -19,11 +20,6 @@ const elapsed = (a: AgentRec, at: number) => (a.endedAt ?? Math.max(at, a.starte
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    await $.command.register({
-      name: 'agents',
-      description: 'Show or hide the subagent pane: model, effort, context, tokens and the latest tool call',
-    })
-
     // Ticks the running agents' clocks; quiet when nothing runs.
     $.clock.every(1000, async () => {
       if (!(await read($, list)).some(isRunning)) return
@@ -31,10 +27,18 @@ export const register: Register = on => {
       await update($, now, () => at)
     })
 
+    // `/agents` is Claude Code's own command, so the toggle is `/agents-pane`. A refused registration must not stop the hook.
+    await $.command
+      .register({
+        name: COMMAND,
+        description: 'Show or hide the subagent pane: model, effort, context, tokens and the latest tool call',
+      })
+      .catch(() => {})
+
     return next(e)
   })
 
-  on('command.run', { command: 'agents' }, async $ => {
+  on('command.run', { command: COMMAND }, async $ => {
     const isOpen = (await $.ui.panes()).some(p => p.id === PANE)
     if (isOpen) await $.ui.close({ id: PANE })
     else await $.ui.open({ id: PANE, title: 'Agents' })
@@ -66,7 +70,7 @@ export const register: Register = on => {
     }
     await update($, list, all => [...all.filter(a => a.id !== rec.id), rec].slice(-MAX_AGENTS))
     await update($, now, () => at)
-    // The first agent of a batch opens the pane; a seat below 144 columns waits for /agents or the strip's button.
+    // The first agent of a batch opens the pane; a seat below 144 columns waits for /agents-pane.
     if (wasIdle) void $.ui.open({ id: PANE, title: 'Agents' }).catch(() => {})
 
     return started
@@ -102,7 +106,7 @@ export const register: Register = on => {
   on('tool.call', async ($, e, next) => {
     const agentId = e.agentId
     if (agentId) {
-      const last = clip(`${e.tool} ${targetOf(e as unknown as Record<string, unknown>)}`, 48)
+      const last = clip(`${e.tool} ${targetOf(e as unknown as Record<string, unknown>, e.tool)}`, 140)
       await update($, list, all =>
         all.map(a => (a.agentId === agentId ? { ...a, tools: a.tools + 1, lastTool: last } : a)),
       )
@@ -133,7 +137,6 @@ export const register: Register = on => {
     const all = await read($, list)
     const at = Math.max(await read($, now), ...all.map(a => a.startedAt), 0)
     const running = all.filter(isRunning).length
-    const room = Math.max(2, Math.floor(((e.viewport?.rows ?? 30) - 4) / 5))
     const cols = e.props.bodyColumns
     const cells = cols < 60 ? 5 : 8
 
@@ -144,7 +147,7 @@ export const register: Register = on => {
         </Text>
         {all.length === 0 && <Text dimColor>No subagents yet.</Text>}
         {all
-          .slice(-room)
+          .slice()
           .reverse()
           .map(a => {
             const max = a.window
@@ -166,18 +169,13 @@ export const register: Register = on => {
                   {'   '}↑{fmt(a.out)} · {a.requests} req · {a.tools} tools · {fmtTime(elapsed(a, at))}
                 </Text>
                 {a.status === 'run' && a.lastTool && (
-                  <Text dimColor>
+                  <Text dimColor wrap="truncate-end">
                     {'   '}↳ {a.lastTool}
                   </Text>
                 )}
               </Box>
             )
           })}
-        {all.length > room && (
-          <Text dimColor>
-            {'\n'}+{all.length - room} older
-          </Text>
-        )}
       </Box>
     )
   })
@@ -230,7 +228,7 @@ export const register: Register = on => {
           ))}
           {running.length > shown.length && (
             <Text dimColor>
-              +{running.length - shown.length} more · /agents
+              +{running.length - shown.length} more · /agents-pane
             </Text>
           )}
         </Box>
