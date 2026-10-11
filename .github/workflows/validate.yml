@@ -6,12 +6,17 @@ on:
   pull_request:
     branches: [ main, dev ]
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
 
     - name: Install shellcheck and zsh
       run: |
@@ -20,9 +25,8 @@ jobs:
 
     - name: Install shfmt
       run: |
-        curl -L -o shfmt https://github.com/mvdan/sh/releases/download/v3.7.0/shfmt_v3.7.0_linux_amd64
-        chmod +x shfmt
-        sudo mv shfmt /usr/local/bin/
+        go install mvdan.cc/sh/v3/cmd/shfmt@v3.7.0
+        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
     - name: Validate shell scripts with shellcheck
       run: |
@@ -116,7 +120,9 @@ jobs:
     if: github.event_name == 'pull_request'
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
 
     - name: Test basic installation components
       run: |

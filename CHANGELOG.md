@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Hardened the CI workflows: release and auto-tag no longer interpolate `${{ }}` expressions into shell scripts (values pass through `env:` and are quoted), release tags are validated as `X.Y.Z`, and the changelog section is matched literally. Actions are pinned to commit SHAs with a Dependabot `github-actions` weekly update, workflows start from `permissions: {}` with per-job grants (the auto-tag `check` job is read-only), `validate.yml` is `contents: read`, checkouts that push nothing no longer persist credentials, and shfmt is built with `go install` at v3.7.0 instead of a downloaded binary.
+
+### Fixed
+
+- Fixed release notes being empty: the changelog extraction for a release now returns the full section for that version.
+
 ## [2.7.0] - 2026-10-11
 
 ### Added

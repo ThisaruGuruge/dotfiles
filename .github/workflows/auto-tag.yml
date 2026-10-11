@@ -6,10 +6,7 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: write
-  actions: write
+permissions: {}
 
 concurrency:
   group: auto-tag-main
@@ -20,6 +17,8 @@ jobs:
     name: Check if release-worthy
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
     outputs:
       skip: ${{ steps.files.outputs.skip }}
 
@@ -28,15 +27,17 @@ jobs:
         id: files
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             echo "skip=false" >> "$GITHUB_OUTPUT"
             echo "ℹ️ Manually triggered — skipping file-based release check"
             exit 0
           fi
 
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          CHANGED_FILES=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}/files" --paginate --jq '.[].filename')
+          CHANGED_FILES=$(gh api "repos/${REPOSITORY}/pulls/${PR_NUMBER}/files" --paginate --jq '.[].filename')
           echo "Changed files:"
           echo "$CHANGED_FILES"
 
@@ -61,10 +62,14 @@ jobs:
     needs: check
     if: needs.check.outputs.skip != 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
 
     steps:
       - name: Checkout main
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: main
           fetch-depth: 0
@@ -87,16 +92,16 @@ jobs:
 
       - name: Determine version bump
         id: bump
+        env:
+          LATEST_TAG: ${{ steps.latest.outputs.tag }}
         run: |
-          LATEST_TAG="${{ steps.latest.outputs.tag }}"
-
           if git rev-parse "$LATEST_TAG" >/dev/null 2>&1; then
             RANGE="$LATEST_TAG..HEAD"
           else
             RANGE="HEAD"
           fi
 
-          COMMITS=$(git log $RANGE --format='%B' 2>/dev/null || true)
+          COMMITS=$(git log --format='%B' "$RANGE")
 
           # Conventional Commits: feat! / fix(scope)!: / "BREAKING CHANGE:" -> major,
           # feat: -> minor, everything else (fix/chore/docs/refactor/etc) -> patch.
@@ -112,9 +117,15 @@ jobs:
 
       - name: Calculate next version
         id: next
+        env:
+          LATEST_TAG: ${{ steps.latest.outputs.tag }}
+          BUMP: ${{ steps.bump.outputs.bump }}
         run: |
-          LATEST_TAG="${{ steps.latest.outputs.tag }}"
-          BUMP="${{ steps.bump.outputs.bump }}"
+          # Defensive: never do arithmetic or tagging on unexpected values.
+          if ! [[ "$LATEST_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Unexpected latest tag format"
+            exit 1
+          fi
 
           IFS='.' read -r MAJOR MINOR PATCH <<< "$LATEST_TAG"
 
@@ -137,8 +148,9 @@ jobs:
 
       - name: Update CHANGELOG.md
         id: changelog
+        env:
+          VERSION: ${{ steps.next.outputs.version }}
         run: |
-          VERSION="${{ steps.next.outputs.version }}"
           TODAY=$(date +%Y-%m-%d)
 
           if [ -f CHANGELOG.md ] && grep -q '^## \[Unreleased\]$' CHANGELOG.md; then
@@ -154,8 +166,8 @@ jobs:
         if: steps.changelog.outputs.updated == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.next.outputs.tag }}
         run: |
-          VERSION="${{ steps.next.outputs.tag }}"
           BRANCH="release/changelog-${VERSION}"
 
           # main is protected: changes must land via PR, not a direct push.
@@ -184,8 +196,8 @@ jobs:
       - name: Create and push tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXT_TAG: ${{ steps.next.outputs.tag }}
         run: |
-          NEXT_TAG="${{ steps.next.outputs.tag }}"
           git tag -a "$NEXT_TAG" -m "Release $NEXT_TAG"
           git push origin "$NEXT_TAG"
 
@@ -200,9 +212,8 @@ jobs:
       - name: Verify the release was published
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEXT_TAG: ${{ steps.next.outputs.tag }}
         run: |
-          NEXT_TAG="${{ steps.next.outputs.tag }}"
-
           for _ in $(seq 1 30); do
             if gh release view "$NEXT_TAG" >/dev/null 2>&1; then
               echo "✅ Release $NEXT_TAG published"
@@ -226,13 +237,17 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
+          EVENT_NAME: ${{ github.event_name }}
+          LATEST_TAG: ${{ steps.latest.outputs.tag }}
+          NEXT_TAG: ${{ steps.next.outputs.tag }}
+          BUMP: ${{ steps.bump.outputs.bump }}
         run: |
           echo "## 🏷️ Tagged Release" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+          if [ "$EVENT_NAME" = "pull_request" ]; then
             echo "**PR**: #${PR_NUMBER} - ${PR_TITLE}" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "**Trigger**: manual dispatch" >> "$GITHUB_STEP_SUMMARY"
           fi
-          echo "**Previous tag**: ${{ steps.latest.outputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "**New tag**: ${{ steps.next.outputs.tag }} (${{ steps.bump.outputs.bump }} bump)" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Previous tag**: ${LATEST_TAG}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**New tag**: ${NEXT_TAG} (${BUMP} bump)" >> "$GITHUB_STEP_SUMMARY"
