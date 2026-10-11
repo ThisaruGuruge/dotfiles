@@ -23,6 +23,7 @@ selection=$(grep -v '^[[:space:]]*$' "$ENTRIES_FILE" | awk -F '|' '
         if ($0 ~ /^# *---/) started = 1
         if (!started) next
         gsub(/^# *-* */, "", $0)
+        gsub(/ *-+ *$/, "", $0)
         printf "\033[2m── %s\033[0m\t\n", $0
         next
     }

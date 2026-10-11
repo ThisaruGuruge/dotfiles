@@ -463,7 +463,7 @@ if [[ -f "$tmux_conf" ]]; then
 
         # Every palette command must parse as tmux config (isolated throwaway server)
         if command -v tmux &>/dev/null; then
-            local tm_sock="dotfiles-palette-check-$$" tm_bad=() tm_cmd tm_tmp
+            local tm_sock="dotfiles-palette-check-$$" tm_bad=() tm_cmd tm_tmp tm_sockpath
             tm_tmp="$(mktemp "${TMPDIR:-/tmp}/palette-check.XXXXXX")"
             if env -u TMUX tmux -L "$tm_sock" -f /dev/null new-session -d -s palettecheck 2>/dev/null; then
                 while IFS= read -r tm_line; do
@@ -473,7 +473,10 @@ if [[ -f "$tmux_conf" ]]; then
                     print -r -- "$tm_cmd" > "$tm_tmp"
                     env -u TMUX tmux -L "$tm_sock" source-file -n "$tm_tmp" &>/dev/null || tm_bad+=("$tm_cmd")
                 done < "$tmux_palette"
+                # kill-server leaves the socket file behind (tmux 3.7): remove it too
+                tm_sockpath="$(env -u TMUX tmux -L "$tm_sock" display-message -p '#{socket_path}' 2>/dev/null)"
                 env -u TMUX tmux -L "$tm_sock" kill-server &>/dev/null
+                [[ -n "$tm_sockpath" && "${tm_sockpath:t}" == "$tm_sock" ]] && rm -f "$tm_sockpath"
                 if (( ${#tm_bad[@]} == 0 )); then
                     print_test "Tmux palette commands parse" "pass" ""
                 else
