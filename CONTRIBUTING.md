@@ -337,6 +337,17 @@ Every PR merged into `main` is automatically tagged and released — there is no
 - **Use accurate Conventional Commit types** (see above) — they directly drive the version bump. A `feat:` you meant as a `fix:` will bump minor instead of patch.
 - No manual `git tag` or version bump PRs are needed; don't create them yourself.
 
+### Batching a release with the `dev` branch
+
+When several changes should ship as one release, land them on `dev` and merge `dev` into `main` once:
+
+1. **Open PRs against `dev`**, not `main`. Merging into `dev` triggers no tag and no release (`auto-tag.yml` only runs for PRs merged into `main`). Squash-merge them, so each PR becomes one Conventional Commit on `dev`. Keep adding `CHANGELOG.md` entries under `## [Unreleased]`.
+2. **Rebase `dev` onto `main` when `main` has moved**, and resolve `CHANGELOG.md` by keeping both sets of bullets under the same `###` headings.
+3. **Open one PR from `dev` to `main` and merge it with "Rebase and merge"** (never "Squash"). The version bump is read from the individual commit lines since the last tag, so squashing would collapse a `feat:` and several `fix:` commits into the PR title. With a rebase merge the bump is the highest type among them.
+4. **After the release, reset `dev` to `main`** (`git push --force-with-lease origin main:dev`), so the next batch starts clean.
+
+A PR whose files are all under `.github/` or are `*.md` still skips the release when merged to `main`, but a `dev` → `main` PR that carries code does not.
+
 ---
 
 ## Pull Request Process

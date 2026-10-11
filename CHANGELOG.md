@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Documented the `dev` branch workflow in `CONTRIBUTING.md`: PRs squash into `dev` (no release), then one rebase-merge of `dev` into `main` cuts a single release whose version bump is read from the individual commit types
 - Changed the lazy direnv hook to load when the current directory or any parent has a `.envrc` (checked on every `cd` and once at the first prompt), so pins apply in subdirectories and in new shells or tmux panes opened inside a pinned tree; directories with no `.envrc` above them still never load direnv
 - Changed `list_dotfiles_tools` to build the inventory from `Brewfile` and `packages/*.brewfile`, with each entry's comment as its description
 - Formatted `bin/adopt-config`, `bin/profile-startup`, `bin/reset-dotfiles` and `bin/sync-brewfile` with `shfmt -i 4 -ci`
