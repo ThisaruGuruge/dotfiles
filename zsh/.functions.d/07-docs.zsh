@@ -68,6 +68,13 @@ show_tools() {
         echo ""
     fi
 
+    if command -v gh &>/dev/null; then
+        echo "🐙 gh (GitHub CLI) helpers:"
+        echo "  prs                - Browse PRs with fzf (enter=checkout, ctrl-o=web, ctrl-d=diff)"
+        echo "  prw                - Watch this PR's checks, then notify with the result"
+        echo ""
+    fi
+
     if command -v atuin &>/dev/null; then
         echo "📚 atuin (enhanced shell history):"
         echo "  hs                 - Interactive history search"
@@ -177,6 +184,10 @@ alias_help() {
             echo "  glog    beautiful git log with graph"
             echo "  gundo   undo last commit (keep changes)"
             echo "  gamend  amend last commit message"
+            echo ""
+            echo "GitHub pull requests (needs gh):"
+            echo "  prs     fzf over PRs: enter=checkout, ctrl-o=browser, ctrl-d=diff (delta)"
+            echo "  prw     watch the PR's checks, then notify with the result"
             echo ""
             echo "💡 Pro tip: Use 'lg' for complex git operations!"
             ;;
@@ -361,6 +372,12 @@ alias_docs() {
             echo "kill_by_port -d <port>  Dry run (show what would be killed)"
             echo ""
             echo "show_tools            Show all modern CLI tools"
+            echo "dotdoctor [--full]    Read-only health check of the dotfiles setup"
+            echo "envrc work|personal   Pin Claude/gws account for this directory (status|off)"
+            echo "                      ccp/cce override CLAUDE_CONFIG_DIR and blank the gws pin for"
+            echo "                      claude; gwsp/gwse set the gws account; bare gws works only"
+            echo "                      inside a pinned tree"
+            echo "prs / prw             Browse PRs with fzf / watch a PR's checks"
             echo "alias_search <term>   Search aliases by keyword"
             ;;
         7)
@@ -402,6 +419,8 @@ alias_categories() {
     echo ""
     echo "🔧 DEVELOPMENT:"
     echo "   take, kill_by_port, show_tools - Dev utilities"
+    echo "   dotdoctor - Dotfiles health check; envrc - pin Claude/gws account per directory"
+    echo "   prs, prw - GitHub PR browser and check watcher"
     echo "   profile_startup - Test shell startup performance"
     echo ""
     echo "For detailed help: alias_help <alias_name>"
