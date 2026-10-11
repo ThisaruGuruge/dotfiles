@@ -8,8 +8,8 @@ This configuration follows standard Vim/Neovim conventions:
 
 | Pattern     | Purpose               | Examples                                                                                                            |
 | :---------- | :-------------------- | :------------------------------------------------------------------------------------------------------------------ |
-| `g*`        | Navigation (go to...) | `gd` (definition), `gr` (references), `gi` (implementation)                                                         |
-| `<Space>g*` | Git operations        | `<Space>gs` (stage), `<Space>gp` (preview), `<Space>gg` (LazyGit)                                                   |
+| `g*`        | Navigation (go to...) | `gd` (definition), `grr` (references), `gri` (implementation)                                                       |
+| `<Space>g*` | Git operations        | `<Space>gs` (stage), `<Space>gp` (preview), `<Space>gg` (LazyGit), `<Space>gv` (branch diff)                        |
 | `<Space>l*` | LSP actions           | `<Space>lr` (rename), `<Space>la` (actions), `<Space>lf` (format), `<Space>lq` (buf qf), `<Space>lW` (workspace qf) |
 | `<Space>f*` | Find/Search           | `<Space>ff` (files), `<Space>fg` (grep), `<Space>fb` (buffers), `<Space>fy` (clipboard history)                     |
 | `[` / `]`   | Previous/Next         | `[d` (prev diagnostic), `]c` (next git hunk)                                                                        |
@@ -26,6 +26,7 @@ The dashboard appears when opening Neovim without arguments. Press the shortcut 
 | `r` | Recent Files               |
 | `g` | Live Grep                  |
 | `e` | File Explorer              |
+| `s` | Restore session            |
 | `l` | Open Lazy (plugin manager) |
 | `q` | Quit                       |
 
@@ -44,15 +45,22 @@ The dashboard appears when opening Neovim without arguments. Press the shortcut 
 
 ## Search & Find (Telescope)
 
-| Key         | Mode | Action                                           |
-| :---------- | :--- | :----------------------------------------------- |
-| `<Space>ff` | `n`  | Find files in project                            |
-| `<Space>fg` | `n`  | Live grep (search text)                          |
-| `<Space>fb` | `n`  | Find buffers (open files)                        |
-| `<Space>fh` | `n`  | Find help tags                                   |
-| `<Space>fr` | `n`  | Recent files                                     |
-| `<Space>fw` | `n`  | Find word under cursor                           |
-| `<Space>fS` | `n`  | Search symbols (workspace, e.g. `Engine` struct) |
+| Key         | Mode | Action                                                                                      |
+| :---------- | :--- | :------------------------------------------------------------------------------------------ |
+| `<Space>ff` | `n`  | Find files in project                                                                       |
+| `<Space>fg` | `n`  | Live grep: `pattern  filetype  glob` (double-space separated, only the pattern is required) |
+| `<Space>fb` | `n`  | Find buffers (open files)                                                                   |
+| `<Space>fh` | `n`  | Find help tags                                                                              |
+| `<Space>fr` | `n`  | Recent files                                                                                |
+| `<Space>fw` | `n`  | Find word under cursor                                                                      |
+| `<Space>fs` | `n`  | Search in the current buffer                                                                |
+| `<Space>fS` | `n`  | Search symbols (workspace, e.g. `Engine` struct)                                            |
+| `<Space>fk` | `n`  | Find keymaps                                                                                |
+| `<Space>fy` | `n`  | Clipboard history (yank ring)                                                               |
+| `<Space>ft` | `n`  | Find TODO comments                                                                          |
+| `<Space>en` | `n`  | Find files in the Neovim config                                                             |
+| `<Space>ep` | `n`  | Find files in installed plugins                                                             |
+| `<C-p>`     | `n`  | Find git files                                                                              |
 
 ---
 
@@ -62,8 +70,7 @@ The dashboard appears when opening Neovim without arguments. Press the shortcut 
 | :---------- | :--- | :----------------------------- |
 | `<Space>or` | `n`  | Open yazi in working directory |
 | `<Space>oc` | `n`  | Open yazi at current file      |
-| `<Space>cw` | `n`  | Open yazi in working directory |
-| `<C-Up>`    | `n`  | Resume last yazi session       |
+| `<Space>oy` | `n`  | Resume last yazi session       |
 
 Yazi opens as a floating terminal file manager. Inside the floating window:
 
@@ -85,6 +92,16 @@ See `docs/YAZI_KEYBINDINGS.md` for the full yazi keybinding reference.
 | Key         | Mode | Action       |
 | :---------- | :--- | :----------- |
 | `<Space>gg` | `n`  | Open LazyGit |
+
+### Diffview (branch review & history)
+
+| Key         | Mode | Action                                                              |
+| :---------- | :--- | :------------------------------------------------------------------ |
+| `<Space>gv` | `n`  | Branch vs the default branch (merge-base diff: only what you added) |
+| `<Space>gh` | `n`  | History of the current file                                         |
+| `<Space>gH` | `n`  | History of the whole repo                                           |
+
+`q` closes Diffview; `<Tab>` / `<S-Tab>` step through files.
 
 **Inside LazyGit:**
 
@@ -119,14 +136,17 @@ See `docs/YAZI_KEYBINDINGS.md` for the full yazi keybinding reference.
 
 ### Navigation
 
-| Key  | Mode | Action                                    |
-| :--- | :--- | :---------------------------------------- |
-| `gd` | `n`  | Go to definition                          |
-| `gD` | `n`  | Go to declaration                         |
-| `gr` | `n`  | Find references                           |
-| `gi` | `n`  | Go to implementation                      |
-| `gO` | `n`  | Document symbols (opens in location list) |
-| `K`  | `n`  | Hover documentation                       |
+| Key   | Mode | Action                                    |
+| :---- | :--- | :---------------------------------------- |
+| `gd`  | `n`  | Go to definition                          |
+| `gD`  | `n`  | Go to declaration                         |
+| `grr` | `n`  | References (Telescope)                    |
+| `gri` | `n`  | Implementations (Telescope)               |
+| `grt` | `n`  | Type definitions (Telescope)              |
+| `grn` | `n`  | Rename (built-in)                         |
+| `gra` | `n`  | Code action (built-in)                    |
+| `gO`  | `n`  | Document symbols (opens in location list) |
+| `K`   | `n`  | Hover documentation                       |
 
 ### Actions
 
@@ -197,11 +217,11 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 
 ## Code Outline (aerial.nvim)
 
-| Key        | Mode | Action                  |
-| :--------- | :--- | :---------------------- |
+| Key         | Mode | Action                  |
+| :---------- | :--- | :---------------------- |
 | `<Space>ta` | `n`  | Toggle outline sidebar  |
-| `{`        | `n`  | Jump to previous symbol |
-| `}`        | `n`  | Jump to next symbol     |
+| `[[`        | `n`  | Jump to previous symbol |
+| `]]`        | `n`  | Jump to next symbol     |
 
 ---
 
@@ -216,19 +236,28 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 
 ## Treesitter (Selection)
 
-| Key      | Mode     | Action                   |
-| :------- | :------- | :----------------------- |
-| `<CR>`   | `n`, `v` | Init/Increment selection |
-| `<S-CR>` | `v`      | Scope increment          |
-| `<BS>`   | `v`      | Decrement selection      |
+| Key    | Mode     | Action                   |
+| :----- | :------- | :----------------------- |
+| `<CR>` | `n`, `v` | Init/Increment selection |
+| `<BS>` | `v`      | Decrement selection      |
 
 ---
 
 ## Undo History
 
-| Key        | Mode | Action                                |
-| :--------- | :--- | :------------------------------------ |
+| Key         | Mode | Action                                |
+| :---------- | :--- | :------------------------------------ |
 | `<Space>tu` | `n`  | Toggle Undotree (visual undo history) |
+
+## Sessions (persistence.nvim)
+
+One session per working directory and git branch, saved on exit. Nothing is restored automatically. A session is only written with two or more real buffers open (a quick `nvim file` won't overwrite it); terminals are not saved and an open Diffview is closed first.
+
+| Key         | Mode | Action                                   |
+| :---------- | :--- | :--------------------------------------- |
+| `<Space>qs` | `n`  | Restore the session for this directory   |
+| `<Space>ql` | `n`  | Restore the last session (any directory) |
+| `<Space>qd` | `n`  | Don't save the current session on exit   |
 
 ## Markdown Rendering (render-markdown.nvim)
 
@@ -238,10 +267,13 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 
 ## Terminal
 
-| Key         | Mode     | Action          |
-| :---------- | :------- | :-------------- |
-| `<Space>tt` | `n`      | Toggle terminal |
-| `<C-\>`     | `n`, `t` | Quick toggle    |
+| Key         | Mode | Action          |
+| :---------- | :--- | :-------------- |
+| `<Space>tt` | `n`  | Toggle terminal |
+
+`<C-\>` is not a terminal toggle: it is vim-tmux-navigator's "previous pane".
+
+`<Space>tt` is normal-mode only. To hide the float from inside the terminal, press `<C-\><C-n>` then `<Space>tt`, or `exit` the shell.
 
 ## Line Wrap
 
@@ -254,6 +286,16 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 ## Debugging (nvim-dap)
 
 Works for every configured debugger — Go, Python, Java, Ballerina.
+
+F-key equivalents for stepping mid-session:
+
+| Key     | Mode | Action                   |
+| :------ | :--- | :----------------------- |
+| `F5`    | `n`  | Continue / start session |
+| `F10`   | `n`  | Step over                |
+| `F11`   | `n`  | Step into                |
+| `S-F11` | `n`  | Step out                 |
+| `F6`    | `n`  | Terminate session        |
 
 | Key         | Mode   | Action                   |
 | :---------- | :----- | :----------------------- |
@@ -368,9 +410,11 @@ Any other tag name: `:GoTagAdd db`, `:GoTagRm mapstructure`, etc.
 | `<Space>TO` | `n`  | Toggle the output panel          |
 | `<Space>Tw` | `n`  | Toggle watch mode for the file   |
 
-Runs with `-v -race -count=1`; `-count=1` defeats Go's test cache so a green
-result always reflects the current code. `<Space>Td` debugs through the same
-nvim-dap-go adapter as `<Space>dt`.
+Adapters: Go (neotest-golang), Python (neotest-python, pytest) and JS/TS
+(neotest-vitest) — the same keys drive all three. Go runs with
+`-v -race -count=1`; `-count=1` defeats Go's test cache so a green result
+always reflects the current code. `<Space>Td` debugs through the same
+nvim-dap-go adapter as `<Space>dt` (debugpy for Python).
 
 ---
 
@@ -404,11 +448,9 @@ Standard LSP mappings (`gd`, `K`, `<Space>lr`, etc.) also work here. Diagnostics
 | :---------- | :--- | :--------------------------- |
 | `<Space>xx` | `n`  | Toggle workspace diagnostics |
 | `<Space>xX` | `n`  | Toggle buffer diagnostics    |
-| `<Space>xs` | `n`  | Toggle symbols               |
 | `<Space>xr` | `n`  | Toggle LSP references        |
 | `<Space>xl` | `n`  | Toggle location list         |
 | `<Space>xq` | `n`  | Toggle quickfix list         |
-| `<Space>xt` | `n`  | Toggle TODO list             |
 
 ## TODO Comments
 
@@ -471,7 +513,7 @@ Flash also enhances:
 Overrides `w`/`e`/`b`/`ge` to stop at subword boundaries — camelCase, PascalCase, snake_case, SCREAMING_SNAKE_CASE — instead of jumping the whole identifier.
 
 | Key  | Mode          | Action                  |
-| :--- | :------------ | :----------------------- |
+| :--- | :------------ | :---------------------- |
 | `w`  | `n`, `o`, `x` | Next subword start      |
 | `e`  | `n`, `o`, `x` | End of subword          |
 | `b`  | `n`, `o`, `x` | Previous subword start  |
@@ -558,5 +600,5 @@ Adds sign-column indicators and extra navigation on top of Vim's built-in marks.
 2. **Which-Key Auto-popup**: Press `<Space>` and wait 1 second → shows all available commands
 3. **LSP Documentation**: Use `K` on any function/variable to see docs instantly
 4. **Git UI**: `<Space>gg` opens full LazyGit interface (like Magit for Emacs)
-5. **Navigation**: `gd` (definition), `gr` (references), `gi` (implementation) - all searchable with Telescope
+5. **Navigation**: `gd` (definition), `grr` (references), `gri` (implementation), `grt` (type definition) - the last three open Telescope pickers
 6. **Completion**: Just start typing in insert mode, `<Tab>` to navigate suggestions

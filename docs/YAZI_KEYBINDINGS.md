@@ -8,8 +8,9 @@
 | ----------- | ------------------------------ |
 | `<Space>or` | Open yazi in working directory |
 | `<Space>oc` | Open yazi at current file      |
-| `<Space>cw` | Open yazi in working directory |
-| `<C-Up>`    | Resume last yazi session       |
+| `<Space>oy` | Resume last yazi session       |
+
+> `<Space>oy` replaced `<C-Up>`: macOS Mission Control owns Ctrl+Up, so the key never reached the terminal.
 
 Inside the yazi.nvim floating window:
 
@@ -151,6 +152,7 @@ Default sort: `natural`, directories first (configured in `yazi.toml`).
 | `x`       | Yank (cut)                                            |
 | `p`       | Paste                                                 |
 | `P`       | Paste into hovered directory (smart-paste plugin)     |
+| `<C-p>`   | Paste, overwriting existing files (the built-in `P`)  |
 | `d`       | Move to trash                                         |
 | `D`       | Permanent delete                                      |
 | `.`       | Toggle hidden files                                   |
@@ -175,7 +177,8 @@ Default sort: `natural`, directories first (configured in `yazi.toml`).
 | `f`             | Jump to character in file list | jump-to-char |
 | `F`             | Smart filter with auto-enter   | smart-filter |
 | `P`             | Paste into hovered directory   | smart-paste  |
-| `<C-d>`         | Diff two selected files        | diff         |
+| `<C-p>`         | Paste, overwriting existing    | built-in     |
+| `=`             | Diff two selected files        | diff         |
 | `cm`            | chmod selected files           | chmod        |
 | `ct`            | Toggle macOS Finder tag        | mactag       |
 
@@ -222,7 +225,7 @@ Default sort: `natural`, directories first (configured in `yazi.toml`).
 | git          | —               | Shows git status (modified, staged, untracked) in the file list |
 | mime-ext     | —               | Faster MIME detection via extension (skips `file` command)      |
 | chmod        | `cm`            | Interactively change file permissions                           |
-| diff         | `<C-d>`         | Diff two selected files                                         |
+| diff         | `=`             | Diff two selected files                                         |
 | jump-to-char | `f`             | Vim-like f motion to jump to a character                        |
 | mactag       | `ct`            | Toggle macOS Finder color tags                                  |
 

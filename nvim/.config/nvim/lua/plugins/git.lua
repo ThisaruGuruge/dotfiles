@@ -108,4 +108,57 @@ return {
       { "<leader>gg", "<cmd>LazyGit<cr>", desc = "LazyGit" },
     },
   },
+
+  -- Diffview: review a whole branch or a file's history in a tabpage UI.
+  -- Gitsigns covers hunks in the buffer you are in; this is for "what does
+  -- this branch change" and "how did this file get here".
+  {
+    "sindrets/diffview.nvim",
+    cmd = {
+      "DiffviewOpen",
+      "DiffviewClose",
+      "DiffviewToggleFiles",
+      "DiffviewFocusFiles",
+      "DiffviewRefresh",
+      "DiffviewFileHistory",
+    },
+    keys = {
+      {
+        "<leader>gv",
+        function()
+          -- Three dots = diff against the merge base, i.e. only what this
+          -- branch added, not whatever the default branch gained since.
+          local ref = vim.fn.systemlist("git symbolic-ref --quiet --short refs/remotes/origin/HEAD")[1]
+          if vim.v.shell_error ~= 0 or not ref or ref == "" then
+            ref = nil
+            for _, candidate in ipairs({ "origin/main", "origin/master" }) do
+              vim.fn.system("git rev-parse --verify --quiet " .. candidate)
+              if vim.v.shell_error == 0 then
+                ref = candidate
+                break
+              end
+            end
+            if not ref then
+              vim.notify("No origin/HEAD, origin/main or origin/master to diff against", vim.log.levels.WARN)
+              return
+            end
+          end
+          vim.cmd("DiffviewOpen " .. ref .. "...HEAD")
+        end,
+        desc = "Diffview: branch vs default branch",
+      },
+      { "<leader>gh", "<cmd>DiffviewFileHistory %<cr>", desc = "Diffview: file history" },
+      { "<leader>gH", "<cmd>DiffviewFileHistory<cr>", desc = "Diffview: repo history" },
+    },
+    opts = function()
+      local close = { "n", "q", "<cmd>DiffviewClose<cr>", { desc = "Close Diffview" } }
+      return {
+        enhanced_diff_hl = true,
+        keymaps = {
+          file_panel = { close },
+          file_history_panel = { close },
+        },
+      }
+    end,
+  },
 }

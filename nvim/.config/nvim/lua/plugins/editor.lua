@@ -16,6 +16,7 @@ return {
         "markdown_inline",
         "typescript",
         "javascript",
+        "tsx",
         "go",
         "rust",
         "python",
@@ -280,13 +281,17 @@ return {
         -- Leader groups (with clear visual indicators)
         { "<leader>c", group = " Copy...", icon = "" },
         { "<leader>d", group = " Debug...", icon = "" },
+        { "<leader>e", group = " Edit config...", icon = "" },
         { "<leader>f", group = "󰍉 Find/Search...", icon = "" },
         { "<leader>g", group = " Git...", icon = "" },
         { "<leader>G", group = " Go...", icon = "" },
         { "<leader>l", group = " LSP...", icon = "" },
+        { "<leader>o", group = " Open/Explorer...", icon = "" },
+        { "<leader>q", group = " Session...", icon = "" },
         { "<leader>z", group = " Spell/Grammar...", icon = "" },
         { "<leader>T", group = "󰙨 Test...", icon = "" },
         { "<leader>t", group = " Toggle...", icon = "" },
+        { "<leader>v", group = " Vim practice...", icon = "" },
         { "<leader>x", group = " Trouble/Diagnostics...", icon = "" },
 
         -- Find/Telescope mappings (with commands)
@@ -313,6 +318,18 @@ return {
         -- File explorer (yazi)
         { "<leader>or", "<cmd>Yazi cwd<cr>", desc = " File Explorer (cwd)", icon = "" },
         { "<leader>oc", "<cmd>Yazi<cr>", desc = " File Explorer (current file)", icon = "" },
+        { "<leader>oy", desc = "Resume Last Yazi Session", icon = "" },
+
+        -- Neovim config / plugin sources (plugins/telescope.lua)
+        { "<leader>en", desc = "Find Neovim Config Files", icon = "" },
+        { "<leader>ep", desc = "Find Plugin Files", icon = "" },
+        { "<leader>fg", desc = "Live Grep (multi)", icon = "" },
+        { "<leader>vg", desc = "Vim Be Good (practice)", icon = "" },
+
+        -- Sessions (plugins/persistence.lua)
+        { "<leader>qs", desc = "Restore Session (cwd)", icon = "" },
+        { "<leader>ql", desc = "Restore Last Session", icon = "" },
+        { "<leader>qd", desc = "Don't Save Current Session", icon = "" },
 
         -- Ctrl mappings
         { "<C-p>", "<cmd>Telescope git_files<cr>", desc = "Find Git Files", icon = "" },
@@ -329,6 +346,9 @@ return {
         { "<leader>gd", desc = "Diff This", icon = "" },
         { "<leader>gD", desc = "Diff This ~", icon = "" },
         { "<leader>gg", desc = "LazyGit", icon = "" },
+        { "<leader>gv", desc = "Diffview: Branch vs Default Branch", icon = "" },
+        { "<leader>gh", desc = "Diffview: File History", icon = "" },
+        { "<leader>gH", desc = "Diffview: Repo History", icon = "" },
 
         -- LSP mappings (will be set in LspAttach, these help which-key)
         { "<leader>lr", desc = "Rename Symbol", icon = "" },
@@ -353,8 +373,9 @@ return {
         { "<leader>tt", desc = "Toggle Terminal", icon = "" },
         { "<leader>tm", desc = "Toggle Markdown Render", icon = "" },
         { "<leader>tw", "<cmd>set wrap!<cr>", desc = "Toggle Wrap", icon = "" },
-        { "<leader>u", desc = "Toggle Undotree", icon = "" },
-        { "<leader>a", desc = "Toggle Outline", icon = "" },
+        { "<leader>tu", desc = "Toggle Undotree", icon = "" },
+        { "<leader>ta", desc = "Toggle Outline", icon = "" },
+        { "<leader>th", desc = "Toggle Harper (buffer)", icon = "" },
 
         -- Debug mappings (set in plugins/dap.lua; the Go-only ones in
         -- plugins/dap-go.lua, which is why they only appear in .go buffers)
@@ -418,8 +439,11 @@ return {
         { "g", group = " Go to / Navigate..." },
         { "gd", desc = "Go to Definition", icon = "" },
         { "gD", desc = "Go to Declaration", icon = "" },
-        { "gr", desc = "Find References", icon = "" },
-        { "gi", desc = "Go to Implementation", icon = "" },
+        { "grr", desc = "References (Telescope)", icon = "" },
+        { "gri", desc = "Implementations (Telescope)", icon = "" },
+        { "grt", desc = "Type Definitions (Telescope)", icon = "" },
+        { "grn", desc = "Rename (built-in)", icon = "" },
+        { "gra", desc = "Code Action (built-in)", icon = "" },
 
         -- Diagnostics navigation
         { "[d", desc = "Previous Diagnostic", icon = "" },
@@ -551,7 +575,6 @@ return {
     config = function()
       require("toggleterm").setup({
         size = 12,
-        open_mapping = [[<c-\>]],
         shade_terminals = true,
         direction = "float",
         float_opts = {

@@ -26,6 +26,8 @@ return {
       "antoinemadec/FixCursorHold.nvim",
       "nvim-treesitter/nvim-treesitter",
       { "fredrikaverpil/neotest-golang", version = "*" },
+      "nvim-neotest/neotest-python",
+      "marilari88/neotest-vitest",
     },
     keys = {
       key("<leader>Tr", function(nt)
@@ -64,6 +66,13 @@ return {
             -- before your last edit is worse than no answer at all.
             go_test_args = { "-v", "-race", "-count=1" },
           }),
+          require("neotest-python")({
+            runner = "pytest",
+            -- Step into library code too when debugging a test; the default
+            -- (justMyCode = true) skips it and hides where a failure starts.
+            dap = { justMyCode = false },
+          }),
+          require("neotest-vitest"),
         },
       })
     end,
