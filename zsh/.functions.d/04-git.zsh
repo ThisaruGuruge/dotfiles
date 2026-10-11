@@ -169,16 +169,30 @@ git_ignore_local() {
         return 1
     fi
 
-    local repo_root
-    repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
-
-    if [ -z "$repo_root" ]; then
+    # --git-path resolves info/exclude correctly in linked worktrees and
+    # submodules, where .git is a file and the exclude file lives elsewhere.
+    local exclude
+    if ! exclude=$(git rev-parse --git-path info/exclude 2>/dev/null) || [ -z "$exclude" ]; then
         echo "Not inside a Git repository."
         return 1
     fi
+    exclude="${exclude:A}"
 
-    echo "$1" >>"$repo_root/.git/info/exclude"
-    echo "Added '$1' to $repo_root/.git/info/exclude"
+    if [ -f "$exclude" ] && grep -qxF -- "$1" "$exclude"; then
+        echo "'$1' is already in $exclude"
+        return 0
+    fi
+
+    mkdir -p "${exclude:h}" || return 1
+    # Keep the new entry on its own line if the file lacks a trailing newline.
+    if [ -s "$exclude" ] && [ -n "$(tail -c1 "$exclude")" ]; then
+        printf '\n' >>"$exclude" || return 1
+    fi
+    if ! printf '%s\n' "$1" >>"$exclude"; then
+        echo "Could not write to $exclude"
+        return 1
+    fi
+    echo "Added '$1' to $exclude"
 }
 
 # ============================================================================

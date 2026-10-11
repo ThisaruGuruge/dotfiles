@@ -374,7 +374,9 @@ alias_docs() {
             echo "show_tools            Show all modern CLI tools"
             echo "dotdoctor [--full]    Read-only health check of the dotfiles setup"
             echo "envrc work|personal   Pin Claude/gws account for this directory (status|off)"
-            echo "                      ccp/cce/gwsp/gwse always override the pin"
+            echo "                      ccp/cce override CLAUDE_CONFIG_DIR and blank the gws pin for"
+            echo "                      claude; gwsp/gwse set the gws account; bare gws works only"
+            echo "                      inside a pinned tree"
             echo "prs / prw             Browse PRs with fzf / watch a PR's checks"
             echo "alias_search <term>   Search aliases by keyword"
             ;;

@@ -38,24 +38,43 @@ if (( $+commands[zoxide] )); then
     _cache_tool_init "zoxide" "zoxide init --cmd z zsh"
 fi
 
-# Lazy load direnv - initialize only when entering directory with .envrc
+# Lazy load direnv - initialize only when a .envrc applies, i.e. when the
+# current directory or any parent has one. Checked on every cd and once at the
+# first prompt, so a new shell or tmux pane opened inside a pinned tree (and a
+# cd into one of its subdirectories) loads direnv too. Trees with no .envrc
+# above them never pay for the hook. `envrc` calls _direnv_check/_direnv_hook
+# itself after writing or removing a pin.
 if (( $+commands[direnv] )); then
     _direnv_lazy_load() {
         eval "$(direnv hook zsh)"
         unset -f _direnv_lazy_load
-        # Remove our check hook now that direnv's own hook is active
+        # Remove our check hooks now that direnv's own hook is active
         chpwd_functions=(${chpwd_functions:#_direnv_check})
-        unset -f _direnv_check
+        precmd_functions=(${precmd_functions:#_direnv_check_once})
+        unset -f _direnv_check _direnv_check_once 2>/dev/null
         # Re-trigger the hook
         _direnv_hook
     }
-    # Set up a minimal hook that loads direnv when needed
-    chpwd_functions+=(_direnv_check)
+    # Pure-zsh walk up from $PWD (no forks); load direnv at the first .envrc
     _direnv_check() {
-        if [[ -f .envrc ]]; then
-            _direnv_lazy_load
-        fi
+        local dir="$PWD"
+        while :; do
+            if [[ -f "$dir/.envrc" ]]; then
+                _direnv_lazy_load
+                return
+            fi
+            [[ "$dir" == / || -z "$dir" ]] && return
+            dir="${dir:h}"
+        done
     }
+    # One-shot at the first prompt: covers the directory the shell started in
+    _direnv_check_once() {
+        precmd_functions=(${precmd_functions:#_direnv_check_once})
+        unset -f _direnv_check_once
+        _direnv_check
+    }
+    chpwd_functions+=(_direnv_check)
+    precmd_functions+=(_direnv_check_once)
 fi
 
 # Initialize atuin with caching - handles Ctrl+R and up-arrow for history
