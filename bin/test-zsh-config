@@ -570,6 +570,19 @@ for fn_def in "prs:04-git.zsh" "prw:04-git.zsh" "envrc:02-navigation.zsh"; do
 done
 unset dotdoctor_bin fn_def fn_name fn_file
 
+# Behavioural tests (scratch HOME, fake gh/fzf/claude; never touches your setup)
+shell_helpers_test="$DOTFILES_DIR/bin/test-shell-helpers"
+if [[ ! -x "$shell_helpers_test" ]]; then
+    print_test "shell helper behaviour tests" "fail" "bin/test-shell-helpers missing or not executable"
+elif ! command -v zsh >/dev/null 2>&1; then
+    print_test "shell helper behaviour tests" "warn" "zsh not found; skipped"
+elif shell_helpers_out="$("$shell_helpers_test" 2>&1)"; then
+    print_test "shell helper behaviour tests" "pass" "$(printf '%s\n' "$shell_helpers_out" | tail -n 1)"
+else
+    print_test "shell helper behaviour tests" "fail" "$(printf '%s\n' "$shell_helpers_out" | grep -m3 'FAIL' | tr '\n' ';')"
+fi
+unset shell_helpers_test shell_helpers_out
+
 # ============================================================================
 # SUMMARY
 # ============================================================================
