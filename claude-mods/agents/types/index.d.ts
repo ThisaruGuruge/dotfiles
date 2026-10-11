@@ -28,6 +28,7 @@ declare module 'claude-code' {
     agents: {
       list: AgentRec[]
       now: number
+      paneTick: number
     }
   }
 }

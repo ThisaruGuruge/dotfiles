@@ -10,6 +10,8 @@ const MAX_AGENTS = 100
 
 const list = atom({ plugin: 'agents', key: 'list' } as const, [])
 const now = atom({ plugin: 'agents', key: 'now' } as const, 0)
+// Bumped when the pane opens or closes, so the rows above the prompt redraw and re-check whether the pane is showing.
+const paneTick = atom({ plugin: 'agents', key: 'paneTick' } as const, 0)
 
 const RED = '#e66767'
 const GREEN = '#199e70'
@@ -18,7 +20,13 @@ const ACCENT = '#d95926'
 const isRunning = (a: AgentRec) => a.status === 'run'
 const elapsed = (a: AgentRec, at: number) => (a.endedAt ?? Math.max(at, a.startedAt)) - a.startedAt
 
-export const register: Register = on => {
+export type RowsMode = 'auto' | 'off' | 'always'
+
+export const rowsModeOf = (value: unknown): RowsMode => (value === 'off' || value === 'always' ? value : 'auto')
+
+export const register: Register = (on, options) => {
+  const rowsMode = rowsModeOf(options?.rows)
+
   on('session.start', async ($, e, next) => {
     // Ticks the running agents' clocks; quiet when nothing runs.
     $.clock.every(1000, async () => {
@@ -45,6 +53,19 @@ export const register: Register = on => {
 
     return { text: isOpen ? 'Agents pane closed.' : 'Agents pane opened.' }
   })
+
+  // The rows above the prompt depend on whether the pane is showing, so a change of its seat redraws them.
+  on('ui.open', { id: PANE }, async ($, e, next) => {
+    const opened = await next(e)
+    await update($, paneTick, n => n + 1)
+
+    return opened
+  }).catch(($, e, next) => next(e))
+
+  on('ui.close', { id: PANE }, async ($, e, next) => {
+    await next(e)
+    await update($, paneTick, n => n + 1)
+  }).catch(($, e, next) => next(e))
 
   on('agent.spawn', async ($, e, next) => {
     const started = await next(e)
@@ -180,11 +201,19 @@ export const register: Register = on => {
     )
   })
 
-  // One row per running agent above the prompt: the engine's diff panel can take the pane's seat, this stays.
-  // It sits above whatever other mods draw, so none of them goes missing.
+  // One row per running agent above the prompt. They repeat what the pane shows, so `rows: auto` (the default) draws
+  // them only while the pane is NOT showing: closed, still waiting below its width floor, or not the shown pane.
+  // `always` draws them regardless (the engine's diff panel can take the pane's seat, and a plugin cannot see that);
+  // `off` never draws them. It sits above whatever other mods draw, so none of them goes missing.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (rowsMode === 'off') return next(e)
     const running = (await read($, list)).filter(isRunning)
     if (e.props.hasSurvey || running.length === 0) return next(e)
+    if (rowsMode === 'auto') {
+      await read($, paneTick)
+      const panes = await $.ui.panes().catch(() => [])
+      if (panes.some(p => p.id === PANE && p.isPlaced && p.isShown)) return next(e)
+    }
 
     const { Box, Text } = $.ui.resolve(e)
     const at = Math.max(await read($, now), ...running.map(a => a.startedAt))
