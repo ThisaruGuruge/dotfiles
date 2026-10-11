@@ -1,0 +1,31 @@
+#!/bin/sh
+# Marks the tmux window a Claude Code session runs in with its state, for the tmux status bar.
+#
+# Usage: claude-tmux-state working|waiting|done|clear
+#
+# Called from Claude Code hooks in both accounts' settings.json:
+#   UserPromptSubmit -> working, Notification -> waiting, Stop -> done, SessionEnd -> clear
+# Sets the window option @claude_state on the window holding $TMUX_PANE (clear unsets it), then
+# refreshes the status line. Outside tmux, without tmux installed or with any other argument it
+# does nothing. It never prints and always exits 0, so it can never block or fail a hook (a
+# UserPromptSubmit hook's stdout would otherwise be added to the prompt).
+
+state=${1:-}
+
+# Hooks pass their event JSON on stdin; read it so Claude Code never writes into a closed pipe
+[ -t 0 ] || cat >/dev/null 2>&1
+
+case "$state" in
+    working | waiting | done | clear) ;;
+    *) exit 0 ;;
+esac
+[ -n "${TMUX:-}" ] && [ -n "${TMUX_PANE:-}" ] || exit 0
+command -v tmux >/dev/null 2>&1 || exit 0
+
+if [ "$state" = clear ]; then
+    tmux set-option -wqu -t "$TMUX_PANE" @claude_state >/dev/null 2>&1
+else
+    tmux set-option -wq -t "$TMUX_PANE" @claude_state "$state" >/dev/null 2>&1
+fi
+tmux refresh-client -S >/dev/null 2>&1
+exit 0

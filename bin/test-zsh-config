@@ -992,6 +992,21 @@ else
 fi
 
 # ============================================================================
+# CLAUDE CODE (status line, tmux state hook, tracked settings)
+# ============================================================================
+print_header "Claude Code"
+
+# The checks live in tests/claude/check.sh (bash, runs in a temp HOME); this only reports them.
+# ${0:A:h:h} is the repo holding this script, so a worktree tests its own files.
+while IFS='|' read -r claude_status claude_name claude_detail; do
+    case "$claude_status" in
+        PASS) print_test "$claude_name" "pass" "$claude_detail" ;;
+        FAIL) print_test "$claude_name" "fail" "$claude_detail" ;;
+        WARN) print_test "$claude_name" "warn" "$claude_detail" ;;
+    esac
+done < <(bash "${0:A:h:h}/tests/claude/check.sh" "${0:A:h:h}" 2>&1)
+
+# ============================================================================
 # PERFORMANCE CHECKS
 # ============================================================================
 print_header "Performance Checks"
