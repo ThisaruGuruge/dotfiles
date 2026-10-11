@@ -159,20 +159,38 @@ for settings in "$repo"/claude/.claude-*/settings.json; do
 done
 
 # Private project details belong in ~/.claude-personal/projects.d/<repo>.json, never in this public
-# repo. Extra patterns (one extended regex per line) can be listed, untracked, in
-# ${XDG_CONFIG_HOME:-~/.config}/dotfiles/private-patterns.
-patterns='wrangler|/Projects/|(^|[^A-Za-z0-9])D1([^A-Za-z0-9]|$)|[Ff]inance'
+# repo. The repo only carries a generic check: tracked settings may name paths under a home
+# directory only inside dot-directories or ~/dotfiles (a project path like ~/<dir>/<project> is
+# private). Names to look for (one extended regex per line; blank and # lines skipped) go,
+# untracked, in ${XDG_CONFIG_HOME:-~/.config}/dotfiles/private-patterns.
+tracked=("$repo"/claude/.claude-*/settings.json)
+# shellcheck disable=SC2016 # $HOME is matched literally
+leaks=$(grep -ohE '(~|\$HOME|/Users/[^/"]+|/home/[^/"]+)/[^"[:space:]:]*' "${tracked[@]}" |
+    sed -E 's#^(~|\$HOME|/Users/[^/]+|/home/[^/]+)/##' | grep -vE '^(\.|dotfiles(/|$))' | sort -u | tr '\n' ' ')
 extra="${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/private-patterns"
+bad_pattern=""
 if [ -f "$extra" ]; then
-    while IFS= read -r p; do
-        [ -n "$p" ] && patterns="$patterns|$p"
+    n=0
+    while IFS= read -r p || [ -n "$p" ]; do
+        n=$((n + 1))
+        trimmed=${p#"${p%%[![:space:]]*}"}
+        case "$trimmed" in '' | '#'*) continue ;; esac
+        hits=$(grep -lE -- "$p" "${tracked[@]}" 2>/dev/null)
+        rc=$?
+        # grep exits 2 on an invalid pattern: that is a broken check, not a clean result
+        if [ "$rc" -gt 1 ]; then
+            bad_pattern="$bad_pattern $n"
+        elif [ -n "$hits" ]; then
+            leaks="$leaks${hits//$'\n'/ } (pattern line $n) "
+        fi
     done <"$extra"
 fi
-leaks=$(grep -lE "$patterns" "$repo"/claude/.claude-*/settings.json 2>/dev/null)
-if [ -z "$leaks" ]; then
+if [ -n "$bad_pattern" ]; then
+    fail "Tracked Claude settings name no private projects" "invalid pattern on line(s)$bad_pattern of $extra"
+elif [ -z "$leaks" ]; then
     pass "Tracked Claude settings name no private projects"
 else
-    fail "Tracked Claude settings name no private projects" "$(printf '%s ' "$leaks")"
+    fail "Tracked Claude settings name no private projects" "$leaks"
 fi
 
 exit "$failed"
