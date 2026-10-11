@@ -191,6 +191,22 @@ else
 fi
 
 # ============================================================================
+# BREWFILE (declared packages are installed)
+# ============================================================================
+print_header "Brewfile"
+
+BREWFILE_PATH="${0:A:h:h}/Brewfile"
+if ! command -v brew >/dev/null 2>&1; then
+    print_test "brew bundle" "warn" "Homebrew not installed; skipping Brewfile check"
+elif [[ ! -f "$BREWFILE_PATH" ]]; then
+    print_test "brew bundle" "warn" "Brewfile not found at $BREWFILE_PATH"
+elif brew bundle check --no-upgrade --file="$BREWFILE_PATH" >/dev/null 2>&1; then
+    print_test "brew bundle" "pass" "All Brewfile entries are installed"
+else
+    print_test "brew bundle" "warn" "Missing Brewfile entries (run: brew bundle --file=$BREWFILE_PATH)"
+fi
+
+# ============================================================================
 # SPECIAL INSTALLATIONS
 # ============================================================================
 print_header "Special Installations"

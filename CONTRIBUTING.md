@@ -64,6 +64,9 @@ Contributions are welcome in several forms:
 Before submitting a pull request, test your changes:
 
 ```bash
+# Lint everything (shellcheck, shfmt, zsh -n, stylua, mod tests) -- same checks as CI
+./bin/lint
+
 # Run validation suite
 ./bin/test-zsh-config
 
@@ -103,6 +106,10 @@ This validates:
 - Shell configuration loads without errors
 - Performance metrics (startup time)
 - PATH is configured correctly
+
+### Linting
+
+`./bin/lint` is the single lint entry point (CI runs it too): `shellcheck` and `shfmt -i 4 -ci -d` on the bash scripts, `zsh -n` on the zsh files, `stylua --check nvim/`, and `claude plugin test` for each mod in `claude-mods/` (skipped when `claude` is not installed). Tools that are missing are reported as skipped locally.
 
 ### CI/CD Validation
 
@@ -165,14 +172,9 @@ shellcheck your-script.sh
 # SC2039 - In POSIX sh, 'local' is undefined (when using bash/zsh)
 ```
 
-### Python Scripts
+### Script languages
 
-For Python utilities (bin/manage-packages, bin/generate-brewfile):
-
-- Follow PEP 8 style guidelines
-- Use 4 spaces for indentation
-- Include docstrings for functions
-- Use type hints where applicable
+Everything in `bin/` is bash or zsh (see `bin/README.md` for the per-script language); there are no Python utilities.
 
 ---
 
@@ -325,7 +327,7 @@ Every PR merged into `main` is automatically tagged and released — there is no
      - Otherwise (`fix`, `chore`, `refactor`, etc.) → **patch** bump
    - Renames the `## [Unreleased]` section in `CHANGELOG.md` to the new version (with today's date) and pushes a fresh empty `## [Unreleased]` section above it
    - Creates and pushes the new `X.Y.Z` tag (no `v` prefix — matches existing tags/releases in this repo)
-2. **`release.yml`** runs when that tag is pushed. It creates the GitHub Release, pulling notes from the versioned `CHANGELOG.md` section and attaching `Brewfile`, `packages.json`, and a source tarball.
+2. **`release.yml`** runs when that tag is pushed. It creates the GitHub Release, pulling notes from the versioned `CHANGELOG.md` section and attaching `Brewfile` and a source tarball.
 
 ### What this means for contributors
 

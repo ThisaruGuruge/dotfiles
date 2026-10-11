@@ -11,9 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Hardened the CI workflows: release and auto-tag no longer interpolate `${{ }}` expressions into shell scripts (values pass through `env:` and are quoted), release tags are validated as `X.Y.Z`, and the changelog section is matched literally. Actions are pinned to commit SHAs with a Dependabot `github-actions` weekly update, workflows start from `permissions: {}` with per-job grants (the auto-tag `check` job is read-only), `validate.yml` is `contents: read`, checkouts that push nothing no longer persist credentials, and shfmt is built with `go install` at v3.7.0 instead of a downloaded binary.
 
+### Added
+
+- Added `bin/lint`, a single lint entry point (also run by CI): `shellcheck` and `shfmt -i 4 -ci -d` on an explicit list of bash scripts, `zsh -n` on the zsh modules and zsh scripts, `stylua --check nvim/`, and `claude plugin test` for every mod in `claude-mods/` (skipped when `claude` is not installed). `validate.yml` now calls it
+- Added a script index to `bin/README.md` covering every script in `bin/` with its language
+- `test-zsh` now runs `brew bundle check --no-upgrade` against the `Brewfile` and warns about missing entries
+
+### Changed
+
+- Changed `list_dotfiles_tools` to build the inventory from `Brewfile` and `packages/*.brewfile`, with each entry's comment as its description
+- Formatted `bin/adopt-config`, `bin/profile-startup`, `bin/reset-dotfiles` and `bin/sync-brewfile` with `shfmt -i 4 -ci`
+
+### Removed
+
+- Removed the dead Python tooling that read the long-gone `packages.json`: `bin/generate-brewfile`, `bin/manage-packages` and the `manage_packages` function; removed the stale `packages.json` mentions from `SECURITY.md` and `CONTRIBUTING.md`
+- Removed `bin/reload-nvim-config`
+
 ### Fixed
 
 - Fixed release notes being empty: the changelog extraction for a release now returns the full section for that version.
+- Fixed `bin/reset-dotfiles` using an undefined `PURPLE` colour and removed an unused variable from `bin/sync-brewfile`
 
 ## [2.7.0] - 2026-10-11
 

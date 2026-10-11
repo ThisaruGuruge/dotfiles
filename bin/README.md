@@ -2,6 +2,26 @@
 
 Helper scripts to manage your dotfiles setup.
 
+## Script index
+
+Every script in this directory is bash or zsh (no Python). Convention: use bash (`#!/bin/bash`, linted by shellcheck + `shfmt -i 4 -ci`) unless the script sources zsh-only features or runs inside the zsh config (`#!/usr/bin/env zsh`, checked with `zsh -n`). `bin/lint` runs all of these checks.
+
+| Script | Language | Purpose |
+| ------ | -------- | ------- |
+| `adopt-config` | bash | Move an existing `~/.config/<app>` into a new bestow package |
+| `audit-configs` | bash | List which `~/.config` entries are managed by dotfiles |
+| `gws` | bash | Guard: refuses bare `gws`; requires an account-scoped invocation |
+| `gws-account` | bash | Shared helper behind `gwsp`/`gwse` (per-account config dir + keyring) |
+| `gwsp` / `gwse` | bash | Google Workspace CLI, personal / enterprise account |
+| `lint` | bash | Single lint entry point: shellcheck, shfmt, `zsh -n`, stylua, mod tests (also run by CI) |
+| `profile-startup` | bash | Quick shell startup timing |
+| `profile-zsh-startup` | zsh | Detailed zsh startup profiler (per-component timing) |
+| `reset-dotfiles` | bash | Interactively reset/clean dotfiles symlinks and caches |
+| `sync-brewfile` | bash | Compare/sync `Brewfile` with installed Homebrew packages |
+| `test-zsh-config` | zsh | Validation suite (run via `test-zsh`) |
+| `tmux-status-battery` | zsh | tmux status bar: battery level and charging state |
+| `tmux-status-sysinfo` | zsh | tmux status bar: load average and RAM |
+
 ## Scripts
 
 ### `audit-configs`
