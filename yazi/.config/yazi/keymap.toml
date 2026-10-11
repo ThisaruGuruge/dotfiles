@@ -10,14 +10,17 @@ prepend_keymap = [
     # Smart filter (stays active, auto-enters single matches)
     { on = ["F"], run = "plugin smart-filter", desc = "Smart filter" },
 
-    # Smart paste (paste into hovered directory)
+    # Smart paste (paste into hovered directory). This shadows the built-in
+    # `P` (paste, overwriting existing files), so that is re-bound below.
     { on = ["P"], run = "plugin smart-paste", desc = "Paste into hovered dir" },
+    { on = ["<C-p>"], run = "paste --force", desc = "Paste (overwrite existing)" },
 
     # Jump to character (vim-like f motion)
     { on = ["f"], run = "plugin jump-to-char", desc = "Jump to char" },
 
-    # Diff two selected files
-    { on = ["<C-d>"], run = "plugin diff", desc = "Diff selected files" },
+    # Diff two selected files. Not <C-d>: that is the built-in half-page-down,
+    # and `=` is unused in yazi's default keymap.
+    { on = ["="], run = "plugin diff", desc = "Diff selected files" },
 
     # Chmod on selected files
     { on = ["c", "m"], run = "plugin chmod", desc = "chmod selected files" },
