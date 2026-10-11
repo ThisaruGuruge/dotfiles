@@ -84,6 +84,27 @@ gwsp auth status && gwse auth status
 ```
 Credentials live only in those directories, never in this repo. Make sure each `client_secret.json` has a `project_id`, otherwise gws can fall back to gcloud's ADC quota project and leak across accounts.
 
+### `dotdoctor [--full]`
+Read-only health check for the whole setup. Prints one line per check (`✔` ok, `⚠` worth a look, `✘` broken) and exits non-zero when anything is `✘`. It changes nothing; each problem comes with the command that fixes it.
+
+**Usage:**
+```bash
+dotdoctor           # fast checks (a second or two)
+dotdoctor --full    # also: brew bundle check + claude plugin validate on every mod
+```
+
+**Checks:**
+- Every non-ignored file of every bestow package is linked (`bestow stow -n`, so `.bestowignore` rules and bestow's per-file linking are honoured; `bin` is checked against `~/bin`). Missing links are `✘`, destinations blocked by another file or link are `⚠`
+- Dangling symlinks into the repo (in `~`, `~/bin`, `~/.config`, `~/.claude-*`, `~/.hammerspoon`, `~/.local/bin`)
+- `~/.config/bestow/config.yaml` matches the repo copy
+- `~/.claude` is a symlink to `~/.claude-personal`, and `~/.claude-personal/settings.local.json` links to the repo's `.claude/settings.local.json`
+- `CLAUDE_CODE_PLUGIN_DIRS` in both account `settings.json` files lists every `claude-mods/*/` plugin and every listed directory exists (`✘` on mismatch)
+- age key present, `~/.env` sops-encrypted, no `zsh/.env` in the repo, no plaintext `~/.env.backup*`
+- `ControlEscape.spoon` cloned, tmux plugin manager and declared tmux plugins installed
+- Bare `gws` is blocked: `gws` on `PATH` must be the `bin/gws` guard, and the guard exits 64 without an account (the real binary is never run)
+
+It is a script in `bin/`, so it works from any shell. `DOTFILES=<dir>` points it at a different checkout.
+
 ### `sync-brewfile`
 Update your Brewfile with all currently installed Homebrew packages.
 
@@ -155,6 +176,7 @@ cd ~/dotfiles
 
 ## Tips
 
+- Run `dotdoctor` after pulling or adding files to catch unlinked configs and drift
 - Run `./bin/audit-configs` periodically to catch new configs
 - Use `./bin/sync-brewfile` after installing new tools
 - Always review `.bestowignore` files before committing

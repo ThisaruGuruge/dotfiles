@@ -2,7 +2,7 @@
 # ============================================================================
 # Navigation Functions
 # ============================================================================
-# Smart directory/project navigation: take(), takedir(), takegit(), takeurl()
+# Smart directory/project navigation: take(), takedir(), takegit(), takeurl(), envrc()
 
 # Yazi shell wrapper — cd to the directory yazi was in when you quit (q)
 function y() {
@@ -219,4 +219,144 @@ function takeurl() {
     fi
 
     rm -f "$temp_file"
+}
+
+# ----------------------------------------------------------------------------
+# envrc: pin the Claude Code + Google Workspace accounts to a directory
+# ----------------------------------------------------------------------------
+# envrc work|personal   write ./.envrc pinning the account (work = enterprise)
+# envrc status          show which pin applies here and where it comes from
+# envrc off             remove the pin from this directory
+#
+# The pin exports CLAUDE_CONFIG_DIR and GOOGLE_WORKSPACE_CLI_CONFIG_DIR via
+# direnv, so plain `claude` and `gws` pick the right account inside the tree.
+# The explicit commands (ccp/cce/ccpr/ccer/ccpc/ccec and gwsp/gwse) set the
+# variables inline for their own process and therefore always win over the pin.
+_ENVRC_MARK="# Managed by envrc:"
+
+_envrc_account() {
+    case "$1" in
+        work) echo enterprise ;;
+        personal) echo personal ;;
+    esac
+}
+
+# Print the account named in a file written by envrc, or nothing if unmanaged.
+_envrc_file_account() {
+    [[ -f "$1" ]] || return 1
+    local line
+    line=$(grep -m1 "^${_ENVRC_MARK}" "$1") || return 1
+    echo "${line#"${_ENVRC_MARK}" }"
+}
+
+envrc() {
+    local cmd="${1:-}"
+    local file="$PWD/.envrc"
+
+    case "$cmd" in
+        work | personal)
+            local account
+            account=$(_envrc_account "$cmd")
+            local content
+            content="${_ENVRC_MARK} ${account}
+# Pins the Claude Code and Google Workspace accounts for this directory.
+# ccp/cce/gwsp/gwse override this pin for the single command they run.
+# Remove with: envrc off
+source_up_if_exists
+export CLAUDE_CONFIG_DIR=\"\$HOME/.claude-${account}\"
+export GOOGLE_WORKSPACE_CLI_CONFIG_DIR=\"\$HOME/.config/gws-${account}\"
+export GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file"
+
+            if [[ -f "$file" ]]; then
+                local existing
+                existing=$(_envrc_file_account "$file")
+                if [[ -n "$existing" && "$(<"$file")" == "$content" ]]; then
+                    echo "Already pinned to $cmd ($account) in $file"
+                    return 0
+                fi
+                if [[ -n "$existing" ]]; then
+                    echo "$file is pinned to '$existing'; switching to '$account'."
+                else
+                    echo "$file exists and was not written by envrc ($(wc -l <"$file" | tr -d ' ') lines)."
+                    echo "It will be replaced."
+                fi
+                if ! read -u 0 -q "?Overwrite? [y/N] "; then
+                    echo
+                    echo "Left $file unchanged."
+                    return 1
+                fi
+                echo
+            fi
+
+            printf '%s\n' "$content" >"$file" || return 1
+            echo "Wrote $file (pinned to $cmd: Claude ~/.claude-${account}, gws ~/.config/gws-${account})"
+
+            if git rev-parse --is-inside-work-tree >/dev/null 2>&1 && ! git check-ignore -q "$file"; then
+                git_ignore_local .envrc
+            fi
+
+            if command -v direnv >/dev/null 2>&1; then
+                direnv allow "$PWD"
+            else
+                echo "direnv is not installed; the pin takes effect once it is (brew install direnv)."
+            fi
+            echo "ccp/cce/gwsp/gwse still override this pin when you type them explicitly."
+            ;;
+
+        status)
+            local dir="$PWD" found="" unmanaged=""
+            while :; do
+                if [[ -f "$dir/.envrc" ]]; then
+                    if _envrc_file_account "$dir/.envrc" >/dev/null; then
+                        found="$dir/.envrc"
+                        break
+                    fi
+                    [[ -z "$unmanaged" ]] && unmanaged="$dir/.envrc"
+                fi
+                [[ "$dir" == "/" ]] && break
+                dir="${dir:h}"
+            done
+
+            if [[ -n "$found" ]]; then
+                local pinned
+                pinned=$(_envrc_file_account "$found")
+                echo "Pinned to ${pinned} by $found"
+                [[ "$found" != "$file" ]] && echo "  (inherited from a parent directory)"
+            else
+                echo "No envrc pin applies here; plain \`claude\` uses ~/.claude (→ ~/.claude-personal)."
+            fi
+            [[ -n "$unmanaged" ]] && echo "  Note: $unmanaged exists but was not written by envrc."
+            echo "  CLAUDE_CONFIG_DIR=${CLAUDE_CONFIG_DIR:-<unset>}"
+            echo "  GOOGLE_WORKSPACE_CLI_CONFIG_DIR=${GOOGLE_WORKSPACE_CLI_CONFIG_DIR:-<unset>}"
+            echo "  ccp/cce/gwsp/gwse override the pin for the command they run."
+            ;;
+
+        off)
+            if [[ ! -f "$file" ]]; then
+                echo "No .envrc in $PWD; nothing to remove."
+                return 0
+            fi
+            if ! _envrc_file_account "$file" >/dev/null; then
+                echo "$file was not written by envrc; leaving it alone."
+                return 1
+            fi
+            if ! read -u 0 -q "?Remove $file? [y/N] "; then
+                echo
+                echo "Left $file unchanged."
+                return 1
+            fi
+            echo
+            rm -f -- "$file" && echo "Removed $file. The pin is gone once direnv reloads (next prompt)."
+            ;;
+
+        *)
+            echo "Usage: envrc work|personal|status|off"
+            echo "  work       pin this directory to the enterprise accounts"
+            echo "  personal   pin this directory to the personal accounts"
+            echo "  status     show the pin that applies here"
+            echo "  off        remove the pin written by envrc from this directory"
+            [[ -n "$cmd" && "$cmd" != "-h" && "$cmd" != "--help" ]] && return 1
+            return 0
+            ;;
+    esac
 }

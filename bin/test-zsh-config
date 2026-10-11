@@ -542,6 +542,35 @@ else
 fi
 
 # ============================================================================
+# DOTDOCTOR, PR HELPERS, ENVRC
+# ============================================================================
+print_header "Dotdoctor, PR Helpers, envrc"
+
+dotdoctor_bin="$DOTFILES_DIR/bin/dotdoctor"
+if [[ ! -f "$dotdoctor_bin" ]]; then
+    print_test "dotdoctor" "fail" "bin/dotdoctor not found"
+elif [[ ! -x "$dotdoctor_bin" ]]; then
+    print_test "dotdoctor" "fail" "bin/dotdoctor is not executable (chmod +x)"
+elif ! bash -n "$dotdoctor_bin" 2>/dev/null; then
+    print_test "dotdoctor" "fail" "bin/dotdoctor has a bash syntax error"
+elif ! "$dotdoctor_bin" --help >/dev/null 2>&1; then
+    print_test "dotdoctor" "fail" "dotdoctor --help did not exit 0"
+else
+    print_test "dotdoctor" "pass" "present, executable, parses, --help exits 0"
+fi
+
+for fn_def in "prs:04-git.zsh" "prw:04-git.zsh" "envrc:02-navigation.zsh"; do
+    fn_name="${fn_def%%:*}"
+    fn_file="$DOTFILES_DIR/zsh/.functions.d/${fn_def##*:}"
+    if grep -q "^${fn_name}()" "$fn_file" 2>/dev/null; then
+        print_test "function ${fn_name}" "pass" "defined in ${fn_def##*:}"
+    else
+        print_test "function ${fn_name}" "fail" "not defined in ${fn_def##*:}"
+    fi
+done
+unset dotdoctor_bin fn_def fn_name fn_file
+
+# ============================================================================
 # SUMMARY
 # ============================================================================
 echo ""

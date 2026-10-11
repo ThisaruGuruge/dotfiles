@@ -2,7 +2,7 @@
 # ============================================================================
 # Git Functions
 # ============================================================================
-# Git helper utilities: gs(), git_ignore_local()
+# Git helper utilities: gs(), git_ignore_local(), prs(), prw()
 
 # Catppuccin Mocha palette (truecolor)
 _gs_color() {
@@ -179,4 +179,80 @@ git_ignore_local() {
 
     echo "$1" >>"$repo_root/.git/info/exclude"
     echo "Added '$1' to $repo_root/.git/info/exclude"
+}
+
+# ============================================================================
+# GitHub PR helpers: prs(), prw()
+# ============================================================================
+
+# Browse the repo's pull requests with fzf (needs gh and fzf).
+#   enter   check the PR out          ctrl-o  open it in the browser
+#   ctrl-d  full diff through delta   (the preview pane shows `gh pr view`)
+# Extra arguments go to `gh pr list`, e.g. `prs --author @me`, `prs --state all`.
+prs() {
+    if ! command -v gh >/dev/null 2>&1 || ! command -v fzf >/dev/null 2>&1; then
+        echo "prs needs gh and fzf (brew install gh fzf)"
+        return 1
+    fi
+
+    local differ="${PAGER:-less}"
+    command -v delta >/dev/null 2>&1 && differ="delta --paging=always"
+
+    local list
+    if ! list=$(gh pr list --limit 100 "$@" --json number,title,headRefName,author,isDraft,reviewDecision \
+        --jq '.[] | [(.number|tostring), (if .isDraft then "[draft] " else "" end) + .title, .headRefName, .author.login, (.reviewDecision // "")] | @tsv'); then
+        return 1
+    fi
+    if [[ -z "$list" ]]; then
+        echo "No pull requests found."
+        return 0
+    fi
+
+    local pick
+    pick=$(printf '%s\n' "$list" | fzf --ansi --delimiter=$'\t' --with-nth=1,2,3,4,5 --tabstop=2 \
+        --header $'enter: checkout   ctrl-o: browser   ctrl-d: diff' \
+        --preview 'gh pr view {1}' --preview-window 'right,60%,wrap' \
+        --bind 'ctrl-o:execute-silent(gh pr view {1} --web)' \
+        --bind "ctrl-d:execute(gh pr diff {1} | $differ)") || return 0
+
+    [[ -z "$pick" ]] && return 0
+    gh pr checkout "${pick%%$'\t'*}"
+}
+
+# Watch a PR's checks until they finish, then post a macOS notification with
+# the result. `prw` uses the current branch's PR; `prw 123` or `prw <url>`
+# picks one. Extra flags go to `gh pr checks` (e.g. `prw --fail-fast`).
+prw() {
+    if ! command -v gh >/dev/null 2>&1; then
+        echo "prw needs gh (brew install gh)"
+        return 1
+    fi
+
+    local target=""
+    if [[ -n "$1" && "$1" != -* ]]; then
+        target="$1"
+        shift
+    fi
+
+    local title
+    title=$(gh pr view ${target:+"$target"} --json number,title --jq '"#\(.number) \(.title)"') || return 1
+
+    gh pr checks ${target:+"$target"} --watch "$@"
+    local rc=$?
+
+    local result
+    case $rc in
+        0) result="All checks passed" ;;
+        8) result="Checks still pending" ;;
+        *) result="Checks failed" ;;
+    esac
+
+    printf '\a'
+    echo "$title: $result"
+    if command -v osascript >/dev/null 2>&1; then
+        osascript -e 'on run argv' \
+            -e 'display notification (item 1 of argv) with title (item 2 of argv)' \
+            -e 'end run' -- "$title" "prw: $result" >/dev/null 2>&1
+    fi
+    return $rc
 }
