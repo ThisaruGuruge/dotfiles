@@ -1,0 +1,25 @@
+#compdef kill_by_port
+
+# Complete kill_by_port with the TCP ports something is currently listening on
+# (annotated with the owning command), plus its options.
+
+local -a ports fields
+local line port cmd
+
+if [[ "$words[CURRENT]" == -* ]]; then
+  local -a opts
+  opts=('-d:list processes without killing them' '--dry-run:list processes without killing them' '-h:show help' '--help:show help')
+  _describe -t options 'option' opts
+  return
+fi
+
+# lsof columns: COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME (LISTEN)
+while IFS= read -r line; do
+  cmd="${line%% *}"
+  fields=(${=line})
+  port="${fields[-2]##*:}"
+  [[ "$port" == <-> ]] && ports+=("${port}:${cmd}")
+done < <(lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | tail -n +2)
+
+ports=(${(u)ports})
+_describe -t ports 'listening port' ports

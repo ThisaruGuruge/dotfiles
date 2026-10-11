@@ -1,6 +1,6 @@
 # Compiled source #
 ###################
-*.com
+# (*.com is deliberately absent: it matched directories such as vendor/github.com.)
 *.class
 *.dll
 *.exe
@@ -14,6 +14,9 @@
 *.gz
 *.iso
 *.jar
+# The Gradle/Maven wrapper jar is committed on purpose; re-include it after *.jar.
+!**/gradle/wrapper/gradle-wrapper.jar
+!**/.mvn/wrapper/maven-wrapper.jar
 *.rar
 *.tar
 *.zip
@@ -58,7 +61,6 @@ yarn-error.log*
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 .Python
 build/
 develop-eggs/
@@ -75,7 +77,6 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-.env
 .venv
 env/
 venv/
@@ -85,32 +86,23 @@ venv.bak/
 
 # Java #
 ########
-*.class
-*.jar
 *.war
 *.ear
-*.zip
-*.tar.gz
-*.rar
 target/
 .gradle/
-build/
 
 # Rust #
 ########
-target/
-Cargo.lock
+# target/ is ignored under Java above. Cargo.lock is deliberately not ignored:
+# it belongs in version control for binaries and applications.
 
 # Go #
 ######
-*.exe
+# vendor/ is deliberately not ignored: Go modules commit it when vendoring.
 *.exe~
-*.dll
-*.so
 *.dylib
 *.test
 *.out
-vendor/
 
 # Ruby #
 ########
@@ -135,7 +127,6 @@ lib/bundler/man/
 *.temp
 *.bak
 *.backup
-*~
 
 # Security #
 ############

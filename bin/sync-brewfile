@@ -1,39 +1,71 @@
 #!/bin/bash
-# Sync Brewfile with currently installed packages
+# Report drift between what Homebrew has installed and what the Brewfiles declare.
+#
+# Read-only: this never rewrites a Brewfile and never installs or removes
+# anything. (It used to run `brew bundle dump --force` into the core Brewfile,
+# which folded every machine-specific install into the "core" list and stripped
+# the hand-written comments.) Decide per package where it belongs, then edit
+# Brewfile or packages/<category>.brewfile by hand.
+
+set -u
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BREWFILE="$DOTFILES_DIR/Brewfile"
 
-# Colors
-GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
 NC='\033[0m'
 
-echo -e "${BLUE}=== Brewfile Sync ===${NC}"
-echo ""
-
-# Create backup
-cp "$BREWFILE" "$BREWFILE.backup"
-echo -e "${GREEN}✓ Created backup: Brewfile.backup${NC}"
-
-# Generate new Brewfile
-echo "Generating new Brewfile..."
-brew bundle dump --force --file="$BREWFILE"
-
-echo -e "${GREEN}✓ Brewfile updated${NC}"
-echo ""
-
-# Show diff
-if command -v delta >/dev/null 2>&1; then
-    echo -e "${BLUE}Changes:${NC}"
-    git diff --no-index "$BREWFILE.backup" "$BREWFILE" | delta || true
-else
-    echo -e "${BLUE}Changes:${NC}"
-    diff -u "$BREWFILE.backup" "$BREWFILE" || true
+if ! command -v brew >/dev/null 2>&1; then
+    echo "brew is not installed" >&2
+    exit 1
 fi
 
+# Names declared as `brew "x"` / `cask "x"` in the core Brewfile and every
+# packages/*.brewfile. Tap-qualified names (user/tap/formula) reduce to the
+# last component, which is how `brew leaves` / `brew list --cask` print them.
+declared() {
+    local kind="$1" file
+    for file in "$DOTFILES_DIR/Brewfile" "$DOTFILES_DIR"/packages/*.brewfile; do
+        [ -f "$file" ] || continue
+        sed -nE "s/^[[:space:]]*${kind}[[:space:]]+\"([^\"]+)\".*/\1/p" "$file"
+    done | sed -E 's|.*/||' | sort -u
+}
+
+# shellcheck disable=SC2001  # prefixing every line is clearer with sed
+report() {
+    # $3: packages installed on request (leaves); $4: everything installed,
+    # dependencies included. "Extra" compares against $3 so dependencies are not
+    # flagged; "missing" compares against $4 so a declared package that is also
+    # someone's dependency is not reported as absent.
+    local title="$1" kind="$2" leaves="$3" everything="$4"
+    local declared_list extra missing
+    declared_list="$(declared "$kind")"
+    extra="$(comm -13 <(printf '%s\n' "$declared_list") <(printf '%s\n' "$leaves"))"
+    missing="$(comm -23 <(printf '%s\n' "$declared_list") <(printf '%s\n' "$everything"))"
+
+    echo -e "${BLUE}=== ${title}: installed but in no Brewfile ===${NC}"
+    if [ -n "$extra" ]; then
+        sed 's/^/  /' <<<"$extra"
+    else
+        echo -e "  ${GREEN}none${NC}"
+    fi
+    echo ""
+    echo -e "${BLUE}=== ${title}: in a Brewfile but not installed ===${NC}"
+    if [ -n "$missing" ]; then
+        sed 's/^/  /' <<<"$missing"
+    else
+        echo -e "  ${GREEN}none${NC}"
+    fi
+    echo ""
+}
+
+echo -e "${BLUE}Brewfile drift report (read-only)${NC}"
 echo ""
-echo "Next steps:"
-echo "1. Review the changes above"
-echo "2. If satisfied: git add Brewfile && git commit -m 'Update Brewfile'"
-echo "3. If not: mv Brewfile.backup Brewfile"
+
+casks="$(brew list --cask 2>/dev/null | sort -u)"
+report "Formulae" "brew" "$(brew leaves | sed -E 's|.*/||' | sort -u)" "$(brew list --formula | sed -E 's|.*/||' | sort -u)"
+report "Casks" "cask" "$casks" "$casks"
+
+echo -e "${YELLOW}Nothing was changed.${NC} To adopt a package, add a line to Brewfile (core)"
+echo "or packages/<category>.brewfile yourself; to drop one, uninstall it with brew."

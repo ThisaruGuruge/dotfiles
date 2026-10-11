@@ -6,5 +6,3 @@ export SDKMAN_DIR="$HOME/.sdkman"
 
 # Rancher Desktop
 [[ -d "$HOME/.rd/bin" ]] && export PATH="$HOME/.rd/bin:$PATH"
-
-. "$HOME/.local/bin/env"
