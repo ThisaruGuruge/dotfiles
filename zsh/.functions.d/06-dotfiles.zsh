@@ -2,7 +2,7 @@
 # ============================================================================
 # Dotfiles Management Functions
 # ============================================================================
-# Dotfiles utilities: edit_secrets(), edit_dotfiles(), update_dotfiles(), adopt-config()
+# Dotfiles utilities: edit_secrets(), edit_dotfiles(), update_dotfiles()
 # Secrets helpers: _dotfiles_is_sops_encrypted(), _dotfiles_env_parse(),
 # _dotfiles_env_expand(), _dotfiles_env_lint(), _dotfiles_secrets_ask() and
 # _dotfiles_load_env(). The IDE fast path in .zshrc sources this file on its
@@ -540,8 +540,8 @@ edit_dotfiles() {
     echo "  2) Aliases (.aliases.sh)"
     echo "  3) Functions (.functions.d/)"
     echo "  4) Paths (.paths.sh)"
-    echo "  5) Git Config (.gitconfig)"
-    echo "  6) Vim Config (.vimrc)"
+    echo "  5) Git Config (config)"
+    echo "  6) Neovim Config (init.lua)"
     echo "  7) Powerlevel10k Prompt (.p10k.zsh)"
     echo "  8) Environment Template (.env.example)"
     echo "  9) Brewfile (package list)"
@@ -552,7 +552,7 @@ edit_dotfiles() {
     echo ""
 
     local choice
-    read -r -p "Choose file to edit (0-11): " choice
+    read -r "choice?Choose file to edit (0-11): "
 
     local file_to_edit=""
     local description=""
@@ -575,12 +575,12 @@ edit_dotfiles() {
             description="PATH Configuration"
             ;;
         5)
-            file_to_edit="$dotfiles_dir/git/.gitconfig"
+            file_to_edit="$dotfiles_dir/git/.config/git/config"
             description="Git Configuration"
             ;;
         6)
-            file_to_edit="$dotfiles_dir/vim/.vimrc"
-            description="Vim Configuration"
+            file_to_edit="$dotfiles_dir/nvim/.config/nvim/init.lua"
+            description="Neovim Configuration"
             ;;
         7)
             file_to_edit="$dotfiles_dir/zsh/.p10k.zsh"
@@ -604,7 +604,7 @@ edit_dotfiles() {
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             find "$dotfiles_dir" -type f \( -name ".*" -o -name "*.sh" -o -name "*.json" -o -name "Brewfile" -o -name "README.md" \) ! -path "*/.git/*" | sed "s|$dotfiles_dir/||" | sort
             echo ""
-            read -r -p "Enter file path to edit (relative to $dotfiles_dir): " relative_path
+            read -r "relative_path?Enter file path to edit (relative to $dotfiles_dir): "
             if [ -n "$relative_path" ]; then
                 file_to_edit="$dotfiles_dir/$relative_path"
                 description="Custom File: $relative_path"
@@ -629,18 +629,29 @@ edit_dotfiles() {
         return 1
     fi
 
-    # Create backup
-    local backup_file
-    backup_file="$file_to_edit.backup.$(date +%Y%m%d_%H%M%S)"
-    cp "$file_to_edit" "$backup_file"
-    echo "💾 Created backup: ${backup_file##*/}"
+    # Back up regular files into a private temp dir (never next to the dotfile,
+    # where it would pollute the repo). Directories rely on git instead.
+    local backup_dir="" backup_file=""
+    if [ -f "$file_to_edit" ]; then
+        backup_dir="$(mktemp -d "${TMPDIR:-/tmp}/edit_dotfiles.XXXXXX")" || return 1
+        backup_file="$backup_dir/${file_to_edit##*/}"
+        command cp "$file_to_edit" "$backup_file"
+        echo "💾 Backup: $backup_file"
+    fi
 
     # Edit the file
     echo "🖊️  Opening $description for editing..."
     ${EDITOR:-vim} "$file_to_edit"
 
-    # Check if file was modified
-    if ! cmp -s "$file_to_edit" "$backup_file"; then
+    # Check if file (or, for a directory, anything under it) was modified
+    local modified=false
+    if [ -n "$backup_file" ]; then
+        cmp -s "$file_to_edit" "$backup_file" || modified=true
+    elif ! git -C "$dotfiles_dir" diff --quiet -- "$file_to_edit" 2>/dev/null; then
+        modified=true
+    fi
+
+    if [ "$modified" = true ]; then
         echo "✅ File modified successfully"
 
         # Test syntax for shell files
@@ -676,7 +687,7 @@ edit_dotfiles() {
         echo ""
         echo "💡 Next steps:"
         case "$file_to_edit" in
-            */.zshrc | */.aliases.sh | */.functions.d/* | */.paths.sh)
+            */.zshrc | */.aliases.sh | */.functions.d/ | */.functions.d/* | */.paths.sh)
                 echo "   • Restart terminal or run: source ~/.zshrc"
                 ;;
             */zen.json)
@@ -696,7 +707,7 @@ edit_dotfiles() {
             if confirm "Commit changes to git?"; then
                 git -C "$dotfiles_dir" add "$file_to_edit"
                 echo "Enter commit message:"
-                read -r -p "> " commit_msg
+                read -r "commit_msg?> "
                 if [ -n "$commit_msg" ]; then
                     git -C "$dotfiles_dir" commit -m "$commit_msg"
                     echo "✅ Changes committed to git"
@@ -707,7 +718,7 @@ edit_dotfiles() {
         fi
     else
         echo "📝 No changes made"
-        rm "$backup_file" # Remove unnecessary backup
+        [ -n "$backup_dir" ] && rm -rf "$backup_dir" # Remove unnecessary backup
     fi
 
     echo "🎉 Edit complete!"
@@ -880,43 +891,4 @@ update_dotfiles() {
     echo "   📂 Repository: $dotfiles_dir"
     echo "   🏷️  Current: $(git -C "$dotfiles_dir" rev-parse --short HEAD)"
     echo "   💾 Backup: $backup_branch"
-}
-
-# Adopt a config file or directory into dotfiles
-adopt-config() {
-    local target="$1"
-    local config_name
-    local dotfiles_config_dir="$HOME/dotfiles/config/.config"
-
-    if [ -z "$target" ]; then
-        echo "Usage: adopt-config <path-to-config>"
-        return 1
-    fi
-
-    if [ ! -e "$target" ]; then
-        echo "Error: $target does not exist"
-        return 1
-    fi
-
-    # Normalize path
-    target=$(realpath "$target")
-    config_name=$(basename "$target")
-
-    # Ensure .config dir exists in dotfiles
-    mkdir -p "$dotfiles_config_dir"
-
-    echo "📦 Adopting $config_name into dotfiles..."
-
-    # Move to dotfiles
-    mv -v "$target" "$dotfiles_config_dir/"
-
-    # Stow it back
-    echo "🔗 Stowing config..."
-    if (cd "$HOME/dotfiles" && stow --no-folding config); then
-        echo "✅ $config_name adopted and stowed!"
-    else
-        echo "❌ Stow failed — restoring original file..."
-        mv -v "$dotfiles_config_dir/$config_name" "$target"
-        return 1
-    fi
 }

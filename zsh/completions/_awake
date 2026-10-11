@@ -1,0 +1,33 @@
+#compdef awake
+
+# Completion for the awake() function (zsh/.functions.d/05-system.zsh).
+
+local prev="${words[CURRENT-1]}"
+
+case "$prev" in
+  for)
+    _alternative \
+      'durations:duration:(30m 1h 2h 4h 8h 1d)' \
+      'pids:process to wait for:_pids'
+    return
+    ;;
+  --floor)
+    _message -e floors 'battery floor in percent (default 20)'
+    return
+    ;;
+esac
+
+# Nothing more to offer after stop / status.
+(( ${words[(I)stop|status]} )) && return
+
+local -a subcommands
+subcommands=(
+  'screen:also keep the display on'
+  'ac:AC power only (drops when unplugged)'
+  'for:hold for a duration (2h, 30m, 90s) or until a PID exits'
+  'stop:release the hold'
+  'status:show mode, since when, battery and floor'
+)
+
+_describe -t commands 'awake' subcommands
+compadd -- --floor

@@ -2,7 +2,7 @@
 
 Tools: `fd` (find files) and `rg` / ripgrep (search content).
 
-Aliases: `f` = `fd`, `fg` = `fd -g`, `g` = `rg`
+Aliases: `f` = `fd`, `fdg` = `fd -g`, `fdh` = `fd --hidden`, `fda` = `fd --hidden --no-ignore`, `g` = `rg`, `rgh` = `rg --hidden`, `rga` = `rg --hidden --no-ignore`
 
 ---
 
@@ -16,8 +16,8 @@ Aliases: `f` = `fd`, `fg` = `fd -g`, `g` = `rg`
 f "config"          # regex: matches any file with "config" in name
 f "\.json$"         # regex: ends with .json
 f -g "*.json"       # glob: use -g flag for glob syntax
-fg "*.json"         # alias for fd -g (glob)
-fg "*.bal"          # find Ballerina files
+fdg "*.json"        # alias for fd -g (glob)
+fdg "*.bal"         # find Ballerina files
 ```
 
 ### Filter by extension or exclude
@@ -34,8 +34,8 @@ f -E node_modules   # exclude a directory
 ### Hidden files
 
 ```sh
-fh "*.json"         # alias: fd --hidden (include dotfiles)
-fa "*.json"         # alias: fd --hidden --no-ignore (also gitignored)
+fdh "*.json"        # alias: fd --hidden (include dotfiles)
+fda "*.json"        # alias: fd --hidden --no-ignore (also gitignored)
 f -H -g "*.json"    # explicit flags
 ```
 
@@ -58,10 +58,10 @@ f -t l "*.sh"               # symlinks only
 
 ```sh
 # Glob, files only, in a specific dir, include hidden
-fg "*.json" -t f ./config --hidden
+fdg "*.json" -t f ./config --hidden
 
 # Everything (hidden + gitignored), files only, by extension
-fa -t f -e bal
+fda -t f -e bal
 ```
 
 ---
@@ -79,7 +79,7 @@ g -i "pattern"              # case-insensitive
 ### Hidden and ignored files
 
 ```sh
-gh "pattern"                # alias: rg --hidden (includes dotfiles)
+rgh "pattern"               # alias: rg --hidden (includes dotfiles)
 rga "pattern"               # alias: rg --hidden --no-ignore (search everything)
 g -u "pattern"              # -u: unrestricted (skips .gitignore)
 g -uu "pattern"             # -uu: also includes hidden files
@@ -120,7 +120,7 @@ g -B 2 "pattern"            # 2 lines before
 
 ```sh
 # Hidden files, TypeScript, in ./src, case-insensitive
-gh -t ts -i "useState" ./src
+rgh -t ts -i "useState" ./src
 
 # Everything (no filters), with 2 lines of context
 rga -C 2 "pattern"
@@ -139,14 +139,14 @@ grepbal "pattern"           # rg --type ballerina
 | Goal | Command |
 |------|---------|
 | Find file by name (regex) | `f "name"` |
-| Find file by glob | `fg "*.json"` |
+| Find file by glob | `fdg "*.json"` |
 | Find file by extension | `f -e json` |
 | Exclude files/dirs | `f -E node_modules` |
-| Find file, include hidden | `fh "name"` |
-| Find file, include gitignored | `fa "name"` |
+| Find file, include hidden | `fdh "name"` |
+| Find file, include gitignored | `fda "name"` |
 | Find file in dir | `f "name" ./path` |
 | Search string in files | `g "pattern"` |
-| Search, include hidden | `gh "pattern"` |
+| Search, include hidden | `rgh "pattern"` |
 | Search everything | `rga "pattern"` |
 | Search by file type | `g -t json "pattern"` |
 | Search by glob | `g -g "*.json" "pattern"` |
