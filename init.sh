@@ -110,6 +110,30 @@ cleanup_temp_dirs() {
 trap cleanup_temp_dirs EXIT
 trap 'exit 130' INT TERM HUP
 
+# Print the path symlink $1 finally points to (followed link by link; the
+# result may not exist). Fails on a link loop.
+resolve_symlink() {
+    local path="$1" link hops=0
+    while [ -L "$path" ]; do
+        hops=$((hops + 1))
+        [ "$hops" -gt 40 ] && return 1
+        link=$(readlink "$path") || return 1
+        case "$link" in
+            /*) path="$link" ;;
+            *) path="$(dirname "$path")/$link" ;;
+        esac
+    done
+    echo "$path"
+}
+
+# Physical path of $1 (its directory resolved with cd -P), or nothing if that
+# directory doesn't exist
+physical_path() {
+    local dir
+    dir=$(cd -P "$(dirname "$1")" 2>/dev/null && pwd -P) || return 1
+    echo "$dir/$(basename "$1")"
+}
+
 # Check if running on macOS
 check_macos() {
     if [[ "$OSTYPE" != "darwin"* ]]; then
@@ -658,10 +682,27 @@ setup_sops_config() {
     local template="$DOTFILES_DIR/bash/.sops.yaml.example"
 
     # Older setups stowed the repo's bash/.sops.yaml (the repo owner's
-    # recipient) here as a symlink
+    # recipient) here as a symlink; it dangles once that file is gone from the
+    # checkout. Remove only such a link (or any dangling one) without asking.
     if [ -L "$sops_config" ]; then
-        log_warning "$sops_config is a symlink (to $(readlink "$sops_config")); replacing it with this machine's own config"
-        rm -f "$sops_config"
+        local link_target repo_config
+        link_target=$(resolve_symlink "$sops_config") || link_target=""
+        repo_config=$(physical_path "$DOTFILES_DIR/bash/.sops.yaml") || repo_config=""
+        if [ -z "$link_target" ] || [ ! -e "$link_target" ]; then
+            log_warning "$sops_config is a dangling symlink (to $(readlink "$sops_config")); replacing it with this machine's own config"
+            rm -f "$sops_config"
+        elif [ -n "$repo_config" ] && [ "$(physical_path "$link_target")" = "$repo_config" ]; then
+            log_warning "$sops_config links to the repo's old bash/.sops.yaml; replacing it with this machine's own config"
+            rm -f "$sops_config"
+        elif [ -f "$link_target" ] && grep -qF -- "$recipient" "$link_target"; then
+            log_success "$sops_config (a symlink to $link_target) lists this machine's age key"
+            return 0
+        elif confirm "$sops_config is a symlink to $link_target, which doesn't list this machine's age key. Replace the link with this machine's own config?"; then
+            rm -f "$sops_config"
+        else
+            log_error "Left $sops_config as it is; new secrets would be encrypted to a key this machine can't decrypt"
+            return 1
+        fi
     fi
 
     if [ -f "$sops_config" ]; then
@@ -689,10 +730,11 @@ setup_sops_config() {
 }
 
 # True when encrypted dotenv $1 decrypts to the same entries as plaintext $2
-# (sops drops blank lines, so those are ignored)
+# (sops drops blank lines, so those are ignored). The format is given
+# explicitly: $1 may be a symlink target whose name doesn't end in .env.
 env_decrypts_to() {
     local decrypted
-    decrypted=$(sops -d "$1" 2>/dev/null) || return 1
+    decrypted=$(sops -d --input-type dotenv --output-type dotenv "$1" 2>/dev/null) || return 1
     [ "$(printf '%s\n' "$decrypted" | awk 'NF')" = "$(awk 'NF' "$2")" ]
 }
 
@@ -707,9 +749,10 @@ encrypt_env_in_place() {
     original="$work/original.env"
     encrypted="$work/encrypted.env"
 
-    # sops picks the dotenv format and the creation_rule from the .env name
+    # Encrypt the private copy: its .env name picks the dotenv format and the
+    # creation_rule even when $env_file (a symlink target) is named otherwise
     if ! (umask 077 && cp "$env_file" "$original" &&
-        sops --config "$sops_config" --encrypt "$env_file" >"$encrypted"); then
+        sops --config "$sops_config" --encrypt "$original" >"$encrypted"); then
         rm -rf -- "$work"
         return 1
     fi
@@ -786,9 +829,20 @@ setup_secret_management() {
             fi
         else
             log_warning "Found a plaintext ~/.env"
-            if confirm "Encrypt ~/.env in place with sops?"; then
-                if encrypt_env_in_place "$env_file" "$sops_config"; then
-                    log_success "Encrypted ~/.env (verified it decrypts back to the original; no plaintext copy kept)"
+            # Replacing a symlink would leave its plaintext target behind, so
+            # encrypt the file it points to instead
+            local env_target="$env_file"
+            if [ -L "$env_file" ]; then
+                env_target=$(resolve_symlink "$env_file") || env_target=""
+                if [ -z "$env_target" ] || [ ! -f "$env_target" ]; then
+                    log_error "$env_file is a symlink that doesn't resolve to a file; fix the link, then re-run ./init.sh"
+                    return 1
+                fi
+                log_warning "$env_file is a symlink to $env_target; that file is what gets encrypted"
+            fi
+            if confirm "Encrypt $env_target in place with sops?"; then
+                if encrypt_env_in_place "$env_target" "$sops_config"; then
+                    log_success "Encrypted $env_target (verified it decrypts back to the original; no plaintext copy kept)"
                 else
                     log_error "Encryption failed or didn't verify; ~/.env was left as it was (plaintext)"
                     return 1
@@ -800,8 +854,15 @@ setup_secret_management() {
     else
         if confirm "Create an encrypted ~/.env now? (opens your editor via edit_secrets)"; then
             # edit_secrets keeps the plaintext in a private temp dir and only
-            # writes ~/.env once the ciphertext verifies
-            if ! zsh -c 'source "$1" && edit_secrets' _ "$DOTFILES_DIR/zsh/.functions.d/06-dotfiles.zsh" </dev/tty; then
+            # writes ~/.env once the ciphertext verifies. An editor that
+            # doesn't take over the terminal lets Ctrl-C reach this script
+            # too: don't let that abort the whole install (edit_secrets
+            # cleans up and returns 130 on its own).
+            local edit_rc=0
+            trap ':' INT
+            zsh -c 'source "$1" && edit_secrets' _ "$DOTFILES_DIR/zsh/.functions.d/06-dotfiles.zsh" </dev/tty || edit_rc=$?
+            trap 'exit 130' INT
+            if [ "$edit_rc" -ne 0 ]; then
                 log_warning "edit_secrets didn't finish; run it later to create ~/.env"
             fi
         else
@@ -980,20 +1041,71 @@ install_pam_reattach() {
         sudo install -o root -g wheel -m 444 "$1" "$PAM_REATTACH_LIB"
 }
 
+# Print why PAM module $1 isn't safe for sudo to load as root; print nothing
+# if it is. It must be a real file, and it and every directory above it must
+# be root-owned and not writable by group or others: whoever can write any of
+# them can swap the module.
+pam_module_problem() {
+    local path owner mode
+    if [[ -L "$1" ]]; then
+        echo "$1 is a symlink"
+        return
+    elif [[ ! -f "$1" ]]; then
+        echo "$1 is missing"
+        return
+    fi
+    path=$(physical_path "$1") || {
+        echo "$1 can't be resolved"
+        return
+    }
+    while :; do
+        if ! owner=$(stat -f %u "$path") || ! mode=$(stat -f %Lp "$path"); then
+            echo "can't stat $path"
+            return
+        fi
+        if [[ "$owner" != 0 ]]; then
+            echo "$path is owned by $(stat -f %Su "$path"), not root"
+            return
+        elif ((8#$mode & 8#022)); then
+            echo "$path is writable by group or others (mode $mode)"
+            return
+        fi
+        [[ "$path" == / ]] && break
+        path=$(dirname "$path")
+    done
+}
+
+# Module path of the first active `auth <flag> .../pam_reattach.so` line in
+# sudo_local $1, if any
+current_pam_reattach() {
+    awk '$1 == "auth" && $3 ~ /pam_reattach\.so$/ { print $3; exit }' "$1"
+}
+
+# True when sudo_local $1 has an active (not commented out) pam_tid line
+has_active_pam_tid() {
+    grep -Eq '^[[:space:]]*auth[[:space:]].*pam_tid\.so' "$1"
+}
+
+# If OpenPAM can't load a module listed in sudo_local, sudo itself can stop
+# working, even for an `optional` line
+log_pam_recovery_hint() {
+    log_info "If sudo ever stops working after this, restore it without sudo:"
+    log_info "  osascript -e 'do shell script \"mv /etc/pam.d/sudo_local /etc/pam.d/sudo_local.disabled\" with administrator privileges'"
+}
+
 # Setup Touch ID for sudo authentication
 setup_touchid_sudo() {
     log_step "Setting up Touch ID for sudo"
 
     local sudo_local="/etc/pam.d/sudo_local"
-    local brew_lib current_lib
+    local brew_lib current_lib problem
     brew_lib=$(find_brew_pam_reattach) || brew_lib=""
 
     # Check if already configured
-    if [[ -f "$sudo_local" ]] && grep -q "pam_tid.so" "$sudo_local"; then
+    if [[ -f "$sudo_local" ]] && has_active_pam_tid "$sudo_local"; then
         log_success "Touch ID for sudo already configured"
 
-        # Module path of an active `auth ... pam_reattach.so` line, if any
-        current_lib=$(awk '$1 == "auth" && $3 ~ /pam_reattach\.so$/ { print $3; exit }' "$sudo_local")
+        current_lib=$(current_pam_reattach "$sudo_local")
 
         if [[ -z "$current_lib" ]]; then
             # Not configured yet (Touch ID won't work inside tmux)
@@ -1001,11 +1113,17 @@ setup_touchid_sudo() {
                 log_warning "pam_reattach not configured (Touch ID won't work inside tmux)"
                 if confirm "Add pam_reattach for tmux Touch ID support?"; then
                     if install_pam_reattach "$brew_lib"; then
-                        # Prepend pam_reattach line before pam_tid
-                        sudo sed -i '' "/pam_tid.so/i\\
+                        # Insert the pam_reattach line before the active
+                        # pam_tid line (not before commented-out ones)
+                        sudo sed -i '' "/^[[:space:]]*auth[[:space:]].*pam_tid\\.so/i\\
 auth       optional       $PAM_REATTACH_LIB
 " "$sudo_local"
-                        log_success "Added pam_reattach for tmux support"
+                        if [[ "$(current_pam_reattach "$sudo_local")" == "$PAM_REATTACH_LIB" ]]; then
+                            log_success "Added pam_reattach for tmux support"
+                            log_pam_recovery_hint
+                        else
+                            log_error "Could not add the pam_reattach line to $sudo_local"
+                        fi
                     else
                         log_error "Could not copy pam_reattach; $sudo_local left unchanged"
                     fi
@@ -1020,10 +1138,28 @@ auth       optional       $PAM_REATTACH_LIB
                 log_error "pam_reattach.so not found; run 'brew install pam-reattach' and re-run ./init.sh"
             elif confirm "Copy it to root-owned $PAM_REATTACH_LIB and point $sudo_local there?"; then
                 if install_pam_reattach "$source_lib"; then
-                    sudo sed -i '' "s|^\(auth[[:space:]][[:space:]]*optional[[:space:]][[:space:]]*\)[^[:space:]]*pam_reattach\.so|\1$PAM_REATTACH_LIB|" "$sudo_local"
-                    log_success "$sudo_local now loads $PAM_REATTACH_LIB"
+                    # Rewrite every active pam_reattach line, whatever its
+                    # control flag, then check what sudo_local loads now
+                    sudo sed -i '' "s|^\\([[:space:]]*auth[[:space:]][[:space:]]*[^[:space:]][^[:space:]]*[[:space:]][[:space:]]*\\)[^[:space:]]*pam_reattach\\.so|\\1$PAM_REATTACH_LIB|" "$sudo_local"
+                    current_lib=$(current_pam_reattach "$sudo_local")
+                    if [[ "$current_lib" == "$PAM_REATTACH_LIB" ]]; then
+                        log_success "$sudo_local now loads $PAM_REATTACH_LIB"
+                        log_pam_recovery_hint
+                    else
+                        log_error "$sudo_local still loads pam_reattach from $current_lib; edit it by hand (sudo vi $sudo_local)"
+                    fi
                 else
                     log_error "Could not copy pam_reattach; $sudo_local left unchanged"
+                fi
+            fi
+        elif problem=$(pam_module_problem "$PAM_REATTACH_LIB") && [[ -n "$problem" ]]; then
+            # Configured, but the copy (or a directory above it) isn't safe
+            log_error "sudo loads $PAM_REATTACH_LIB, but $problem"
+            if [[ -n "$brew_lib" ]] && confirm "Reinstall $PAM_REATTACH_LIB (root:wheel, mode 444) from $brew_lib?"; then
+                if install_pam_reattach "$brew_lib" && problem=$(pam_module_problem "$PAM_REATTACH_LIB") && [[ -z "$problem" ]]; then
+                    log_success "Reinstalled $PAM_REATTACH_LIB"
+                else
+                    log_error "Still unsafe: ${problem:-copy failed}; fix the ownership by hand"
                 fi
             fi
         elif [[ -n "$brew_lib" ]] && ! cmp -s "$brew_lib" "$PAM_REATTACH_LIB"; then
@@ -1071,10 +1207,27 @@ auth       optional       $PAM_REATTACH_LIB
         content+="auth       sufficient     pam_tid.so
 "
 
+        # An existing sudo_local (without an active pam_tid line) is backed
+        # up and its lines kept below ours
+        if [[ -f "$sudo_local" ]]; then
+            local backup
+            backup="$sudo_local.backup.$(date +%Y%m%d_%H%M%S)"
+            if ! sudo cp -p "$sudo_local" "$backup"; then
+                log_error "Could not back up $sudo_local; left it unchanged"
+                return 1
+            fi
+            log_info "Backed up the existing $sudo_local to $backup"
+            content+="
+# Previous contents of sudo_local
+$(cat "$sudo_local")
+"
+        fi
+
         # Write the file (requires sudo)
-        echo "$content" | sudo tee "$sudo_local" >/dev/null
+        printf '%s' "$content" | sudo tee "$sudo_local" >/dev/null
         log_success "Touch ID for sudo enabled"
         log_info "You can now use your fingerprint when sudo prompts for a password"
+        log_pam_recovery_hint
 
         if [[ "$with_reattach" = true ]]; then
             log_info "Touch ID will also work inside tmux sessions"
