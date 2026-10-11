@@ -69,7 +69,7 @@ jobs:
 
     steps:
       - name: Checkout main
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: main
           fetch-depth: 0
@@ -101,7 +101,7 @@ jobs:
             RANGE="HEAD"
           fi
 
-          COMMITS=$(git log "$RANGE"--format='%B' 2>/dev/null || true)
+          COMMITS=$(git log --format='%B' "$RANGE")
 
           # Conventional Commits: feat! / fix(scope)!: / "BREAKING CHANGE:" -> major,
           # feat: -> minor, everything else (fix/chore/docs/refactor/etc) -> patch.
