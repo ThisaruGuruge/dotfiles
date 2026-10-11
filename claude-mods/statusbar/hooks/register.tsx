@@ -11,6 +11,7 @@ const isHidden = atom({ plugin: 'statusbar', key: 'isHidden' } as const, false)
 const isLegend = atom({ plugin: 'statusbar', key: 'isLegend' } as const, true)
 const warned = atom({ plugin: 'statusbar', key: 'warned' } as const, [])
 const now = atom({ plugin: 'statusbar', key: 'now' } as const, 0)
+const compactAt = atom({ plugin: 'statusbar', key: 'compactAt' } as const, null)
 
 const AMBER = '#c98500'
 const RED = '#e66767'
@@ -162,7 +163,32 @@ export const turnsLeft = (used: number[], threshold: number): number | null => {
 export const tier = (cols: number): 'wide' | 'mid' | 'narrow' =>
   cols >= 150 ? 'wide' : cols >= 130 ? 'mid' : 'narrow'
 
-async function refreshUsage($: EngineInterface): Promise<Snap> {
+export type CompactInfo = {
+  categories: Row[]
+  autoCompactThreshold?: number
+  isAutoCompactEnabled?: boolean
+}
+
+/**
+ * The token count at which Claude Code compacts, on the same scale as the
+ * breakdown's rows (which add up to the compaction window, so an
+ * `autoCompactWindow` setting is already in them). Claude's own
+ * `autoCompactThreshold` first; when that is missing or does not fit inside
+ * the rows, the window less its compaction reserve; then `fallbackPercent`
+ * of the window. Null when auto-compaction is off.
+ */
+export const compactPoint = (b: CompactInfo, fallbackPercent: number): number | null => {
+  if (b.isAutoCompactEnabled === false) return null
+  const shown = b.categories.filter(r => r.kind !== 'deferred')
+  const total = shown.reduce((a, r) => a + r.tokens, 0)
+  const t = b.autoCompactThreshold
+  if (t !== undefined && t > 0 && (total === 0 || t <= total)) return t
+  const reserve = shown.filter(r => r.kind === 'buffer').reduce((a, r) => a + r.tokens, 0)
+  if (reserve > 0 && reserve < total) return total - reserve
+  return (total * fallbackPercent) / 100
+}
+
+async function refreshUsage($: EngineInterface, fallbackPercent: number): Promise<Snap> {
   const u = await $.session.usage({ breakdown: 'summary' })
   const s: Snap = {
     tokens: u.context.tokens,
@@ -172,12 +198,18 @@ async function refreshUsage($: EngineInterface): Promise<Snap> {
     usd: u.cost?.usd,
   }
   await update($, snap, () => s)
-  const cats = u.context.breakdown?.categories
-  await update($, rows, () =>
-    cats
-      ? cats.map(c => ({ name: c.name, tokens: c.tokens, color: c.color, kind: c.kind }))
-      : null,
-  )
+  const b = u.context.breakdown
+  const list: Row[] | null = b
+    ? b.categories.map(c => ({ name: c.name, tokens: c.tokens, color: c.color, kind: c.kind }))
+    : null
+  await update($, rows, () => list)
+  if (b && list) {
+    const at = compactPoint(
+      { categories: list, autoCompactThreshold: b.autoCompactThreshold, isAutoCompactEnabled: b.isAutoCompactEnabled },
+      fallbackPercent,
+    )
+    await update($, compactAt, () => at)
+  }
   return s
 }
 
@@ -197,7 +229,7 @@ export const register: Register = (on, options) => {
       description: 'Toggle the legend under the context bar',
     })
     const started = await next(e)
-    await refreshUsage($)
+    await refreshUsage($, autocompact)
     $.clock.every(10000, async () => {
       const l = await read($, last)
       if (l) {
@@ -232,7 +264,7 @@ export const register: Register = (on, options) => {
 
   on('turn.complete', async ($, e, next) => {
     if (e.agentId) return next(e)
-    const s = await refreshUsage($)
+    const s = await refreshUsage($, autocompact)
     const at = await $.clock.now()
     const usd = s.usd ?? 0
     const u = e.usage
@@ -258,8 +290,12 @@ export const register: Register = (on, options) => {
   on('session.measure', async ($, e, next) => {
     const active: Record<string, string> = {}
     const pct = e.context.percent ?? 0
+    // Close: within 10% of Claude's own compaction point once the breakdown was read, else the fallback percent
+    const [at, known] = await Promise.all([read($, compactAt), read($, rows)])
+    const tokens = e.context.tokens
+    const isNear = known ? at !== null && tokens !== undefined && tokens >= at * 0.9 : pct >= autocompact
     if (pct >= 90) active.ctx90 = `Context at ${Math.round(pct)}%`
-    else if (pct >= autocompact) active.ctx75 = `Context at ${Math.round(pct)}%: compaction is close`
+    else if (isNear) active.ctx75 = `Context at ${Math.round(pct)}%: compaction is close`
     for (const l of e.rateLimits as Limit[]) {
       const name = l.kind === 'five_hour' ? '5h' : l.kind === 'seven_day' ? '7d' : l.kind
       if (l.percentUsed >= 95) active[`${name}95`] = `${name} limit ${Math.round(l.percentUsed)}% used`
@@ -284,11 +320,12 @@ export const register: Register = (on, options) => {
     if (!s) return next(e)
 
     const { Box, Text } = $.ui.resolve(e)
-    const [list, l, legend, hist] = await Promise.all([
+    const [list, l, legend, hist, at] = await Promise.all([
       read($, rows),
       read($, last),
       read($, isLegend),
       read($, history),
+      read($, compactAt),
     ])
     await read($, now)
     const wall = await $.clock.now()
@@ -299,12 +336,17 @@ export const register: Register = (on, options) => {
     const pct = Math.round(s.percent ?? 0)
     const shown = (list ?? []).filter(r => r.kind !== 'deferred')
     const total = shown.reduce((a, r) => a + r.tokens, 0)
-    const threshold = (total * autocompact) / 100
-    const left = list ? turnsLeft(hist, threshold) : null
+    // Claude's own compaction point when the breakdown was read (null: auto-compaction is off)
+    const threshold = list ? at : null
+    const left = threshold !== null ? turnsLeft(hist, threshold) : null
     const leftText =
       left === null ? '' : left === 0 ? 'compact due' : left < 3 ? `${left} turns left` : `~${left} turns left`
     const width = Math.max(10, cols - 3 - leftText.length - 6)
-    const markerAt = Math.floor((autocompact / 100) * width)
+    const markerAt = list
+      ? threshold !== null && total > 0
+        ? Math.floor((threshold / total) * width)
+        : -1
+      : Math.floor((autocompact / 100) * width)
     const cells = list
       ? barCells(list, width, markerAt)
       : barCells(
@@ -316,7 +358,9 @@ export const register: Register = (on, options) => {
           markerAt,
         )
     const items = list ? legendItems(list, total || 1, isTiny, isTiny ? 0.01 : 0.005) : []
-    if (list) items.push({ key: 'compact', swatch: '┃', color: '#cdd6f4', text: `compact ${fmt(Math.round(threshold))}` })
+    if (threshold !== null) {
+      items.push({ key: 'compact', swatch: '┃', color: '#cdd6f4', text: `compact ${fmt(Math.round(threshold))}` })
+    }
     const cacheLeft = l ? Math.round(ttl - (wall - l.endedAt) / 1000) : null
     const cache = cacheState(cacheLeft)
     // Each limit line is about 15 columns of text around its bar; the two bars share what is left, up to 40 cells
@@ -364,54 +408,54 @@ export const register: Register = (on, options) => {
 
     return (
       <Box flexDirection="column">
-      {below}
-      <Box flexDirection="column" marginTop={1}>
-        <Box flexDirection="row">
-          <Box width={3}><Text dimColor>◔</Text></Box>
-          <Box flexDirection="row" columnGap={2}>
-            <Box flexDirection="row">
-              {runs(cells).map((r, i) => (
-                <Text key={String(i)} color={r.color}>{r.text}</Text>
-              ))}
-            </Box>
-            {leftText !== '' && (
-              <Text color={left !== null && left < 3 ? RED : undefined} dimColor={left !== null && left >= 3}>
-                {leftText}
-              </Text>
-            )}
-          </Box>
-        </Box>
-        {legend && cols >= 80 && items.length > 0 && (
+        {below}
+        <Box flexDirection="column" marginTop={1}>
           <Box flexDirection="row">
-            <Box width={3}><Text> </Text></Box>
-            <Box flexDirection="row" flexWrap="wrap" columnGap={gap}>
-              {lane(
-                items.map(it => (
-                  <Text key={it.key}>
-                    <Text color={it.color}>{it.swatch}</Text> <Text dimColor>{it.text}</Text>
-                  </Text>
-                )),
+            <Box width={3}><Text dimColor>◔</Text></Box>
+            <Box flexDirection="row" columnGap={2}>
+              <Box flexDirection="row">
+                {runs(cells).map((r, i) => (
+                  <Text key={String(i)} color={r.color}>{r.text}</Text>
+                ))}
+              </Box>
+              {leftText !== '' && (
+                <Text color={left !== null && left < 3 ? RED : undefined} dimColor={left !== null && left >= 3}>
+                  {leftText}
+                </Text>
               )}
             </Box>
           </Box>
-        )}
-        <Box flexDirection="row" marginTop={blank}>
-          <Box width={3}><Text dimColor>⏱</Text></Box>
-          <Box flexDirection="row" columnGap={rowGap}>
-            {lane(
-              limitNodes.flatMap((n, i) => (i === 0 ? [n] : [<Text key={`d${i}`} dimColor>·</Text>, n])),
-            )}
-          </Box>
-        </Box>
-        {l && (
+          {legend && cols >= 80 && items.length > 0 && (
+            <Box flexDirection="row">
+              <Box width={3}><Text> </Text></Box>
+              <Box flexDirection="row" flexWrap="wrap" columnGap={gap}>
+                {lane(
+                  items.map(it => (
+                    <Text key={it.key}>
+                      <Text color={it.color}>{it.swatch}</Text> <Text dimColor>{it.text}</Text>
+                    </Text>
+                  )),
+                )}
+              </Box>
+            </Box>
+          )}
           <Box flexDirection="row" marginTop={blank}>
-            <Box width={3}><Text dimColor>↻</Text></Box>
+            <Box width={3}><Text dimColor>⏱</Text></Box>
             <Box flexDirection="row" columnGap={rowGap}>
-              {lane(turnNodes)}
+              {lane(
+                limitNodes.flatMap((n, i) => (i === 0 ? [n] : [<Text key={`d${i}`} dimColor>·</Text>, n])),
+              )}
             </Box>
           </Box>
-        )}
-      </Box>
+          {l && (
+            <Box flexDirection="row" marginTop={blank}>
+              <Box width={3}><Text dimColor>↻</Text></Box>
+              <Box flexDirection="row" columnGap={rowGap}>
+                {lane(turnNodes)}
+              </Box>
+            </Box>
+          )}
+        </Box>
       </Box>
     )
   })

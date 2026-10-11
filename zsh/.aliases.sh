@@ -343,11 +343,38 @@ alias brew-sync='$HOME/dotfiles/bin/sync-brewfile'
 alias brew-check='brew bundle check --file=$HOME/dotfiles/Brewfile'
 
 # Claude Code account switching
-alias ccp='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude'
+# ccp/ccpr/ccpc also load ~/.claude-personal/projects.d/<repo>.json through --settings when the
+# current git repo has one: per-project rules (autoMode, permissions) that must stay out of this
+# public repo. autoMode is only read from user, --settings and managed settings, never from a
+# project's own .claude/settings*.json. No file (or not in a repo): plain `claude`, as before.
+# <repo> is the main checkout's directory name, so a linked worktree (.claude/worktrees/x) uses
+# its repo's file; a bare repo `app.git` is `app`.
+unalias ccp ccpr ccpc 2>/dev/null
+_ccp_repo() {
+    local common
+    common=$(command git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || return 1
+    [[ -n $common ]] || return 1
+    if [[ ${common:t} == .git ]]; then
+        print -r -- "${common:h:t}"
+    else
+        print -r -- "${${common:t}%.git}"
+    fi
+}
+_ccp() {
+    local repo extra
+    repo=$(_ccp_repo)
+    [[ -n $repo ]] && extra="$HOME/.claude-personal/projects.d/$repo.json"
+    if [[ -n $extra && -f $extra ]]; then
+        GOOGLE_WORKSPACE_CLI_CONFIG_DIR= CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude --settings "$extra" "$@"
+    else
+        GOOGLE_WORKSPACE_CLI_CONFIG_DIR= CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude "$@"
+    fi
+}
+ccp() { _ccp "$@"; }
+ccpr() { _ccp --resume "$@"; }
+ccpc() { _ccp --continue "$@"; }
 alias cce='GOOGLE_WORKSPACE_CLI_CONFIG_DIR= CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" claude'
-alias ccpr='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude --resume'
 alias ccer='GOOGLE_WORKSPACE_CLI_CONFIG_DIR= CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" claude --resume'
-alias ccpc='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude --continue'
 alias ccec='GOOGLE_WORKSPACE_CLI_CONFIG_DIR= CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" claude --continue'
 
 # Keeping the machine awake is the `awake` function (.functions.d/05-system.zsh).

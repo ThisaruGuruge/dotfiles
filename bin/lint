@@ -71,6 +71,8 @@ BASH_FILES=(
     bin/profile-startup
     bin/reset-dotfiles
     bin/sync-brewfile
+    bin/claude-statusline
+    bin/claude-tmux-state
     bin/tmux-status-claude
     bin/dotdoctor
     claude/.claude-enterprise/statusline-command.sh
