@@ -34,8 +34,8 @@ confirm() {
     while true; do
         echo ""
         echo -en "  ${YELLOW}$1 (y/n/q): ${NC}"
-        read -rk1 -s key || return 2   # EOF/no input: bail out instead of looping forever
-        echo                # Print newline after keypress
+        read -rk1 -s key || return 2 # EOF/no input: bail out instead of looping forever
+        echo                         # Print newline after keypress
 
         case "$key" in
             [Yy])

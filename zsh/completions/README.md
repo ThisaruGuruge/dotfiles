@@ -8,6 +8,8 @@ This directory contains custom ZSH completion functions that provide description
 - The directory is stowed to `~/completions/` and added to `fpath` by
   `.zshrc.d/02-completion.zsh` (before `compinit` runs), so they load with the
   rest of the completion system
+- bestow links per file, not per directory: after adding a new `_file`, run
+  `bestow stow zsh` so it is linked into `~/completions/`
 - `compinit` caches its results in `~/.zcompdump*`; after adding a new `_file`,
   delete the dump once (`rm ~/.zcompdump*`) and open a new shell, or the new
   completion is not picked up until the dump is regenerated
