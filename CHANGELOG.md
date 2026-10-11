@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed the LSP navigation keys in Neovim to the built-in `grr` (references), `gri` (implementations) and a new `grt` (type definitions), each opening a Telescope picker. The custom `gr` and `gi` are gone: a bare `gr` made every `grr`/`gri`/`grn`/`gra` wait for `timeoutlen`, and `gi` shadowed the built-in "insert at last insert position". `grn`, `gra` and `gO` stay as shipped
 - Changed the yazi diff plugin from `<C-d>` to `=`, so `<C-d>` is the built-in half-page-down again (`<C-u>` / `<C-d>` now both scroll, as the docs said)
 - Rewrote the Neovim keybinding docs (`KEYBINDINGS.md`, `docs/nvim/keybindings_cheat_sheet.md`, `docs/nvim/ADDING_KEYBINDINGS.md`, `docs/YAZI_KEYBINDINGS.md`) to match the config: source columns cite files instead of drifted line numbers, the `<leader>en`, `<leader>ep`, `<leader>vg`, `<leader>fg` multi-grep syntax and F-key rows are listed, and `ADDING_KEYBINDINGS.md` gained a "check for clashes" checklist
+- Changed the latest-tool column of the `agents` mod to show a Bash call's own description (`Bash Read tmux sessionizer`) when the agent wrote one, falling back to the raw command, and to trim the text to the available width instead of a fixed 40 characters
 
 ### Removed
 
@@ -46,6 +47,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the Neovim dashboard `g` button, which called a `live_grep_args` Telescope extension that was never installed
 - Fixed which-key labelling `<leader>u` and `<leader>a` for keys that are really `<leader>tu` (undotree) and `<leader>ta` (outline), and added the missing `<leader>th` label
 - Fixed the Neovim and yazi docs listing keys that don't exist (`<leader>cw`, `<leader>xs`, `<S-CR>`, a duplicated `<leader>xt`, `{`/`}` for aerial)
+- Fixed the `agents` mod's `/agents` command never registering: `/agents` is Claude Code's own command, so the registration was refused and threw, which aborted the rest of the `session.start` hook and left the 1-second clock unstarted, so a running agent's elapsed time never ticked. The toggle is now `/agents-pane`, the clock starts first, and a refused registration is caught instead of aborting the hook
+- Fixed the `agents` pane hiding agents behind a "+N older" line: it now lists every agent (the last 100) and scrolls with the mouse wheel instead of capping at a row count. The band above the prompt keeps its cap of 6 and points at `/agents-pane` for the rest
 
 ## [2.7.0] - 2026-10-11
 

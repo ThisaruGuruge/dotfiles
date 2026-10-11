@@ -57,11 +57,15 @@ export const fillBar = (used: number, max: number, cells: number): string => {
   return '▰'.repeat(filled) + '▱'.repeat(cells - filled)
 }
 
-// A short, human target for a tool call: the file, the command, the pattern.
-export const targetOf = (input: Record<string, unknown>): string => {
+// A short, human target for a tool call: the file, the command, the pattern. A Bash call prefers the
+// description the agent wrote ("Read tmux sessionizer") over the raw command. Cut at 120; the layout trims it to fit.
+export const targetOf = (input: Record<string, unknown>, tool?: string): string => {
   const pick = (key: string) => (typeof input[key] === 'string' ? (input[key] as string) : undefined)
   const path = pick('file_path') ?? pick('notebook_path')
   if (path) return path.split('/').slice(-2).join('/')
-  const text = pick('command') ?? pick('pattern') ?? pick('url') ?? pick('query') ?? pick('description') ?? pick('path')
-  return text ? clip(text, 40) : ''
+  const text =
+    tool === 'Bash'
+      ? (pick('description') ?? pick('command'))
+      : (pick('command') ?? pick('pattern') ?? pick('url') ?? pick('query') ?? pick('description') ?? pick('path'))
+  return text ? clip(text, 120) : ''
 }

@@ -26,4 +26,7 @@ test('draws a fill bar and shortens targets', () => {
   expect(fillBar(500, 100, 4)).toBe('▰▰▰▰')
   expect(targetOf({ file_path: '/a/b/c.ts' })).toBe('b/c.ts')
   expect(targetOf({ command: 'echo   hi' })).toBe('echo hi')
+  expect(targetOf({ command: 'cat -n a/b', description: 'Read b' }, 'Bash')).toBe('Read b')
+  expect(targetOf({ command: 'cat -n a/b' }, 'Bash')).toBe('cat -n a/b')
+  expect(targetOf({ command: 'x', description: 'y' }, 'Grep')).toBe('x')
 })
