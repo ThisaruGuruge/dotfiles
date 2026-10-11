@@ -214,7 +214,7 @@ alias_search git                           # Search for aliases by keyword
 edit_secrets                               # Safely edit encrypted ~/.env via SOPS
 take my-service && code .                  # Smart project bootstrap / clone helper
 kill_by_port 3000                          # Kill whatever binds to port 3000
-dotdoctor                                  # Read-only health check: unlinked files, dangling links, secrets, mods (--full adds brew + plugin validation)
+dotdoctor                                  # Health check (changes nothing): unlinked files, dangling links, secrets, mods (--full adds brew + plugin validation)
 prs                                        # Browse PRs with fzf: enter=checkout, ctrl-o=browser, ctrl-d=diff via delta
 prw                                        # Watch the current PR's checks, then notify with the result
 envrc work|personal|status|off             # Pin the Claude Code + gws account for this directory via direnv
@@ -230,20 +230,30 @@ Up arrow                                   # Atuin prefix search (as you type)
 
 ### Per-project accounts (`envrc`)
 
-`envrc work` (enterprise) or `envrc personal` writes a `.envrc` in the current directory that pins `CLAUDE_CONFIG_DIR` and `GOOGLE_WORKSPACE_CLI_CONFIG_DIR` (plus the gws `file` keyring backend) and runs `direnv allow`, so plain `claude` and `gws` use the right account anywhere under it. The file is added to the repo's local exclude (`.git/info/exclude`), inherits parent pins through `source_up_if_exists`, and asks before overwriting an existing `.envrc`.
+`envrc work` (enterprise) or `envrc personal` writes a `.envrc` in the current directory that pins `CLAUDE_CONFIG_DIR` and `GOOGLE_WORKSPACE_CLI_CONFIG_DIR` (plus the gws `file` keyring backend), creates the account's gws directory with mode 700, runs `direnv allow` and applies the pin to the current shell straight away. Plain `claude` and `gws` then use the right account anywhere under that directory, including subdirectories and new shells or tmux panes opened inside the tree (direnv stays lazy-loaded: it is only loaded once a `.envrc` exists in the current directory or any parent). The file is added to the repo's local exclude (`info/exclude`, also from a linked worktree; `envrc` confirms with `git check-ignore`) and inherits parent pins through `source_up_if_exists`.
 
 - `envrc status` shows which pin applies (and whether it is inherited from a parent directory)
 - `envrc off` removes a pin written by `envrc` (it never touches a `.envrc` it did not write)
-- **`ccp`/`cce`/`ccpr`/`ccer`/`ccpc`/`ccec` and `gwsp`/`gwse` always override the pin**: they set the variables inline for the one command they run, so typing them explicitly beats whatever the directory says
-- Inside a pinned directory a bare `gws` is accepted by the `bin/gws` guard, because the pin supplies the account context; outside one it stays blocked
-- Plain `claude` outside any pinned directory uses `~/.claude`, which should be a symlink to `~/.claude-personal` (`dotdoctor` checks this: `ln -s ~/.claude-personal ~/.claude`)
+- Replacing an existing `.envrc` (not written by `envrc`, or edited by hand since) asks first and keeps a copy as `.envrc.bak`; a symlinked `.envrc` is refused rather than written through
+
+**What overrides what**
+
+| Command | `CLAUDE_CONFIG_DIR` | `GOOGLE_WORKSPACE_CLI_CONFIG_DIR` |
+| --- | --- | --- |
+| plain `claude` in a pinned tree | pinned account | pinned account (inherited) |
+| `ccp`/`ccpr`/`ccpc`, `cce`/`ccer`/`ccec` | the account you typed | blanked for that `claude`, so a pin never leaks the other account's gws into it |
+| `gwsp`/`gwse` | unchanged | the account you typed |
+| bare `gws` in a pinned tree | unchanged | pinned account: **the `bin/gws` guard lets it through** because the pin supplies the account context |
+| bare `gws` anywhere else | unchanged | blocked (exit 64) |
+
+Inside a pinned tree a bare `gws` therefore acts on the pinned account instead of being refused; that is the point of the pin. Plain `claude` outside any pinned directory uses `~/.claude`, which should be a symlink to `~/.claude-personal` (`dotdoctor` checks this: `ln -s ~/.claude-personal ~/.claude`).
 
 ### GitHub PR helpers (`prs`, `prw`)
 
 - `prs [gh pr list flags]` – fzf over the repo's PRs with a `gh pr view` preview. `enter` checks the PR out, `ctrl-o` opens it in the browser, `ctrl-d` shows the full diff through delta. Example: `prs --author @me`
 - `prw [pr]` – `gh pr checks --watch` for the current branch's PR (or the given number/URL), then a macOS notification with the result; the exit status mirrors `gh pr checks`
 
-Both need `gh`; `prs` also needs `fzf`.
+Both need `gh` and `jq`; `prs` also needs `fzf`. PR titles are untrusted text: control characters (including ESC) are replaced with spaces before they are shown, and `prw` prints titles verbatim (no backslash interpretation). `prw` says whether the checks failed, were cancelled or are still pending, or that gh reported no result (no checks, or gh could not be reached), instead of calling every non-zero exit "failed".
 
 ## Suffix Aliases
 
@@ -346,7 +356,8 @@ The Catppuccin Mocha palette used by the prompt matches the tmux status bar exac
 ## Validation, Performance & Troubleshooting
 
 - `test-zsh` – Runs syntax checks, ensures required tools exist, inspects PATH/env vars, and prints a summary with pass/warn/fail counts
-- `dotdoctor` (`bin/dotdoctor`) – Read-only drift check (✔/⚠/✘, non-zero exit on ✘): files that are not symlinked, dangling links, bestow config, `~/.claude` link, age key and `~/.env` encryption, Claude mod directories, ControlEscape.spoon, tmux plugins, the `gws` guard. `dotdoctor --full` also runs `brew bundle check` and `claude plugin validate`
+- `dotdoctor` (`bin/dotdoctor`) – Drift check that never stows, fixes or deletes anything (✔/⚠/✘, non-zero exit on ✘): files that are not symlinked, dangling links, bestow config, `~/.claude` link, age key and `~/.env` encryption, Claude mod directories, ControlEscape.spoon, tmux plugins, the `gws` guard. `dotdoctor --full` also runs `brew bundle check` (auto-update off) and `claude plugin validate` (throwaway config dir)
+- `bin/test-shell-helpers` – Behavioural tests for `dotdoctor`, `envrc`, `git_ignore_local`, `prs`/`prw` and the lazy direnv hook, run in a scratch `HOME` with fake `gh`/`fzf`/`claude`; `test-zsh` runs it
 - `./bin/profile-zsh-startup` – Detailed profiler that times individual components (Homebrew shellenv, zinit plugins, SDKMAN, pyenv, compinit, sourcing files)
 - `zsh -n ~/.zshrc` – Quick syntax validation if you edit the config
 - `zsh -n ~/.p10k.zsh` – Validate prompt config syntax without sourcing it

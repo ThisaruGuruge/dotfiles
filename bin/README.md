@@ -85,25 +85,28 @@ gwsp auth status && gwse auth status
 Credentials live only in those directories, never in this repo. Make sure each `client_secret.json` has a `project_id`, otherwise gws can fall back to gcloud's ADC quota project and leak across accounts.
 
 ### `dotdoctor [--full]`
-Read-only health check for the whole setup. Prints one line per check (`✔` ok, `⚠` worth a look, `✘` broken) and exits non-zero when anything is `✘`. It changes nothing; each problem comes with the command that fixes it.
+Health check for the whole setup. Prints one line per check (`✔` ok, `⚠` worth a look, `✘` broken) and exits non-zero when anything is `✘`. It never stows, fixes, edits or deletes anything and makes no network calls of its own; each problem comes with the command that fixes it.
 
 **Usage:**
 ```bash
 dotdoctor           # fast checks (a second or two)
-dotdoctor --full    # also: brew bundle check + claude plugin validate on every mod
+dotdoctor --full    # also: brew bundle check (auto-update/analytics off) + claude plugin validate
+                    # on every mod, run with a throwaway CLAUDE_CONFIG_DIR
 ```
 
 **Checks:**
-- Every non-ignored file of every bestow package is linked (`bestow stow -n`, so `.bestowignore` rules and bestow's per-file linking are honoured; `bin` is checked against `~/bin`). Missing links are `✘`, destinations blocked by another file or link are `⚠`
-- Dangling symlinks into the repo (in `~`, `~/bin`, `~/.config`, `~/.claude-*`, `~/.hammerspoon`, `~/.local/bin`)
+- Every non-ignored file of every bestow package is linked (`bestow stow -n`, run once per package so one package bestow cannot plan does not hide the others; `.bestowignore` rules and bestow's per-file linking are honoured; `bin` is checked against `~/bin`). Missing links and destinations blocked by another file or link are `✘` (the config is not active either way); a package bestow cannot plan is `✘` by name
+- Dangling symlinks into the repo (in `~`, `~/bin`, `~/.config`, `~/.claude-*`, `~/.hammerspoon`, `~/.local/bin`). "Into the repo" means under the checked repo, its main checkout, or `~/dotfiles`/`~/.dotfiles`; links into other projects are ignored
 - `~/.config/bestow/config.yaml` matches the repo copy
 - `~/.claude` is a symlink to `~/.claude-personal`, and `~/.claude-personal/settings.local.json` links to the repo's `.claude/settings.local.json`
-- `CLAUDE_CODE_PLUGIN_DIRS` in both account `settings.json` files lists every `claude-mods/*/` plugin and every listed directory exists (`✘` on mismatch)
-- age key present, `~/.env` sops-encrypted, no `zsh/.env` in the repo, no plaintext `~/.env.backup*`
+- `CLAUDE_CODE_PLUGIN_DIRS` in both account `settings.json` files lists every `claude-mods/*/` plugin, every listed directory exists and lives inside the repo (a same-named plugin from elsewhere does not count) (`✘` on mismatch)
+- age key present, `~/.env` sops-encrypted, no plaintext `zsh/.env` in the repo (`✘` even when git-ignored: it still sits on disk next to the code; a sops-encrypted copy is only a `⚠`), no plaintext `~/.env.backup*`
 - `ControlEscape.spoon` cloned, tmux plugin manager and declared tmux plugins installed
 - Bare `gws` is blocked: `gws` on `PATH` must be the `bin/gws` guard, and the guard exits 64 without an account (the real binary is never run)
 
-It is a script in `bin/`, so it works from any shell. `DOTFILES=<dir>` points it at a different checkout.
+It is a script in `bin/`, so it works from any shell. It checks the repo the script lives in (symlinks are followed, so the installed `~/bin/dotdoctor` checks the live repo) against the links in `$HOME`; `DOTFILES=<dir>` points it at a different checkout. Run from a linked git worktree it warns up front, because links that point at the main checkout then look unlinked.
+
+`bin/test-shell-helpers` exercises it (exit codes, hard errors, worktrees, `--full`) together with `envrc`, `prs`/`prw` and the direnv hook, using a scratch `HOME` and fake `gh`/`fzf`/`claude`/`brew`; `test-zsh` runs it.
 
 ### `sync-brewfile`
 Update your Brewfile with all currently installed Homebrew packages.
