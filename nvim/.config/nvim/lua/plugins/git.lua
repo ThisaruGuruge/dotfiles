@@ -108,4 +108,47 @@ return {
       { "<leader>gg", "<cmd>LazyGit<cr>", desc = "LazyGit" },
     },
   },
+
+  -- Diffview: review a whole branch or a file's history in a tabpage UI.
+  -- Gitsigns covers hunks in the buffer you are in; this is for "what does
+  -- this branch change" and "how did this file get here".
+  {
+    "sindrets/diffview.nvim",
+    cmd = {
+      "DiffviewOpen",
+      "DiffviewClose",
+      "DiffviewToggleFiles",
+      "DiffviewFocusFiles",
+      "DiffviewRefresh",
+      "DiffviewFileHistory",
+    },
+    keys = {
+      {
+        "<leader>gv",
+        function()
+          -- Three dots = diff against the merge base, i.e. only what this
+          -- branch added, not whatever the default branch gained since.
+          local ref = vim.fn.systemlist("git symbolic-ref --quiet --short refs/remotes/origin/HEAD")[1]
+          if vim.v.shell_error ~= 0 or not ref or ref == "" then
+            ref = "origin/main"
+          end
+          vim.cmd("DiffviewOpen " .. ref .. "...HEAD")
+        end,
+        desc = "Diffview: branch vs default branch",
+      },
+      { "<leader>gh", "<cmd>DiffviewFileHistory %<cr>", desc = "Diffview: file history" },
+      { "<leader>gH", "<cmd>DiffviewFileHistory<cr>", desc = "Diffview: repo history" },
+    },
+    opts = function()
+      local close = { "n", "q", "<cmd>DiffviewClose<cr>", { desc = "Close Diffview" } }
+      return {
+        enhanced_diff_hl = true,
+        keymaps = {
+          view = { close },
+          file_panel = { close },
+          file_history_panel = { close },
+        },
+      }
+    end,
+  },
 }

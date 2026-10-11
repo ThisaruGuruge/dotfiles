@@ -22,6 +22,11 @@ M.setup = function(dap)
     end
   end
 
+  -- neotest-python (plugins/neotest.lua) launches <leader>Td sessions with
+  -- `type = "python"`, which is the name nvim-dap-python registers. Alias it to
+  -- the debugpy adapter above so there is one debugpy setup, not two.
+  dap.adapters.python = dap.adapters.debugpy
+
   dap.configurations.python = {
     {
       type = "debugpy",
