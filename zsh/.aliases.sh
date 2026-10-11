@@ -343,11 +343,26 @@ alias brew-sync='$HOME/dotfiles/bin/sync-brewfile'
 alias brew-check='brew bundle check --file=$HOME/dotfiles/Brewfile'
 
 # Claude Code account switching
-alias ccp='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude'
+# ccp/ccpr/ccpc also load ~/.claude-personal/projects.d/<repo>.json through --settings when the
+# current git repo has one: per-project rules (autoMode, permissions) that must stay out of this
+# public repo. autoMode is only read from user, --settings and managed settings, never from a
+# project's own .claude/settings*.json. No file (or not in a repo): plain `claude`, as before.
+unalias ccp ccpr ccpc 2>/dev/null
+_ccp() {
+    local root extra
+    root=$(command git rev-parse --show-toplevel 2>/dev/null)
+    [[ -n $root ]] && extra="$HOME/.claude-personal/projects.d/${root##*/}.json"
+    if [[ -n $extra && -f $extra ]]; then
+        GOOGLE_WORKSPACE_CLI_CONFIG_DIR= CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude --settings "$extra" "$@"
+    else
+        GOOGLE_WORKSPACE_CLI_CONFIG_DIR= CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude "$@"
+    fi
+}
+ccp() { _ccp "$@"; }
+ccpr() { _ccp --resume "$@"; }
+ccpc() { _ccp --continue "$@"; }
 alias cce='GOOGLE_WORKSPACE_CLI_CONFIG_DIR= CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" claude'
-alias ccpr='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude --resume'
 alias ccer='GOOGLE_WORKSPACE_CLI_CONFIG_DIR= CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" claude --resume'
-alias ccpc='CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude --continue'
 alias ccec='GOOGLE_WORKSPACE_CLI_CONFIG_DIR= CLAUDE_CONFIG_DIR="$HOME/.claude-enterprise" claude --continue'
 
 # Keeping the machine awake is the `awake` function (.functions.d/05-system.zsh).
