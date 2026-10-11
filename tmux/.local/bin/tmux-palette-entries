@@ -25,7 +25,7 @@ Sessions | prefix + Ctrl+r | Restore saved sessions (tmux-resurrect)           |
 
 # --- Claude ---
 # Windows where Claude Code waits for you are red in the status bar and listed on its right
-Claude | prefix + A     | Jump to the next window waiting on Claude Code       | run-shell "~/.local/bin/tmux-claude-next"
+Claude | prefix + A     | Jump to the next window waiting on Claude Code       | run-shell 'f=~/.local/bin/tmux-claude-next; if [ -x "$f" ]; then "$f"; else tmux display-message "tmux-claude-next not found: run bestow stow tmux"; fi'
 
 # --- Windows ---
 # Create, navigate, and manage tmux windows (tabs)
@@ -46,8 +46,8 @@ Panes | prefix + z     | Toggle pane zoom (fullscreen)                         |
 Panes | prefix + Enter | Break pane into its own window                        | break-pane
 Panes | prefix + >     | Swap pane down                                        | swap-pane -D
 Panes | prefix + <     | Swap pane up                                          | swap-pane -U
-Panes | prefix + m     | Mark pane (then prefix + J to join it here)           | select-pane -m
-Panes | prefix + J     | Join the marked pane to this window (tmux-sessionist) | noop
+Panes | prefix + m     | Mark pane (then prefix + J and a second key to join it)  | select-pane -m
+Panes | prefix + J     | Join marked pane, then h/%/{pipe} beside, v/-/" below, f/@ own window | noop
 
 # --- Pane Navigation ---
 # Move between panes (smart: works with NeoVim splits)
@@ -105,4 +105,4 @@ Ghostty | Cmd+Shift+l   | Pane right                                            
 Ghostty | Cmd+Left/Right | Start / end of line (Home / End)                     | noop
 Ghostty | Option+Left/Right | Back / forward one word (zsh)                     | noop
 Ghostty | Cmd+Backspace | Delete to start of line (zsh)                          | noop
-Ghostty | Cmd+Delete    | Delete to end of line (zsh, sent as Alt+k)            | noop
+Ghostty | Cmd+Delete    | Delete to end of line (sent as Alt+k; tmux turns it into Ctrl+k outside nvim/fzf) | noop
