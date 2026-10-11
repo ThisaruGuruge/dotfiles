@@ -1,0 +1,47 @@
+#!/bin/sh
+# Marks the tmux window a Claude Code session runs in with its state, for the tmux status bar.
+#
+# Usage: claude-tmux-state working|waiting|done|clear|resume
+#
+# Called from Claude Code hooks in both accounts' settings.json:
+#   UserPromptSubmit -> working, Notification -> waiting, Stop and StopFailure -> done,
+#   PostToolUse -> resume (working again, but only if it was waiting: a permission prompt was
+#   answered), SessionEnd -> clear
+# Sets the window option @claude_state on the window holding $TMUX_PANE (clear unsets it), then
+# refreshes the status line. Outside tmux, without tmux installed or with any other argument it
+# does nothing. A `claude` started from inside another session (a `claude -p` run by the Bash
+# tool) inherits TMUX_PANE, but the window belongs to the outer session, so when the hook has two
+# `claude` processes above it it does nothing. It never prints and always exits 0, so it can never
+# block or fail a hook (a UserPromptSubmit hook's stdout would otherwise be added to the prompt).
+
+state=${1:-}
+
+# Hooks pass their event JSON on stdin; read it so Claude Code never writes into a closed pipe
+[ -t 0 ] || cat >/dev/null 2>&1
+
+case "$state" in
+    working | waiting | done | clear | resume) ;;
+    *) exit 0 ;;
+esac
+[ -n "${TMUX:-}" ] && [ -n "${TMUX_PANE:-}" ] || exit 0
+command -v tmux >/dev/null 2>&1 || exit 0
+
+if [ "$state" = resume ]; then
+    # Runs after every tool call: one tmux query, nothing else unless the window is waiting
+    [ "$(tmux show-options -wqv -t "$TMUX_PANE" @claude_state 2>/dev/null)" = waiting ] || exit 0
+    state=working
+fi
+
+# How many `claude` processes are above this one (one ps call, walked in awk)
+claudes=$(ps -A -o pid= -o ppid= -o comm= 2>/dev/null | awk -v p="$PPID" '
+    { up[$1] = $2; name = $0; sub(/^ *[0-9]+ +[0-9]+ +/, "", name); sub(/.*\//, "", name); comm[$1] = name }
+    END { n = 0; for (i = 0; i < 64 && p > 1; i++) { if (comm[p] == "claude") n++; p = up[p] } print n }')
+[ "${claudes:-0}" -ge 2 ] && exit 0
+
+if [ "$state" = clear ]; then
+    tmux set-option -wqu -t "$TMUX_PANE" @claude_state >/dev/null 2>&1
+else
+    tmux set-option -wq -t "$TMUX_PANE" @claude_state "$state" >/dev/null 2>&1
+fi
+tmux refresh-client -S >/dev/null 2>&1
+exit 0
