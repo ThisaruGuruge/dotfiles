@@ -3,48 +3,222 @@
 # Dotfiles Management Functions
 # ============================================================================
 # Dotfiles utilities: edit_secrets(), edit_dotfiles(), update_dotfiles(), adopt-config()
+# Secrets helpers: _dotfiles_is_sops_encrypted(), _dotfiles_env_parse() and
+# _dotfiles_load_env(). The IDE fast path in .zshrc sources this file on its
+# own (no aliases loaded), and in normal shells aliases are already defined
+# when it's sourced — so every external command here goes through `command`.
 
-# Edit secrets in .env file (handles both encrypted and plaintext)
-edit_secrets() {
+# ----------------------------------------------------------------------------
+# Secrets (~/.env) helpers
+# ----------------------------------------------------------------------------
+
+# True when $1 is a sops-encrypted dotenv file. sops encrypts each value on its
+# own (KEY=ENC[...]) and always writes a sops_mac= line, so the first line of
+# an encrypted file can be anything — don't test for a leading #ENC[.
+_dotfiles_is_sops_encrypted() {
+    [[ -f $1 ]] && command grep -q -e '^sops_mac=' -- "$1" 2>/dev/null
+}
+
+# Export variables from dotenv text on stdin without sourcing or eval'ing it.
+# Accepted lines are `[export ]NAME=VALUE` (blank lines and # comments are
+# skipped) where VALUE is one of:
+#   'single quoted'   taken literally (anything except a single quote)
+#   "double quoted"   shell rules for \\ \" \$ \` and $NAME / ${NAME};
+#                     nothing else expands, and bare backticks, $(...) and
+#                     other ${...} forms are refused
+#   unquoted          no whitespace, quotes or shell metacharacters
+# optionally followed by a # comment. Names zsh treats specially (PATH, IFS,
+# PS1, HOME, ...), prompts, hook arrays and loader variables are refused too.
+# Refused entries are reported by name only, never by value.
+_dotfiles_env_parse() {
+    emulate -L zsh
+    setopt extendedglob
+    zmodload zsh/parameter 2>/dev/null
+    local line name value rest unescaped
+    local -i malformed=0
+    local -a refused
+    local re_assign='^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$'
+    local re_single="^'([^']*)'[[:space:]]*(#.*)?\$"
+    local re_double='^"((\\.|[^"\\`])*)"[[:space:]]*(#.*)?$'
+    local re_token='(\\(.)|\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*))'
+    local re_plain='^([^[:space:]'"'"'"\\`$;&|<>(){}]*)[[:space:]]*(#.*)?$'
+
+    while IFS= read -r line || [[ -n $line ]]; do
+        [[ $line == [[:space:]]#(\#*|) ]] && continue
+        if [[ ! $line =~ $re_assign ]]; then
+            (( malformed++ ))
+            continue
+        fi
+        name=$match[2]
+        value=$match[3]
+
+        if [[ $name == (PS[1-4]|PROMPT[2-4]#|RPROMPT[2]#|RPS[12]|ZDOTDIR|ENV|BASH_ENV|LD_*|DYLD_*|*_functions) ]] ||
+            [[ -n ${parameters[$name]} && ${parameters[$name]} != scalar(|-export) ]]; then
+            refused+=($name)
+            continue
+        fi
+
+        if [[ $value =~ $re_single ]]; then
+            value=$match[1]
+        elif [[ $value =~ $re_double ]]; then
+            rest=$match[1]
+            # Escaped characters are literal, so check what's left without them
+            unescaped=${rest//\\?/}
+            if [[ $unescaped == *'$('* || ${unescaped//\$\{[A-Za-z_][A-Za-z0-9_]#\}/} == *'${'* ]]; then
+                refused+=($name)
+                continue
+            fi
+            # Single left-to-right pass with shell double-quote rules: \\ \" \$
+            # \` drop the backslash, any other \x stays as is, and $NAME /
+            # ${NAME} become their value (which is never scanned again)
+            value=""
+            while [[ $rest =~ $re_token ]]; do
+                value+=${rest[1,MBEGIN-1]}
+                if [[ -n $match[2] ]]; then
+                    if [[ $match[2] == [\\\"\$\`] ]]; then
+                        value+=$match[2]
+                    else
+                        value+="\\$match[2]"
+                    fi
+                else
+                    value+=${(P)${match[3]:-$match[4]}}
+                fi
+                rest=${rest[MEND+1,-1]}
+            done
+            value+=$rest
+        elif [[ $value =~ $re_plain ]]; then
+            value=$match[1]
+        else
+            refused+=($name)
+            continue
+        fi
+        typeset -gx "$name=$value"
+    done
+
+    (( malformed )) && print -u2 "dotfiles: ignored $malformed malformed line(s) in ~/.env"
+    (( $#refused )) && print -u2 "dotfiles: refused ~/.env entries (unsupported value or reserved name): ${(j:, :)refused}"
+    return 0
+}
+
+# Load ~/.env into the environment. A sops-encrypted file is decrypted once and
+# the plaintext cached in ~/.cache/zsh/env_cache (file 0600, directory 0700)
+# until ~/.env changes; a plaintext ~/.env is read directly. Cache hits and
+# misses both go through _dotfiles_env_parse, so neither file is ever executed.
+_dotfiles_load_env() {
+    emulate -L zsh
     local env_file="$HOME/.env"
-    local temp_file
-    temp_file="$(mktemp -t temp_env).env"
+    local cache_dir="$HOME/.cache/zsh"
+    local cache_file="$cache_dir/env_cache"
+    local decrypted
+    [[ -f $env_file ]] || return 0
 
-    # Set SOPS environment variable
-    export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+    # Cache hit: a regular file (not a symlink) we own, newer than ~/.env
+    if [[ -f $cache_file && ! -L $cache_file && -O $cache_file && $cache_file -nt $env_file ]]; then
+        _dotfiles_env_parse <"$cache_file"
+        return 0
+    fi
+
+    if ! _dotfiles_is_sops_encrypted "$env_file"; then
+        # Plaintext ~/.env: read it as-is, and drop a cache left over from an
+        # older encrypted version
+        [[ -e $cache_file || -L $cache_file ]] && command rm -f -- "$cache_file"
+        _dotfiles_env_parse <"$env_file"
+        return 0
+    fi
+
+    if (( ! $+commands[sops] )); then
+        print -u2 "Warning: SOPS not available - cannot decrypt $env_file"
+        return 1
+    fi
+    if ! decrypted=$(SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}" command sops -d "$env_file" 2>/dev/null); then
+        print -u2 "Warning: Failed to decrypt $env_file - check your SOPS/age configuration"
+        return 1
+    fi
+
+    # Write the cache under a private umask (no readable window) and rename it
+    # into place, so a half-written cache is never picked up
+    (
+        umask 077
+        tmp=""
+        command mkdir -p -- "$cache_dir" && command chmod 700 "$cache_dir" &&
+            tmp=$(command mktemp "$cache_dir/env_cache.XXXXXX") &&
+            print -r -- "$decrypted" >|"$tmp" &&
+            command mv -f -- "$tmp" "$cache_file" ||
+            { [[ -n $tmp ]] && command rm -f -- "$tmp"; }
+    )
+
+    # zsh runs the last pipeline stage in this shell, so the exports stick
+    print -r -- "$decrypted" | _dotfiles_env_parse
+}
+
+# Edit ~/.env with sops encryption. The plaintext only exists inside a private
+# (0700) temp directory that is removed when the function exits or is
+# interrupted; vim/nvim run without swap, undo, backup or shada copies; and the
+# new ciphertext has to decrypt back to what you saved before it replaces
+# ~/.env. The previous encrypted file is kept as ~/.env.backup.<timestamp>
+# (newest 3 kept).
+edit_secrets() {
+    emulate -L zsh
+    setopt localtraps extendedglob
+    local env_file="$HOME/.env"
+    local sops_config="$HOME/.sops.yaml"
+    local key_file="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
+    local old_umask tmp_dir plain_file enc_file before_hash after_hash
+    local -a editor backups
 
     # Check if SOPS is available
-    if ! command -v sops >/dev/null 2>&1; then
+    if (( ! $+commands[sops] )); then
         echo "❌ SOPS is not installed. Install it with: brew install sops"
         return 1
     fi
 
     # Check if age key exists
-    if [ ! -f "$HOME/.config/sops/age/keys.txt" ]; then
-        echo "❌ Age encryption key not found. Run ./init.sh to set up secret management first."
+    if [[ ! -f $key_file ]]; then
+        echo "❌ Age encryption key not found at $key_file. Run ./init.sh to set up secret management first."
         return 1
     fi
 
+    # The sops config names the age recipient; it's per machine (not tracked)
+    if [[ ! -f $sops_config ]]; then
+        echo "❌ $sops_config is missing (or a dangling symlink). Run ./init.sh to write this machine's sops config."
+        return 1
+    fi
+    export SOPS_AGE_KEY_FILE="$key_file"
+
+    old_umask=$(umask)
+    umask 077
+    if ! tmp_dir=$(command mktemp -d "${TMPDIR:-/tmp}/edit_secrets.XXXXXX"); then
+        umask "$old_umask"
+        echo "❌ Could not create a private temp directory"
+        return 1
+    fi
+    # A function's EXIT trap runs after its locals are gone, so bake the
+    # values into the trap text
+    trap "umask ${(q)old_umask}; command rm -rf -- ${(q)tmp_dir}" EXIT
+    trap 'return 130' INT TERM HUP
+
+    # Names must end in .env: the sops creation_rule matches \.env$, and the
+    # extension tells sops to use the dotenv format
+    plain_file="$tmp_dir/secrets.env"
+    enc_file="$tmp_dir/secrets.enc.env"
+
     # Handle existing .env file
-    if [ -f "$env_file" ]; then
-        # Check if encrypted
-        if head -1 "$env_file" | grep -q "^#ENC\\["; then
+    if [[ -f $env_file ]]; then
+        if _dotfiles_is_sops_encrypted "$env_file"; then
             echo "🔓 Decrypting .env file for editing..."
-            if sops -d "$env_file" >"$temp_file"; then
-                echo "✅ File decrypted successfully"
-            else
-                echo "❌ Failed to decrypt .env file"
-                rm "$temp_file"
+            if ! command sops -d "$env_file" >"$plain_file"; then
+                echo "❌ Failed to decrypt $env_file (is it encrypted to this machine's age key?)"
                 return 1
             fi
+            echo "✅ File decrypted successfully"
         else
-            echo "📄 Loading plaintext .env file for editing..."
-            cp "$env_file" "$temp_file"
+            echo "📄 Loading plaintext .env file for editing (it will be encrypted on save)..."
+            command cp -- "$env_file" "$plain_file" || return 1
         fi
     else
         # Create new template
         echo "📝 Creating new .env file template..."
-        cat >"$temp_file" <<'EOF'
+        command cat >"$plain_file" <<'EOF'
 # Environment Variables
 # Format: export KEY="value"
 # This file will be encrypted after editing
@@ -58,47 +232,64 @@ export AWS_SECRET_ACCESS_KEY="your_aws_secret_key"
 EOF
     fi
 
-    # Create backup of original
-    [ -f "$env_file" ] && cp "$env_file" "$env_file.backup.$(date +%Y%m%d_%H%M%S)"
+    before_hash=$(command shasum -a 256 <"$plain_file")
 
-    # Get file hash before editing
-    local before_hash
-    before_hash=$(shasum -a 256 "$temp_file" | cut -d' ' -f1)
-
-    # Open in editor
+    # vim/nvim: no swap file, no undo file, no backup and no shada/viminfo
+    # (registers) copies of the plaintext. --cmd applies before the user's
+    # config and -c after it, since the config may turn undofile back on.
+    editor=(${(z)${EDITOR:-vim}})
+    editor=("${(Q)editor[@]}")
+    if [[ ${editor[1]:t} == (nvim|vim|vi) ]]; then
+        local safe_opts='set noundofile noswapfile nobackup nowritebackup'
+        editor+=(-n -i NONE --cmd "$safe_opts" -c "$safe_opts")
+    fi
     echo "🖊️  Opening editor..."
-    ${EDITOR:-vim} "$temp_file"
+    "${editor[@]}" "$plain_file"
 
-    # Get file hash after editing
-    local after_hash
-    after_hash=$(shasum -a 256 "$temp_file" | cut -d' ' -f1)
-
-    # Check if file was modified
-    if [ "$before_hash" = "$after_hash" ]; then
+    after_hash=$(command shasum -a 256 <"$plain_file")
+    if [[ $before_hash == "$after_hash" ]]; then
         echo "📝 No changes made, skipping encryption"
-        rm "$temp_file"
         return 0
     fi
 
-    # Encrypt and save to .env
-    echo "🔒 Encrypting and saving to .env..."
-    if sops --config "$HOME/.sops.yaml" --encrypt --in-place "$temp_file"; then
-        mv "$temp_file" "$env_file"
-        # Verify encryption worked
-        if head -1 "$env_file" | grep -q "^#ENC\\["; then
-            echo "✅ Secrets encrypted and saved to $env_file"
-            echo "💡 Restart your terminal or run 'source ~/.zshrc' to load updated secrets"
-        else
-            echo "❌ Encryption failed - file may be corrupted"
-            return 1
-        fi
-    else
-        echo "❌ Failed to encrypt .env file"
-        rm "$temp_file"
+    echo "🔒 Encrypting..."
+    if ! command sops --config "$sops_config" --encrypt "$plain_file" >"$enc_file"; then
+        echo "❌ Failed to encrypt (does $sops_config list this machine's age key?). $env_file was not changed."
         return 1
     fi
 
-    echo "🎉 Edit complete! Your encrypted secrets are saved in $env_file"
+    # Round trip: the result must be sops-encrypted and decrypt with this
+    # machine's key back to what was saved (sops drops blank lines, so compare
+    # without them)
+    if ! _dotfiles_is_sops_encrypted "$enc_file" ||
+        ! command sops -d "$enc_file" 2>/dev/null | command awk 'NF' | command cmp -s - <(command awk 'NF' "$plain_file"); then
+        echo "❌ The encrypted file didn't decrypt back to your edits. $env_file was not changed."
+        return 1
+    fi
+
+    # Keep the previous version. Only ciphertext is ever backed up — a
+    # plaintext ~/.env being encrypted for the first time is not copied.
+    if _dotfiles_is_sops_encrypted "$env_file"; then
+        if ! command cp -- "$env_file" "$env_file.backup.$(command date +%Y%m%d_%H%M%S)"; then
+            echo "❌ Could not back up $env_file, so it was not replaced"
+            return 1
+        fi
+    fi
+
+    if ! command mv -f -- "$enc_file" "$env_file"; then
+        echo "❌ Could not replace $env_file; it was not changed"
+        return 1
+    fi
+
+    # Keep the newest 3 backups (names sort by timestamp)
+    backups=("$env_file".backup.[0-9]##_[0-9]##(N.On))
+    (( $#backups > 3 )) && command rm -f -- "${(@)backups[4,-1]}"
+
+    # Force the next shell to decrypt the new file instead of using the cache
+    command rm -f -- "$HOME/.cache/zsh/env_cache"
+
+    echo "✅ Secrets encrypted and saved to $env_file"
+    echo "💡 Restart your terminal or run 'source ~/.zshrc' to load updated secrets"
 }
 
 # Edit dotfiles configuration with easy access to all config files

@@ -16,62 +16,11 @@ source "$HOME/.paths.sh"
 # Configure SOPS age key location
 export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 
-# Load environment variables with caching (supports both encrypted and plaintext .env)
-if [ -f "$HOME/.env" ]; then
-    env_cache_file="$HOME/.cache/zsh/env_cache"
-    env_file="$HOME/.env"
-
-    # Create cache directory if it doesn't exist
-    [ ! -d "$HOME/.cache/zsh" ] && mkdir -p "$HOME/.cache/zsh"
-
-    # Check if cache is valid (newer than .env file)
-    if [ -f "$env_cache_file" ] && [ "$env_cache_file" -nt "$env_file" ]; then
-        # Use cached version
-        source "$env_cache_file" 2>/dev/null
-    else
-        # Check if file is encrypted (starts with #ENC)
-        if head -1 "$env_file" | grep -q "^#ENC\["; then
-            # Encrypted - decrypt and cache
-            if (( $+commands[sops] )); then
-                if sops_output=$(sops -d "$env_file" 2>/dev/null); then
-                    echo "$sops_output" >"$env_cache_file"
-                    chmod 600 "$env_cache_file"
-                    # Safely source only lines matching export KEY="VALUE" or KEY='VALUE' pattern
-                    # This validates the export statement structure to prevent code injection
-                    # Pattern explanation:
-                    # - ^export[[:space:]]+     : Must start with 'export' and whitespace
-                    # - [A-Za-z_][A-Za-z0-9_]*  : Valid variable name (alphanumeric + underscore)
-                    # - =                       : Assignment operator
-                    # - Value must not contain: $( ) ` ; & | < > \n (command injection chars)
-                    # - Accepts: quoted strings without dangerous chars, or simple unquoted values
-                    while IFS= read -r line; do
-                        # Skip empty lines and comments
-                        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-
-                        # Validate safe export pattern (no command injection characters)
-                        # Must be: export VARNAME=value (no $(), `, ;, &, |, <, >, ${})
-                        if [[ "$line" =~ ^export[[:space:]]+[A-Za-z_][A-Za-z0-9_]*=.*$ ]]; then
-                            # Block dangerous patterns by checking for their absence
-                            if [[ "$line" != *'$('* && "$line" != *'`'* && "$line" != *'${'* &&
-                                  "$line" != *';'* && "$line" != *'&'* &&
-                                  "$line" != *'|'* && "$line" != *'<'* && "$line" != *'>'* ]]; then
-                                eval "$line"
-                            fi
-                        fi
-                    done <<<"$sops_output"
-                else
-                    echo "Warning: Failed to decrypt $HOME/.env - check your SOPS/age configuration" >&2
-                fi
-            else
-                echo "Warning: SOPS not available - cannot decrypt $HOME/.env" >&2
-            fi
-        else
-            # Plaintext - copy to cache and source
-            cp "$env_file" "$env_cache_file"
-            source "$env_file"
-        fi
-    fi
-fi
+# Load ~/.env (sops-encrypted or plaintext). _dotfiles_load_env lives in
+# .functions.d/06-dotfiles.zsh: it keeps the decrypted copy in a private cache
+# (0600 file, 0700 dir) and parses KEY=value lines instead of sourcing them,
+# on cache hits as well as misses.
+(( $+functions[_dotfiles_load_env] )) && _dotfiles_load_env
 
 # Claude Code - default to personal account; cce alias overrides per-invocation
 export CLAUDE_CONFIG_DIR="$HOME/.claude-personal"

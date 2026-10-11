@@ -44,7 +44,12 @@ _is_ide_context() {
 if _is_ide_context; then
     export DOTFILES_FAST_ENV=1
     [ -f "$HOME/.paths.sh" ] && source "$HOME/.paths.sh"
-    [ -f "$HOME/.env" ] && source "$HOME/.env"
+    # ~/.env is sops-encrypted: never `source` it. The loader (with its private
+    # cache) is defined in 06-dotfiles.zsh, which only defines functions.
+    if [[ -r "$HOME/.functions.d/06-dotfiles.zsh" ]]; then
+        source "$HOME/.functions.d/06-dotfiles.zsh"
+        _dotfiles_load_env
+    fi
     unset DOTFILES_FAST_ENV
     return 0 2>/dev/null || exit 0
 fi
