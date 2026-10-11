@@ -1,13 +1,19 @@
 #!/usr/bin/env zsh
 # tmux-status-sysinfo — CPU load average + RAM usage for tmux status bar
 # Runs in the background every status-interval seconds; output is cached by tmux.
-# Uses a single sysctl + vm_stat call pair to minimise subprocess overhead.
+# One sysctl call (load + total memory) plus one vm_stat call keep forks to a minimum.
+# Prefixes a ☕ while the `awake` function is holding the Mac awake (its pidfile
+# ${TMPDIR:-/tmp}/dotfiles-awake.pid points at a live process).
 
-# 1-minute load average via sysctl (single subprocess)
-load=$(sysctl vm.loadavg | awk '{printf "%.1f", $3}')
+# Load average and total RAM in a single sysctl: "{ 1.20 1.31 1.40 }" then bytes
+local -a sc
+sc=("${(@f)$(sysctl -n vm.loadavg hw.memsize)}")
+local load="${${=sc[1]}[2]}"
+local total="${sc[2]}"
+load=$(printf '%.1f' "$load")
 
-# RAM: total bytes from sysctl, used = total - (free + inactive) pages
-total=$(sysctl -n hw.memsize)
+# RAM: used = total - (free + inactive) pages
+local mem
 mem=$(vm_stat | awk -v total="$total" '
     /page size of ([0-9]+) bytes/ { pg = $8 + 0 }
     /Pages free:/                 { free = $3 + 0 }
@@ -19,4 +25,12 @@ mem=$(vm_stat | awk -v total="$total" '
     }
 ')
 
-print "󰻠 ${load}  ${mem}"
+local awake=""
+local pidfile="${TMPDIR:-/tmp}/dotfiles-awake.pid"
+if [[ -r "$pidfile" ]]; then
+    local pid="$(<"$pidfile")"
+    pid="${pid%%[^0-9]*}"
+    [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null && awake="☕ "
+fi
+
+print "${awake}󰻠 ${load}  ${mem}"

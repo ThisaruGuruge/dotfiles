@@ -5,20 +5,30 @@
 # built-in choose-tree used to show before this switcher moved to fzf.
 # Numbers are assigned once when the popup opens and stay fixed even if
 # the fuzzy filter narrows the visible list.
+# Sessions with a window where Claude Code is waiting for you are marked 󰂞
+# (the per-window @claude_state option, set by bin/claude-tmux-state).
 
 # Internal mode: print the numbered, tab-delimited session list and exit.
 # Used both for the initial fzf input and for fzf's --bind reload.
 # Sorted oldest-first by creation time (tmux's default list-sessions order
 # is alphabetical by name, which isn't what we want here).
 if [[ "$1" == "--list" ]]; then
-    tmux list-sessions -F "#{session_created}	#{session_name}	#{?session_attached,●,}" | \
-        sort -n -k1,1 | \
-        awk -F'\t' '{
-            num = (NR <= 9) ? NR : " "
-            disp = num "  " $2
-            if ($3 != "") disp = disp "  ●"
-            printf "%s\t%s\t%s\n", $2, $3, disp
-        }'
+    waiting=$(tmux list-windows -a -F $'#{session_name}\t#{@claude_state}' 2>/dev/null |
+        awk -F'\t' '$2 == "waiting" { printf "%s\t", $1 }')
+    tmux list-sessions -F "#{session_created}	#{session_name}	#{?session_attached,●,}" |
+        sort -n -k1,1 |
+        awk -F'\t' -v waiting="$waiting" '
+            BEGIN {
+                n = split(waiting, w, "\t")
+                for (i = 1; i <= n; i++) if (w[i] != "") mark[w[i]] = 1
+            }
+            {
+                num = (NR <= 9) ? NR : " "
+                disp = num "  " $2
+                if ($3 != "") disp = disp "  ●"
+                if ($2 in mark) disp = disp "  \033[31m󰂞\033[0m"
+                printf "%s\t%s\t%s\n", $2, $3, disp
+            }'
     exit 0
 fi
 
@@ -34,12 +44,12 @@ while IFS=$'\t' read -r name _ _; do
     jump_binds+=(--bind "${n}:execute-silent(tmux switch-client -t \"${name}\")+abort")
 done < <("$SELF" --list)
 
-"$SELF" --list | fzf --delimiter=$'\t' --with-nth=3 \
+"$SELF" --list | fzf --ansi --delimiter=$'\t' --with-nth=3 \
     --reverse --no-sort --cycle --border=none --padding "1,2" \
     --header-first \
     --prompt "  " --pointer "❯" --marker "●" \
     --color "bg:#1e1e2e,bg+:#313244,fg:#cdd6f4,fg+:#cdd6f4,hl:#89b4fa,hl+:#89b4fa,prompt:#cba6f7,pointer:#f38ba8,marker:#a6e3a1,header:#a6e3a1,info:#45475a" \
-    --header " enter: switch · 1-9: jump · ctrl-x: kill" \
+    --header " enter: switch · 1-9: jump · ctrl-x: kill · 󰂞 Claude waiting" \
     --bind "ctrl-x:execute-silent(tmux kill-session -t {1})+reload($SELF --list)" \
     --bind "enter:execute-silent(tmux switch-client -t {1})+abort" \
     "${jump_binds[@]}" >/dev/null

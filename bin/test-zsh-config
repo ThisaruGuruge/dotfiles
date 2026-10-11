@@ -396,6 +396,124 @@ else
 fi
 
 # ============================================================================
+# TMUX CONFIGURATION
+# ============================================================================
+print_header "Tmux Configuration"
+
+# Checked against the repo this script lives in, so it also works from a worktree
+local tmux_repo="${0:A:h:h}"
+local tmux_conf="$tmux_repo/tmux/.tmux.conf"
+local tmux_palette="$tmux_repo/tmux/.local/bin/tmux-palette-entries"
+local ghostty_conf="$tmux_repo/ghostty/.config/ghostty/config"
+
+if [[ -f "$tmux_conf" ]]; then
+    # Ghostty's Cmd shortcuts send the literal tmux prefix (Ctrl+a = \x01)
+    if grep -qE '^set(-option)? +-g +prefix +C-a[[:space:]]*$' "$tmux_conf"; then
+        print_test "Tmux prefix is C-a" "pass" "Matches the Ghostty keybinds that send it"
+    elif [[ -f "$ghostty_conf" ]] && grep -q 'text:\\x01' "$ghostty_conf"; then
+        print_test "Tmux prefix is C-a" "fail" "Ghostty keybinds send the C-a byte but the tmux prefix changed; update both"
+    else
+        print_test "Tmux prefix is C-a" "warn" "Prefix is not C-a"
+    fi
+
+    # Every prefix-table bind in tmux.conf must have a row in the command palette
+    if [[ -f "$tmux_palette" ]]; then
+        local -a palette_keys conf_keys missing_keys
+        local tm_line tm_field tm_tok tm_key tm_table tm_skip
+        local -a tm_words
+        while IFS= read -r tm_line; do
+            [[ "$tm_line" == \#* || -z "${tm_line// /}" ]] && continue
+            tm_field="${${(s:|:)tm_line}[2]}"
+            tm_field="${tm_field//\{pipe\}/|}"
+            [[ "$tm_field" =~ 'prefix \+ (.*[^[:space:]])[[:space:]]*$' ]] || continue
+            palette_keys+=(${(s:/:)match[1]})
+        done < "$tmux_palette"
+
+        while IFS= read -r tm_line; do
+            [[ "$tm_line" =~ '^[[:space:]]*bind(-key)?[[:space:]]' ]] || continue
+            tm_words=(${(z)tm_line})
+            shift tm_words
+            tm_table="prefix"
+            tm_skip=0
+            tm_key=""
+            while (( $#tm_words )); do
+                tm_tok="${(Q)tm_words[1]}"
+                shift tm_words
+                case "$tm_tok" in
+                    -n) tm_skip=1 ;;
+                    -T) tm_table="${(Q)tm_words[1]}"; shift tm_words ;;
+                    -N) shift tm_words ;;
+                    -) tm_key="-"; break ;;
+                    -*) ;;
+                    *) tm_key="$tm_tok"; break ;;
+                esac
+            done
+            [[ $tm_skip -eq 1 || "$tm_table" != "prefix" || -z "$tm_key" ]] && continue
+            conf_keys+=("$tm_key")
+        done < "$tmux_conf"
+
+        for tm_key in "${conf_keys[@]}"; do
+            (( ${palette_keys[(Ie)$tm_key]} )) || missing_keys+=("$tm_key")
+        done
+        if (( ${#missing_keys[@]} == 0 )); then
+            print_test "Tmux palette covers every prefix binding" "pass" "${#conf_keys[@]} bindings checked"
+        else
+            print_test "Tmux palette covers every prefix binding" "warn" "Missing from tmux-palette-entries: ${(j:, :)missing_keys}"
+        fi
+
+        # Every palette command must parse as tmux config (isolated throwaway server)
+        if command -v tmux &>/dev/null; then
+            local tm_sock="dotfiles-palette-check-$$" tm_bad=() tm_cmd tm_tmp tm_sockpath
+            tm_tmp="$(mktemp "${TMPDIR:-/tmp}/palette-check.XXXXXX")"
+            if env -u TMUX tmux -L "$tm_sock" -f /dev/null new-session -d -s palettecheck 2>/dev/null; then
+                while IFS= read -r tm_line; do
+                    [[ "$tm_line" == \#* || -z "${tm_line// /}" ]] && continue
+                    tm_cmd="$(awk -F'|' '{c=$4; for(i=5;i<=NF;i++) c=c "|" $i; print c}' <<< "$tm_line" | sed 's/^ *//;s/ *$//')"
+                    [[ -z "$tm_cmd" || "$tm_cmd" == "noop" ]] && continue
+                    print -r -- "$tm_cmd" > "$tm_tmp"
+                    env -u TMUX tmux -L "$tm_sock" source-file -n "$tm_tmp" &>/dev/null || tm_bad+=("$tm_cmd")
+                done < "$tmux_palette"
+                # kill-server leaves the socket file behind (tmux 3.7): remove it too
+                tm_sockpath="$(env -u TMUX tmux -L "$tm_sock" display-message -p '#{socket_path}' 2>/dev/null)"
+                env -u TMUX tmux -L "$tm_sock" kill-server &>/dev/null
+                [[ -n "$tm_sockpath" && "${tm_sockpath:t}" == "$tm_sock" ]] && rm -f "$tm_sockpath"
+                if (( ${#tm_bad[@]} == 0 )); then
+                    print_test "Tmux palette commands parse" "pass" ""
+                else
+                    print_test "Tmux palette commands parse" "fail" "Unparseable: ${tm_bad[1]}"
+                fi
+            fi
+            rm -f "$tm_tmp"
+        fi
+    else
+        print_test "Tmux palette entries" "fail" "$tmux_palette not found"
+    fi
+
+    # Helper scripts the config calls must exist and be executable
+    local -a tm_missing_exec
+    local tm_script
+    for tm_script in \
+        "$tmux_repo/tmux/.local/bin/tmux-palette" \
+        "$tmux_repo/tmux/.local/bin/tmux-session-layout" \
+        "$tmux_repo/tmux/.local/bin/tmux-sessionizer" \
+        "$tmux_repo/tmux/.local/bin/tmux-session-creator" \
+        "$tmux_repo/tmux/.local/bin/tmux-session-switcher" \
+        "$tmux_repo/tmux/.local/bin/tmux-claude-next" \
+        "$tmux_repo/bin/tmux-status-sysinfo" \
+        "$tmux_repo/bin/tmux-status-battery" \
+        "$tmux_repo/bin/tmux-status-claude"; do
+        [[ -x "$tm_script" ]] || tm_missing_exec+=("${tm_script#$tmux_repo/}")
+    done
+    if (( ${#tm_missing_exec[@]} == 0 )); then
+        print_test "Tmux helper scripts executable" "pass" ""
+    else
+        print_test "Tmux helper scripts executable" "fail" "Not executable or missing: ${(j:, :)tm_missing_exec}"
+    fi
+else
+    print_test "Tmux config" "warn" "$tmux_conf not found"
+fi
+
+# ============================================================================
 # PERFORMANCE CHECKS
 # ============================================================================
 print_header "Performance Checks"

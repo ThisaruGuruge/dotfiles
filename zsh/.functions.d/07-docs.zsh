@@ -262,7 +262,9 @@ alias_help() {
             echo "  Ctrl-a S    New session creator"
             echo "  Ctrl-a G    Floating lazygit"
             echo "  Ctrl-a ?    Command palette (search & run any binding)"
-            echo "  Ctrl+f      Project sessionizer (no prefix)"
+            echo "  Ctrl-a f    Project sessionizer (new sessions get Long Runs / CLAUDE / NVim windows)"
+            echo "  Ctrl-a s    Session switcher (1-9 jump; 󰂞 marks sessions with Claude waiting)"
+            echo "  Ctrl-a A    Jump to the next window where Claude Code is waiting"
             echo ""
             echo "💡 Example: Ctrl-a t for a quick terminal, Ctrl-a S to start a new session"
             ;;
