@@ -62,7 +62,7 @@ echo "--------------------------------------------------------------"
 echo ""
 
 # Test individual components
-time_command "Homebrew shellenv" "eval \"\$(/opt/homebrew/bin/brew shellenv)\""
+time_command "Homebrew shellenv" "eval \"\$(${HOMEBREW_PREFIX:-/opt/homebrew}/bin/brew shellenv)\""
 # Powerlevel10k is loaded via zinit as a plugin, not via an init command.
 # Timing its presence check and config load instead.
 if [[ -d "${HOME}/.local/share/zinit/plugins/romkatv---powerlevel10k" ]]; then

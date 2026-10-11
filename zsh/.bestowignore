@@ -1,4 +1,6 @@
-# Environment files (managed separately for security; sourced directly from
-# the repo path, not symlinked into $HOME)
+# Environment files are never symlinked. Secrets live in ~/.env (a real file,
+# sops-encrypted, edited with `edit_secrets`); nothing reads zsh/.env, so don't
+# create one in the repo. .env.example is the template (and *.example is
+# already ignored at the repo root).
 .env
 .env.*
