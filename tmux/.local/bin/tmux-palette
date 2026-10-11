@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # TMux Command Palette - fuzzy search and execute tmux keybindings
 # Reads entries from tmux-palette-entries, displays via fzf, executes selection
+#
+# Entry format (see tmux-palette-entries): category | key | description | tmux-command
+# The key and description may contain the placeholder {pipe}, shown as a literal "|"
+# (a bare "|" would be taken as a field separator).
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ENTRIES_FILE="$SCRIPT_DIR/tmux-palette-entries"
@@ -10,42 +14,54 @@ if [[ ! -f "$ENTRIES_FILE" ]]; then
     exit 1
 fi
 
-# Parse entries: strip comments for display but keep them searchable via fzf's --with-nth
-# Format each line for display: "category  key  description"
-selection=$(grep -v '^\s*$' "$ENTRIES_FILE" | awk -F '|' '
+# Parse entries into "<display><TAB><tmux-command>" lines. fzf shows only the first
+# tab-delimited field, so "|" is free to appear in the display text.
+# Comments become dimmed section headers (searchable, but selecting one does nothing).
+selection=$(grep -v '^[[:space:]]*$' "$ENTRIES_FILE" | awk -F '|' '
     /^#/ {
-        # Include comments as section headers (dimmed) — searchable but not selectable
+        # The file-level documentation at the top is not a section: skip it
+        if ($0 ~ /^# *---/) started = 1
+        if (!started) next
         gsub(/^# *-* */, "", $0)
-        printf "\033[2m── %s\033[0m|\n", $0
+        printf "\033[2m── %s\033[0m\t\n", $0
         next
     }
     {
-        # Trim whitespace from fields
-        gsub(/^[ \t]+|[ \t]+$/, "", $1)  # category
-        gsub(/^[ \t]+|[ \t]+$/, "", $2)  # key
-        gsub(/^[ \t]+|[ \t]+$/, "", $3)  # description
-        gsub(/^[ \t]+|[ \t]+$/, "", $4)  # command
-        printf "\033[36m%-12s\033[0m \033[33m%-18s\033[0m %s|%s\n", $1, $2, $3, $4
+        n = split($0, f, "|")
+        # The command is everything after the third "|" (it may contain "|" itself)
+        cmd = f[4]
+        for (i = 5; i <= n; i++) cmd = cmd "|" f[i]
+        for (i = 1; i <= 3; i++) {
+            gsub(/^[ \t]+|[ \t]+$/, "", f[i])
+            gsub(/\{pipe\}/, "|", f[i])
+        }
+        gsub(/^[ \t]+|[ \t]+$/, "", cmd)
+        printf "\033[36m%-12s\033[0m \033[33m%-18s\033[0m %s\t%s\n", f[1], f[2], f[3], cmd
     }
 ' | fzf --ansi \
-        --delimiter='|' \
-        --with-nth=1 \
-        --header="  TMux Command Palette  (Enter to execute, Esc to cancel)" \
-        --prompt="  " \
-        --reverse \
-        --no-sort \
-        --border=none \
-        --margin=1,2 \
-        --color="header:#89b4fa,prompt:#a6e3a1,pointer:#f38ba8,hl:#f9e2af,hl+:#f9e2af")
+    --delimiter=$'\t' \
+    --with-nth=1 \
+    --header="  TMux Command Palette  (Enter to execute, Esc to cancel)" \
+    --prompt="  " \
+    --reverse \
+    --no-sort \
+    --border=none \
+    --margin=1,2 \
+    --color="header:#89b4fa,prompt:#a6e3a1,pointer:#f38ba8,hl:#f9e2af,hl+:#f9e2af")
 
-# Exit if nothing selected or if it's a section header
+# Exit if nothing selected
 [[ -z "$selection" ]] && exit 0
 
-# Extract the tmux command (after the last |)
-tmux_cmd=$(echo "$selection" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $NF); print $NF}')
+# The tmux command is everything after the first tab
+tmux_cmd="${selection#*$'\t'}"
 
-# Skip noop entries (display-only bindings like Ctrl+h/j/k/l)
+# Skip section headers and display-only entries
 [[ -z "$tmux_cmd" || "$tmux_cmd" == "noop" ]] && exit 0
 
-# Execute the tmux command
-tmux $tmux_cmd
+# Run the command through tmux's own parser (source-file) so quoting, "\;" separators
+# and "~" behave exactly as they would in .tmux.conf. It is deferred until this popup
+# has closed: a popup cannot open another popup, and commands such as display-popup
+# and detach-client need the client back once the palette exits.
+cmd_file=$(umask 077 && mktemp "${TMPDIR:-/tmp}/tmux-palette.XXXXXX") || exit 1
+printf '%s\n' "$tmux_cmd" >"$cmd_file"
+tmux run-shell -b "sleep 0.2; tmux source-file '$cmd_file'; rm -f '$cmd_file'"

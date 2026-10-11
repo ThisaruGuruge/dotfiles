@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# tmux-status-claude — "󰂞 N waiting: sessA, sessB" for tmux's status-right.
+#
+# Counts windows whose @claude_state option is "waiting" (set per window by
+# bin/claude-tmux-state from Claude Code hooks) and lists the sessions they live in.
+# Prints nothing when no window is waiting, so the status bar stays quiet.
+#
+# No cache file on purpose: tmux runs a #() command at most once per second and
+# shares the output across clients, and a file cache would only delay the
+# `refresh-client -S` that the state helper triggers. The script costs one tmux call.
+
+command -v tmux >/dev/null 2>&1 || exit 0
+
+MAX_NAMES=3
+
+tmux list-windows -a -F $'#{session_name}\t#{@claude_state}' 2>/dev/null |
+    awk -F '\t' -v max="$MAX_NAMES" '
+        $2 == "waiting" {
+            total++
+            if (!($1 in seen)) {
+                seen[$1] = 1
+                order[++n] = $1
+            }
+        }
+        END {
+            if (!total) exit
+            list = ""
+            for (i = 1; i <= n && i <= max; i++) {
+                name = order[i]
+                gsub(/#/, "##", name)
+                list = list (i > 1 ? ", " : "") name
+            }
+            more = (n > max) ? sprintf(" +%d", n - max) : ""
+            printf "#[fg=#f38ba8,bold]󰂞 %d waiting: %s%s #[default]", total, list, more
+        }'

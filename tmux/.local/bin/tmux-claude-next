@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# tmux-claude-next — jump to the next window (in any session) where Claude Code is
+# waiting for you. Bound to prefix + A. "Next" means the next waiting window after the
+# current one, in session then window order, wrapping around.
+# Windows are marked by the @claude_state option (set by bin/claude-tmux-state).
+
+current=$(tmux display-message -p $'#{session_name}\t#{window_index}') || exit 0
+
+sessions=()
+indexes=()
+states=()
+position=-1
+i=0
+while IFS=$'\t' read -r s idx state; do
+    sessions+=("$s")
+    indexes+=("$idx")
+    states+=("$state")
+    [[ "$s"$'\t'"$idx" == "$current" ]] && position=$i
+    i=$((i + 1))
+done < <(tmux list-windows -a -F $'#{session_name}\t#{window_index}\t#{@claude_state}')
+
+total=${#sessions[@]}
+for ((step = 1; step <= total; step++)); do
+    n=$(((position + step + total) % total))
+    if [[ "${states[$n]}" == "waiting" ]]; then
+        tmux switch-client -t "=${sessions[$n]}:${indexes[$n]}"
+        exit 0
+    fi
+done
+
+tmux display-message "Claude: no window is waiting"

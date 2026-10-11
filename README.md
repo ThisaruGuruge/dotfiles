@@ -137,7 +137,7 @@ Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 | `<tool>/.config/<tool>/` | XDG configs, one stow package per tool (`ghostty`, `lazygit`, `nvim`, `yazi`, `ripgrep`, `typos`) |
 | `zsh/.p10k.zsh`          | Powerlevel10k prompt config (Catppuccin Mocha, stowed to `~/.p10k.zsh`)                           |
 | `git/`                   | `.gitconfig`, ignore rules, delta settings                                                        |
-| `tmux/`                  | Modern tmux config + keybinds                                                                     |
+| `tmux/`                  | Modern tmux config + keybinds, project session layout, Claude state in status bar                 |
 | `direnv/`                | Project-specific environment automation                                                           |
 | `packages/`              | Optional category Brewfiles (cloud, containers, development, etc.)                                |
 | `bin/`                   | Helper scripts (`test-zsh-config`, `profile-zsh-startup`, `audit-configs`, `adopt-config`)        |
@@ -147,10 +147,10 @@ Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 
 Ghostty is configured with:
 
-- Option key for word navigation (Option+Left/Right)
+- Option+Left/Right for word navigation (sent as Alt+b / Alt+f, so it works inside tmux too) and Cmd+Delete for delete-to-end-of-line (sent as Alt+k)
 - Catppuccin Mocha theme
 - FiraCode Nerd Font with ligatures
-- Tmux-aware keybindings for window/pane navigation
+- Tmux-aware keybindings for window/pane navigation (they send the tmux prefix `Ctrl+a`; `test-zsh` fails if the prefix changes)
 
 ### Containers (colima)
 

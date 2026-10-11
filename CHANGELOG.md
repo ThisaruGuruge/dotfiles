@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `neotest-python` (pytest) and `neotest-vitest` to neotest, so the existing `<leader>T…` keys run and debug Python and Vitest tests as well as Go. `<leader>Td` on a Python test debugs through the same debugpy adapter as `<leader>dc`; `thisarug/dap/python.lua` now also registers it as `python`, the adapter name neotest-python launches with
 - Added `<leader>oy` to resume the last yazi session, and a `<leader>o` which-key group for the yazi mappings
 - Added `<C-p>` in yazi to paste and overwrite existing files, and `=` to diff the two selected files
+- Added a standard tmux session layout, shared by `prefix + f` (sessionizer) and `prefix + S` (session creator) through the new `tmux-session-layout` helper. New sessions get three windows in this order: `Long Runs` (plain shell), `CLAUDE` (starts `claude`; direnv picks the account) and `NVim` (nvim on top at about 80%, a shell below at about 20%), and open on `NVim`. Window names are pinned (automatic rename off). Existing sessions are untouched, and `SESSIONIZER_LAYOUT=bare` (environment, or `tmux set-environment -g SESSIONIZER_LAYOUT bare` on a running server) keeps a single shell window. The sessionizer also gives two projects with the same folder name parent-qualified session names (`api`, `personal/api`)
+- Added Claude Code state to the tmux status bar, driven by the per-window `@claude_state` option that `bin/claude-tmux-state` sets from Claude Code hooks: windows waiting on you get a red tab with `󰂞`, finished windows a green tab with `✔` (cleared when you visit them), busy ones a blue `⋯`. The right side of the status bar shows `󰂞 N waiting: sessA, sessB` through the new `bin/tmux-status-claude`, `prefix + A` jumps to the next waiting window in any session, and the `prefix + s` switcher marks sessions that have one. Terminal bell and activity got their own styles (peach tab with `!`, yellow underline) so they stay distinct from Claude state
+- Added a `☕` to the tmux status bar while the `awake` function is holding the Mac awake (its pidfile `${TMPDIR:-/tmp}/dotfiles-awake.pid` points at a live process)
+- Added a "Ghostty" section to the tmux command palette listing the Cmd shortcuts, a comment block in the Ghostty config about their dependence on the `Ctrl+a` prefix, and a `test-zsh` check that fails if the tmux prefix is no longer `C-a`
+- Added `test-zsh` checks for tmux: every prefix binding in `tmux.conf` has a palette row (warning), every palette command parses, and the tmux helper scripts are executable
 
 ### Changed
 
@@ -30,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed the yazi diff plugin from `<C-d>` to `=`, so `<C-d>` is the built-in half-page-down again (`<C-u>` / `<C-d>` now both scroll, as the docs said)
 - Rewrote the Neovim keybinding docs (`KEYBINDINGS.md`, `docs/nvim/keybindings_cheat_sheet.md`, `docs/nvim/ADDING_KEYBINDINGS.md`, `docs/YAZI_KEYBINDINGS.md`) to match the config: source columns cite files instead of drifted line numbers, the `<leader>en`, `<leader>ep`, `<leader>vg`, `<leader>fg` multi-grep syntax and F-key rows are listed, and `ADDING_KEYBINDINGS.md` gained a "check for clashes" checklist
 - Changed the latest-tool column of the `agents` mod to show a Bash call's own description (`Bash Read tmux sessionizer`) when the agent wrote one, falling back to the raw command, and to trim the text to the available width instead of a fixed 40 characters
+- Changed `prefix + s` documentation and the command palette to describe the fzf session switcher; both still described the old tree view
+- Changed tmux-sessionist's join-pane key from `t` to `J` (`t` is the floating terminal) and documented that our `S` replaces its "last session" key (`Tab` does that)
+- Changed the tmux status bar to refresh every 15 seconds (was 5), the sysinfo segment to one `sysctl` call, and the battery segment to turn red below 20% while discharging
+- Changed Ghostty `Cmd+Delete` to send `Alt+k` (bound to `kill-line` in zsh) because tmux's root `Ctrl+k` pane navigation swallowed the old `Ctrl+k`, and Ghostty `Option+Left/Right` to send `Alt+b` / `Alt+f` explicitly. Corrected the stale comments in `03-keybindings.zsh`
 
 ### Removed
 
@@ -37,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `bin/reload-nvim-config`
 - Removed `nvim/.config/nvim/lua/plugins/telescope/multigrep.lua`, a dead duplicate of the multi-grep picker defined inline in `telescope.lua` (its `setup` was never called). Run `bestow stow nvim` and delete the dangling `~/.config/nvim/lua/plugins/telescope/multigrep.lua` symlink
 - Removed `nvim/.config/nvim/lua/plugins/telescope/multigrep.lua`, a dead duplicate of the multi-grep picker defined inline in `telescope.lua` (its `setup` was never called). Run `bestow stow nvim` (it links per file, so it is also needed for the new `persistence.lua`) and delete the dangling `~/.config/nvim/lua/plugins/telescope/multigrep.lua` symlink
+- Removed the `Alt+Arrow` pane-switching binds from tmux (Alt+Left/Right now do word navigation in the shell), and the dead `y` copy-mode line that tmux-yank overrode
 
 ### Fixed
 
@@ -49,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the Neovim and yazi docs listing keys that don't exist (`<leader>cw`, `<leader>xs`, `<S-CR>`, a duplicated `<leader>xt`, `{`/`}` for aerial)
 - Fixed the `agents` mod's `/agents` command never registering: `/agents` is Claude Code's own command, so the registration was refused and threw, which aborted the rest of the `session.start` hook and left the 1-second clock unstarted, so a running agent's elapsed time never ticked. The toggle is now `/agents-pane`, the clock starts first, and a refused registration is caught instead of aborting the hook
 - Fixed the `agents` pane hiding agents behind a "+N older" line: it now lists every agent (the last 100) and scrolls with the mouse wheel instead of capping at a row count. The band above the prompt keeps its cap of 6 and points at `/agents-pane` for the rest
+- Fixed the tmux command palette (`prefix + ?`): most entries failed because the selected command was word-split into `tmux $cmd`, so quoted arguments, `;` and `~` broke (reload, rename, popups). Commands now run through `tmux source-file` after the palette popup closes, the `prefix + |` row displays correctly, and the reload row chains its commands with a plain `;`
+- Fixed the `alias_help tmux` text, which listed `Ctrl+f` as the sessionizer key (it is `prefix + f`)
 
 ## [2.7.0] - 2026-10-11
 
