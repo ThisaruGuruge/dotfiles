@@ -11,9 +11,22 @@ return {
   -- Loaded before the first buffer is read so the autocmd that saves on exit
   -- is in place for every session, including one that only ever opens a file.
   event = "BufReadPre",
+  init = function()
+    -- Diffview tabs hold scratch buffers that restore as empty windows.
+    vim.api.nvim_create_autocmd("User", {
+      pattern = "PersistenceSavePre",
+      callback = function()
+        pcall(vim.cmd, "DiffviewClose")
+      end,
+    })
+  end,
   opts = {
-    -- Don't write a session unless at least this many real buffers are open.
-    need = 1,
+    -- Skip `terminal` and `blank` so toggleterm shells and empty windows are
+    -- not saved (they come back respawned or empty).
+    options = { "buffers", "curdir", "tabpages", "winsize", "help", "globals", "skiprtp", "folds" },
+    -- A quick `nvim README.md` (one buffer) must not overwrite the project's
+    -- saved session, so only write one when at least two real buffers are open.
+    need = 2,
   },
   keys = {
     {

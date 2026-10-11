@@ -130,7 +130,18 @@ return {
           -- branch added, not whatever the default branch gained since.
           local ref = vim.fn.systemlist("git symbolic-ref --quiet --short refs/remotes/origin/HEAD")[1]
           if vim.v.shell_error ~= 0 or not ref or ref == "" then
-            ref = "origin/main"
+            ref = nil
+            for _, candidate in ipairs({ "origin/main", "origin/master" }) do
+              vim.fn.system("git rev-parse --verify --quiet " .. candidate)
+              if vim.v.shell_error == 0 then
+                ref = candidate
+                break
+              end
+            end
+            if not ref then
+              vim.notify("No origin/HEAD, origin/main or origin/master to diff against", vim.log.levels.WARN)
+              return
+            end
           end
           vim.cmd("DiffviewOpen " .. ref .. "...HEAD")
         end,
@@ -144,7 +155,6 @@ return {
       return {
         enhanced_diff_hl = true,
         keymaps = {
-          view = { close },
           file_panel = { close },
           file_history_panel = { close },
         },

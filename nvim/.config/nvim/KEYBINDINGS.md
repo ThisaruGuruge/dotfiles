@@ -164,11 +164,11 @@ Built-in Neovim navigation for the quickfix list (global) and location list (per
 
 ### Diffview (diffview.nvim)
 
-| Key          | Action                                                                                                          | Source          |
-| ------------ | --------------------------------------------------------------------------------------------------------------- | --------------- |
-| `<leader>gv` | Branch vs the default branch (`origin/HEAD`, else `origin/main`) — merge-base diff, only what this branch added | plugins/git.lua |
-| `<leader>gh` | History of the current file                                                                                     | plugins/git.lua |
-| `<leader>gH` | History of the whole repo                                                                                       | plugins/git.lua |
+| Key          | Action                                                                                                                                | Source          |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| `<leader>gv` | Branch vs the default branch (`origin/HEAD`, else `origin/main`, else `origin/master`) — merge-base diff, only what this branch added | plugins/git.lua |
+| `<leader>gh` | History of the current file                                                                                                           | plugins/git.lua |
+| `<leader>gH` | History of the whole repo                                                                                                             | plugins/git.lua |
 
 Inside a Diffview tab `q` closes it (`:DiffviewClose`). `<Tab>` / `<S-Tab>` step through files, `<leader>e` focuses the file panel and `<leader>b` toggles it.
 
@@ -204,6 +204,9 @@ Open with `<leader>fy` to browse yank history in a Telescope picker.
 
 One session per working directory and git branch, written when Neovim exits.
 Nothing is restored automatically — `nvim file` stays a plain `nvim file`.
+A session is only written when at least two real buffers are open, so a quick
+`nvim README.md` does not overwrite the project's saved session. Terminal
+buffers are not saved, and an open Diffview is closed before saving.
 
 | Key          | Action                                        | Source                  |
 | ------------ | --------------------------------------------- | ----------------------- |
@@ -226,6 +229,9 @@ Nothing is restored automatically — `nvim file` stays a plain `nvim file`.
 
 > There is no `<C-\>` terminal toggle: that key is reserved for
 > vim-tmux-navigator's "previous pane" (see below).
+>
+> `<leader>tt` is normal-mode only. To hide the float from inside the terminal,
+> press `<C-\><C-n>` then `<leader>tt`, or `exit` the shell.
 
 ## Line Wrap
 
@@ -269,8 +275,7 @@ Seamless navigation between NeoVim splits and TMux panes.
 | Key    | Action                   | Source             |
 | ------ | ------------------------ | ------------------ |
 | `<CR>` | Init/Increment selection | plugins/editor.lua |
-
-| `<BS>` | Node decrement | plugins/editor.lua |
+| `<BS>` | Node decrement           | plugins/editor.lua |
 
 ## Folding (treesitter-based)
 

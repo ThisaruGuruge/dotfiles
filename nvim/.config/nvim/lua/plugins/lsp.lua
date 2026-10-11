@@ -346,8 +346,8 @@ return {
             vim.tbl_extend("force", opts, { desc = "Go to declaration" })
           )
 
-          -- Neovim 0.11+ already ships grr/gri/grt/grn/gra/gO as built-ins that
-          -- call vim.lsp.buf.*. Only the three navigation ones are upgraded
+          -- Neovim 0.11+ already ships grr/gri/grn/gra/gO (grt arrived in 0.12) as
+          -- built-ins that call vim.lsp.buf.*. Only the three navigation ones are upgraded
           -- to Telescope pickers (preview + fuzzy filter); the rest stay as
           -- shipped. A custom bare `gr` or `gi` would sit on the `gr*` prefix
           -- and make every grr/gri/grn/gra wait out 'timeoutlen', and `gi`

@@ -69,7 +69,7 @@ Once you add a keybinding this way:
 
 LSP keybindings (like `gd`, `grr`, `gri`, `grt`) are defined in `nvim/.config/nvim/lua/plugins/lsp.lua` in the `LspAttach` autocmd.
 
-Neovim 0.11+ already ships `grr` (references), `gri` (implementation), `grt` (type definition), `grn` (rename), `gra` (code action) and `gO` (document symbols). This config overrides only `grr`/`gri`/`grt` with Telescope pickers. Never map a bare `gr` or `gi`: `gr` makes every `gr*` mapping wait out `timeoutlen`, and `gi` is the built-in "insert at last insert position".
+Neovim 0.11+ already ships `grr` (references), `gri` (implementation), `grn` (rename), `gra` (code action) and `gO` (document symbols); `grt` (type definition) is built in from 0.12. This config overrides `grr`/`gri` with Telescope pickers and defines `grt` itself, so it works on 0.11 too. Never map a bare `gr` or `gi`: `gr` makes every `gr*` mapping wait out `timeoutlen`, and `gi` is the built-in "insert at last insert position".
 
 To add LSP-related keybindings:
 
@@ -100,15 +100,18 @@ After adding keybindings:
 ## Troubleshooting
 
 **Keybinding doesn't appear in which-key:**
+
 - Make sure you added BOTH the keybinding AND the which-key registration
 - Check for typos in the key combination
 - Ensure the keybinding is set before `wk.add()` is called
 
 **Icon doesn't show:**
+
 - Make sure you're using a Nerd Font in your terminal
 - Test with a simple text icon first
 - Check that the icon character is copied correctly
 
 **Keybinding works but description is missing:**
+
 - You likely only set the keybinding but forgot to register it with which-key
 - Add it to the `wk.add({})` section

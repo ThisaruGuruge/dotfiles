@@ -239,8 +239,7 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 | Key    | Mode     | Action                   |
 | :----- | :------- | :----------------------- |
 | `<CR>` | `n`, `v` | Init/Increment selection |
-
-| `<BS>` | `v` | Decrement selection |
+| `<BS>` | `v`      | Decrement selection      |
 
 ---
 
@@ -252,7 +251,7 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 
 ## Sessions (persistence.nvim)
 
-One session per working directory and git branch, saved on exit. Nothing is restored automatically.
+One session per working directory and git branch, saved on exit. Nothing is restored automatically. A session is only written with two or more real buffers open (a quick `nvim file` won't overwrite it); terminals are not saved and an open Diffview is closed first.
 
 | Key         | Mode | Action                                   |
 | :---------- | :--- | :--------------------------------------- |
@@ -273,6 +272,8 @@ One session per working directory and git branch, saved on exit. Nothing is rest
 | `<Space>tt` | `n`  | Toggle terminal |
 
 `<C-\>` is not a terminal toggle: it is vim-tmux-navigator's "previous pane".
+
+`<Space>tt` is normal-mode only. To hide the float from inside the terminal, press `<C-\><C-n>` then `<Space>tt`, or `exit` the shell.
 
 ## Line Wrap
 
@@ -447,10 +448,9 @@ Standard LSP mappings (`gd`, `K`, `<Space>lr`, etc.) also work here. Diagnostics
 | :---------- | :--- | :--------------------------- |
 | `<Space>xx` | `n`  | Toggle workspace diagnostics |
 | `<Space>xX` | `n`  | Toggle buffer diagnostics    |
-
-| `<Space>xr` | `n` | Toggle LSP references |
-| `<Space>xl` | `n` | Toggle location list |
-| `<Space>xq` | `n` | Toggle quickfix list |
+| `<Space>xr` | `n`  | Toggle LSP references        |
+| `<Space>xl` | `n`  | Toggle location list         |
+| `<Space>xq` | `n`  | Toggle quickfix list         |
 
 ## TODO Comments
 

@@ -16,6 +16,7 @@ return {
         "markdown_inline",
         "typescript",
         "javascript",
+        "tsx",
         "go",
         "rust",
         "python",
@@ -280,6 +281,7 @@ return {
         -- Leader groups (with clear visual indicators)
         { "<leader>c", group = " Copy...", icon = "" },
         { "<leader>d", group = " Debug...", icon = "" },
+        { "<leader>e", group = " Edit config...", icon = "" },
         { "<leader>f", group = "󰍉 Find/Search...", icon = "" },
         { "<leader>g", group = " Git...", icon = "" },
         { "<leader>G", group = " Go...", icon = "" },
@@ -289,6 +291,7 @@ return {
         { "<leader>z", group = " Spell/Grammar...", icon = "" },
         { "<leader>T", group = "󰙨 Test...", icon = "" },
         { "<leader>t", group = " Toggle...", icon = "" },
+        { "<leader>v", group = " Vim practice...", icon = "" },
         { "<leader>x", group = " Trouble/Diagnostics...", icon = "" },
 
         -- Find/Telescope mappings (with commands)
