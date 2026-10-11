@@ -66,16 +66,16 @@ edit_secrets
 # GOOD: View decrypted secrets without editing
 sops -d ~/.env
 
-# GOOD: Use .env.example template
-cp zsh/.env.example zsh/.env
-edit_secrets
+# GOOD: Start from the keys listed in zsh/.env.example
+edit_secrets   # creates/edits the encrypted ~/.env
 ```
 
 #### What NOT to Do
 
 ```bash
-# BAD: Don't commit .env files
-git add zsh/.env  # NEVER DO THIS
+# BAD: Don't keep secrets inside the repo checkout (nothing reads zsh/.env,
+# and one `git add -f` or `git stash -u` would publish it)
+cp zsh/.env.example zsh/.env  # NEVER DO THIS; use edit_secrets (~/.env)
 
 # BAD: Don't share encryption keys
 cat ~/.config/sops/age/keys.txt  # Keep this private
@@ -98,15 +98,18 @@ The following should ALWAYS be encrypted:
 
 #### Template Usage
 
-Use `zsh/.env.example` as a template:
+`zsh/.env.example` lists the keys a machine needs. Add them to the encrypted
+`~/.env` with `edit_secrets`; never copy the template to `zsh/.env`:
 
 ```bash
-# Copy template
-cp zsh/.env.example zsh/.env
-
-# Edit with SOPS encryption
+# Decrypts ~/.env into a private temp dir, opens $EDITOR (vim/nvim without
+# swap/undo files), re-encrypts, and checks the result decrypts before saving
 edit_secrets
 ```
+
+`~/.sops.yaml` (which age recipient new secrets are encrypted to) is per
+machine: `init.sh` writes it from `bash/.sops.yaml.example` with this machine's
+public key, and it is not tracked in the repo.
 
 ### Git Security
 

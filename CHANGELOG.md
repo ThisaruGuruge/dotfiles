@@ -10,7 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - Hardened the CI workflows: release and auto-tag no longer interpolate `${{ }}` expressions into shell scripts (values pass through `env:` and are quoted), release tags are validated as `X.Y.Z`, and the changelog section is matched literally. Actions are pinned to commit SHAs with a Dependabot `github-actions` weekly update, workflows start from `permissions: {}` with per-job grants (the auto-tag `check` job is read-only), `validate.yml` is `contents: read`, checkouts that push nothing no longer persist credentials, and shfmt is built with `go install` at v3.7.0 instead of a downloaded binary.
-
+- Changed how the shell loads `~/.env`: one loader (`_dotfiles_load_env` in `.functions.d/06-dotfiles.zsh`) serves cache hits and misses, and parses `[export ]NAME=value` lines instead of `source`/`eval`. Single-quoted values are taken literally, double-quoted values expand only `$NAME`/`${NAME}` and the usual `\` escapes, and lines with `$(...)`, backticks or reserved names (`PATH`, `IFS`, `PS1`, `LD_*`, hook arrays, ...) are skipped and reported by name only. The decrypted cache is written under `umask 077` into a `0700` `~/.cache/zsh` and renamed into place, a cache that isn't a regular file you own is ignored, and the decrypted text no longer lingers in a shell variable. The IDE fast path in `.zshrc` uses the same loader instead of `source ~/.env` (which ran the encrypted file as shell code)
+- Changed `edit_secrets` to keep the plaintext in a private `mktemp -d` directory that is removed on exit or interrupt, run vim/nvim without swap, undo, backup or shada files, and replace `~/.env` only after the new file decrypts back to the edits. Only encrypted backups are kept (`~/.env.backup.<timestamp>`, newest 3)
+- Changed `init.sh` to encrypt a plaintext `~/.env` without leaving a plaintext `~/.env.backup`: the safety copy lives in a private temp directory, the ciphertext is checked with a `sops -d` round trip before and after it replaces the file, and the copy is deleted
+- Changed the Touch ID setup to load `pam_reattach.so` from a root-owned copy in `/opt/pam` (`root:wheel`, mode 444) instead of the user-writable Homebrew prefix, which let any process running as you get root on the next `sudo`. `init.sh` offers to migrate an existing `sudo_local` and to refresh the copy after `brew upgrade pam-reattach`, and `test-zsh` fails while the configured module isn't root-owned
+- Changed `~/.sops.yaml` to a per-machine file: `bash/.sops.yaml` is no longer tracked or stowed (new machines and forks encrypted to the repo owner's age key). `init.sh` writes `~/.sops.yaml` from `bash/.sops.yaml.example` with the local key, replaces the old symlink, and checks that `~/.env` decrypts with this machine's key
+- Removed the `dotenv`, `layout_node`, `layout_python` and `layout_go` overrides and the `use_pyenv`, `use_rbenv`, `use_java`, `use_docker_compose`, `use_kubectl_context` and `layout_java` helpers from `direnv/.direnvrc`. The `dotenv` override sourced project `.env` files as shell code on `cd`; `use_project_env` now uses the stdlib `dotenv_if_exists` and `layout node`/`layout python3`, and `use_nvm` also finds Homebrew's nvm
+- Added `.gitignore` entries for the secrets the `.bestowignore` files keep out of `$HOME` (`.env.*`, `gh` `hosts.yml`, atuin `key`/`session`/history, `*.token`, `*.key`, `*.pem`, `credentials*`), and `bin/adopt-config` now lists only file names when it finds sensitive-looking content and warns about git-ignored files it moved into the repo
+- Added `test-zsh` checks for a plaintext `~/.env`, a `zsh/.env` in the repo, plaintext `~/.env.backup*` files, the env cache's permissions and a `~/.sops.yaml` that is a symlink or lacks this machine's key
 ### Added
 
 - Added `bin/lint`, a single lint entry point (also run by CI): `shellcheck` and `shfmt -i 4 -ci -d` on an explicit list of bash scripts, `zsh -n` on the zsh modules and zsh scripts, `stylua --check nvim/.config/nvim`, and `claude plugin test` for every mod in `claude-mods/` with hooks (local only; skipped when `claude` is not installed, as in CI). It fails when a script in `bin/` is missing from its file lists, and also covers the Claude `statusline-command.sh` scripts. `validate.yml` now calls it
@@ -54,6 +61,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `nvim/.config/nvim/lua/plugins/telescope/multigrep.lua`, a dead duplicate of the multi-grep picker defined inline in `telescope.lua` (its `setup` was never called). Run `bestow stow nvim` and delete the dangling `~/.config/nvim/lua/plugins/telescope/multigrep.lua` symlink
 - Removed `nvim/.config/nvim/lua/plugins/telescope/multigrep.lua`, a dead duplicate of the multi-grep picker defined inline in `telescope.lua` (its `setup` was never called). Run `bestow stow nvim` (it links per file, so it is also needed for the new `persistence.lua`) and delete the dangling `~/.config/nvim/lua/plugins/telescope/multigrep.lua` symlink
 - Removed the `Alt+Arrow` pane-switching binds from tmux (Alt+Left/Right now do word navigation in the shell), and the dead `y` copy-mode line that tmux-yank overrode
+- Removed `setup_environment` from `init.sh`, which copied `.env.example` to `zsh/.env` inside the repo, where nothing read it and a filled-in copy was one `git add -f` from being published
+- Removed the empty `noto` package (it held only a `.bestowignore`)
 
 ### Fixed
 
@@ -71,6 +80,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed the Neovim and yazi docs listing keys that don't exist (`<leader>cw`, `<leader>xs`, `<S-CR>`, a duplicated `<leader>xt`, `{`/`}` for aerial)
 - Fixed the `agents` mod's `/agents` command never registering: `/agents` is Claude Code's own command, so the registration was refused and threw, which aborted the rest of the `session.start` hook and left the 1-second clock unstarted, so a running agent's elapsed time never ticked. The toggle is now `/agents-pane`, the clock starts first, and a refused registration is caught instead of aborting the hook
 - Fixed the `agents` pane hiding agents behind a "+N older" line: it now lists every agent (the last 100) and scrolls with the mouse wheel instead of capping at a row count. The band above the prompt keeps its cap of 6 and points at `/agents-pane` for the rest
+- Fixed encrypted `~/.env` detection: sops encrypts dotenv files value by value, so the old "first line starts with `#ENC[`" test failed for files that don't start with a comment. The shell, `edit_secrets` and `init.sh` now look for the `sops_mac=` line. In `init.sh` this made the secrets step restore the plaintext and abort the whole install
+- Fixed `init.sh` exiting silently under `set -e` when `test_installation` counted its first error (`((errors++))` from 0); the secrets step and the final test now report problems and let the installer finish
+- Fixed `edit_secrets` reporting "saved" when the save didn't happen: it calls `command cp`/`command mv` (the `cp`/`mv` aliases prompted inside the function) and checks the move before printing success
+- Fixed every `git commit` failing on a fresh machine: `git/.gitconfig.local.example` now sets `signingkey = ~/.ssh/id_ed25519_signing.pub`, and `init.sh` warns when the configured signing key is missing and offers to create it
+- Fixed tmux on a fresh machine failing on its `run tpm` line: `init.sh` installs TPM at `v3.1.0` (checked against the tag's commit) and the plugins
+- Fixed the SDKMAN installer pipe running on an HTTP error page (`curl -fsSL`)
+- Fixed Intel Macs: `.zprofile` detects the Homebrew prefix (`/opt/homebrew` or `/usr/local`) and the nvm stubs, `profile-zsh-startup` and `test-zsh` use `$HOMEBREW_PREFIX`
+- Fixed `init.sh` skipping the `colima` package when stowing
 
 ## [2.7.0] - 2026-10-11
 
