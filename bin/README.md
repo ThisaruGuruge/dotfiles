@@ -108,6 +108,20 @@ It is a script in `bin/`, so it works from any shell. It checks the repo the scr
 
 `bin/test-shell-helpers` exercises it (exit codes, hard errors, worktrees, `--full`) together with `envrc`, `prs`/`prw` and the direnv hook, using a scratch `HOME` and fake `gh`/`fzf`/`claude`/`brew`; `test-zsh` runs it.
 
+### `claude-statusline` / `claude-tmux-state`
+Claude Code helpers, called from `claude/.claude-*/` by their repo path (`~/dotfiles/bin/...`): the root
+`.bestowignore` skips `claude-*`, so they are not linked into `~/bin`.
+
+- `claude-statusline --label NAME --color 'R;G;B' [--cost nonzero|always]` draws the status line both
+  accounts' `statusline-command.sh` exec: account, Remote Control (`◉ RC` / `○ RC off`), vim mode,
+  directory and git, model, cost, tokens. One `jq` and one `git status --porcelain=v2 --branch` per refresh.
+  The RC segment reads undocumented Claude Code internals; see the script's header for its limits.
+- `claude-tmux-state working|waiting|done|clear` sets (or clears) the tmux window option `@claude_state`
+  on the window of `$TMUX_PANE`, from the UserPromptSubmit, Notification, Stop and SessionEnd hooks.
+  Silent, always exits 0, a no-op outside tmux.
+
+Both are checked by `tests/claude/check.sh`, which `test-zsh` runs.
+
 ### `sync-brewfile`
 Report drift between what Homebrew has installed and what the Brewfiles declare. Also available as the `brew-sync` alias.
 
