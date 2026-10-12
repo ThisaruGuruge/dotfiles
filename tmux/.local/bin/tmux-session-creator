@@ -45,7 +45,7 @@ if [[ -z "$session_dir" ]]; then
     session_dir="$HOME"
 fi
 
-# Create the new session (Long Runs / CLAUDE / NVim windows; SESSIONIZER_LAYOUT=bare
+# Create the new session ([Claude] / [Nvim] / [Shell] windows; SESSIONIZER_LAYOUT=bare
 # for a single shell window). Falls back to a plain session if the helper is missing.
 layout_helper="$(cd "$(dirname "$0")" && pwd)/tmux-session-layout"
 if [[ -x "$layout_helper" ]]; then

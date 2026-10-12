@@ -182,13 +182,13 @@ A session created by `prefix + f` or `prefix + S` starts with three windows, in 
 
 | # | Window | Contents |
 |---|--------|----------|
-| 1 | `Long Runs` | A plain shell for servers, builds, anything you leave running |
-| 2 | `CLAUDE` | Runs `claude` through direnv: the directory's `.envrc` (if any) is exported first, so it picks the account (personal or enterprise). If the `.envrc` is blocked or fails, `claude` still starts with the default account and direnv prints why (`direnv allow` fixes it) |
-| 3 | `NVim` | `nvim` in the top pane (about 80%), a plain shell below (about 20%). The session opens on this window |
+| 1 | `[Claude]` | Runs `claude` through direnv: the directory's `.envrc` (if any) is exported first, so it picks the account (personal or enterprise). If the `.envrc` is blocked or fails, `claude` still starts with the default account and direnv prints why (`direnv allow` fixes it) |
+| 2 | `[Nvim]` | `nvim` in the top pane (about 80%), a plain shell below (about 20%). The session opens on this window |
+| 3 | `[Shell]` | A plain shell for servers, builds, anything you leave running |
 
 - The layout is applied only when a session is created. Existing sessions are never touched, and the window names stay fixed (automatic rename is off for them).
 - `SESSIONIZER_LAYOUT=bare` gives a single shell window instead. Export it before tmux starts, or switch it on a running server with `tmux set-environment -g SESSIONIZER_LAYOUT bare` (`tmux set-environment -gu SESSIONIZER_LAYOUT` turns it off again).
-- New sessions are created at the size of your terminal, so the 80/20 split of the `NVim` window is right as soon as you attach.
+- New sessions are created at the size of your terminal, so the 80/20 split of the `[Nvim]` window is right as soon as you attach.
 - Two projects with the same folder name get parent-qualified session names: `api` for the first, `personal/api` for the second. A session counts as belonging to a project when any of its panes is in that directory, so a session you made with `prefix + S` and `cd`'d into the project is reused. A `$` in a folder name becomes `_`; `prefix + S` also keeps `/` in names, so `work/api` typed there matches the sessionizer's name.
 - `tmux-session-layout` and `tmux-claude-next` are bestow-linked into `~/.local/bin` like the other tmux scripts: after pulling, run `bestow stow tmux` if either is missing. Until then the sessionizer and `prefix + S` print a warning and open a bare session, and `prefix + A` says the helper is missing.
 - `prefix + s` only switches between sessions; it does not create anything.
