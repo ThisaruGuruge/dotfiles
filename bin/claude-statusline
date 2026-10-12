@@ -17,7 +17,7 @@
 #   2. failing that, a `bridgeSessionId` key in ${CLAUDE_CONFIG_DIR:-~/.claude}/sessions/<claude pid>.json
 #      (the pid is $PPID: Claude runs `bash statusline-command.sh`, which execs this script).
 # It means "a bridge handle exists": it cannot tell waiting from attached from reconnecting, and an
-# outbound-only mirror session shows RC too. Settings refresh the line every 5 s (refreshInterval)
+# outbound-only mirror session shows RC too. Settings refresh the line every 15 s (refreshInterval)
 # because toggling /remote-control raises none of the usual refresh events.
 #
 # CLAUDE_STATUSLINE_COLUMNS, when set, is the terminal width (tests use it; a status line may have
@@ -51,18 +51,30 @@ model=""
 cost=""
 tokens_used=""
 tokens_max=""
+ESC=""
+TAB=""
+SEP=""
 eval "$(jq -r '
     @sh "cwd=\(.workspace.current_dir // .cwd // "")",
     @sh "vim_mode=\(.vim.mode // "")",
     @sh "model=\(.model.display_name // "")",
     @sh "cost=\(.cost.total_cost_usd // .session.cost_usd // "")",
     @sh "tokens_used=\(.context_window.total_input_tokens // "")",
-    @sh "tokens_max=\(.context_window.context_window_size // "")"
+    @sh "tokens_max=\(.context_window.context_window_size // "")",
+    @sh "ESC=\("\u001b")",
+    @sh "TAB=\("\t")",
+    @sh "SEP=\("\u001f")"
 ' 2>/dev/null)"
+# jq hands over the control characters too (no printf subshells); fall back if it did not run
+[ -n "$ESC" ] || ESC=$(printf '\033')
+[ -n "$TAB" ] || TAB=$(printf '\t')
+[ -n "$SEP" ] || SEP=$(printf '\037')
 
 # ── Directory ────────────────────────────────────────────────────────────────
 [ -z "$cwd" ] && cwd=$(pwd)
-dir_name=$(basename "$cwd")
+dir_name=${cwd%/}
+dir_name=${dir_name##*/}
+[ -n "$dir_name" ] || dir_name=/
 [ "$cwd" = "$HOME" ] && dir_name="~"
 
 # ── Git branch + status counts: one git status ──────────────────────────────
@@ -70,28 +82,34 @@ git_branch=""
 git_staged=0
 git_unstaged=0
 git_untracked=0
-TAB=$(printf '\t')
-# --no-ahead-behind: the counts are not shown, and on a far-diverged branch they cost a walk every 5 s
-if git_out=$(GIT_OPTIONAL_LOCKS=0 git -C "$cwd" status --porcelain=v2 --branch --no-ahead-behind 2>/dev/null); then
-    IFS=$TAB read -r git_head _ git_staged git_unstaged git_untracked <<EOF
-$(printf '%s\n' "$git_out" | awk '
+# --no-ahead-behind: the counts are not shown, and on a far-diverged branch they cost a walk on every refresh
+# git feeds awk directly; awk prints nothing when git failed (no `# branch.head` line), which
+# sends a repo without a work tree to the fallback below
+IFS=$TAB read -r git_head _ git_staged git_unstaged git_untracked <<EOF
+$(GIT_OPTIONAL_LOCKS=0 git -C "$cwd" status --porcelain=v2 --branch --no-ahead-behind 2>/dev/null | awk '
     /^# branch\.oid / { oid = $3 }
-    /^# branch\.head / { head = substr($0, 15) }
+    /^# branch\.head / { head = substr($0, 15); seen = 1 }
     /^[12u] / {
         if (substr($2, 1, 1) ~ /[MADRC]/) s++
         if (substr($2, 2, 1) ~ /[MD]/) u++
     }
     /^\? / { n++ }
-    END { printf "%s\t%s\t%d\t%d\t%d\n", head, oid, s, u, n }')
+    END { if (seen) printf "%s\t%s\t%d\t%d\t%d\n", head, oid, s, u, n }')
 EOF
+if [ -n "$git_head" ]; then
     if [ "$git_head" != "(detached)" ]; then
         git_branch="$git_head"
     elif short=$(GIT_OPTIONAL_LOCKS=0 git -C "$cwd" rev-parse --short HEAD 2>/dev/null); then
         git_branch="@$short"
     fi
-elif git_out=$(GIT_OPTIONAL_LOCKS=0 git -C "$cwd" symbolic-ref --short HEAD 2>/dev/null); then
-    # Inside a repo but not a work tree (.git itself, a bare repo): branch only, as before
-    git_branch="$git_out"
+else
+    git_staged=0
+    git_unstaged=0
+    git_untracked=0
+    if git_out=$(GIT_OPTIONAL_LOCKS=0 git -C "$cwd" symbolic-ref --short HEAD 2>/dev/null); then
+        # Inside a repo but not a work tree (.git itself, a bare repo): branch only, as before
+        git_branch="$git_out"
+    fi
 fi
 
 # ── Remote Control bridge ────────────────────────────────────────────────────
@@ -100,13 +118,13 @@ if [ -n "${CLAUDE_CODE_BRIDGE_SESSION_ID:-}" ]; then
     rc_on=1
 else
     session_file="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sessions/$PPID.json"
-    if [ -f "$session_file" ] && jq -e '.bridgeSessionId != null' "$session_file" >/dev/null 2>&1; then
+    # grep instead of a second jq: a bridgeSessionId key whose value is not null
+    if [ -f "$session_file" ] && grep -Eq '"bridgeSessionId"[[:space:]]*:[[:space:]]*[^n[:space:]]' "$session_file" 2>/dev/null; then
         rc_on=1
     fi
 fi
 
 # ── Colors (Catppuccin Mocha palette, ANSI true-color) ───────────────────────
-ESC=$(printf '\033')
 RESET="${ESC}[0m"
 DIR_BG="${ESC}[48;2;49;50;68m"
 DIR_FG="${ESC}[38;2;205;214;244m"
@@ -214,7 +232,10 @@ fi
 # Terminal width: stty needs a controlling terminal, which a status line may not have
 cols=${CLAUDE_STATUSLINE_COLUMNS:-}
 case "$cols" in
-    '' | *[!0-9]*) cols=$({ stty size </dev/tty; } 2>/dev/null | cut -d' ' -f2) ;;
+    '' | *[!0-9]*)
+        cols=$({ stty size </dev/tty; } 2>/dev/null)
+        cols=${cols#* }
+        ;;
 esac
 case "$cols" in
     '' | *[!0-9]*) cols=${COLUMNS:-0} ;;

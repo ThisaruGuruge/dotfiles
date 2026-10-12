@@ -9,7 +9,7 @@
   "statusLine": {
     "type": "command",
     "command": "bash /Users/thisaru/.claude-enterprise/statusline-command.sh",
-    "refreshInterval": 5
+    "refreshInterval": 15
   },
   "hooks": {
     "UserPromptSubmit": [
