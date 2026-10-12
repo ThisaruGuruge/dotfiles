@@ -23,7 +23,7 @@ CHANGELOG.md
 CONTRIBUTING.md
 SECURITY.md
 KEYBINDINGS.md
-claude-*
+claude-mods
 **/*.brewfile
 .nvim-state
 **/*.example
