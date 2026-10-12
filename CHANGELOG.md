@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Changed Neovim to stop writing undo files for files that hold secrets (`.env` and `.env.*`, `*.env`, keys and certificates, `credentials*`, `.netrc`, `.npmrc`, `.pypirc`, `.git-credentials`, `gradle.properties`, `*.tfvars`, Ballerina `Config.toml`): `undofile` saved their text, unencrypted, under `~/.local/state/nvim/undo`, which had collected API keys and tokens from edited project files
+
 ## [2.8.1] - 2026-10-12
 
 ### Fixed
