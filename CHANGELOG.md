@@ -9,17 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.9.0] - 2026-10-12
 
-### Added
-
-- Added `bin/claude-notify`, wired into both Claude Code accounts' hooks, which shows a macOS notification (via `osascript`, title `Claude · <repo> (Personal|Work)`) when a session finishes (`Stop`) or needs you (`Notification`: permission prompt or idle, and `PreToolUse` on `AskUserQuestion`); subagent completion (`SubagentStop`) is opt-in with `CLAUDE_NOTIFY_SUBAGENTS=1`. It stays quiet while the terminal is frontmost and, in tmux, this pane's window is showing; repeats within 2 s send one notification; `CLAUDE_NOTIFY=0`, `CLAUDE_NOTIFY_ALWAYS=1` and `CLAUDE_NOTIFY_SOUND` adjust it. Title, body and sound are passed to AppleScript as argv, and `tests/claude/check.sh` covers it with a fake `osascript`. One-time setup: allow banners and sounds for Script Editor in System Settings > Notifications
-- Added `uv` (fast Python package and project manager) to the core `Brewfile`; it appears in `show_tools` / `list_dotfiles_tools`, which read the Brewfile, and `test-zsh` checks it
-
 ### Security
 
 - Changed Neovim to stop writing undo files for files that hold secrets (`.env` and `.env.*`, `*.env`, keys and certificates, `credentials*`, `.netrc`, `.npmrc`, `.pypirc`, `.git-credentials`, `gradle.properties`, `*.tfvars`, Ballerina `Config.toml`): `undofile` saved their text, unencrypted, under `~/.local/state/nvim/undo`, which had collected API keys and tokens from edited project files
 
 ### Added
 
+- Added `bin/claude-notify`, wired into both Claude Code accounts' hooks, which shows a macOS notification (via `osascript`, title `Claude · <repo> (Personal|Work)`) when a session finishes (`Stop`) or needs you (`Notification`: permission prompt or idle, and `PreToolUse` on `AskUserQuestion`); subagent completion (`SubagentStop`) is opt-in with `CLAUDE_NOTIFY_SUBAGENTS=1`. It stays quiet while the terminal is frontmost and, in tmux, this pane's window is showing; repeats within 2 s send one notification; `CLAUDE_NOTIFY=0`, `CLAUDE_NOTIFY_ALWAYS=1` and `CLAUDE_NOTIFY_SOUND` adjust it. Title, body and sound are passed to AppleScript as argv, and `tests/claude/check.sh` covers it with a fake `osascript`. One-time setup: allow banners and sounds for Script Editor in System Settings > Notifications
+- Added `uv` (fast Python package and project manager) to the core `Brewfile`; it appears in `show_tools` / `list_dotfiles_tools`, which read the Brewfile, and `test-zsh` checks it
 - Added `bin/rebuild-env`, which rebuilds `~/.env` after sops reports `MAC mismatch` (the encrypted file was edited by hand): it keeps, replaces or removes each variable with hidden prompts, adds new ones, verifies the round trip and keeps the broken file as `~/.env.broken-mac.<time>`; `edit_secrets` now points to it when decryption fails with that error, and `test-shell-helpers` covers both
 - Added the `writing-ballerina-beps` Claude skill (`SKILL.md` and `bep-template.md`) under `claude/.claude-personal/skills/`, linked into `~/.claude-personal/skills/` by `bestow stow claude`
 
