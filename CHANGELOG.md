@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `uv` (fast Python package and project manager) to the core `Brewfile`; it appears in `show_tools` / `list_dotfiles_tools`, which read the Brewfile, and `test-zsh` checks it
+
 ### Security
 
 - Changed Neovim to stop writing undo files for files that hold secrets (`.env` and `.env.*`, `*.env`, keys and certificates, `credentials*`, `.netrc`, `.npmrc`, `.pypirc`, `.git-credentials`, `gradle.properties`, `*.tfvars`, Ballerina `Config.toml`): `undofile` saved their text, unencrypted, under `~/.local/state/nvim/undo`, which had collected API keys and tokens from edited project files
