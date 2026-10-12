@@ -5,6 +5,12 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main, dev ]
+    # The release workflow's bot PR (release/changelog-*) only touches
+    # CHANGELOG.md. Runs for github-actions[bot] PRs sit in "approval required"
+    # (repo policy: all external contributors) and expire as a red X, because
+    # the bot PR is merged immediately. Nothing here validates CHANGELOG.md.
+    paths-ignore:
+      - CHANGELOG.md
 
 permissions:
   contents: read
