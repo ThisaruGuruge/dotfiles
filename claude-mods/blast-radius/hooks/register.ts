@@ -54,8 +54,8 @@ async function git($: Sh, w: Where, risk: Risk, args: string[]): Promise<string>
 // Counting entries must not stream them into this process: `$.process.run` caps
 // stdout (4 MiB) and a big tree's listing is larger, so the count came out low.
 // The path is a positional argument of the script, never part of it.
-const COUNT_FILES = 'find "$1" -type f | wc -l'
-const COUNT_ALL = 'find "$1" | wc -l'
+const COUNT_FILES = 'find -- "$1" -type f | wc -l'
+const COUNT_ALL = 'find -- "$1" | wc -l'
 
 async function countEntries($: Sh, w: Where, script: string, path: string): Promise<string> {
   const r = await run($, w, ['sh', '-c', script, 'sh', path])
@@ -212,7 +212,7 @@ async function previewFor($: Sh, risk: Risk): Promise<string[]> {
       if (r.isStdoutTruncated) hits.pop()
       const more = r.isStdoutTruncated ? '+' : ''
       const out = hits.length ? [`Would delete ${hits.length}${more} entries:`, ...clip(hits)] : ['Nothing matches right now']
-      if (r.exitCode !== 0) out.push(`(find also reported errors: ${r.stderr.trim().split('\n')[0]?.slice(0, 150) ?? ''})`)
+      if (r.exitCode !== 0 && !r.isStdoutTruncated) out.push(`(find also reported errors: ${r.stderr.trim().split('\n')[0]?.slice(0, 150) ?? ''})`)
       return out
     }
     case 'rsync-delete': {

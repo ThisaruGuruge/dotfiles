@@ -193,9 +193,17 @@ describe('previews where the command runs', () => {
     await $.tool.call(bash(`rm -rf '${odd}'`))
     const count = eng.calls.find(c => c.argv[0] === 'sh')
     expect(count?.argv.slice(0, 2)).toEqual(['sh', '-c'])
-    expect(count?.argv[2]).toBe('find "$1" -type f | wc -l')
+    expect(count?.argv[2]).toBe('find -- "$1" -type f | wc -l')
     expect(count?.argv[4]).toBe(odd)
     expect(eng.asked[0]).toContain('directory: 123456 files, 2.0')
+  })
+
+  test('a non-numeric wc output counts as ?', async ($, on) => {
+    const eng = engine(on, 'Cancel', argv =>
+      argv[0] === 'sh' ? { exitCode: 0, stdout: 'find: oops\n' } : argv[0] === 'du' ? { exitCode: 0, stdout: '2048\t/x' } : { exitCode: 0, stdout: 'Directory' },
+    )
+    await $.tool.call(bash('rm -rf /tmp/a'))
+    expect(eng.asked[0]).toContain('directory: ? files')
   })
 
   test('rm previews every target, in order, and counts a big tree in full', async ($, on) => {
