@@ -55,6 +55,33 @@ log_step() {
     echo ""
 }
 
+# Installed Homebrew formulae and casks, read once: `brew list <name>` starts a
+# Ruby process per call, which adds up over a few dozen packages. Names are
+# matched whole-line and also by their last path component, so a tap-qualified
+# entry ("user/tap/name") still finds the installed "name".
+BREW_FORMULAE=""
+BREW_CASKS=""
+BREW_LISTED=false
+
+load_brew_lists() {
+    [ "$BREW_LISTED" = true ] && return 0
+    BREW_FORMULAE=$(brew list -1 --formula 2>/dev/null || true)
+    BREW_CASKS=$(brew list -1 --cask 2>/dev/null || true)
+    BREW_LISTED=true
+}
+
+brew_formula_installed() {
+    [ -n "$1" ] || return 1
+    load_brew_lists
+    grep -qxF -e "$1" -e "${1##*/}" <<<"$BREW_FORMULAE"
+}
+
+brew_cask_installed() {
+    [ -n "$1" ] || return 1
+    load_brew_lists
+    grep -qxF -e "$1" -e "${1##*/}" <<<"$BREW_CASKS"
+}
+
 # Enhanced user confirmation function with single key press
 confirm() {
     while true; do
@@ -277,7 +304,7 @@ install_dev_tools() {
 
     # Check and install each tool individually
     for tool in pyenv rbenv nvm; do
-        if brew list "$tool" >/dev/null 2>&1; then
+        if brew_formula_installed "$tool"; then
             log_success "$tool already installed"
         else
             local description
@@ -420,7 +447,7 @@ install_terminal_apps() {
                     local install_status=""
 
                     if [ "$package_type" = "cask" ]; then
-                        if brew list --cask "$package_name" >/dev/null 2>&1; then
+                        if brew_cask_installed "$package_name"; then
                             already_installed=true
                             install_status="via Homebrew"
                         else
@@ -434,7 +461,7 @@ install_terminal_apps() {
                             fi
                         fi
                     else
-                        if brew list "$package_name" >/dev/null 2>&1; then
+                        if brew_formula_installed "$package_name"; then
                             already_installed=true
                             install_status="via Homebrew"
                         fi

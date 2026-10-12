@@ -200,7 +200,9 @@ if ! command -v brew >/dev/null 2>&1; then
     print_test "brew bundle" "warn" "Homebrew not installed; skipping Brewfile check"
 elif [[ ! -f "$BREWFILE_PATH" ]]; then
     print_test "brew bundle" "warn" "Brewfile not found at $BREWFILE_PATH"
-elif brew bundle check --no-upgrade --file="$BREWFILE_PATH" >/dev/null 2>&1; then
+# Read-only and offline: without these, `brew bundle` auto-updates first (network, writes to the Homebrew repo)
+elif HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_ANALYTICS=1 HOMEBREW_NO_ENV_HINTS=1 HOMEBREW_NO_INSTALL_CLEANUP=1 \
+    brew bundle check --no-upgrade --file="$BREWFILE_PATH" >/dev/null 2>&1; then
     print_test "brew bundle" "pass" "All Brewfile entries are installed"
 else
     print_test "brew bundle" "warn" "Missing Brewfile entries (run: brew bundle --file=$BREWFILE_PATH; list them with: brew bundle check --verbose --file=$BREWFILE_PATH; ballerina is listed in Brewfile but may be a direct install)"
