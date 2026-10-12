@@ -383,8 +383,13 @@ edit_secrets() {
         if _dotfiles_is_sops_encrypted "$env_file"; then
             echo "🔓 Decrypting .env file for editing..."
             # Explicit format: a symlink target may not be named *.env
-            if ! command sops -d --input-type dotenv --output-type dotenv "$env_file" >"$plain_file"; then
+            if ! command sops -d --input-type dotenv --output-type dotenv "$env_file" >"$plain_file" 2>"$err_file"; then
                 echo "❌ Failed to decrypt $env_file (is it encrypted to this machine's age key?)"
+                if command grep -q 'MAC mismatch' "$err_file" 2>/dev/null; then
+                    echo "   The file was probably edited outside edit_secrets, which breaks its checksum."
+                    echo "   Run rebuild-env: it reads the values anyway, lets you keep, replace or remove"
+                    echo "   each variable, and writes a clean ~/.env (the old file is kept)."
+                fi
                 return 1
             fi
             echo "✅ File decrypted successfully"

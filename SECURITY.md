@@ -70,6 +70,10 @@ sops -d ~/.env
 edit_secrets   # creates/edits the encrypted ~/.env
 ```
 
+#### Recovering from `MAC mismatch`
+
+Editing the encrypted `~/.env` directly (deleting or changing lines in a normal editor) breaks its checksum, and sops then refuses to decrypt it. `edit_secrets` detects this and points to `rebuild-env`, which reads the values with `sops --ignore-mac`, lets you keep, replace or remove each variable (hidden prompts, nothing printed), writes a freshly signed file, and keeps the broken one as `~/.env.broken-mac.<time>` (still encrypted; delete it once everything works).
+
 #### What NOT to Do
 
 ```bash

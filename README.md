@@ -428,6 +428,8 @@ The Catppuccin Mocha palette used by the prompt matches the tmux status bar exac
 - `zsh -n ~/.p10k.zsh` – Validate prompt config syntax without sourcing it
 - `brew bundle check` – Confirm Brew dependencies match Brewfile before running Bundle again
 
+- `rebuild-env` (`bin/rebuild-env`) – Recovers `~/.env` when `sops` reports `MAC mismatch` (the encrypted file was edited by hand, so `edit_secrets` refuses it). It keeps, replaces or removes each variable with hidden prompts, re-encrypts, verifies the result and keeps the broken file as `~/.env.broken-mac.<time>`; `edit_secrets` points to it when it sees that error
+
 Common fixes:
 
 ```bash
