@@ -95,6 +95,7 @@ BASH_FILES=(
     bin/gwsp
     bin/lint
     bin/profile-startup
+    bin/rebuild-env
     bin/reset-dotfiles
     bin/sync-brewfile
     bin/claude-statusline

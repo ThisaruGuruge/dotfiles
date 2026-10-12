@@ -1,0 +1,144 @@
+#!/bin/bash
+# Rebuild ~/.env after sops reports "MAC mismatch".
+#
+# Why it happens: sops stores a checksum (the MAC) over the whole file. Deleting or
+# changing lines by hand in the ENCRYPTED file (for example removing two API keys
+# from ~/.env in a normal editor) makes the checksum wrong, and sops then refuses to
+# decrypt, so `edit_secrets` fails and the shell cannot load your secrets.
+# The values are still readable with `sops --ignore-mac`; this script uses that to
+# rebuild a clean, correctly-signed file.
+#
+# What it does, in order:
+#   1. Refuses to run if ~/.env already decrypts normally (then use edit_secrets).
+#   2. Reads the variable names (and values, only into a private temp dir) with --ignore-mac.
+#   3. Asks, per variable: keep, replace (hidden input) or remove. Lets you add new ones.
+#   4. Encrypts the result to a new file next to ~/.env, checks it decrypts and has
+#      exactly the names you chose.
+#   5. Keeps the broken file as ~/.env.broken-mac.<time> (still encrypted), then swaps
+#      the new file in. Plaintext only ever exists in a 0700 temp dir that is removed on exit.
+#
+# Values are never printed. Secrets typed here are hidden and never go into shell history.
+#
+# Usage:   rebuild-env
+# Test overrides (leave unset normally): ENV_FILE, SOPS_CONFIG, SOPS_AGE_KEY_FILE, PROMPT_INPUT
+
+set -euo pipefail
+umask 077
+
+ENV_FILE="${ENV_FILE:-$HOME/.env}"
+sops_config="${SOPS_CONFIG:-$HOME/.sops.yaml}"
+# sops reads SOPS_CONFIG itself; the config is passed explicitly where it is needed.
+unset SOPS_CONFIG
+export SOPS_AGE_KEY_FILE="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
+
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
+
+command -v sops >/dev/null || die "sops is not installed (brew install sops)"
+command -v age-keygen >/dev/null || die "age is not installed (brew install age)"
+[ -f "$ENV_FILE" ] || die "$ENV_FILE does not exist"
+[ -f "$SOPS_AGE_KEY_FILE" ] || die "age key not found at $SOPS_AGE_KEY_FILE"
+
+# How to tell sops who may decrypt: the machine's ~/.sops.yaml if it lists our key,
+# else our own public key directly (same rule edit_secrets uses).
+recipient="$(age-keygen -y "$SOPS_AGE_KEY_FILE")"
+if [ -f "$sops_config" ] && grep -qF "$recipient" "$sops_config"; then
+    sops_args=(--config "$sops_config")
+else
+    printf 'note: %s missing or does not list this machine key; encrypting to the key directly.\n' "$sops_config"
+    sops_args=(--config /dev/null --age "$recipient")
+fi
+
+# 1. Is it actually broken?
+if sops -d --input-type dotenv --output-type dotenv "$ENV_FILE" >/dev/null 2>&1; then
+    echo "$ENV_FILE decrypts normally, so nothing is wrong with it. Use edit_secrets instead."
+    exit 0
+fi
+if ! sops -d --ignore-mac --input-type dotenv --output-type dotenv "$ENV_FILE" >/dev/null 2>&1; then
+    die "$ENV_FILE does not decrypt even with --ignore-mac. This is not a MAC problem
+       (wrong age key, or a damaged file). Restore a backup instead: ls -la ~/.env.backup.*"
+fi
+
+# Prompts come from the terminal (PROMPT_INPUT is only for testing).
+exec 3<"${PROMPT_INPUT:-/dev/tty}"
+
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/rebuild-env.XXXXXX")"
+trap 'rm -rf "$tmp"' EXIT
+
+# 2. Read the current variables into a temp file (never printed).
+sops -d --ignore-mac --input-type dotenv --output-type dotenv "$ENV_FILE" >"$tmp/current"
+
+# 3. Decide per variable.
+: >"$tmp/plain"
+echo "Current variables in $ENV_FILE (the file's checksum is broken, values are still readable):"
+echo
+while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+        '' | '#'*) continue ;;
+    esac
+    name="${line%%=*}"
+    value="${line#*=}"
+    printf 'Variable %s\n' "$name"
+    printf '  Enter = keep as is   |   type a new value (hidden)   |   - = remove it: '
+    IFS= read -rs -u 3 answer || answer=""
+    printf '\n'
+    case "$answer" in
+        '') printf '%s=%s\n' "$name" "$value" >>"$tmp/plain" ;;
+        -) echo "  removed $name" ;;
+        *) printf '%s=%s\n' "$name" "$answer" >>"$tmp/plain" ;;
+    esac
+done <"$tmp/current"
+
+echo
+echo "Add new variables (names are letters, digits, underscore). Blank name to finish."
+while :; do
+    printf 'New variable name: '
+    IFS= read -r -u 3 newname || newname=""
+    [ -n "$newname" ] || break
+    case "$newname" in
+        [A-Za-z_]*) ;;
+        *)
+            echo "  invalid name"
+            continue
+            ;;
+    esac
+    case "$newname" in
+        *[!A-Za-z0-9_]*)
+            echo "  invalid name"
+            continue
+            ;;
+    esac
+    printf 'Value for %s (hidden): ' "$newname"
+    IFS= read -rs -u 3 newvalue || newvalue=""
+    printf '\n'
+    printf '%s=%s\n' "$newname" "$newvalue" >>"$tmp/plain"
+done
+
+[ -s "$tmp/plain" ] || die "nothing left to store; refusing to write an empty $ENV_FILE"
+
+# 4. Encrypt to a new file beside the original, then verify it.
+new="${ENV_FILE}.new.$$"
+sops "${sops_args[@]}" --encrypt --input-type dotenv --output-type dotenv \
+    --filename-override "$ENV_FILE" "$tmp/plain" >"$new"
+trap 'rm -rf "$tmp"; rm -f "$new"' EXIT
+sops -d --input-type dotenv --output-type dotenv "$new" >"$tmp/check" || die "the new file does not decrypt; $ENV_FILE was not changed"
+want="$(sed -E 's/=.*//' "$tmp/plain" | sort)"
+got="$(sed -E 's/=.*//' "$tmp/check" | sort)"
+[ "$want" = "$got" ] || die "variable names differ after encryption; $ENV_FILE was not changed"
+cmp -s "$tmp/plain" "$tmp/check" || die "values differ after a round trip; $ENV_FILE was not changed"
+
+# 5. Swap in, keeping the broken file (still encrypted) for now.
+broken="$ENV_FILE.broken-mac.$(date +%Y%m%d_%H%M%S)"
+cp -p "$ENV_FILE" "$broken"
+mv "$new" "$ENV_FILE"
+chmod 600 "$ENV_FILE"
+
+echo
+echo "Done. $ENV_FILE now decrypts normally and holds these variables:"
+sed -E 's/=.*//' "$tmp/check" | sed 's/^/  /'
+echo
+echo "The old broken file is kept as: $broken"
+echo "Delete it once you have confirmed everything works (it is encrypted, not urgent)."
+echo "Next: rm -f ~/.cache/zsh/env_cache.v2 ; then open a new shell."

@@ -19,6 +19,7 @@ Every script in this directory is bash, POSIX sh or zsh (no Python). Convention:
 | `lint` | bash | Single lint entry point: shellcheck, shfmt, `zsh -n`, stylua, mod tests (also run by CI). `lint --file <path>` lints one file and prints only problems, each with a `fix:` line (used by the `conventions` mod) |
 | `profile-startup` | bash | Quick shell startup timing |
 | `profile-zsh-startup` | zsh | Detailed zsh startup profiler (per-component timing) |
+| `rebuild-env` | bash | Rebuild `~/.env` after sops reports `MAC mismatch` (the encrypted file was edited by hand): keep, replace or remove each variable, add new ones, re-encrypt |
 | `reset-dotfiles` | bash | Interactively reset/clean dotfiles symlinks and caches |
 | `sync-brewfile` | bash | Compare/sync `Brewfile` with installed Homebrew packages |
 | `test-shell-helpers` | zsh | Behavioural tests for `dotdoctor`, `envrc`, `prs`/`prw` and the direnv hook (run by `test-zsh`) |
@@ -128,6 +129,14 @@ Claude Code helpers, called from `claude/.claude-*/` by their repo path (`~/dotf
   nested `claude -p` inherits `TMUX_PANE`, but the window is the outer session's).
 
 Both are checked by `tests/claude/check.sh`, which `test-zsh` runs.
+
+### `rebuild-env`
+Recover `~/.env` when sops reports `MAC mismatch`. That happens when the encrypted file was edited by hand (for example deleting lines in a normal editor), which breaks its checksum. The script refuses to run on a healthy file, reads the values with `--ignore-mac`, asks per variable whether to keep, replace (hidden input) or remove it, lets you add new ones, then encrypts, verifies the round trip and swaps the file in. The broken file is kept as `~/.env.broken-mac.<time>` (still encrypted). Values are never printed.
+
+**Usage:**
+```bash
+rebuild-env
+```
 
 ### `sync-brewfile`
 Report drift between what Homebrew has installed and what the Brewfiles declare. Also available as the `brew-sync` alias.
