@@ -31,7 +31,10 @@ zinit ice wait"1" lucid
 zinit light zsh-users/zsh-syntax-highlighting
 
 # Load autosuggestions with turbo mode (helpful but not critical)
-zinit ice wait"1" lucid
+# MANUAL_REBIND stops it re-wrapping ~200 widgets before every prompt (~10 ms
+# each); atload starts it right away since turbo loads after the first precmd.
+export ZSH_AUTOSUGGEST_MANUAL_REBIND=1
+zinit ice wait"1" lucid atload"_zsh_autosuggest_start"
 zinit light zsh-users/zsh-autosuggestions
 
 # Add in snippets with turbo mode (utility functions, can be delayed)

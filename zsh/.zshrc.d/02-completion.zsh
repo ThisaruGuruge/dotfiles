@@ -27,8 +27,19 @@ if [[ -e ${ZDOTDIR:-$HOME}/.zcompdump(#qNmh-20) ]]; then
 else
     # Dump is old or doesn't exist - do full initialization
     compinit -i -d "${ZDOTDIR:-$HOME}/.zcompdump"
-    # Compile the completion dump for faster loading
-    { rm -f "${ZDOTDIR:-$HOME}/.zcompdump.zwc" && zcompile "${ZDOTDIR:-$HOME}/.zcompdump" } &!
+    # compinit -i leaves the dump's mtime alone when nothing changed, so without
+    # this touch the dump would stay "stale" and every shell would pay for the
+    # full init again.
+    [[ -e ${ZDOTDIR:-$HOME}/.zcompdump ]] && touch "${ZDOTDIR:-$HOME}/.zcompdump" 2>/dev/null
+    # Compile the dump only when the .zwc is missing or older; build it under a
+    # temp name and mv it in so concurrent shells never see a missing .zwc.
+    if [[ ! -e "${ZDOTDIR:-$HOME}/.zcompdump.zwc" || "${ZDOTDIR:-$HOME}/.zcompdump" -nt "${ZDOTDIR:-$HOME}/.zcompdump.zwc" ]]; then
+        {
+            local _zcd="${ZDOTDIR:-$HOME}/.zcompdump" _zct="${ZDOTDIR:-$HOME}/.zcompdump.$$.zwc"
+            zcompile -R "$_zct" "$_zcd" 2>/dev/null && mv -f "$_zct" "$_zcd.zwc"
+            rm -f "$_zct"
+        } &!
+    fi
 fi
 
 # NVM - Optimized loading for faster startup
