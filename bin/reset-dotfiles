@@ -75,11 +75,13 @@ load_brew_lists() {
 }
 
 brew_formula_installed() {
+    [ -n "$1" ] || return 1
     load_brew_lists
     grep -qxF -e "$1" -e "${1##*/}" <<<"$BREW_FORMULAE"
 }
 
 brew_cask_installed() {
+    [ -n "$1" ] || return 1
     load_brew_lists
     grep -qxF -e "$1" -e "${1##*/}" <<<"$BREW_CASKS"
 }
