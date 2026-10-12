@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Changed Neovim to stop writing undo files for files that hold secrets (`.env` and `.env.*`, `*.env`, keys and certificates, `credentials*`, `.netrc`, `.npmrc`, `.pypirc`, `.git-credentials`, `gradle.properties`, `*.tfvars`, Ballerina `Config.toml`): `undofile` saved their text, unencrypted, under `~/.local/state/nvim/undo`, which had collected API keys and tokens from edited project files
+
 ### Added
 
 - Added the `writing-ballerina-beps` Claude skill (`SKILL.md` and `bep-template.md`) under `claude/.claude-personal/skills/`, linked into `~/.claude-personal/skills/` by `bestow stow claude`
@@ -14,13 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Changed the repo-root `.bestowignore` to ignore the repo's documentation files by name (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `KEYBINDINGS.md`) instead of every `*.md`, so `SKILL.md` files in the `claude` package are linked
-
-### Security
-
-- Changed Neovim to stop writing undo files for files that hold secrets (`.env` and `.env.*`, `*.env`, keys and certificates, `credentials*`, `.netrc`, `.npmrc`, `.pypirc`, `.git-credentials`, `gradle.properties`, `*.tfvars`, Ballerina `Config.toml`): `undofile` saved their text, unencrypted, under `~/.local/state/nvim/undo`, which had collected API keys and tokens from edited project files
-
-### Changed
-
+- Tidied the Neovim Python tooling after the move to ruff: dropped the empty `init_options` block from the `ruff` language server setup and made the comments in `formatting.lua` and `lsp.lua` say that ruff is the only Python formatter, import sorter and linter. An audit found no `black`, `isort`, `autopep8`, `yapf`, `flake8` or `pylint` left in the config, Mason or the docs; `pyright` (type checking, navigation) and `debugpy` (debugging) stay because ruff provides neither
 - Refreshed the documentation to match the repo: `README.md` now covers the Claude Code accounts (`ccp`/`ccpr`/`ccpc`, `cce`/`ccer`/`ccec`, the `~/.claude` to `~/.claude-personal` symlink, `projects.d/<repo>.json`, the mods), the tmux project session layout, the Home/End binding behind `Cmd+Left/Right`, `bin/lint` and the `dev` branch flow, and drops the dead `CLAUDE.md` link, Cursor, the non-existent `.sh` suffix alias and the extra `tmux` zshrc module
 - Updated `SECURITY.md` (supported versions now "latest release", the env cache in the secrets description, last-updated date), `CONTRIBUTING.md` (PRs and rebases target `dev`, `bin/lint` and `bin/lint --file`, `LINT_VENDORED`, the behavioural suites `test-zsh` runs), `bin/README.md` (script index now lists `dotdoctor`, `claude-statusline`, `claude-tmux-state`, `test-shell-helpers`, `tmux-status-claude`), `docs/TMUX_KEYBINDINGS.md` (removed "until the change is merged" caveats), `docs/CONFIG_MANAGEMENT.md` (per-file links, `dotdoctor`, the `bin` exception), `docs/PROMPT_GUIDE.md` (Atuin filter modes), `docs/SEARCH_CHEATSHEET.md` (ripgrep config defaults), `docs/README.md` (index) and the Neovim keybinding docs (undo files are not written for secrets)
 

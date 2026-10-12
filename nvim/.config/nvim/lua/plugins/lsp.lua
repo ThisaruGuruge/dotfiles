@@ -80,12 +80,6 @@ return {
       -- Ruff LSP for Python linting and code actions
       vim.lsp.config("ruff", {
         capabilities = capabilities,
-        init_options = {
-          settings = {
-            -- Ruff configuration
-            args = {},
-          },
-        },
         on_attach = function(client, bufnr)
           -- Disable Ruff's hover in favor of Pyright
           client.server_capabilities.hoverProvider = false
@@ -258,7 +252,7 @@ return {
           "gopls",
           "pyright",
           "jdtls", -- Java LSP
-          "ruff", -- Python linter/formatter with code actions
+          "ruff", -- Python linter + formatter (the only one; conform calls its binary)
           "ts_ls",
           "rust_analyzer",
           "bashls",
