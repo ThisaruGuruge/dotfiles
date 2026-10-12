@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added the `writing-ballerina-beps` Claude skill (`SKILL.md` and `bep-template.md`) under `claude/.claude-personal/skills/`, linked into `~/.claude-personal/skills/` by `bestow stow claude`
+
+### Changed
+
+- Changed the repo-root `.bestowignore` to ignore the repo's documentation files by name (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, `KEYBINDINGS.md`) instead of every `*.md`, so `SKILL.md` files in the `claude` package are linked
+
 ### Security
 
 - Changed Neovim to stop writing undo files for files that hold secrets (`.env` and `.env.*`, `*.env`, keys and certificates, `credentials*`, `.netrc`, `.npmrc`, `.pypirc`, `.git-credentials`, `gradle.properties`, `*.tfvars`, Ballerina `Config.toml`): `undofile` saved their text, unencrypted, under `~/.local/state/nvim/undo`, which had collected API keys and tokens from edited project files
