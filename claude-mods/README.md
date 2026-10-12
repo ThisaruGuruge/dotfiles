@@ -13,6 +13,7 @@ straight from this repo through `CLAUDE_CODE_PLUGIN_DIRS` in `claude/.claude-*/s
 | `agents` | Subagent pane (`/agents-pane`, opens when the first one starts) and, as a fallback, one row per running agent above the prompt. Option `rows` (`/config`, or `pluginConfigs.agents.options.rows`): `auto` (default) draws the rows only while the pane is not showing (closed, or the terminal is too narrow to seat it), `off` never, `always` also while the pane is open (use it if the engine's diff panel takes the pane's seat, which a mod cannot detect). Per agent: a crab costume per agent type, model, effort, context bar, output tokens, requests, tool calls, latest tool call, elapsed time. No tools registered, no network. |
 | `rabe` | [Vendored](rabe/VENDORED.md), unmodified. Band and `/rabe` pane for background shells, monitors, cron jobs, workflows and Codex jobs, with cost and a files-touched view. |
 | `session-wrapped` | `/wrapped`: session summary (duration, cost, top tools, busiest turn). |
+| `conventions` | Advisory checks after each Edit/Write: tab indentation, token-shaped literals in tests, and `bin/lint --file`. Tells Claude what is wrong and the fix command, never blocks. On in this repo, opt-in elsewhere; `/conventions` toggles it for the session. |
 
 The status bar under the prompt keeps the always-on essentials: account, Remote Control, vim mode,
 directory, git, model, session cost and token count. Both accounts' `claude/.claude-*/statusline-command.sh`
@@ -49,6 +50,40 @@ the values of credential-named settings (`*_TOKEN=`, `*PAT=`, `password:`, `secr
 leaves code that only names a secret (`config.apiKey`, `process.env.API_KEY2`) and demo credentials
 (`postgres:postgres@`, `guest:guest@`, `localhost` URLs, `YOUR_TOKEN_HERE`) alone so edits still match and
 files round-trip.
+
+## What the conventions check catches
+
+After an Edit or Write succeeds, `conventions` checks that one file and, only if something is
+wrong, adds a short note Claude reads after the tool result (the channel a `PostToolUse` hook's
+`additionalContext` uses), naming the problem and the command that fixes it:
+
+- **Tab indentation** in any file but Makefiles, Go, `.tsv`, git config, `.gitmodules` and patches (a tab
+  inside a line, as in `printf '%s\t'`, is data and left alone, and so are tabs in Markdown code fences
+  and shell here-document bodies). In this repo a file `bin/lint --file` also reports is covered by one
+  note, not two. The fix names `shfmt -i 4 -ci -w` for shell and
+  `stylua` for Lua.
+- **Token-shaped literals in test files** (`tests/`, `fixtures/`, `testdata/`, `*.test.*`, `*.spec.*`,
+  `*_test.*`, `test_*.py`): the distinctive shapes `redact` hides (GitHub, AWS, Slack, Stripe, JWTs,
+  private keys, ...). Secret scanners flag them even when fake, so build them at runtime from pieces.
+  `hooks/tokens.ts` copies those rules from `redact/hooks/patterns.ts` (a mod cannot import from outside
+  its folder): keep the two in step.
+- **`bin/lint --file <path>`** in this repo (spawned only for paths it covers and checks the repo has on;
+  edits through a symlink, such as a stowed `~/bin/lint`, are checked at the real path): shellcheck and `shfmt -i 4 -ci -d` for the bash scripts it
+  lists, `zsh -n` for its zsh files, `stylua --check` for Neovim Lua, and a new `bin/` script missing from
+  its lists. The lists stay in `bin/lint`; the mod relays its output (cut to 12 lines, `fix:` lines kept).
+
+It never blocks or fails an edit: each external check is killed after 3 s, a missing tool or a file over
+256 KiB is skipped without a word, and an unchanged note is not repeated for the same file. It is on by
+default in this repo (a git root holding `bin/lint` and this mod's manifest (`name` is `conventions`), so every checkout and
+worktree counts). Any other repo opts in with `.claude/conventions.json`, where `shfmt -i 4 -ci -d`,
+`zsh -n` and `stylua --check` are picked by extension or shebang:
+
+```json
+{ "enabled": true, "checks": ["tabs", "shfmt", "zsh", "stylua", "fixtures"] }
+```
+
+`checks` is optional (all of them); `{"enabled": false}` turns it off in this repo too. `/conventions off`
+and `/conventions on` (plain `/conventions` toggles) switch it for the current session.
 
 ## Outside the mods
 

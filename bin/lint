@@ -4,6 +4,11 @@
 #   bin/lint            run every check; missing tools are skipped locally
 #   CI=true bin/lint    missing tools are failures (claude is always optional)
 #                       (only the exact value "true" counts as CI)
+#   bin/lint --file F   lint one file with the checks below that apply to it
+#                       (by the same lists); prints only problems, each with
+#                       a `fix:` line, exits 1 on any. Silent and 0 for a file
+#                       no check covers; missing tools are skipped silently.
+#                       Used by the claude-mods/conventions mod after edits.
 #
 # Checks:
 #   1. shellcheck + `shfmt -i 4 -ci -d` on an explicit list of bash scripts
@@ -19,6 +24,26 @@
 # zsh files are never fed to shellcheck/shfmt (neither parses zsh).
 
 set -u
+
+usage() {
+    printf 'usage: bin/lint [--file <path>]\n' >&2
+    exit 2
+}
+
+# --file: resolve the path against the caller's directory before cd-ing to the repo.
+FILE=""
+case $# in
+    0) ;;
+    2)
+        [ "$1" = "--file" ] || usage
+        if [ ! -f "$2" ]; then
+            printf 'lint: no such file: %s\n' "$2" >&2
+            exit 2
+        fi
+        FILE="$(cd -P "$(dirname -- "$2")" && pwd)/$(basename -- "$2")"
+        ;;
+    *) usage ;;
+esac
 
 # Resolve symlinks (bin/ is stowed per file into ~/bin) before locating the repo.
 SRC="${BASH_SOURCE[0]}"
@@ -94,6 +119,62 @@ ZSH_FILES=(
     bin/tmux-status-battery
     bin/tmux-status-sysinfo
 )
+
+in_list() {
+    local x=$1 g
+    shift
+    for g in "$@"; do
+        [ "$g" = "$x" ] && return 0
+    done
+    return 1
+}
+
+# Runs one tool on the file; on failure prints its output and the fix line.
+file_check() {
+    local fix=$1 out
+    shift
+    command -v "$1" >/dev/null 2>&1 || return 0
+    if ! out=$("$@" 2>&1); then
+        printf '%s\n' "$out"
+        printf 'fix: %s\n' "$fix"
+        return 1
+    fi
+}
+
+# bin/lint --file: the checks the full run would apply to this one file.
+lint_file() {
+    local f=$1 status=0
+    if in_list "$f" "${BASH_FILES[@]}"; then
+        # One line per finding (gcc format) keeps the report short
+        file_check "address the shellcheck findings in $f" shellcheck -f gcc -e SC1091,SC2039 "$f" || status=1
+        file_check "shfmt -i 4 -ci -w $f" shfmt -i 4 -ci -d "$f" || status=1
+    elif in_list "$f" "${ZSH_FILES[@]}"; then
+        file_check "fix the zsh syntax error in $f" zsh -n "$f" || status=1
+    fi
+    case "$f" in
+        nvim/.config/nvim/*.lua)
+            file_check "stylua $f" stylua --check "$f" || status=1
+            ;;
+        bin/README.md) ;;
+        bin/[!/.]*/*) ;;
+        bin/[!/.]*)
+            if ! in_list "$f" "${BASH_FILES[@]}" "${ZSH_FILES[@]}"; then
+                printf '%s is not in BASH_FILES or ZSH_FILES in bin/lint\n' "$f"
+                printf 'fix: add it to BASH_FILES (bash) or ZSH_FILES (zsh) in bin/lint\n'
+                status=1
+            fi
+            ;;
+    esac
+    return "$status"
+}
+
+if [ -n "$FILE" ]; then
+    case "$FILE" in
+        "$REPO"/*) lint_file "${FILE#"$REPO"/}" ;;
+        *) exit 0 ;;
+    esac
+    exit
+fi
 
 step "bin/ coverage (every script is listed)"
 unlisted=0
