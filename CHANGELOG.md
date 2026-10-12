@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.1] - 2026-10-12
+
 ### Fixed
 
 - Fixed `Cmd+Left` / `Cmd+Right` typing a stray `~` instead of moving to the start or end of the line: Ghostty sends them as Home / End, tmux hands the pane `ESC [ 1 ~` / `ESC [ 4 ~`, and zsh's emacs keymap bound neither, so `03-keybindings.zsh` now binds Home and End in every form (`ESC [ H`, `ESC O H`, `ESC [ 1 ~`, `ESC [ 7 ~` and the End equivalents, plus the terminfo `khome` / `kend`)
