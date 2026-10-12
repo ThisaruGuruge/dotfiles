@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-10-12
+
 ### Changed
 
 - New tmux sessions (`prefix + f`, `prefix + S`) now open with the windows `[Claude]`, `[Nvim]` and `[Shell]`, in that order (previously `Long Runs`, `CLAUDE`, `NVim`). The session still opens on `[Nvim]`
