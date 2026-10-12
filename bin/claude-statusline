@@ -82,7 +82,6 @@ git_branch=""
 git_staged=0
 git_unstaged=0
 git_untracked=0
-TAB=$(printf '\t')
 # --no-ahead-behind: the counts are not shown, and on a far-diverged branch they cost a walk on every refresh
 # git feeds awk directly; awk prints nothing when git failed (no `# branch.head` line), which
 # sends a repo without a work tree to the fallback below

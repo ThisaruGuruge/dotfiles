@@ -65,7 +65,7 @@ else
     fi
 fi
 
-# The status line refreshes every 5 s: its git status must not count ahead/behind commits
+# The status line refreshes every 15 s: its git status must not count ahead/behind commits
 if grep -q 'status --porcelain=v2 --branch --no-ahead-behind' "$statusline"; then
     pass "Status line git status skips ahead/behind counts"
 else
@@ -101,6 +101,8 @@ if command -v jq >/dev/null 2>&1; then
     rc_check "RC on from the session file's bridgeSessionId" on \
         "$(rc_line '{"pid":1,"sessionId":"fixture","bridgeSessionId":"session_fixture"}')"
     rc_check "RC off when the session file has no bridgeSessionId" off "$(rc_line '{"pid":1,"sessionId":"fixture"}')"
+    rc_check "RC off when bridgeSessionId is null" off \
+        "$(rc_line '{"pid":1,"sessionId":"fixture","bridgeSessionId":null}')"
     rc_check "RC off when there is no session file" off "$(rc_line -)"
 fi
 
