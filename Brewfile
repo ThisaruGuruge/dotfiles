@@ -65,6 +65,7 @@ cask "claude-code@latest"           # Claude Code CLI (claude/ package configure
 # Language version managers and development tools
 brew "ballerina"                    # Cloud-native programming language
 brew "gdubw/gng/gng"                # Gradle run-anywhere wrapper (gw command)
+brew "uv"                           # Fast Python package and project manager (uv, uvx)
 
 # Fonts
 cask "font-fira-code-nerd-font"     # Nerd font with icons
