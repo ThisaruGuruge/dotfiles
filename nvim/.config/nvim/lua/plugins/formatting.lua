@@ -52,6 +52,7 @@ return {
         },
         formatters_by_ft = {
           lua = { "stylua" },
+          -- ruff comes from Mason (lsp.lua ensure_installed), not pyenv.
           -- ruff (Mason) instead of isort + black: those start through pyenv
           -- shims at ~1 s per save, ruff takes ~20 ms.
           python = { "ruff_organize_imports", "ruff_format" },
