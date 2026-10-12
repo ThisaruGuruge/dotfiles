@@ -32,6 +32,37 @@ opt.undofile = true
 opt.swapfile = false
 opt.backup = false
 
+-- Secrets never get an undo file: undofile saves the buffer's text, unencrypted, under
+-- ~/.local/state/nvim/undo, so editing a .env, key or credentials file would leave a
+-- readable copy behind. The option is set per buffer before the file is read.
+vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
+  group = vim.api.nvim_create_augroup("thisarug_no_secret_undo", { clear = true }),
+  pattern = {
+    ".env",
+    ".env.*",
+    "*.env",
+    "*.pem",
+    "*.key",
+    "*.p12",
+    "*.pfx",
+    "id_rsa*",
+    "id_ed25519*",
+    "*.tfvars",
+    "credentials*",
+    "*.secrets.*",
+    "secrets.*",
+    ".netrc",
+    ".npmrc",
+    ".pypirc",
+    ".git-credentials",
+    "gradle.properties",
+    "Config.toml", -- Ballerina: configurable values often hold API keys
+  },
+  callback = function(args)
+    vim.bo[args.buf].undofile = false
+  end,
+})
+
 -- Performance
 opt.updatetime = 50
 
