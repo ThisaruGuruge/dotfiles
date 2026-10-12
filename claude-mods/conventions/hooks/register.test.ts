@@ -11,7 +11,7 @@ const OTHER = '/r/other'
 // repo is any git repo; /r/none has no .git anywhere above it.
 const REPOS: Record<string, string> = {
   [`${DOT}/bin/lint`]: '#!/bin/bash\n',
-  [`${DOT}/claude-mods/conventions/.claude-plugin/plugin.json`]: '{}\n',
+  [`${DOT}/claude-mods/conventions/.claude-plugin/plugin.json`]: '{"name":"conventions"}\n',
 }
 const DIRS = [`${DOT}/.git`, `${OTHER}/.git`]
 
@@ -23,17 +23,27 @@ const ghToken = part('gh', 'p_') + 'a1B2'.repeat(9)
  * Stands in for the engine beneath the plugin: an in-memory file system, a
  * process runner that records each call, and Edit/Write tools that succeed.
  */
-function engine(on: On, files: Record<string, string>, proc: Proc = () => ({ exitCode: 0 })) {
+function engine(
+  on: On,
+  files: Record<string, string>,
+  proc: Proc = () => ({ exitCode: 0 }),
+  opts: { links?: Record<string, string>; toolResult?: Record<string, unknown> } = {},
+) {
   const lookup = (path: string) => files[path] ?? REPOS[path]
   const ran: Ran[] = []
   on('fs.stat', (_$, e) => {
     const text = lookup(e.path)
-    if (text !== undefined) return { value: { kind: 'file', size: text.length, mtimeMs: 0, isLink: false } } as never
+    const real = opts.links?.[e.path]
+    const target = real ?? e.path
+    const t = real !== undefined ? lookup(real) : text
+    if (t !== undefined) {
+      return { value: { kind: 'file', size: t.length, mtimeMs: 0, isLink: real !== undefined, ...(e.resolve ? { realPath: target } : {}) } } as never
+    }
     if (DIRS.includes(e.path)) return { value: { kind: 'dir', size: 0, mtimeMs: 0, isLink: false } } as never
     return { deny: 'ENOENT: no such file' } as never
   })
   on('fs.read', (_$, e) => {
-    const text = lookup(e.path)
+    const text = lookup(opts.links?.[e.path] ?? e.path)
     return (text !== undefined ? { value: text } : { deny: 'ENOENT: no such file' }) as never
   })
   on('process.run', (_$, e) => {
@@ -47,7 +57,7 @@ function engine(on: On, files: Record<string, string>, proc: Proc = () => ({ exi
     if (r === 'missing') return { deny: 'spawn ENOENT' } as never
     return { value: { stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false, ...r } } as never
   })
-  on('tool.call', { tool: ['Edit', 'Write', 'Read'] }, () => ({ result: 'ok', ref: 1, text: 'ok' }) as never)
+  on('tool.call', { tool: ['Edit', 'Write', 'Read'] }, () => ({ result: 'ok', ref: 1, text: 'ok', ...opts.toolResult }) as never)
   return { ran }
 }
 
@@ -124,7 +134,7 @@ describe('in the dotfiles repo (on by default)', () => {
     const eng = engine(on, {
       [`${wt}/.git`]: 'gitdir: /r/dot/.git/worktrees/x\n',
       [`${wt}/bin/lint`]: '#!/bin/bash\n',
-      [`${wt}/claude-mods/conventions/.claude-plugin/plugin.json`]: '{}\n',
+      [`${wt}/claude-mods/conventions/.claude-plugin/plugin.json`]: '{"name":"conventions"}\n',
       [file]: '\techo hi\n',
     })
     expect(notes(await $.tool.call(edit(file)))).toContain('conventions (advisory, the edit was applied): init.sh')
@@ -204,6 +214,101 @@ describe('never in the way', () => {
     expect(eng.ran).toEqual([])
     await $.command.run({ command: 'conventions', args: 'on' } as never)
     expect(notes(await $.tool.call(edit(file)))).toContain('tab indentation')
+  })
+})
+
+describe('more edges', () => {
+  test('a failed edit is passed through without a note', async ($, on) => {
+    const file = `${DOT}/init.sh`
+    const eng = engine(on, { [file]: '\techo hi\n' }, undefined, { toolResult: { isError: true } })
+    const r = await $.tool.call(edit(file))
+    expect(r.context).toBeUndefined()
+    expect(eng.ran).toEqual([])
+  })
+
+  test('context already on the result is kept, the note comes after it', async ($, on) => {
+    const file = `${DOT}/init.sh`
+    engine(on, { [file]: '\techo hi\n' }, undefined, { toolResult: { context: ['x'] } })
+    const r = await $.tool.call(edit(file))
+    expect(r.context?.[0]).toBe('x')
+    expect(r.context?.length).toBe(2)
+    expect(r.context?.[1]).toContain('tab indentation')
+  })
+
+  test('a relative path and a binary file are skipped', async ($, on) => {
+    const bin = `${DOT}/bin/blob`
+    const eng = engine(on, { [bin]: '\u0000\tabc\n', [`${DOT}/rel.sh`]: '\techo\n' })
+    expect((await $.tool.call(edit('rel.sh'))).context).toBeUndefined()
+    expect((await $.tool.call(edit(bin))).context).toBeUndefined()
+    expect(eng.ran).toEqual([])
+  })
+
+  test('an edit through a symlink is checked where it lands', async ($, on) => {
+    const link = '/home/u/bin/lint-me'
+    const file = `${DOT}/bin/lint-me`
+    const eng = engine(on, { [file]: '#!/bin/bash\necho ok\n' }, undefined, { links: { [link]: file } })
+    await $.tool.call(edit(link))
+    expect(eng.ran[0]?.argv).toEqual([`${DOT}/bin/lint`, '--file', file])
+  })
+
+  test('bin/lint is not spawned for files it does not cover', async ($, on) => {
+    const md = `${DOT}/docs/a.md`
+    const ts = `${DOT}/claude-mods/x/hooks/a.ts`
+    const lua = `${DOT}/nvim/.config/nvim/lua/a.lua`
+    const eng = engine(on, { [md]: 'hi\n', [ts]: 'x\n', [lua]: 'x\n' })
+    await $.tool.call(edit(md))
+    await $.tool.call(edit(ts))
+    expect(eng.ran).toEqual([])
+    await $.tool.call(edit(lua))
+    expect(eng.ran.length).toBe(1)
+  })
+
+  test('tab and bin/lint findings for one file are one note, not two', async ($, on) => {
+    const file = `${DOT}/init.sh`
+    engine(on, { [file]: '#!/bin/bash\nif true; then\n\techo hi\nfi\n' }, () => ({
+      exitCode: 1,
+      stdout: 'shfmt diff\nfix: shfmt -i 4 -ci -w init.sh',
+    }))
+    const text = notes(await $.tool.call(edit(file)))
+    expect(text).toContain('fix: shfmt -i 4 -ci -w init.sh')
+    expect(text).not.toContain('tab indentation')
+  })
+
+  test('a tool that fails silently or says the file is missing is not reported', async ($, on) => {
+    const file = `${DOT}/init.sh`
+    engine(on, { [file]: 'echo ok\n' }, () => ({ exitCode: 1 }))
+    expect((await $.tool.call(edit(file))).context).toBeUndefined()
+  })
+
+  test('bin/lint exiting 2 (usage, no such file) is not reported', async ($, on) => {
+    const other = `${DOT}/bin/other`
+    engine(on, { [other]: 'echo ok\n' }, () => ({ exitCode: 2, stderr: 'lint: no such file' }))
+    expect((await $.tool.call(edit(other))).context).toBeUndefined()
+  })
+
+  test('a repo that only has the same file layout is not the dotfiles repo', async ($, on) => {
+    const file = `${OTHER}/init.sh`
+    const eng = engine(on, {
+      [file]: '\techo hi\n',
+      [`${OTHER}/bin/lint`]: '#!/bin/bash\n',
+      [`${OTHER}/claude-mods/conventions/.claude-plugin/plugin.json`]: '{"name":"other"}',
+    })
+    expect((await $.tool.call(edit(file))).context).toBeUndefined()
+    expect(eng.ran).toEqual([])
+  })
+
+  test('an unknown /conventions argument does not toggle', async ($, on) => {
+    const file = `${DOT}/init.sh`
+    engine(on, { [file]: '\techo hi\n' })
+    const r = await $.command.run({ command: 'conventions', args: 'banana' } as never)
+    expect(JSON.stringify(r)).toContain('Usage')
+    expect(notes(await $.tool.call(edit(file)))).toContain('tab indentation')
+  })
+
+  test('an oversized conventions.json is ignored', async ($, on) => {
+    const file = `${OTHER}/run.sh`
+    engine(on, { [file]: '\techo hi\n', [`${OTHER}/.claude/conventions.json`]: `{"enabled":true,"x":"${'a'.repeat(70 * 1024)}"}` })
+    expect((await $.tool.call(edit(file))).context).toBeUndefined()
   })
 })
 

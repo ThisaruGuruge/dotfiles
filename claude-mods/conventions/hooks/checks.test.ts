@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { allowsTabs, isFixture, language, lineList, parseConfig, tabLines, trimOutput } from './checks'
+import { allowsTabs, isFixture, language, lineList, lintChecks, parseConfig, tabLines, trimOutput } from './checks'
 import { findTokens } from './tokens'
 
 // Fixtures are assembled at runtime so no token-shaped literal sits in the source.
@@ -14,9 +14,32 @@ describe('tabLines', () => {
   })
 })
 
+describe('tabLines context', () => {
+  test('skips fenced Markdown code and here-document bodies', () => {
+    expect(tabLines('a\n```go\n\tx\n```\n\ty\n', { markdown: true })).toEqual([5])
+    expect(tabLines('cat <<-EOF\n\tbody\n\tEOF\n\tafter\n', { shell: true })).toEqual([4])
+    expect(tabLines("cat <<'X'\n\tbody\nX\n", { shell: true })).toEqual([])
+    expect(tabLines('x=$((1 << 3))\n\ty\n', { shell: true })).toEqual([2])
+    expect(tabLines('cat <<< hi\n\ty\n', { shell: true })).toEqual([2])
+  })
+})
+
+describe('lintChecks', () => {
+  test('the paths bin/lint --file covers', () => {
+    expect(lintChecks('bin/lint')).toEqual(['shfmt', 'zsh'])
+    expect(lintChecks('bin/README.md')).toEqual([])
+    expect(lintChecks('bin/sub/x')).toEqual([])
+    expect(lintChecks('zsh/.zshrc')).toEqual(['zsh'])
+    expect(lintChecks('zsh/.zshrc.d/01-plugins.zsh')).toEqual(['zsh'])
+    expect(lintChecks('init.sh')).toEqual(['shfmt', 'zsh'])
+    expect(lintChecks('nvim/.config/nvim/init.lua')).toEqual(['stylua'])
+    expect(lintChecks('docs/a.md')).toEqual([])
+  })
+})
+
 describe('allowsTabs', () => {
   test('Makefiles, Go and tab-separated data', () => {
-    for (const p of ['Makefile', 'sub/GNUmakefile', 'x.mk', 'main.go', 'go.mod', 'data.tsv', '.gitmodules', 'a.patch']) {
+    for (const p of ['Makefile', 'sub/GNUmakefile', 'x.mk', 'main.go', 'go.mod', 'data.tsv', '.gitmodules', 'a.patch', '.gitconfig', 'git/config', 'Makefile.am', 'a.mak']) {
       expect(allowsTabs(p)).toBe(true)
     }
     for (const p of ['init.sh', 'zsh/.zshrc', 'lua/plugins/x.lua', 'README.md', 'Makefile.md']) {
@@ -37,6 +60,7 @@ describe('isFixture', () => {
       'pkg/x_test.go',
       'test_api.py',
       'test/x.txt',
+      'spec/a.rb',
     ]) {
       expect(isFixture(p)).toBe(true)
     }

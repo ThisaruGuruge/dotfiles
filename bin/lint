@@ -40,7 +40,7 @@ case $# in
             printf 'lint: no such file: %s\n' "$2" >&2
             exit 2
         fi
-        FILE="$(cd -P "$(dirname "$2")" && pwd)/$(basename "$2")"
+        FILE="$(cd -P "$(dirname -- "$2")" && pwd)/$(basename -- "$2")"
         ;;
     *) usage ;;
 esac
@@ -156,7 +156,8 @@ lint_file() {
             file_check "stylua $f" stylua --check "$f" || status=1
             ;;
         bin/README.md) ;;
-        bin/*)
+        bin/[!/.]*/*) ;;
+        bin/[!/.]*)
             if ! in_list "$f" "${BASH_FILES[@]}" "${ZSH_FILES[@]}"; then
                 printf '%s is not in BASH_FILES or ZSH_FILES in bin/lint\n' "$f"
                 printf 'fix: add it to BASH_FILES (bash) or ZSH_FILES (zsh) in bin/lint\n'
