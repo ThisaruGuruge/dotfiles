@@ -25,7 +25,15 @@ return {
 
       -- Auto-install missing parsers when entering a buffer
       vim.api.nvim_create_autocmd("FileType", {
-        callback = function()
+        callback = function(args)
+          -- Big files: treesitter parse/highlight and expr folds freeze the UI
+          -- (a 5 MB JSON takes seconds). Keep regex syntax and manual folds;
+          -- `:set foldmethod=expr | lua vim.treesitter.start()` re-enables.
+          if require("thisarug.bigfile").is_big(args.buf) then
+            vim.opt_local.foldmethod = "manual"
+            vim.notify("Big file: treesitter and folding disabled for this buffer", vim.log.levels.INFO)
+            return
+          end
           local ft = vim.bo.filetype
           local lang = vim.treesitter.language.get_lang(ft) or ft
           if vim.tbl_contains(parsers, lang) then
@@ -109,6 +117,14 @@ return {
           component_separators = { left = "|", right = "|" },
           section_separators = { left = "", right = "" },
           globalstatus = true,
+          -- The default 16 ms refresh timer is the largest idle CPU cost per
+          -- nvim instance; event-driven redraws are unaffected.
+          refresh = {
+            statusline = 1000,
+            tabline = 1000,
+            winbar = 1000,
+            refresh_time = 100,
+          },
         },
         sections = {
           -- Left: mode | macro recording | branch | diff | diagnostics
@@ -186,6 +202,9 @@ return {
               function()
                 local ft = vim.bo.filetype
                 if ft == "markdown" or ft == "text" or ft == "plaintex" or ft == "tex" then
+                  if require("thisarug.bigfile").is_big() then
+                    return ""
+                  end
                   return vim.fn.wordcount().words .. " words"
                 end
                 return ""

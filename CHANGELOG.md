@@ -96,6 +96,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed `bin/lint` to skip `claude plugin test` for the vendored `claude-mods/rabe` (about 25 of its 31 seconds) unless it differs from the merge base with `origin/dev`/`origin/main` or `LINT_VENDORED=1` is set; the other mods are always tested, and a skip line says why
 - Changed `test-zsh`'s `brew bundle check` to run with `HOMEBREW_NO_AUTO_UPDATE`, `HOMEBREW_NO_ANALYTICS`, `HOMEBREW_NO_ENV_HINTS` and `HOMEBREW_NO_INSTALL_CLEANUP` set, as `dotdoctor` does, so it no longer auto-updates Homebrew (network, writes to its repo) as a side effect
 - Changed `init.sh` and `bin/reset-dotfiles` to read the installed formulae and casks once (`brew list -1 --formula` / `--cask`) instead of starting a `brew list` process per package
+- Changed Neovim to skip expensive per-buffer work on big files (over 1.5 MB or 50k lines, thresholds in `lua/thisarug/bigfile.lua`): treesitter highlighting and expr folds stay off (a one-time notice says so; `:set foldmethod=expr` re-enables folds), format-on-save is skipped (`<leader>lf` still formats), and the statusline word count and JSON path return nothing. Opening a 7 MB JSON drops from about 1.9 s to 0.11 s and saving it from 3.4 s (ending in a formatter timeout) to 0.08 s. Normal files are unchanged
+- Changed lualine to refresh its statusline, tabline and winbar every 1000 ms with a 100 ms timer instead of the default 16 ms timer, roughly halving idle CPU per Neovim instance; event-driven redraws are unaffected
 
 ### Removed
 
