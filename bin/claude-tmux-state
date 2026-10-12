@@ -32,16 +32,28 @@ if [ "$state" = resume ]; then
     state=working
 fi
 
-# How many `claude` processes are above this one (one ps call, walked in awk)
-claudes=$(ps -A -o pid= -o ppid= -o comm= 2>/dev/null | awk -v p="$PPID" '
-    { up[$1] = $2; name = $0; sub(/^ *[0-9]+ +[0-9]+ +/, "", name); sub(/.*\//, "", name); comm[$1] = name }
-    END { n = 0; for (i = 0; i < 64 && p > 1; i++) { if (comm[p] == "claude") n++; p = up[p] } print n }')
-[ "${claudes:-0}" -ge 2 ] && exit 0
+# How many `claude` processes are above this one (walk the ancestors one ps call at a time, which
+# is far cheaper than listing every process)
+claudes=0
+pid=$PPID
+hops=0
+while [ "$pid" -gt 1 ] && [ "$hops" -lt 64 ] && [ "$claudes" -lt 2 ]; do
+    line=$(ps -o ppid= -o comm= -p "$pid" 2>/dev/null) || break
+    [ -n "$line" ] || break
+    read -r ppid name <<EOF
+$line
+EOF
+    name=${name##*/}
+    [ "$name" = claude ] && claudes=$((claudes + 1))
+    pid=$ppid
+    hops=$((hops + 1))
+done
+[ "$claudes" -ge 2 ] && exit 0
 
+# One tmux invocation (one client connection) sets the option and refreshes the status line
 if [ "$state" = clear ]; then
-    tmux set-option -wqu -t "$TMUX_PANE" @claude_state >/dev/null 2>&1
+    tmux set-option -wqu -t "$TMUX_PANE" @claude_state \; refresh-client -S >/dev/null 2>&1
 else
-    tmux set-option -wq -t "$TMUX_PANE" @claude_state "$state" >/dev/null 2>&1
+    tmux set-option -wq -t "$TMUX_PANE" @claude_state "$state" \; refresh-client -S >/dev/null 2>&1
 fi
-tmux refresh-client -S >/dev/null 2>&1
 exit 0
