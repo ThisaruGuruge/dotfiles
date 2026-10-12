@@ -17,7 +17,11 @@
 state=${1:-}
 
 # Hooks pass their event JSON on stdin; read it so Claude Code never writes into a closed pipe
-[ -t 0 ] || cat >/dev/null 2>&1
+# (a `read` loop instead of `cat`: one fork less per tool call; the `|| [ -n ]` also takes a last
+# line without a newline, and a closed or empty stdin just ends the loop)
+if [ ! -t 0 ]; then
+    while IFS= read -r _line || [ -n "$_line" ]; do :; done 2>/dev/null
+fi
 
 case "$state" in
     working | waiting | done | clear | resume) ;;
