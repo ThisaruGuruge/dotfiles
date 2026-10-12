@@ -30,7 +30,7 @@ else
     # compinit -i leaves the dump's mtime alone when nothing changed, so without
     # this touch the dump would stay "stale" and every shell would pay for the
     # full init again.
-    touch "${ZDOTDIR:-$HOME}/.zcompdump" 2>/dev/null
+    [[ -e ${ZDOTDIR:-$HOME}/.zcompdump ]] && touch "${ZDOTDIR:-$HOME}/.zcompdump" 2>/dev/null
     # Compile the dump only when the .zwc is missing or older; build it under a
     # temp name and mv it in so concurrent shells never see a missing .zwc.
     if [[ ! -e "${ZDOTDIR:-$HOME}/.zcompdump.zwc" || "${ZDOTDIR:-$HOME}/.zcompdump" -nt "${ZDOTDIR:-$HOME}/.zcompdump.zwc" ]]; then

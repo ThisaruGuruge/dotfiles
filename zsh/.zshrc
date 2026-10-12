@@ -8,7 +8,7 @@
 # TMux Auto-Start (Conditional)
 # ============================================================================
 # Runs before the instant prompt on purpose: tmux covers the screen straight
-# away, so drawing a prompt first only flashes. Prints nothing itself.
+# away, so drawing a prompt first only flashes.
 # Automatically attach to or create a tmux session when opening a terminal
 # Conditions to skip:
 #   - Already inside tmux
@@ -26,6 +26,7 @@ if (( $+commands[tmux] )) && \
    [[ -z "$TERMINAL_EMULATOR" ]] && \
    [[ $- == *i* ]] && \
    [[ -z "$SSH_CONNECTION" ]] && \
+   [[ -z "$ZSH_EXECUTION_STRING" ]] && \
    [[ -t 0 ]]; then
     # Use session groups: each terminal gets independent window selection
     # but shares windows with the 'main' group
@@ -42,7 +43,8 @@ fi
 # Powerlevel10k Instant Prompt
 # ============================================================================
 # MUST come before any output, before zinit, before everything else (the tmux
-# auto-start above prints nothing, so it may precede it). It shows a cached prompt immediately while the rest of .zshrc loads.
+# auto-start above only prints tmux's own [detached]/[exited] notices, so it may
+# precede it). It shows a cached prompt immediately while the rest of .zshrc loads.
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
     source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
