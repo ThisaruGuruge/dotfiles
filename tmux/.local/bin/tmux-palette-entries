@@ -36,6 +36,7 @@ Windows | prefix + n   | Next window                                          | 
 Windows | prefix + p   | Previous window                                      | previous-window
 Windows | prefix + 1-9 | Switch to window by number                           | noop
 Windows | prefix + Space | Toggle last window                                 | last-window
+Windows | prefix + a     | Jump back to the previous window                     | last-window
 
 # --- Panes ---
 # Split, navigate, resize, and manage panes
