@@ -15,10 +15,12 @@
 --hidden
 
 # Exclude patterns
---glob=!.git/*
---glob=!node_modules/*
---glob=!.cache/*
---glob=!.npm/*
+# `**/` matches at any depth: a glob with a slash but no `**/` is anchored to the search
+# root, so nested repos' .git and node_modules were still searched from a parent directory
+--glob=!**/.git/**
+--glob=!**/node_modules/**
+--glob=!**/.cache/**
+--glob=!**/.npm/**
 --glob=!.vscode/*
 --glob=!dist/*
 --glob=!build/*

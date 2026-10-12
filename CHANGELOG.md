@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Changed the tmux status and hook plumbing to spawn fewer processes: the `window-layout-changed` and `pane-exited` hooks use `if-shell -F` with a `#{>:#{window_panes},1}` format (no `/bin/sh` per layout event, e.g. while dragging the window edge), tmux-resurrect saves with the `pgrep` command strategy (about half the CPU of the default `ps` one per pane)
+- Changed the ripgrep config to exclude `.git`, `node_modules`, `.cache` and `.npm` at any depth (`--glob=!**/.git/**` and so on); the old `!.git/*` style globs were anchored to the search root, so `rg` run from a parent of many repos still searched every nested repo's `.git` internals and `node_modules`. A file listing of `~/Projects` drops from about 188k to about 137k files
 - Documented the `dev` branch workflow in `CONTRIBUTING.md`: PRs squash into `dev` (no release), then one rebase-merge of `dev` into `main` cuts a single release whose version bump is read from the individual commit types
 - Changed the lazy direnv hook to load when the current directory or any parent has a `.envrc` (checked on every `cd` and once at the first prompt), so pins apply in subdirectories and in new shells or tmux panes opened inside a pinned tree; directories with no `.envrc` above them still never load direnv
 - Changed `list_dotfiles_tools` to build the inventory from `Brewfile` and `packages/*.brewfile`, with each entry's comment as its description
