@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- tmux: stopped marking background windows with yellow underlined text (`monitor-activity` off); nvim and Claude windows redraw constantly, so it fired on tabs that were only open. Claude state glyphs and the bell colour are unchanged
+- `.bestowignore`: `claude-*` also hid `bin/claude-notify`, `claude-statusline`, `claude-tmux-state` from `~/bin`; it now ignores only `claude-mods`
+
 ## [2.9.0] - 2026-10-12
 
 ### Security
