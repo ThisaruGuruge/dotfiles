@@ -25,6 +25,19 @@ bindkey '^[d' kill-word         # Option+Delete (Alt+d)
 bindkey '^A' beginning-of-line  # Ctrl+a
 bindkey '^E' end-of-line        # Ctrl+e
 
+# Home/End: Cmd+Left/Right reach the shell as Home/End. Outside tmux Ghostty's own
+# sequence arrives (ESC [ H / ESC [ F); inside tmux (TERM=tmux-256color) tmux hands the pane
+# its terminfo ones (ESC [ 1 ~ / ESC [ 4 ~). zsh's emacs keymap binds none of them, so
+# without these the unbound sequence is dropped and the closing "~" is typed on the line.
+# ESC O H / ESC O F are the application-mode forms, ESC [ 7 ~ / 8 ~ the rxvt ones.
+for _seq in '^[[H' '^[OH' '^[[1~' '^[[7~' "${terminfo[khome]}"; do
+    [[ -n $_seq ]] && bindkey -- "$_seq" beginning-of-line
+done
+for _seq in '^[[F' '^[OF' '^[[4~' '^[[8~' "${terminfo[kend]}"; do
+    [[ -n $_seq ]] && bindkey -- "$_seq" end-of-line
+done
+unset _seq
+
 # Line deletion
 # Cmd+Backspace sends Ctrl+u. Cmd+Delete sends ESC k (Alt+k) rather than Ctrl+k,
 # because tmux's root Ctrl+k (pane navigation) would swallow it before zsh sees it.
