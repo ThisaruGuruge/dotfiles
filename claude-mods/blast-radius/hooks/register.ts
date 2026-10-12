@@ -13,7 +13,7 @@ type Sh = {
     run: (
       argv: readonly string[],
       init?: { cwd?: string; env?: Record<string, string>; timeoutMs?: number },
-    ) => Promise<{ exitCode: number; stdout: string; stderr: string }>
+    ) => Promise<{ exitCode: number; stdout: string; stderr: string; isStdoutTruncated?: boolean }>
   }
   fs: { stat: (path: string) => Promise<{ kind: string; size: number }> }
   env: { get: (name: string) => Promise<string | undefined> }
@@ -51,10 +51,48 @@ async function git($: Sh, w: Where, risk: Risk, args: string[]): Promise<string>
   return r.stdout.trimEnd()
 }
 
+// Counting entries must not stream them into this process: `$.process.run` caps
+// stdout (4 MiB) and a big tree's listing is larger, so the count came out low.
+// The path is a positional argument of the script, never part of it.
+const COUNT_FILES = 'find "$1" -type f | wc -l'
+const COUNT_ALL = 'find "$1" | wc -l'
+
+async function countEntries($: Sh, w: Where, script: string, path: string): Promise<string> {
+  const r = await run($, w, ['sh', '-c', script, 'sh', path])
+  const n = Number.parseInt(r.stdout.trim(), 10)
+  return Number.isNaN(n) ? '?' : String(n)
+}
+
 /** A target path as the command will see it: `~` expanded, relative ones under the command's directory. */
 const resolve = (raw: string, w: Where) => {
   const p = expandHome(raw, w.home)
   return p.startsWith('/') || w.cwd === undefined ? p : `${w.cwd.replace(/\/+$/, '')}/${p}`
+}
+
+/** One `rm` target's lines. */
+async function previewTarget($: Sh, w: Where, raw: string): Promise<string[]> {
+  if (/[$`]/.test(raw)) return [`? ${raw}  (contains a variable or substitution, cannot resolve)`]
+  if (isGlob(raw)) return [`? ${raw}  (glob, the shell expands it at run time)`]
+  const path = resolve(raw, w)
+  try {
+    const kind = await run($, w, ['stat', '-f', '%HT', path]).then(r => (r.exitCode === 0 ? r.stdout.trim() : null))
+    if (kind === null) return [`- ${raw}  (does not exist)`]
+    const stat = await $.fs.stat(path)
+    if (stat.kind !== 'dir') return [`- ${raw}  ${kind}, ${human(stat.size)}`]
+    const danger = path === '/' || path === w.home || `${path}/` === w.home
+    // Counting can time out on a big tree; the size is then unknown, not a reason to skip the question
+    const [count, kb] = await Promise.all([
+      countEntries($, w, COUNT_FILES, path).catch(() => '?'),
+      run($, w, ['du', '-sk', path])
+        .then(r => Number.parseInt(r.stdout.split('\t')[0] ?? '', 10))
+        .catch(() => Number.NaN),
+    ])
+    const out = [`- ${raw}/  directory: ${count} files, ${Number.isNaN(kb) ? '?' : human(kb * 1024)}`]
+    if (danger) out.push('  !! this is the filesystem root or your home directory')
+    return out
+  } catch (err) {
+    return [`? ${raw}  (preview unavailable: ${why(err)})`]
+  }
 }
 
 async function previewRm($: Sh, w: Where, risk: Risk): Promise<string[]> {
@@ -62,42 +100,8 @@ async function previewRm($: Sh, w: Where, risk: Risk): Promise<string[]> {
   if (targets.length === 0) {
     return [`Could not parse targets from: ${risk.segment.slice(0, 200)}`]
   }
-  const lines: string[] = []
-  for (const raw of targets.slice(0, 8)) {
-    if (/[$`]/.test(raw)) {
-      lines.push(`? ${raw}  (contains a variable or substitution, cannot resolve)`)
-      continue
-    }
-    if (isGlob(raw)) {
-      lines.push(`? ${raw}  (glob, the shell expands it at run time)`)
-      continue
-    }
-    const path = resolve(raw, w)
-    try {
-      const kind = await run($, w, ['stat', '-f', '%HT', path]).then(r => (r.exitCode === 0 ? r.stdout.trim() : null))
-      if (kind === null) {
-        lines.push(`- ${raw}  (does not exist)`)
-        continue
-      }
-      const stat = await $.fs.stat(path)
-      if (stat.kind === 'dir') {
-        const danger = path === '/' || path === w.home || `${path}/` === w.home
-        // Counting can time out on a big tree; the size is then unknown, not a reason to skip the question
-        const count = await run($, w, ['find', path, '-type', 'f'])
-          .then(r => String(r.stdout.split('\n').filter(Boolean).length))
-          .catch(() => '?')
-        const kb = await run($, w, ['du', '-sk', path])
-          .then(r => Number.parseInt(r.stdout.split('\t')[0] ?? '', 10))
-          .catch(() => Number.NaN)
-        lines.push(`- ${raw}/  directory: ${count} files, ${Number.isNaN(kb) ? '?' : human(kb * 1024)}`)
-        if (danger) lines.push('  !! this is the filesystem root or your home directory')
-      } else {
-        lines.push(`- ${raw}  ${kind}, ${human(stat.size)}`)
-      }
-    } catch (err) {
-      lines.push(`? ${raw}  (preview unavailable: ${why(err)})`)
-    }
-  }
+  // Targets are independent: preview them together, keep their order
+  const lines = (await Promise.all(targets.slice(0, 8).map(raw => previewTarget($, w, raw)))).flat()
   if (targets.length > 8) {
     lines.push(`... and ${targets.length - 8} more targets`)
   }
@@ -111,9 +115,7 @@ async function previewChmod($: Sh, w: Where, risk: Risk): Promise<string[]> {
       lines.push(`? ${t}  (cannot resolve)`)
       continue
     }
-    const n = await run($, w, ['find', resolve(t, w)])
-      .then(r => String(r.stdout.split('\n').filter(Boolean).length))
-      .catch(() => '?')
+    const n = await countEntries($, w, COUNT_ALL, resolve(t, w)).catch(() => '?')
     lines.push(`- ${t}  ${n} entries affected`)
   }
   return lines.length ? lines : ['Could not parse targets']
@@ -206,7 +208,10 @@ async function previewFor($: Sh, risk: Risk): Promise<string[]> {
       if (r.exitCode !== 0 && hits.length === 0) {
         throw new Error(`find exited ${r.exitCode}: ${r.stderr.trim().slice(0, 200)}`)
       }
-      const out = hits.length ? [`Would delete ${hits.length} entries:`, ...clip(hits)] : ['Nothing matches right now']
+      // Output past the cap is cut mid-line: drop the partial last line and say the count is a floor
+      if (r.isStdoutTruncated) hits.pop()
+      const more = r.isStdoutTruncated ? '+' : ''
+      const out = hits.length ? [`Would delete ${hits.length}${more} entries:`, ...clip(hits)] : ['Nothing matches right now']
       if (r.exitCode !== 0) out.push(`(find also reported errors: ${r.stderr.trim().split('\n')[0]?.slice(0, 150) ?? ''})`)
       return out
     }
