@@ -78,6 +78,8 @@ g -i "pattern"              # case-insensitive
 
 ### Hidden and ignored files
 
+The ripgrep config (`ripgrep/.config/ripgrep/config`) already sets `--hidden`, so plain `g` searches dotfiles. It also excludes `.git`, `node_modules`, `.cache` and `.npm` at any depth, plus `dist/`, `build/`, `target/`, lockfiles and minified files, and those globs still apply under `rga`. Use `--no-config` for an unfiltered search.
+
 ```sh
 rgh "pattern"               # alias: rg --hidden (includes dotfiles)
 rga "pattern"               # alias: rg --hidden --no-ignore (search everything)

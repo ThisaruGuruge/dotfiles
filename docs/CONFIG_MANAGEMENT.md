@@ -49,7 +49,7 @@ If you already have a config at `~/.config/myapp`:
 This will:
 - Move `~/.config/myapp` to `~/dotfiles/myapp/.config/myapp`
 - Create `.bestowignore` to exclude sensitive files
-- Create a symlink back to the original location
+- Run `bestow stow myapp`, which links each file back into `~/.config/myapp/` (per-file symlinks, never a whole-directory link)
 - Prompt you to review and commit
 
 ## What Should Be In Dotfiles?
@@ -100,7 +100,7 @@ under it. Files matching any pattern — from the repo-root `.bestowignore`, the
 ### Scenario 1: Setting up a fresh machine
 
 ```bash
-git clone https://github.com/yourusername/dotfiles.git ~/dotfiles
+git clone https://github.com/ThisaruGuruge/dotfiles.git ~/dotfiles
 cd ~/dotfiles
 ./init.sh
 ```
@@ -122,7 +122,7 @@ bestow stow bat
 
 # Verify
 ls -la ~/.config/bat
-# Should show: bat -> ../dotfiles/bat/.config/bat
+# Should list config -> .../dotfiles/bat/.config/bat/config (one link per file)
 
 # Commit
 git add bat/.config/bat
@@ -138,7 +138,7 @@ You've been using `fish` and have configs:
 # Before: ~/.config/fish is a real directory
 ./bin/adopt-config fish
 
-# After: ~/.config/fish is a symlink to dotfiles
+# After: ~/.config/fish holds per-file symlinks into dotfiles
 # Review the .bestowignore
 vim ~/dotfiles/fish/.bestowignore
 
@@ -206,10 +206,17 @@ git filter-branch --force --index-filter \
 git filter-repo --path myapp/.config/myapp/secrets.txt --invert-paths
 ```
 
+## Checking the result
+
+`dotdoctor` (`bin/dotdoctor`) reports files of any package that are not linked and symlinks that dangle into the repo, and changes nothing. Run it after adding, removing or renaming package files.
+
+`bin` is the one package that does not link into `$HOME`: stow it with `bestow stow bin -d ~/bin`, and never run a bare `bestow stow` across every package (it would link `bin/*` straight into `~`).
+
 ## Tools
 
 - `./bin/audit-configs` - Show managed vs unmanaged configs
 - `./bin/adopt-config <app>` - Migrate existing config to dotfiles
+- `dotdoctor` - Read-only health check (unlinked files, dangling links, secrets, mods)
 - `bestow stow <pkg>` - Stow a package (idempotent; safe to re-run)
 - `bestow unstow <pkg>` - Remove a package's symlinks
 

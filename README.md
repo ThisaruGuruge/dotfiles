@@ -7,17 +7,19 @@ A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CL
 - **Fast Zsh environment** – zinit-managed plugins, fzf-tab completion, syntax highlighting, autosuggestions, zoxide (via `z` command), Atuin history (Ctrl+R and up-arrow), and Ghostty compatible key bindings
 - **Powerlevel10k prompt** – pure-Zsh rendering (no binary subprocess per draw), instant prompt on startup, contextual Git state, Go/Java/Python/Ballerina indicators, transient prompt for clean scrollback, full Catppuccin Mocha theme matching the tmux status bar
 - **Modern CLI stack** – eza, bat, dust, ripgrep, fd, yazi (with inline image previews in Ghostty/iTerm2, chafa fallback for other terminals), jless, lazygit, lazydocker, tmux, direnv, atuin, gh, git-delta, gng (`gw`), and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
-- **Debugging in Neovim** – nvim-dap with a DAP UI, inline variable values while stepping, and one keymap set (`<leader>d…` plus `F5`/`F10`/`F11`) shared by every language. Go (delve) supports debugging the test under the cursor, launching the program with arguments, and attaching to a remote `dlv --headless`; Python, Java, and Ballerina are wired in too. Adding another debugger is a single drop-in file — see [Adding a Debugger](CLAUDE.md#adding-a-debugger-nvim-dap)
+- **Debugging in Neovim** – nvim-dap with a DAP UI, inline variable values while stepping, and one keymap set (`<leader>d…` plus `F5`/`F10`/`F11`) shared by every language. Go (delve) supports debugging the test under the cursor, launching the program with arguments, and attaching to a remote `dlv --headless`; Python, Java, and Ballerina are wired in too. Adding another debugger is a single drop-in file: a module at `nvim/.config/nvim/lua/thisarug/dap/<lang>.lua` exporting `setup(dap)` is picked up automatically by `lua/plugins/dap.lua`
 - **Go tooling in Neovim** – gopls with inlay hints and codelenses, `<leader>G…` for code generation (`if err != nil` guards, struct tags, interface stubs, test and doc-comment generation), and `<leader>T…` to run tests from the buffer with a summary tree and watch mode (Go, plus pytest and Vitest via neotest adapters)
 - **Sessions and branch review in Neovim** – persistence.nvim restores a project's buffers and layout on demand (`<leader>qs`, or `s` on the dashboard), and diffview.nvim reviews a branch against the default branch (`<leader>gv`) or walks a file's history (`<leader>gh`)
 - **Smart aliases** – Single-letter shortcuts for modern tools (`v` for nvim, `g` for ripgrep, `f` for fd, `z` for zoxide) while keeping original commands for scripts
-- **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → mdcat, `.json`/`.yaml` → jless, `.py`/`.sh`/`.bal` → $EDITOR)
+- **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → mdcat, `.json`/`.yaml` → jless, `.py`/`.bash`/`.zsh`/`.bal` → $EDITOR)
 - **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina with lazy-loading shell glue so heavy managers don't slow startup
 - **Touch ID for sudo** – Use your fingerprint instead of typing passwords in the terminal (works inside tmux too via `pam-reattach`)
 - **Caps Lock remap** – Hammerspoon + `ControlEscape.spoon`: tap Caps Lock for Escape, hold for Control — a Karabiner alternative that needs only Accessibility/Input Monitoring permissions, no blockable system extension
+- **Claude Code, two accounts** – `ccp` (personal) and `cce` (enterprise) run Claude Code against separate config dirs, with TypeScript mods for a status band, risk previews, secret redaction and a subagent pane (see [Claude Code](#claude-code)); tmux shows which windows are waiting on Claude
+- **Project sessions in tmux** – `prefix + f` opens a project with three windows (`Long Runs`, `CLAUDE`, `NVim`)
 - **Secrets handled correctly** – SOPS + age encryption, `edit_secrets` workflow, and automatic `.env` handling inside `init.sh`
 - **Brewfile-driven** – Curated `Brewfile` with optional category files in `packages/` for modular installation
-- **Validation + profiling** – `test-zsh` integration tests, `profile_startup` quick timing, and `bin/profile-zsh-startup` for deep dives
+- **Validation + profiling** – `bin/lint` (shellcheck, shfmt, `zsh -n`, stylua, mod tests; also run by CI), `test-zsh` integration tests, `dotdoctor` health check, `profile_startup` quick timing, and `bin/profile-zsh-startup` for deep dives
 
 ## Prerequisites
 
@@ -106,11 +108,11 @@ The main `Brewfile` contains core packages that are always installed. Optional p
 
 ```bash
 packages/
-├── cloud.brewfile       # AWS, GCP CLIs
+├── cloud.brewfile       # aws-vault, gcloud CLI
 ├── containers.brewfile  # colima, Docker CLI + Compose + credential helper
 ├── development.brewfile # pyenv, rbenv, nvm, flutter
-├── editors.brewfile     # Cursor, VS Code
-├── productivity.brewfile # Raycast, Rectangle, etc.
+├── editors.brewfile     # VS Code
+├── productivity.brewfile # Raycast, Rectangle, Alfred, Caffeine, etc.
 └── terminals.brewfile   # iTerm2
 ```
 
@@ -127,11 +129,11 @@ brew bundle --file=packages/editors.brewfile     # Add editors
 - `core` – powerlevel10k, zoxide, eza, bat, ripgrep, lazygit, lazydocker, tmux, direnv, atuin, gh, etc.
 - `security` – sops + age for encrypted secrets (always enabled)
 - `development` – pyenv, rbenv, nvm, flutter (optional)
-- `aws`, `gcp` – cloud CLIs and helpers
-- `editors` – Cursor, VS Code
+- `cloud` – aws-vault and the gcloud CLI
+- `editors` – VS Code
 - `terminals` – iTerm2 (casks)
 - `containers` – colima (container runtime), Docker CLI + Compose + credential helper
-- `productivity` – Raycast, Rectangle, TablePlus, Alfred, Postman
+- `productivity` – Raycast, Rectangle, TablePlus, Alfred, Postman, Caffeine
 
 Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 
@@ -142,21 +144,25 @@ Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 | Path                     | Notes                                                                                             |
 | ------------------------ | ------------------------------------------------------------------------------------------------- |
 | `zsh/`                   | `.zshrc`, `.zshrc.d/` (modular shell config), `.functions.d/` (modular functions), aliases, paths |
-| `zsh/.zshrc.d/`          | 7 modules: plugins, completion, keybindings, history, integrations, environment, tmux             |
+| `zsh/.zshrc.d/`          | 6 modules: plugins, completion, keybindings, history, integrations, environment                  |
 | `zsh/.functions.d/`      | 9 modules: colors, core, navigation, archives, git, system, dotfiles, docs, packages              |
 | `<tool>/.config/<tool>/` | XDG configs, one stow package per tool (`ghostty`, `lazygit`, `nvim`, `yazi`, `ripgrep`, `typos`) |
 | `zsh/.p10k.zsh`          | Powerlevel10k prompt config (Catppuccin Mocha, stowed to `~/.p10k.zsh`)                           |
 | `git/`                   | `.gitconfig`, ignore rules, delta settings                                                        |
 | `tmux/`                  | Modern tmux config + keybinds, project session layout, Claude state in status bar                 |
+| `claude/`                | Per-account Claude Code `settings.json` and status line, stowed to `~/.claude-personal` and `~/.claude-enterprise` |
+| `claude-mods/`           | Claude Code mods (not a stow package; loaded through `CLAUDE_CODE_PLUGIN_DIRS`)                   |
+| `tests/`                 | Golden-output and behaviour tests for the Claude Code helpers (`tests/claude/check.sh`, run by `test-zsh`) |
 | `direnv/`                | Project-specific environment automation                                                           |
 | `packages/`              | Optional category Brewfiles (cloud, containers, development, etc.)                                |
-| `bin/`                   | Helper scripts (`test-zsh-config`, `profile-zsh-startup`, `audit-configs`, `adopt-config`)        |
+| `bin/`                   | Helper scripts (`lint`, `dotdoctor`, `test-zsh-config`, `profile-zsh-startup`, `audit-configs`, `adopt-config`; see `bin/README.md`) |
 | `docs/`                  | Additional documentation (prompt guide, tmux keybindings, config management)                      |
 
 ### Ghostty Configuration
 
 Ghostty is configured with:
 
+- Cmd+Left/Right sent as Home/End (`ESC [ H` / `ESC [ F`), which `03-keybindings.zsh` binds to start/end of line (a raw `Ctrl+a` would be eaten as the tmux prefix)
 - Option+Left/Right for word navigation (sent as Alt+b / Alt+f, so it works inside tmux too) and Cmd+Delete for delete-to-end-of-line (sent as Alt+k)
 - Catppuccin Mocha theme
 - FiraCode Nerd Font with ligatures
@@ -218,6 +224,7 @@ bestow unstow zsh
 
 ```bash
 test-zsh                                   # Full validation (tools, PATH, runtimes)
+./bin/lint                                 # Lint everything, as CI does (./bin/lint --file <path> for one file)
 ./bin/profile-zsh-startup                  # Deep component timing (zinit plugins, SDKMAN, p10k, etc.)
 help                                       # Alias documentation entry point
 docs                                       # Interactive alias browser (alias_docs)
@@ -241,6 +248,25 @@ Ctrl+R                                     # Atuin search UI (fuzzy search all h
 Up arrow                                   # Atuin prefix search (as you type)
 Ctrl+T / Alt+C                             # fzf file / directory picker with a preview (Ctrl+/ toggles it)
 ```
+
+### Claude Code
+
+Two accounts, each with its own config directory (`claude/` is the stow package that links `settings.json` and `statusline-command.sh` into both; history, sessions and auth stay local, auth in the macOS Keychain):
+
+| Command | Account | Config dir |
+| --- | --- | --- |
+| `ccp`, `ccpr`, `ccpc` | personal: start, `--resume`, `--continue` | `~/.claude-personal` |
+| `cce`, `ccer`, `ccec` | enterprise: start, `--resume`, `--continue` | `~/.claude-enterprise` |
+
+- `~/.claude` must be a symlink to `~/.claude-personal` (`ln -s ~/.claude-personal ~/.claude`), so plain `claude` outside a pinned directory is the personal account. `dotdoctor` checks it.
+- `ccp`/`ccpr`/`ccpc` also load `~/.claude-personal/projects.d/<repo>.json` with `--settings` when the current git repo has one. That is where a project's own `autoMode` rules go, since Claude Code ignores `autoMode` in a project's `.claude/settings*.json` and they must not live in this public repo. `<repo>` is the main checkout's directory name, so linked worktrees share it.
+- Mods in `claude-mods/` (`statusbar`, `blast-radius`, `redact`, `agents`, `rabe`, `session-wrapped`, `conventions`) load straight from the repo via `CLAUDE_CODE_PLUGIN_DIRS` in both `settings.json` files, with nothing to link. The band above the prompt (context bar, rate limits) is the `statusbar` mod, the line below it is `bin/claude-statusline`, and `conventions` runs `bin/lint --file` after each edit Claude makes in this repo. See [`claude-mods/README.md`](claude-mods/README.md).
+- Hooks call `bin/claude-tmux-state`, so tmux windows show when Claude is working, waiting or done (`prefix + A` jumps to the next waiting window).
+- Pin an account to a directory with `envrc` (below).
+
+### tmux project sessions
+
+`prefix + f` (sessionizer) and `prefix + S` (new session) create a session with three windows: `Long Runs` (plain shell), `CLAUDE` (runs `claude` with the directory's `.envrc` applied) and `NVim` (nvim over a small shell, the window the session opens on). `SESSIONIZER_LAYOUT=bare` gives a single shell instead. After pulling, run `bestow stow tmux` if a new helper script is missing. Key reference: [`docs/TMUX_KEYBINDINGS.md`](docs/TMUX_KEYBINDINGS.md).
 
 ### Per-project accounts (`envrc`)
 
@@ -282,13 +308,13 @@ Zsh suffix aliases automatically open files based on their extension. Just type 
 
 ```bash
 # Viewing files (rendered markdown)
-README.md                                  # Opens in mdless with rendered Markdown
+README.md                                  # Opens in mdcat (paged) with rendered Markdown
 data.json                                  # Opens in jless (interactive JSON viewer)
 config.yaml                                # Opens in jless (interactive YAML viewer)
 
 # Editing files (opens in $EDITOR/nvim)
 script.py                                  # Opens Python files in nvim
-setup.sh                                   # Opens shell scripts in nvim
+setup.zsh                                  # Opens zsh/bash scripts in nvim
 service.bal                                # Opens Ballerina files in nvim
 app.conf                                   # Opens config files in nvim
 ```
@@ -297,11 +323,11 @@ app.conf                                   # Opens config files in nvim
 
 | Extension                  | Tool       | Purpose                                |
 | -------------------------- | ---------- | -------------------------------------- |
-| `.md`                      | `mdcat -p` | View rendered Markdown with paging     |
+| `.md`, `.markdown`, `.mdx` | `mdcat -p` | View rendered Markdown with paging     |
 | `.json`                    | `jless`    | Interactive JSON browsing with folding |
 | `.yaml`, `.yml`            | `jless`    | Interactive YAML browsing              |
 | `.py`                      | `$EDITOR`  | Edit Python files                      |
-| `.sh`, `.bash`, `.zsh`     | `$EDITOR`  | Edit shell scripts                     |
+| `.bash`, `.zsh`            | `$EDITOR`  | Edit shell scripts (`.sh` is left alone, so it still runs) |
 | `.bal`                     | `$EDITOR`  | Edit Ballerina files                   |
 | `.conf`, `.config`, `.ini` | `$EDITOR`  | Edit configuration files               |
 
@@ -423,10 +449,12 @@ test-zsh                     # Sanity check after upgrades
 source ~/.zshrc              # Reload shell config
 ```
 
-Remember to `bestow unstow` packages you no longer want and re-run `bestow stow` after pulling to ensure new configs are linked.
+Remember to `bestow unstow` packages you no longer want and re-run `bestow stow <package>` after pulling to ensure new files are linked (bestow links per file, so a new file is not linked until you do; `dotdoctor` lists what is missing). Never run a bare `bestow stow` across every package, and stow `bin` with `-d ~/bin`.
+
+Development happens on the `dev` branch: PRs squash into `dev` (no release), and one rebase-merge of `dev` into `main` cuts a release. See [`CONTRIBUTING.md`](CONTRIBUTING.md#release-process).
 
 ## Contributing
 
-Bug reports and PRs are welcome! Please run `test-zsh` plus any relevant profilers before opening a pull request. See `CONTRIBUTING.md` for commit conventions, scopes (including `prompt` for p10k changes), and validation expectations.
+Bug reports and PRs are welcome (open them against `dev`)! Please run `./bin/lint`, `test-zsh` and any relevant profilers before opening a pull request. See `CONTRIBUTING.md` for commit conventions, scopes (including `prompt` for p10k changes), and validation expectations.
 
 Happy hacking!

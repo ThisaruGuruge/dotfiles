@@ -249,6 +249,8 @@ Dedicated keybindings that jump only between spell/grammar diagnostics, skipping
 | :---------- | :--- | :------------------------------------ |
 | `<Space>tu` | `n`  | Toggle Undotree (visual undo history) |
 
+Persistent undo (`undofile`) is on, except for files that hold secrets (`.env` files, keys and certificates, `credentials*`, `.netrc`, `.npmrc`, `.pypirc`, `.git-credentials`, `gradle.properties`, `*.tfvars`, Ballerina `Config.toml`): those get no undo file, so their text is never written unencrypted to the undo directory (`lua/thisarug/init.lua`).
+
 ## Sessions (persistence.nvim)
 
 One session per working directory and git branch, saved on exit. Nothing is restored automatically. A session is only written with two or more real buffers open (a quick `nvim file` won't overwrite it); terminals are not saved and an open Diffview is closed first.
