@@ -14,7 +14,9 @@ type Answer = 'Run it' | 'Cancel' | 'dismiss'
 function engine(
   on: On,
   answer: Answer,
-  proc: (argv: readonly string[]) => { exitCode: number; stdout: string; stderr?: string } | 'throw' = () => ({
+  proc: (
+    argv: readonly string[],
+  ) => { exitCode: number; stdout: string; stderr?: string; isStdoutTruncated?: boolean } | 'throw' = () => ({
     exitCode: 0,
     stdout: '',
   }),
@@ -87,7 +89,7 @@ describe('asks before running', () => {
 
   test('a preview that times out still asks', async ($, on) => {
     const eng = engine(on, 'Run it', argv =>
-      argv[0] === 'find' || argv[0] === 'du' ? 'throw' : { exitCode: 0, stdout: 'Directory' },
+      argv[0] === 'sh' || argv[0] === 'du' ? 'throw' : { exitCode: 0, stdout: 'Directory' },
     )
     await $.tool.call(bash('rm -rf ~/Library/Caches'))
     expect(eng.asked.length).toBe(1)
@@ -164,6 +166,55 @@ describe('previews where the command runs', () => {
     await $.tool.call(bash('find . -nme x -delete'))
     expect(eng.asked[0]).toContain('Preview unavailable: find exited 1')
     expect(eng.asked[0]).not.toContain('Nothing matches')
+  })
+
+  test('a find -delete preview cut at the output cap says the count is a floor', async ($, on) => {
+    const eng = engine(on, 'Cancel', () => ({
+      exitCode: 0,
+      stdout: './a.log\n./b.log\n./c.l',
+      isStdoutTruncated: true,
+    }))
+    await $.tool.call(bash('find . -name "*.log" -delete'))
+    expect(eng.asked[0]).toContain('Would delete 2+ entries')
+    expect(eng.asked[0]).not.toContain('./c.l')
+  })
+
+  test('an untruncated find -delete preview keeps its exact count', async ($, on) => {
+    const eng = engine(on, 'Cancel', () => ({ exitCode: 0, stdout: './a.log\n./b.log\n' }))
+    await $.tool.call(bash('find . -name "*.log" -delete'))
+    expect(eng.asked[0]).toContain('Would delete 2 entries')
+  })
+
+  test('rm counts with find | wc, the path as an argument and never in the script', async ($, on) => {
+    const odd = '/tmp/my dir/a;b & c'
+    const eng = engine(on, 'Cancel', argv =>
+      argv[0] === 'sh' ? { exitCode: 0, stdout: '   123456\n' } : argv[0] === 'du' ? { exitCode: 0, stdout: '2048\t/x' } : { exitCode: 0, stdout: 'Directory' },
+    )
+    await $.tool.call(bash(`rm -rf '${odd}'`))
+    const count = eng.calls.find(c => c.argv[0] === 'sh')
+    expect(count?.argv.slice(0, 2)).toEqual(['sh', '-c'])
+    expect(count?.argv[2]).toBe('find -- "$1" -type f | wc -l')
+    expect(count?.argv[4]).toBe(odd)
+    expect(eng.asked[0]).toContain('directory: 123456 files, 2.0')
+  })
+
+  test('a non-numeric wc output counts as ?', async ($, on) => {
+    const eng = engine(on, 'Cancel', argv =>
+      argv[0] === 'sh' ? { exitCode: 0, stdout: 'find: oops\n' } : argv[0] === 'du' ? { exitCode: 0, stdout: '2048\t/x' } : { exitCode: 0, stdout: 'Directory' },
+    )
+    await $.tool.call(bash('rm -rf /tmp/a'))
+    expect(eng.asked[0]).toContain('directory: ? files')
+  })
+
+  test('rm previews every target, in order, and counts a big tree in full', async ($, on) => {
+    const eng = engine(on, 'Cancel', argv =>
+      argv[0] === 'sh' ? { exitCode: 0, stdout: `${argv[4]?.endsWith('b') ? 100000 : 7}\n` } : { exitCode: 0, stdout: 'Directory' },
+    )
+    await $.tool.call(bash('rm -rf /tmp/a /tmp/b'))
+    const q = eng.asked[0] ?? ''
+    expect(q.indexOf('/tmp/a/')).toBeLessThan(q.indexOf('/tmp/b/'))
+    expect(q).toContain('directory: 7 files')
+    expect(q).toContain('directory: 100000 files')
   })
 
   test('an ssh payload is not previewed locally', async ($, on) => {
