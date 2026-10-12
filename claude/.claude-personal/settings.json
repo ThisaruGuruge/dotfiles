@@ -16,6 +16,7 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" working >/dev/null 2>&1 || true",
+            "async": true,
             "timeout": 5
           }
         ]
@@ -60,6 +61,7 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" resume >/dev/null 2>&1 || true",
+            "async": true,
             "timeout": 5
           }
         ]
