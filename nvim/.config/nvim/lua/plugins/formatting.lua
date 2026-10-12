@@ -71,6 +71,11 @@ return {
           if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
             return
           end
+          -- Big buffers: formatting takes seconds and hits the timeout.
+          -- <leader>lf still formats explicitly.
+          if require("thisarug.bigfile").is_big(bufnr) then
+            return
+          end
           return { timeout_ms = 3000, lsp_fallback = true }
         end,
       })

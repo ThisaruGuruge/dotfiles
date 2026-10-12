@@ -5,6 +5,11 @@ M.get = function()
     return ""
   end
 
+  -- Big files skip treesitter entirely; get_parser would parse them on demand.
+  if require("thisarug.bigfile").is_big() then
+    return ""
+  end
+
   local ok, parser = pcall(vim.treesitter.get_parser, 0, "json")
   if not ok or not parser then
     return ""
@@ -42,6 +47,12 @@ M.get = function()
     elseif parent:type() == "array" then
       local nr, nc = node:range()
       local idx = 0
+      -- Walking every sibling is O(n) per cursor move; give up on huge arrays.
+      if parent:child_count() > 2000 then
+        table.insert(path, 1, "[…]")
+        node = parent
+        goto continue
+      end
       for i = 0, parent:child_count() - 1 do
         local child = parent:child(i)
         local ct = child:type()
@@ -58,6 +69,7 @@ M.get = function()
     else
       node = parent
     end
+    ::continue::
   end
 
   if #path == 0 then
