@@ -43,6 +43,7 @@ Claude Code reports its state to tmux through hooks (`bin/claude-tmux-state`), s
 | `prefix + n` | Next window |
 | `prefix + p` | Previous window |
 | `prefix + Space` | Toggle last window |
+| `prefix + a` | Jump back to the previous window |
 | `prefix + 1-9` | Switch to window by number |
 
 ## Pane Management
