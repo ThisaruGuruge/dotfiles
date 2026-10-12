@@ -4,9 +4,9 @@
 # tmux-session-creator (prefix + S) and tmux-sessionizer (prefix + f).
 #
 # Windows, in this order:
-#   1  Long Runs   plain shell (servers, builds, anything you leave running)
-#   2  CLAUDE      starts `claude` (the account is chosen by direnv from the directory)
-#   3  NVim        nvim on top (~80%), plain shell underneath (~20%); this window is focused
+#   1  [Claude]    starts `claude` (the account is chosen by direnv from the directory)
+#   2  [Nvim]      nvim on top (~80%), plain shell underneath (~20%); this window is focused
+#   3  [Shell]     plain shell (servers, builds, anything you leave running)
 #
 # Only creates: if the session already exists it is left untouched.
 # SESSIONIZER_LAYOUT=bare creates a single plain shell window instead. It is read from
@@ -14,11 +14,11 @@
 #   tmux set-environment -g SESSIONIZER_LAYOUT bare
 # works on a running server (and `tmux set-environment -gu SESSIONIZER_LAYOUT` undoes it).
 #
-# The CLAUDE window types `claude` through direnv (see claude_cmd below), so the account the
+# The [Claude] window types `claude` through direnv (see claude_cmd below), so the account the
 # directory's .envrc selects applies even though a fresh shell has not run the direnv hook yet.
 #
 # TMUX_LAYOUT_CLAUDE_CMD / TMUX_LAYOUT_NVIM_CMD override the commands typed into the
-# CLAUDE and NVim windows (default: claude via direnv, nvim); they exist so the layout can
+# [Claude] and [Nvim] windows (default: claude via direnv, nvim); they exist so the layout can
 # be tested.
 
 session="${1:?usage: tmux-session-layout <session> <dir>}"
@@ -78,18 +78,19 @@ if [[ "${cols:-}" =~ ^[0-9]+$ && "${rows:-}" =~ ^[0-9]+$ ]] && ((cols > 0 && row
 fi
 
 # Target everything by id so unusual session names cannot confuse tmux's target parser.
-sid=$(tmux new-session -d -P -F '#{session_id}' -s "$session" -n "Long Runs" -c "$dir" "${size_args[@]}") || exit 1
+sid=$(tmux new-session -d -P -F '#{session_id}' -s "$session" -n "[Claude]" -c "$dir" "${size_args[@]}") || exit 1
+claude_pane=$(tmux display-message -p -t "$sid:" '#{pane_id}')
 tmux set-option -w -t "$sid:" automatic-rename off
-
-claude_pane=$(tmux new-window -P -F '#{pane_id}' -t "$sid:" -n CLAUDE -c "$dir")
-tmux set-option -w -t "$claude_pane" automatic-rename off
 tmux send-keys -t "$claude_pane" "$claude_cmd" Enter
 
-read -r nvim_window nvim_pane < <(tmux new-window -P -F '#{window_id} #{pane_id}' -t "$sid:" -n NVim -c "$dir")
+read -r nvim_window nvim_pane < <(tmux new-window -P -F '#{window_id} #{pane_id}' -t "$sid:" -n "[Nvim]" -c "$dir")
 tmux set-option -w -t "$nvim_window" automatic-rename off
 tmux send-keys -t "$nvim_pane" "$nvim_cmd" Enter
 tmux split-window -v -l 20% -t "$nvim_pane" -c "$dir"
 tmux select-pane -t "$nvim_pane"
 
-# Open the session on the NVim window
+shell_window=$(tmux new-window -P -F '#{window_id}' -t "$sid:" -n "[Shell]" -c "$dir")
+tmux set-option -w -t "$shell_window" automatic-rename off
+
+# Open the session on the [Nvim] window
 tmux select-window -t "$nvim_window"

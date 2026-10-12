@@ -2,8 +2,8 @@
 # TMux Sessionizer - Fuzzy find projects and switch to named sessions
 # Inspired by ThePrimeagen's sessionizer
 #
-# New sessions get the standard layout from tmux-session-layout (Long Runs / CLAUDE /
-# NVim windows); SESSIONIZER_LAYOUT=bare keeps a single shell window. Existing sessions
+# New sessions get the standard layout from tmux-session-layout ([Claude] / [Nvim] /
+# [Shell] windows); SESSIONIZER_LAYOUT=bare keeps a single shell window. Existing sessions
 # are never touched. Two projects with the same folder name get parent-qualified
 # session names (e.g. "work/api" and "personal/api").
 
