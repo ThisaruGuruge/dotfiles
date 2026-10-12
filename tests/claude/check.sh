@@ -213,10 +213,10 @@ for settings in "$repo"/claude/.claude-*/settings.json; do
     else
         fail "$account/settings.json wires claude-tmux-state into 6 hooks" "$hooks"
     fi
-    if [ "$(jq -r '.statusLine.refreshInterval // empty' "$settings")" = 5 ]; then
-        pass "$account/settings.json refreshes the status line every 5 s"
+    if [ "$(jq -r '.statusLine.refreshInterval // empty' "$settings")" = 15 ]; then
+        pass "$account/settings.json refreshes the status line every 15 s"
     else
-        fail "$account/settings.json refreshes the status line every 5 s"
+        fail "$account/settings.json refreshes the status line every 15 s"
     fi
 done
 
