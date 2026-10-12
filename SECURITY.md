@@ -2,12 +2,12 @@
 
 ## Supported Versions
 
-We release patches for security vulnerabilities for the following versions:
+Releases are cut from `main` (see [Release Process](CONTRIBUTING.md#release-process)). Only the latest release receives security fixes; there are no maintenance branches.
 
-| Version | Supported |
-| ------- | --------- |
-| 1.0.x   | Yes       |
-| < 1.0   | No        |
+| Version        | Supported |
+| -------------- | --------- |
+| Latest release | Yes       |
+| Older releases | No        |
 
 ## Reporting a Vulnerability
 
@@ -53,7 +53,7 @@ This repository uses **SOPS (Secrets OPerationS) + age encryption** for managing
 #### How It Works
 
 1. **Encryption at Rest:** All secrets in `~/.env` are encrypted using age encryption
-2. **Automatic Decryption:** Shell automatically decrypts secrets on startup
+2. **Automatic Decryption:** The shell decrypts `~/.env` once into a private cache (`~/.cache/zsh/env_cache.v2`, mode 600 in a 700 directory) keyed on the file's `sops_mac`, and reads `NAME=value` lines without sourcing or evaluating anything
 3. **Safe Editing:** Use `edit_secrets` command to edit encrypted files
 4. **Key Isolation:** Encryption keys stored in `~/.config/sops/age/keys.txt`
 
@@ -317,5 +317,5 @@ For security-related questions that are not vulnerabilities:
 
 ---
 
-**Last Updated:** 2026-02-01
+**Last Updated:** 2026-10-12
 **Maintained by:** [Thisaru Guruge](https://thisaru.me)

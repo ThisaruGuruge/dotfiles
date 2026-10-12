@@ -4,12 +4,15 @@ Helper scripts to manage your dotfiles setup.
 
 ## Script index
 
-Every script in this directory is bash or zsh (no Python). Convention: use bash (`#!/bin/bash`, linted by shellcheck + `shfmt -i 4 -ci`) unless the script sources zsh-only features or runs inside the zsh config (`#!/usr/bin/env zsh`, checked with `zsh -n`). `bin/lint` runs all of these checks.
+Every script in this directory is bash, POSIX sh or zsh (no Python). Convention: use bash (`#!/bin/bash`, linted by shellcheck + `shfmt -i 4 -ci`; the two Claude Code helpers that run on every hook or refresh use `#!/bin/sh` for startup speed) unless the script sources zsh-only features or runs inside the zsh config (`#!/usr/bin/env zsh`, checked with `zsh -n`). `bin/lint` runs all of these checks.
 
 | Script | Language | Purpose |
 | ------ | -------- | ------- |
 | `adopt-config` | bash | Move an existing `~/.config/<app>` into a new bestow package |
 | `audit-configs` | bash | List which `~/.config` entries are managed by dotfiles |
+| `claude-statusline` | sh | Status line under the Claude Code prompt (both accounts call it) |
+| `claude-tmux-state` | sh | Sets the tmux window option `@claude_state` from Claude Code hooks |
+| `dotdoctor` | bash | Read-only health check of the whole setup (`--full` adds brew + plugin validation) |
 | `gws` | bash | Guard: refuses bare `gws`; requires an account-scoped invocation |
 | `gws-account` | bash | Shared helper behind `gwsp`/`gwse` (per-account config dir + keyring) |
 | `gwsp` / `gwse` | bash | Google Workspace CLI, personal / enterprise account |
@@ -18,9 +21,11 @@ Every script in this directory is bash or zsh (no Python). Convention: use bash 
 | `profile-zsh-startup` | zsh | Detailed zsh startup profiler (per-component timing) |
 | `reset-dotfiles` | bash | Interactively reset/clean dotfiles symlinks and caches |
 | `sync-brewfile` | bash | Compare/sync `Brewfile` with installed Homebrew packages |
+| `test-shell-helpers` | zsh | Behavioural tests for `dotdoctor`, `envrc`, `prs`/`prw` and the direnv hook (run by `test-zsh`) |
 | `test-zsh-config` | zsh | Validation suite (run via `test-zsh`) |
 | `tmux-status-battery` | zsh | tmux status bar: battery level and charging state |
-| `tmux-status-sysinfo` | zsh | tmux status bar: load average and RAM |
+| `tmux-status-claude` | bash | tmux status bar: sessions with a window waiting on Claude Code |
+| `tmux-status-sysinfo` | zsh | tmux status bar: load average and RAM, plus `☕` while `awake` holds |
 
 ## Scripts
 
@@ -187,7 +192,7 @@ git push
 
 On a new machine, everything just works:
 ```bash
-git clone https://github.com/yourusername/dotfiles.git ~/dotfiles
+git clone https://github.com/ThisaruGuruge/dotfiles.git ~/dotfiles
 cd ~/dotfiles
 ./init.sh
 # All configs are symlinked automatically!

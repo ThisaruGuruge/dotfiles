@@ -80,18 +80,20 @@ These **only show when inside relevant projects**:
 | Key | Description |
 |-----|-------------|
 | `Ctrl+R` | Open Atuin interactive search |
-| `↑` | Atuin prefix search as you type |
+| `Ctrl+R` again | Narrow to the next filter mode |
+| `↑` | Atuin prefix search as you type (host-wide) |
 | `Tab` | Copy selected command to command line |
 | `Enter` | Execute selected command |
 
-### Filter Modes (Tab in search to cycle)
+### Filter Modes (Ctrl+R again to cycle, broad to narrow)
 
 | Mode | Description |
 |------|-------------|
 | `global` | Search all history (default) |
+| `workspace` | Commands run inside the current git repo tree |
+| `directory` | Commands run in current directory |
 | `host` | This machine only |
 | `session` | Current terminal session only |
-| `directory` | Commands run in current directory |
 
 ### Atuin Aliases
 

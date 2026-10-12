@@ -53,10 +53,11 @@ Contributions are welcome in several forms:
    git remote add upstream https://github.com/ThisaruGuruge/dotfiles.git
    ```
 
-4. Create a feature branch:
+4. Create a feature branch from `dev` (the integration branch; see [Batching a release with the `dev` branch](#batching-a-release-with-the-dev-branch)):
 
    ```bash
-   git checkout -b feature/your-feature-name
+   git fetch upstream
+   git checkout -b feature/your-feature-name upstream/dev
    ```
 
 ### Testing Your Changes
@@ -67,17 +68,17 @@ Before submitting a pull request, test your changes:
 # Lint everything (shellcheck, shfmt, zsh -n, stylua, mod tests) -- same checks as CI
 ./bin/lint
 
+# Lint one file and print only problems, each with a `fix:` line
+./bin/lint --file path/to/file
+
 # Run validation suite
 ./bin/test-zsh-config
 
-# Test shell syntax
-zsh -n zsh/.zshrc
-zsh -n zsh/.zshrc.d/*.zsh
-zsh -n zsh/.functions.d/*.zsh
-bash -n zsh/.aliases.sh
+# Health check: unlinked files, dangling symlinks, secrets, mods (changes nothing)
+./bin/dotdoctor
 
-# Run shellcheck on modified scripts
-shellcheck your-modified-script.sh
+# Quick syntax check of the shell config
+zsh -n zsh/.zshrc
 
 # Test init script (dry run)
 # Note: Be careful running init.sh in development
@@ -106,10 +107,14 @@ This validates:
 - Shell configuration loads without errors
 - Performance metrics (startup time)
 - PATH is configured correctly
+- The tmux command palette covers every prefix binding
+- Behavioural suites it runs for you: `bin/test-shell-helpers` (`dotdoctor`, `envrc`, `prs`/`prw`, the direnv hook) and `tests/claude/check.sh` (status line, `claude-tmux-state`, `ccp` project settings)
 
 ### Linting
 
 `./bin/lint` is the single lint entry point (CI runs it too): `shellcheck` and `shfmt -i 4 -ci -d` on the bash scripts, `zsh -n` on the zsh files, `stylua --check nvim/.config/nvim` (stylua skips hidden directories, so `nvim/` alone checks nothing), and `claude plugin test` for each mod in `claude-mods/` that has hooks (local only: CI does not install `claude`, so the mod tests are skipped there). `bin/lint` also fails when a script in `bin/` is not in its file lists. Tools that are missing are reported as skipped locally and as failures with `CI=true`.
+
+`bin/lint --file <path>` checks a single file (shellcheck and `shfmt -i 4 -ci -d` for the bash scripts it lists, `zsh -n` for its zsh files, `stylua --check` for Neovim Lua) and prints only problems, each with a `fix:` line. The `conventions` mod runs it after every edit Claude Code makes in this repo. The vendored `claude-mods/rabe` mod (most of the run time) is skipped unless it differs from the merge base with `origin/dev` or `origin/main`, or `LINT_VENDORED=1` is set.
 
 ### CI/CD Validation
 
@@ -135,7 +140,7 @@ All pull requests are automatically validated through GitHub Actions:
 
 **Best Practices**:
 
-- Use `#!/bin/zsh` for zsh scripts, `#!/usr/bin/env bash` for bash scripts
+- Use `#!/bin/zsh` (or `#!/usr/bin/env zsh`) for zsh scripts and `#!/bin/bash` for bash scripts; `bin/lint` picks its checks from the shebang
 - Quote variables: `"$variable"` not `$variable`
 - Use `[[ ]]` for conditionals in zsh/bash
 - Prefer `local` for function-scoped variables
@@ -212,6 +217,7 @@ Use scopes to indicate which part of the codebase is affected:
 - `(zsh)` - Zsh configuration (.zshrc, .zshrc.d/, .aliases.sh)
 - `(functions)` - Shell functions (.functions.d/)
 - `(ci)` - GitHub Actions workflows
+- `(claude)` / `(claude-mods)` - Claude Code settings, status line, hooks and mods
 - `(docs)` - Documentation (README, CONTRIBUTING, etc.)
 - `(packages)` - Package management (Brewfile, packages/)
 - `(security)` - Secret management and security features
@@ -319,7 +325,7 @@ Every PR merged into `main` is automatically tagged and released — there is no
 
 ### How it works
 
-1. **`auto-tag.yml`** runs when a PR is merged into `main`. It:
+1. **`auto-tag.yml`** runs when a PR is merged into `main` (a `dev` to `main` PR counts). It:
    - Skips entirely if every changed file in the PR is plumbing (`.github/**`) or docs (`*.md`) — no release is cut for CI/workflow tweaks or documentation-only changes
    - Otherwise, reads the commits introduced since the last tag to decide the version bump, following [Semantic Versioning](https://semver.org/):
      - Any `feat!:`/`fix(scope)!:`/`BREAKING CHANGE:` commit → **major** bump
@@ -358,7 +364,7 @@ A PR whose files are all under `.github/` or are `*.md` still skips the release 
 
    ```bash
    git fetch upstream
-   git rebase upstream/main
+   git rebase upstream/dev
    ```
 
 2. **Run validation**:
@@ -367,16 +373,16 @@ A PR whose files are all under `.github/` or are `*.md` still skips the release 
    ./bin/test-zsh-config
    ```
 
-3. **Check shellcheck**:
+3. **Lint** (shellcheck, shfmt, `zsh -n`, stylua, mod tests; the same run CI does):
 
    ```bash
-   find . -name "*.sh" -not -path "./.git/*" | xargs shellcheck -e SC1091,SC2039
+   ./bin/lint
    ```
 
-4. **Format shell scripts**:
+4. **Format shell scripts** that `bin/lint` flags:
 
    ```bash
-   find . -name "*.sh" -not -path "./.git/*" | xargs shfmt -w -i 4 -ci
+   shfmt -w -i 4 -ci path/to/script
    ```
 
 5. **Test manually**:
@@ -387,7 +393,7 @@ A PR whose files are all under `.github/` or are `*.md` still skips the release 
 
 ### Submitting the PR
 
-1. **Push your branch**:
+1. **Push your branch** and open the PR against `dev`, not `main`:
 
    ```bash
    git push origin feature/your-feature-name
@@ -404,8 +410,8 @@ A PR whose files are all under `.github/` or are `*.md` still skips the release 
 
    - [ ] Code follows shell script style guidelines
    - [ ] `test-zsh` validation passes
-   - [ ] Shellcheck validation passes
-   - [ ] Documentation updated (README, comments, etc.)
+   - [ ] `./bin/lint` passes
+   - [ ] Documentation updated (README, comments, etc.) and a `CHANGELOG.md` entry added under `## [Unreleased]`
    - [ ] Commit messages follow conventional commits format
    - [ ] No hardcoded paths or secrets
    - [ ] Changes tested locally
@@ -441,9 +447,11 @@ brew "your-dev-tool"
 brew bundle --file=Brewfile
 ```
 
+`list_dotfiles_tools` reads the Brewfiles, so the trailing comment on the line is the description they show; there is no separate inventory to edit.
+
 ### 3. Update init.sh (if needed)
 
-If the package requires special installation or configuration, update `init.sh`.
+If the package requires special installation or configuration, update `init.sh`. A tool with its own config also needs its own top-level bestow package (`<tool>/.config/<tool>/`) added to the package list in `init.sh`.
 
 ### 4. Add to validation suite
 
@@ -451,7 +459,7 @@ Update `bin/test-zsh-config` to validate the new package if it's critical.
 
 ### 5. Document in README
 
-Add the package to the relevant section in README.md with usage examples.
+Add the package to the relevant section in README.md with usage examples, and add a line to `CHANGELOG.md` under `## [Unreleased]`.
 
 ### 6. Test installation
 
@@ -537,7 +545,8 @@ zsh -n zsh/.zshrc
 shellcheck zsh/.functions.sh
 
 # Profile startup performance
-./bin/profile-startup
+./bin/profile-startup        # quick timing
+./bin/profile-zsh-startup    # per-component timing
 ```
 
 ### Useful Git Commands
@@ -545,7 +554,7 @@ shellcheck zsh/.functions.sh
 ```bash
 # Update from upstream
 git fetch upstream
-git rebase upstream/main
+git rebase upstream/dev
 
 # Interactive rebase to clean up commits
 git rebase -i HEAD~3
