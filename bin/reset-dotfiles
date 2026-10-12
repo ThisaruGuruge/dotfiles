@@ -59,6 +59,31 @@ confirm() {
     [[ "$response" =~ ^[Yy]$ ]]
 }
 
+# Installed Homebrew formulae and casks, read once: `brew list <name>` starts a
+# Ruby process per call, which adds up over a few dozen packages. Names are
+# matched whole-line and also by their last path component, so a tap-qualified
+# entry ("user/tap/name") still finds the installed "name".
+BREW_FORMULAE=""
+BREW_CASKS=""
+BREW_LISTED=false
+
+load_brew_lists() {
+    [ "$BREW_LISTED" = true ] && return 0
+    BREW_FORMULAE=$(brew list -1 --formula 2>/dev/null || true)
+    BREW_CASKS=$(brew list -1 --cask 2>/dev/null || true)
+    BREW_LISTED=true
+}
+
+brew_formula_installed() {
+    load_brew_lists
+    grep -qxF -e "$1" -e "${1##*/}" <<<"$BREW_FORMULAE"
+}
+
+brew_cask_installed() {
+    load_brew_lists
+    grep -qxF -e "$1" -e "${1##*/}" <<<"$BREW_CASKS"
+}
+
 # Get the dotfiles directory
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$DOTFILES_DIR"
@@ -160,13 +185,13 @@ if confirm "Do you want to uninstall packages that were installed via init.sh?" 
 
                     if [[ "$line" =~ ^brew[[:space:]]\"(.*)\" ]]; then
                         package="${BASH_REMATCH[1]}"
-                        if brew list "$package" &>/dev/null; then
+                        if brew_formula_installed "$package"; then
                             log_info "Uninstalling $package"
                             brew uninstall "$package" 2>/dev/null || log_warning "Could not uninstall $package"
                         fi
                     elif [[ "$line" =~ ^cask[[:space:]]\"(.*)\" ]]; then
                         package="${BASH_REMATCH[1]}"
-                        if brew list --cask "$package" &>/dev/null; then
+                        if brew_cask_installed "$package"; then
                             log_info "Uninstalling cask $package"
                             brew uninstall --cask "$package" 2>/dev/null || log_warning "Could not uninstall $package"
                         fi
