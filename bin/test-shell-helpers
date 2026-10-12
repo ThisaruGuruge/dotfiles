@@ -536,6 +536,56 @@ EOF
 fi
 
 # ---------------------------------------------------------------------------
+# rebuild-env + the edit_secrets MAC mismatch hint
+# ---------------------------------------------------------------------------
+group "rebuild-env, edit_secrets MAC hint"
+if ! (( $+commands[sops] && $+commands[age-keygen] )); then
+    skip "sops/age not installed"
+else
+    RE=$REPO/bin/rebuild-env
+    REDIR=$TMP/rebuild
+    mkdir -p "$REDIR"
+    export SOPS_AGE_KEY_FILE=$REDIR/keys.txt
+    age-keygen -o "$SOPS_AGE_KEY_FILE" >/dev/null 2>&1
+    printf 'ALPHA=one\nBETA=two\nGAMMA=three\n' >"$REDIR/plain.env"
+    sops --config /dev/null --age "$(age-keygen -y "$SOPS_AGE_KEY_FILE")" -e \
+        --input-type dotenv --output-type dotenv --filename-override "$REDIR/.env" \
+        "$REDIR/plain.env" >"$REDIR/good.env"
+
+    # (a) a healthy file is refused
+    cp "$REDIR/good.env" "$REDIR/.env"
+    ENV_FILE=$REDIR/.env SOPS_CONFIG=$REDIR/none.yaml PROMPT_INPUT=/dev/null \
+        "$RE" >"$REDIR/a.out" 2>&1
+    check "rebuild-env: healthy file is refused" has "decrypts normally" "$REDIR/a.out"
+    check "rebuild-env: healthy file untouched" cmp -s "$REDIR/good.env" "$REDIR/.env"
+
+    # break the MAC by deleting an encrypted line by hand
+    grep -v '^BETA=' "$REDIR/good.env" >"$REDIR/.env"
+
+    # (c) edit_secrets prints the hint and never the values
+    (
+        source "$REPO/zsh/.functions.d/06-dotfiles.zsh"
+        HOME=$REDIR EDITOR=true edit_secrets
+    ) >"$REDIR/c.out" 2>&1
+    check "edit_secrets: MAC mismatch hint names rebuild-env" has "rebuild-env" "$REDIR/c.out"
+    check "edit_secrets: keeps the decrypt error line" has "Failed to decrypt" "$REDIR/c.out"
+    check "edit_secrets: hint leaks no values" lacks "three" "$REDIR/c.out"
+
+    # (b) sandbox rebuild: keep ALPHA, replace GAMMA, add DELTA
+    printf '\nnewgamma\nDELTA\nfour\n\n' >"$REDIR/answers"
+    ENV_FILE=$REDIR/.env SOPS_CONFIG=$REDIR/none.yaml PROMPT_INPUT=$REDIR/answers \
+        "$RE" >"$REDIR/b.out" 2>&1
+    sops -d --input-type dotenv --output-type dotenv "$REDIR/.env" >"$REDIR/b.dec" 2>/dev/null
+    check "rebuild-env: rebuilt file decrypts normally" test -s "$REDIR/b.dec"
+    check "rebuild-env: kept variable" has_fixed "ALPHA=one" "$REDIR/b.dec"
+    check "rebuild-env: replaced variable" has_fixed "GAMMA=newgamma" "$REDIR/b.dec"
+    check "rebuild-env: added variable" has_fixed "DELTA=four" "$REDIR/b.dec"
+    check "rebuild-env: broken file kept" test -n "$(print -r -- $REDIR/.env.broken-mac.*(N))"
+    check "rebuild-env: output shows names only" lacks_fixed "newgamma" "$REDIR/b.out"
+    unset SOPS_AGE_KEY_FILE
+fi
+
+# ---------------------------------------------------------------------------
 print
 print -r -- "Passed: $PASSES   Failed: $FAILS   Skipped: $SKIPS"
 (( FAILS == 0 ))

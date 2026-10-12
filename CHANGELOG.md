@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added `bin/rebuild-env`, which rebuilds `~/.env` after sops reports `MAC mismatch` (the encrypted file was edited by hand): it keeps, replaces or removes each variable with hidden prompts, adds new ones, verifies the round trip and keeps the broken file as `~/.env.broken-mac.<time>`; `edit_secrets` now points to it when decryption fails with that error, and `test-shell-helpers` covers both
 - Added the `writing-ballerina-beps` Claude skill (`SKILL.md` and `bep-template.md`) under `claude/.claude-personal/skills/`, linked into `~/.claude-personal/skills/` by `bestow stow claude`
 
 ### Changed
