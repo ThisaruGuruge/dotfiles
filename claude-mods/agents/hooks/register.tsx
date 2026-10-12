@@ -20,6 +20,32 @@ const ACCENT = '#d95926'
 const isRunning = (a: AgentRec) => a.status === 'run'
 const elapsed = (a: AgentRec, at: number) => (a.endedAt ?? Math.max(at, a.startedAt)) - a.startedAt
 
+// A resumed or background agent never fires `agent.spawn` in this session, so the first request or tool call that
+// carries an unknown agent id adopts it, and the pane opens as it would for a fresh spawn.
+const adopt = async ($: Parameters<Parameters<Register>[0]>[0], agentId: string, model?: string) => {
+  if ((await read($, list)).some(a => a.agentId === agentId)) return
+  const at = await $.clock.now()
+  const wasIdle = !(await read($, list)).some(isRunning)
+  const rec: AgentRec = {
+    id: agentId,
+    agentId,
+    type: 'subagent',
+    label: `resumed ${agentId.slice(0, 8)}`,
+    model,
+    window: windowOf(model ?? ''),
+    status: 'run',
+    startedAt: at,
+    context: 0,
+    out: 0,
+    fresh: 0,
+    requests: 0,
+    tools: 0,
+  }
+  await update($, list, all => [...all.filter(a => a.id !== rec.id), rec].slice(-MAX_AGENTS))
+  await update($, now, () => at)
+  if (wasIdle) void $.ui.open({ id: PANE, title: 'Agents' }).catch(() => {})
+}
+
 export type RowsMode = 'auto' | 'off' | 'always'
 
 export const rowsModeOf = (value: unknown): RowsMode => (value === 'off' || value === 'always' ? value : 'auto')
@@ -104,6 +130,7 @@ export const register: Register = (on, options) => {
     const result = yield* next(e)
     const usage = result.usage
     if (!e.agentId || !usage) return result
+    await adopt($, e.agentId, usage.model || e.model).catch(() => {})
 
     const context =
       usage.input_tokens + usage.cache_read_input_tokens + usage.cache_creation_input_tokens + usage.output_tokens
@@ -129,6 +156,7 @@ export const register: Register = (on, options) => {
   on('tool.call', async ($, e, next) => {
     const agentId = e.agentId
     if (agentId) {
+      await adopt($, agentId).catch(() => {})
       const last = clip(`${e.tool} ${targetOf(e as unknown as Record<string, unknown>, e.tool)}`, 140)
       await update($, list, all =>
         all.map(a => (a.agentId === agentId ? { ...a, tools: a.tools + 1, lastTool: last } : a)),

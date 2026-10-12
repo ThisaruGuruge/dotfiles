@@ -42,7 +42,7 @@ export const fmtTime = (ms: number): string => {
 }
 
 // `claude-sonnet-4-6` -> `Sonnet 4.6`; anything unrecognised is shown as given.
-export const modelName = (id: string): string => {
+export const modelName = (id = ''): string => {
   const m = /(fable|opus|sonnet|haiku)-(\d+)(?:-(\d{1,2})(?!\d))?/i.exec(id)
   const [, family = '', major = '', minor] = m ?? []
   if (!family) return id.replace(/^claude-/, '').replace(/\[.*\]$/, '') || '—'

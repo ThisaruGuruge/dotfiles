@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- `agents` mod: a resumed or background subagent (one that never fires `agent.spawn` in the current session, e.g. after a session restart) is now picked up from its first request or tool call, so the pane auto-opens and the rows above the prompt show it
 - tmux: stopped marking background windows with yellow underlined text (`monitor-activity` off); nvim and Claude windows redraw constantly, so it fired on tabs that were only open. Claude state glyphs and the bell colour are unchanged
 - `.bestowignore`: `claude-*` also hid `bin/claude-notify`, `claude-statusline`, `claude-tmux-state` from `~/bin`; it now ignores only `claude-mods`
 
