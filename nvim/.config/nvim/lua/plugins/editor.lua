@@ -117,12 +117,10 @@ return {
           component_separators = { left = "|", right = "|" },
           section_separators = { left = "", right = "" },
           globalstatus = true,
-          -- The default 16 ms refresh timer is the largest idle CPU cost per
-          -- nvim instance; event-driven redraws are unaffected.
+          -- lualine's default 16 ms refresh timer is a steady idle cost per
+          -- nvim instance. 100 ms cuts that; event-driven updates may lag by
+          -- up to ~100 ms.
           refresh = {
-            statusline = 1000,
-            tabline = 1000,
-            winbar = 1000,
             refresh_time = 100,
           },
         },
