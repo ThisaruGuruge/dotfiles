@@ -10,6 +10,7 @@ Every script in this directory is bash, POSIX sh or zsh (no Python). Convention:
 | ------ | -------- | ------- |
 | `adopt-config` | bash | Move an existing `~/.config/<app>` into a new bestow package |
 | `audit-configs` | bash | List which `~/.config` entries are managed by dotfiles |
+| `claude-notify` | bash | macOS notification from Claude Code hooks when a session finishes or needs you |
 | `claude-statusline` | sh | Status line under the Claude Code prompt (both accounts call it) |
 | `claude-tmux-state` | sh | Sets the tmux window option `@claude_state` from Claude Code hooks |
 | `dotdoctor` | bash | Read-only health check of the whole setup (`--full` adds brew + plugin validation) |
@@ -129,6 +130,26 @@ Claude Code helpers, called from `claude/.claude-*/` by their repo path (`~/dotf
   nested `claude -p` inherits `TMUX_PANE`, but the window is the outer session's).
 
 Both are checked by `tests/claude/check.sh`, which `test-zsh` runs.
+
+### `claude-notify`
+`claude-notify attention|done|subagent` reads a hook's JSON on stdin and shows a macOS notification
+(`osascript`, title `Claude · <repo> (Personal|Work)`). Wired async into both accounts' `settings.json`:
+`Notification` and `PreToolUse` with matcher `AskUserQuestion` -> `attention` (body: the hook's message or
+the question), `Stop` -> `done` (`Finished`), `SubagentStop` -> `subagent` (off unless
+`CLAUDE_NOTIFY_SUBAGENTS=1`). Title, body and sound reach AppleScript as argv, never in its source, and the
+event's file contents, tool input and assistant text are never shown.
+
+- Quiet when you are looking: the terminal is the frontmost app (`lsappinfo`, no Accessibility permission)
+  and, inside tmux, this pane's window is the current window of an attached session.
+- Two events of one kind from one pane within 2 s send one notification.
+- `CLAUDE_NOTIFY=0` off, `CLAUDE_NOTIFY_ALWAYS=1` never suppress, `CLAUDE_NOTIFY_SOUND=Name` (or empty for
+  none; defaults `Ping` for attention, `Glass` for done), `CLAUDE_NOTIFY_TERMINALS=<regex>` app names that
+  count as "looking", `CLAUDE_NOTIFY_DEBOUNCE=<seconds>`.
+- Always exits 0 and prints nothing. Checked by `tests/claude/check.sh` with fake `osascript`,
+  `lsappinfo` and `tmux`.
+
+One-time macOS setup: System Settings > Notifications > **Script Editor** (`osascript` notifications are
+attributed to it) must allow banners or alerts and sounds. A Focus mode silences them like any other app.
 
 ### `rebuild-env`
 Recover `~/.env` when sops reports `MAC mismatch`. That happens when the encrypted file was edited by hand (for example deleting lines in a normal editor), which breaks its checksum. The script refuses to run on a healthy file, reads the values with `--ignore-mac`, asks per variable whether to keep, replace (hidden input) or remove it, lets you add new ones, then encrypts, verifies the round trip and swaps the file in. The broken file is kept as `~/.env.broken-mac.<time>` (still encrypted). Values are never printed.

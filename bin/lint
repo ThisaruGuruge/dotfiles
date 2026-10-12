@@ -98,6 +98,7 @@ BASH_FILES=(
     bin/rebuild-env
     bin/reset-dotfiles
     bin/sync-brewfile
+    bin/claude-notify
     bin/claude-statusline
     bin/claude-tmux-state
     bin/tmux-status-claude
