@@ -142,3 +142,14 @@ test('rowsModeOf falls back to auto for bad input', () => {
   expect(rowsModeOf('off')).toBe('off')
   expect(rowsModeOf('always')).toBe('always')
 })
+
+test('adopts a resumed agent that never fired agent.spawn', async ($, on) => {
+  on('clock.now', () => ({ value: 2_000 }))
+  on('tool.call', () => ({ result: 'ok' }) as never)
+
+  await $.tool.call({ tool: 'Bash', input: { command: 'ls' }, agentId: 'resumed-1' } as never)
+
+  const pane = await $.ui.mount(PANE)
+
+  expect(await pane.find({ type: 'Text', text: /Agents \(1 running, 1 total\)/ })).toBeDefined()
+})
