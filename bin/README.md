@@ -13,7 +13,7 @@ Every script in this directory is bash or zsh (no Python). Convention: use bash 
 | `gws` | bash | Guard: refuses bare `gws`; requires an account-scoped invocation |
 | `gws-account` | bash | Shared helper behind `gwsp`/`gwse` (per-account config dir + keyring) |
 | `gwsp` / `gwse` | bash | Google Workspace CLI, personal / enterprise account |
-| `lint` | bash | Single lint entry point: shellcheck, shfmt, `zsh -n`, stylua, mod tests (also run by CI) |
+| `lint` | bash | Single lint entry point: shellcheck, shfmt, `zsh -n`, stylua, mod tests (also run by CI). `lint --file <path>` lints one file and prints only problems, each with a `fix:` line (used by the `conventions` mod) |
 | `profile-startup` | bash | Quick shell startup timing |
 | `profile-zsh-startup` | zsh | Detailed zsh startup profiler (per-component timing) |
 | `reset-dotfiles` | bash | Interactively reset/clean dotfiles symlinks and caches |
