@@ -20,7 +20,7 @@ Prefix key: `Ctrl+a`
 
 ## Claude Code State
 
-Claude Code reports its state to tmux through hooks (`bin/claude-tmux-state`), stored per window in the `@claude_state` option. This needs `bin/claude-tmux-state` and the hooks in Claude Code's `settings.json` that call it (shipped separately, in the `fix/claude-mods-hardening` change); until then no window gets a state and the markers stay quiet:
+Claude Code reports its state to tmux through hooks (`bin/claude-tmux-state`), stored per window in the `@claude_state` option. The hooks in both accounts' `settings.json` call `bin/claude-tmux-state` (it is a no-op outside tmux), and `bin/tmux-status-claude` draws the status-bar summary:
 
 | State | Window tab | Meaning |
 |-------|------------|---------|
@@ -189,12 +189,12 @@ A session created by `prefix + f` or `prefix + S` starts with three windows, in 
 - `SESSIONIZER_LAYOUT=bare` gives a single shell window instead. Export it before tmux starts, or switch it on a running server with `tmux set-environment -g SESSIONIZER_LAYOUT bare` (`tmux set-environment -gu SESSIONIZER_LAYOUT` turns it off again).
 - New sessions are created at the size of your terminal, so the 80/20 split of the `NVim` window is right as soon as you attach.
 - Two projects with the same folder name get parent-qualified session names: `api` for the first, `personal/api` for the second. A session counts as belonging to a project when any of its panes is in that directory, so a session you made with `prefix + S` and `cd`'d into the project is reused. A `$` in a folder name becomes `_`; `prefix + S` also keeps `/` in names, so `work/api` typed there matches the sessionizer's name.
-- `tmux-session-layout` and `tmux-claude-next` are new scripts: run `bestow stow tmux` on an existing install. Until then the sessionizer and `prefix + S` print a warning and open a bare session, and `prefix + A` says the helper is missing.
+- `tmux-session-layout` and `tmux-claude-next` are bestow-linked into `~/.local/bin` like the other tmux scripts: after pulling, run `bestow stow tmux` if either is missing. Until then the sessionizer and `prefix + S` print a warning and open a bare session, and `prefix + A` says the helper is missing.
 - `prefix + s` only switches between sessions; it does not create anything.
 
 ## Awake indicator
 
-While the `awake` shell function is holding the Mac awake (its pidfile `${TMPDIR:-/tmp}/dotfiles-awake.pid` points at a live process), the status bar shows a `☕` in front of the load average. The `awake` function ships in the `fix/shell-core` change; until it is merged nothing writes the pidfile and the `☕` never appears.
+While the `awake` shell function is holding the Mac awake (its pidfile `${TMPDIR:-/tmp}/dotfiles-awake.pid` points at a live process), the status bar shows a `☕` in front of the load average. `bin/tmux-status-sysinfo` does the check.
 
 ## Plugins
 

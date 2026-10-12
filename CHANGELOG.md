@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Changed Neovim to stop writing undo files for files that hold secrets (`.env` and `.env.*`, `*.env`, keys and certificates, `credentials*`, `.netrc`, `.npmrc`, `.pypirc`, `.git-credentials`, `gradle.properties`, `*.tfvars`, Ballerina `Config.toml`): `undofile` saved their text, unencrypted, under `~/.local/state/nvim/undo`, which had collected API keys and tokens from edited project files
 
+### Changed
+
+- Refreshed the documentation to match the repo: `README.md` now covers the Claude Code accounts (`ccp`/`ccpr`/`ccpc`, `cce`/`ccer`/`ccec`, the `~/.claude` to `~/.claude-personal` symlink, `projects.d/<repo>.json`, the mods), the tmux project session layout, the Home/End binding behind `Cmd+Left/Right`, `bin/lint` and the `dev` branch flow, and drops the dead `CLAUDE.md` link, Cursor, the non-existent `.sh` suffix alias and the extra `tmux` zshrc module
+- Updated `SECURITY.md` (supported versions now "latest release", the env cache in the secrets description, last-updated date), `CONTRIBUTING.md` (PRs and rebases target `dev`, `bin/lint` and `bin/lint --file`, `LINT_VENDORED`, the behavioural suites `test-zsh` runs), `bin/README.md` (script index now lists `dotdoctor`, `claude-statusline`, `claude-tmux-state`, `test-shell-helpers`, `tmux-status-claude`), `docs/TMUX_KEYBINDINGS.md` (removed "until the change is merged" caveats), `docs/CONFIG_MANAGEMENT.md` (per-file links, `dotdoctor`, the `bin` exception), `docs/PROMPT_GUIDE.md` (Atuin filter modes), `docs/SEARCH_CHEATSHEET.md` (ripgrep config defaults), `docs/README.md` (index) and the Neovim keybinding docs (undo files are not written for secrets)
+
+### Removed
+
+- Removed `cleanup.sh` (a second, unreferenced copy of `bin/reset-dotfiles` that ran a bare `bestow unstow`) and `VERSION` (stuck at `1.0.0`; releases are versioned by git tags), along with their entries in `.bestowignore` and `bin/lint`
+
 ## [2.8.1] - 2026-10-12
 
 ### Fixed
