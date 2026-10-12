@@ -17,8 +17,12 @@ init.sh
 
 # Globs
 *.brewfile
-*.md
-**/*.md
+# Repo docs (explicit, not *.md: skills ship SKILL.md files that must be linked)
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+SECURITY.md
+KEYBINDINGS.md
 claude-*
 **/*.brewfile
 .nvim-state
