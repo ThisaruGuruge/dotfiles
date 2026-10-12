@@ -16,7 +16,7 @@ A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CL
 - **Touch ID for sudo** – Use your fingerprint instead of typing passwords in the terminal (works inside tmux too via `pam-reattach`)
 - **Caps Lock remap** – Hammerspoon + `ControlEscape.spoon`: tap Caps Lock for Escape, hold for Control — a Karabiner alternative that needs only Accessibility/Input Monitoring permissions, no blockable system extension
 - **Claude Code, two accounts** – `ccp` (personal) and `cce` (enterprise) run Claude Code against separate config dirs, with TypeScript mods for a status band, risk previews, secret redaction and a subagent pane (see [Claude Code](#claude-code)); tmux shows which windows are waiting on Claude
-- **Project sessions in tmux** – `prefix + f` opens a project with three windows (`Long Runs`, `CLAUDE`, `NVim`)
+- **Project sessions in tmux** – `prefix + f` opens a project with three windows (`[Claude]`, `[Nvim]`, `[Shell]`)
 - **Secrets handled correctly** – SOPS + age encryption, `edit_secrets` workflow, and automatic `.env` handling inside `init.sh`
 - **Brewfile-driven** – Curated `Brewfile` with optional category files in `packages/` for modular installation
 - **Validation + profiling** – `bin/lint` (shellcheck, shfmt, `zsh -n`, stylua, mod tests; also run by CI), `test-zsh` integration tests, `dotdoctor` health check, `profile_startup` quick timing, and `bin/profile-zsh-startup` for deep dives
@@ -267,7 +267,7 @@ Two accounts, each with its own config directory (`claude/` is the stow package 
 
 ### tmux project sessions
 
-`prefix + f` (sessionizer) and `prefix + S` (new session) create a session with three windows: `Long Runs` (plain shell), `CLAUDE` (runs `claude` with the directory's `.envrc` applied) and `NVim` (nvim over a small shell, the window the session opens on). `SESSIONIZER_LAYOUT=bare` gives a single shell instead. After pulling, run `bestow stow tmux` if a new helper script is missing. Key reference: [`docs/TMUX_KEYBINDINGS.md`](docs/TMUX_KEYBINDINGS.md).
+`prefix + f` (sessionizer) and `prefix + S` (new session) create a session with three windows: `[Claude]` (runs `claude` with the directory's `.envrc` applied), `[Nvim]` (nvim over a small shell, the window the session opens on) and `[Shell]` (plain shell). `SESSIONIZER_LAYOUT=bare` gives a single shell instead. After pulling, run `bestow stow tmux` if a new helper script is missing. Key reference: [`docs/TMUX_KEYBINDINGS.md`](docs/TMUX_KEYBINDINGS.md).
 
 ### Per-project accounts (`envrc`)
 
