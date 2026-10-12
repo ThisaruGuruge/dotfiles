@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Removed the `flutter` stow package (its only file was Flutter's generated `tool_state`) and dropped it from the package list in `init.sh`; the `flutter` cask in `packages/development.brewfile` and the `$HOME/Setup/flutter/bin` PATH entry stay. On an existing machine remove the dangling link with `rm ~/.config/flutter/tool_state`
 - Removed `cleanup.sh` (a second, unreferenced copy of `bin/reset-dotfiles` that ran a bare `bestow unstow`) and `VERSION` (stuck at `1.0.0`; releases are versioned by git tags), along with their entries in `.bestowignore` and `bin/lint`
 
 ## [2.8.1] - 2026-10-12
