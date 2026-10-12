@@ -86,7 +86,6 @@ need() {
 # Bash scripts (explicit list: bin/ also holds zsh scripts and README.md).
 BASH_FILES=(
     init.sh
-    cleanup.sh
     zsh/.paths.sh
     bin/adopt-config
     bin/audit-configs

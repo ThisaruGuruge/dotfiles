@@ -10,11 +10,9 @@ docs
 packages
 
 # Files
-VERSION
 LICENSE
 Brewfile
 init.sh
-cleanup.sh
 .DS_Store
 
 # Globs
