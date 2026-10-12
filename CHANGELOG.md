@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added `bin/claude-notify`, wired into both Claude Code accounts' hooks, which shows a macOS notification (via `osascript`, title `Claude · <repo> (Personal|Work)`) when a session finishes (`Stop`) or needs you (`Notification`: permission prompt or idle, and `PreToolUse` on `AskUserQuestion`); subagent completion (`SubagentStop`) is opt-in with `CLAUDE_NOTIFY_SUBAGENTS=1`. It stays quiet while the terminal is frontmost and, in tmux, this pane's window is showing; repeats within 2 s send one notification; `CLAUDE_NOTIFY=0`, `CLAUDE_NOTIFY_ALWAYS=1` and `CLAUDE_NOTIFY_SOUND` adjust it. Title, body and sound are passed to AppleScript as argv, and `tests/claude/check.sh` covers it with a fake `osascript`. One-time setup: allow banners and sounds for Script Editor in System Settings > Notifications
 - Added `uv` (fast Python package and project manager) to the core `Brewfile`; it appears in `show_tools` / `list_dotfiles_tools`, which read the Brewfile, and `test-zsh` checks it
 
 ### Security

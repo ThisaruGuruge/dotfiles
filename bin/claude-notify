@@ -1,0 +1,146 @@
+#!/bin/bash
+# Sends a macOS notification when a Claude Code session finishes or needs you.
+#
+# Usage: claude-notify attention|done|subagent      (the hook's JSON event on stdin)
+#
+# Called from Claude Code hooks in both accounts' settings.json (all async):
+#   Notification and PreToolUse(AskUserQuestion) -> attention, Stop -> done, SubagentStop -> subagent
+# Title is "Claude · <repo> (<Personal|Work>)", the body is the hook's message (attention), "Finished"
+# (done) or "Subagent finished" (subagent). Nothing else from the event is shown: no file contents,
+# tool input or assistant text. The notification is sent with osascript; the title, body and sound
+# go in as argv, never into the AppleScript source, so no text can inject script.
+#
+# It stays quiet when you are already looking: the terminal is the frontmost app and, inside tmux,
+# this pane's window is the one showing in an attached session. Two events of one kind from one
+# pane within 2 s send one notification.
+#
+# Environment:
+#   CLAUDE_NOTIFY=0             turn everything off
+#   CLAUDE_NOTIFY_SUBAGENTS=1   also notify when a subagent finishes (off: a batch would spam)
+#   CLAUDE_NOTIFY_ALWAYS=1      never suppress, even when the terminal is in front
+#   CLAUDE_NOTIFY_SOUND=Name    a sound from /System/Library/Sounds for every notification, "" for none
+#   CLAUDE_NOTIFY_TERMINALS     regex of terminal app names that count as "looking" (default below)
+#   CLAUDE_NOTIFY_DEBOUNCE      seconds for the debounce (default 2)
+#
+# It never prints and always exits 0, so it can never block or fail a hook.
+
+mode=${1:-}
+
+# Hooks pass their event JSON on stdin; read it so Claude Code never writes into a closed pipe
+input=
+[ -t 0 ] || input=$(cat 2>/dev/null)
+
+case "$mode" in
+    attention | done) ;;
+    subagent) [ "${CLAUDE_NOTIFY_SUBAGENTS:-0}" = 1 ] || exit 0 ;;
+    *) exit 0 ;;
+esac
+[ "${CLAUDE_NOTIFY:-1}" = 0 ] && exit 0
+command -v osascript >/dev/null 2>&1 || exit 0
+
+# One line, no control characters, at most 140 characters
+clean() {
+    local s
+    s=$(printf '%s' "$1" | LC_ALL=C tr -s '[:cntrl:] ' ' ')
+    s=${s# }
+    s=${s% }
+    [ "${#s}" -gt 140 ] && s="${s:0:139}…"
+    printf '%s' "$s"
+}
+
+# ── Event fields ────────────────────────────────────────────────────────────
+message='' cwd='' agent='' question=''
+if [ -n "$input" ] && command -v jq >/dev/null 2>&1; then
+    {
+        IFS= read -r message
+        IFS= read -r cwd
+        IFS= read -r agent
+        IFS= read -r question
+    } < <(jq -r '(.message, .cwd, .agent_type, .tool_input.questions[0].question)
+        | if type == "string" then gsub("[\u0001-\u001f\u007f]"; " ") else "" end' <<<"$input" 2>/dev/null)
+fi
+[ -n "$cwd" ] || cwd=$PWD
+
+# ── Where, and which account ────────────────────────────────────────────────
+name=
+root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) && name=${root##*/}
+[ -n "$name" ] || name=${cwd##*/}
+[ -n "$name" ] || name=Claude
+
+case "${CLAUDE_CONFIG_DIR:-}" in
+    *personal*) account=' (Personal)' ;;
+    *enterprise*) account=' (Work)' ;;
+    *) account= ;;
+esac
+
+# ── Suppress when the owner is already looking ──────────────────────────────
+if [ "${CLAUDE_NOTIFY_ALWAYS:-0}" != 1 ] && command -v lsappinfo >/dev/null 2>&1; then
+    front=$(lsappinfo info -only name "$(lsappinfo front 2>/dev/null)" 2>/dev/null)
+    front=${front#*=}
+    front=${front//\"/}
+    terminals=${CLAUDE_NOTIFY_TERMINALS:-^(Ghostty|iTerm2|Terminal|WezTerm|kitty|Alacritty|Warp|Hyper|Tabby)$}
+    if [ -n "$front" ] && [[ $front =~ $terminals ]]; then
+        if [ -n "${TMUX:-}" ] && [ -n "${TMUX_PANE:-}" ] && command -v tmux >/dev/null 2>&1; then
+            # window_active: the session's current window; session_attached: clients attached to it
+            read -r active attached < <(tmux display-message -p -t "$TMUX_PANE" '#{window_active} #{session_attached}' 2>/dev/null)
+            { [ "${active:-0}" = 1 ] && [ "${attached:-0}" -gt 0 ] 2>/dev/null; } && exit 0
+        else
+            exit 0
+        fi
+    fi
+fi
+
+# ── Debounce ────────────────────────────────────────────────────────────────
+gap=${CLAUDE_NOTIFY_DEBOUNCE:-2}
+dir=${CLAUDE_NOTIFY_STATE_DIR:-${TMPDIR:-/tmp}/claude-notify-$(id -u)}
+key=${TMUX_PANE:-$cwd}
+key=${key//[^A-Za-z0-9]/_}
+stamp=$dir/$mode.$key
+now=$(date +%s)
+if [ -f "$stamp" ]; then
+    last=$(cat "$stamp" 2>/dev/null)
+    [ "$((now - ${last:-0}))" -lt "$gap" ] 2>/dev/null && exit 0
+fi
+mkdir -p "$dir" 2>/dev/null && chmod 700 "$dir" 2>/dev/null
+printf '%s\n' "$now" >"$stamp" 2>/dev/null
+
+# ── Compose ─────────────────────────────────────────────────────────────────
+case "$mode" in
+    attention)
+        body=$(clean "${message:-$question}")
+        [ -n "$body" ] || body='Needs your attention'
+        sound=Ping
+        ;;
+    done)
+        body=Finished
+        sound=Glass
+        ;;
+    subagent)
+        body='Subagent finished'
+        [ -n "$agent" ] && body="$body: $(clean "$agent")"
+        sound=Glass
+        ;;
+esac
+title=$(clean "Claude · $name$account")
+sound=${CLAUDE_NOTIFY_SOUND-$sound}
+[[ $sound =~ ^[A-Za-z0-9\ _-]*$ ]] || sound=
+
+# Each argument gets a leading "@" (stripped in AppleScript) because osascript reads an argument
+# starting with "-" as one of its own options
+osascript \
+    -e 'on strip(s)' \
+    -e 'if (length of s) < 2 then return ""' \
+    -e 'return text 2 thru -1 of s' \
+    -e 'end strip' \
+    -e 'on run argv' \
+    -e 'set t to my strip(item 1 of argv)' \
+    -e 'set b to my strip(item 2 of argv)' \
+    -e 'set s to my strip(item 3 of argv)' \
+    -e 'if s is "" then' \
+    -e 'display notification b with title t' \
+    -e 'else' \
+    -e 'display notification b with title t sound name s' \
+    -e 'end if' \
+    -e 'end run' \
+    "@$title" "@$body" "@$sound" >/dev/null 2>&1
+exit 0

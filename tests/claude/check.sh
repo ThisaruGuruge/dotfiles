@@ -201,6 +201,162 @@ else
     warn "ccp loads the repo's projects.d file (subdirectory, worktree, none)" "zsh and git are needed"
 fi
 
+# ── Desktop notification hook ───────────────────────────────────────────────
+# claude-notify runs against fake osascript (records its argv), lsappinfo and tmux on PATH, so no
+# notification is ever shown
+notify="$repo/bin/claude-notify"
+if ! command -v jq >/dev/null 2>&1; then
+    warn "claude-notify" "jq is needed"
+else
+    nf="$work/notify-fake"
+    mkdir -p "$nf" "$work/proj"
+    cat >"$nf/osascript" <<'FAKE'
+#!/bin/sh
+for a in "$@"; do printf '%s\0' "$a"; done >>"$NOTIFY_LOG"
+FAKE
+    cat >"$nf/lsappinfo" <<'FAKE'
+#!/bin/sh
+case "$1" in
+    front) echo "ASN:0x0-0x1:" ;;
+    *) echo "\"LSDisplayName\"=\"${FAKE_FRONT:-Safari}\"" ;;
+esac
+FAKE
+    cat >"$nf/tmux" <<'FAKE'
+#!/bin/sh
+echo "${FAKE_TMUX:-1 1}"
+FAKE
+    chmod +x "$nf/osascript" "$nf/lsappinfo" "$nf/tmux"
+    log="$work/notify.log"
+    # notify_run <mode> <json> [VAR=value...]: runs claude-notify with a clean notify environment
+    # (state dir NOTIFY_SD, default a fresh one); the argv osascript got lands in $log
+    notify_run() {
+        local mode=$1 json=$2
+        shift 2
+        printf '%s' "$json" | env -u TMUX -u TMUX_PANE -u CLAUDE_CONFIG_DIR -u CLAUDE_NOTIFY \
+            -u CLAUDE_NOTIFY_SUBAGENTS -u CLAUDE_NOTIFY_ALWAYS -u CLAUDE_NOTIFY_SOUND \
+            PATH="$nf:$PATH" NOTIFY_LOG="$log" \
+            CLAUDE_NOTIFY_STATE_DIR="${NOTIFY_SD:-$(mktemp -d "$work/nd.XXXXXX")}" "$@" "$notify" "$mode"
+    }
+    # The last N arguments osascript got, one per line
+    notify_args() { tr '\0' '\n' <"$log" | tail -n "${1:-3}"; }
+    # shellcheck disable=SC2016 # the backticks and $( ) are literal test text
+    attn='{"cwd":"'"$work"'/proj","message":"He said \"hi\" \\ $(touch x) `id`\nline two","notification_type":"permission_prompt"}'
+
+    : >"$log"
+    out=$(notify_run attention "$attn" CLAUDE_CONFIG_DIR=/h/.claude-enterprise 2>&1)
+    rc=$?
+    got=$(notify_args 3)
+    # shellcheck disable=SC2016 # literal test text
+    want=$(printf '%s\n' '@Claude · proj (Work)' '@He said "hi" \ $(touch x) `id` line two' '@Ping')
+    if [ "$rc" -eq 0 ] && [ -z "$out" ] && [ "$got" = "$want" ]; then
+        pass "claude-notify passes title, body and sound as argv (quotes, backslash, newline safe)"
+    else
+        fail "claude-notify passes title, body and sound as argv (quotes, backslash, newline safe)" "rc=$rc out=$out got=$got"
+    fi
+    if tr '\0' '\n' <"$log" | grep -E '^(on |display notification)' | grep -qE 'hi|touch|proj'; then
+        fail "claude-notify keeps event text out of the AppleScript source"
+    else
+        pass "claude-notify keeps event text out of the AppleScript source"
+    fi
+
+    : >"$log"
+    notify_run attention '{"cwd":"'"$work"'/proj","message":"-x --help"}' CLAUDE_CONFIG_DIR=/h/.claude-personal
+    if [ "$(notify_args 3 | sed -n 1,2p)" = "$(printf '%s\n' '@Claude · proj (Personal)' '@-x --help')" ]; then
+        pass "claude-notify guards a body that starts with a dash"
+    else
+        fail "claude-notify guards a body that starts with a dash" "$(notify_args 3)"
+    fi
+
+    : >"$log"
+    notify_run "done" '{"cwd":"'"$work"'/proj"}'
+    if [ "$(notify_args 3 | sed -n '2,3p')" = "$(printf '%s\n' '@Finished' '@Glass')" ]; then
+        pass "claude-notify done says Finished with the Glass sound"
+    else
+        fail "claude-notify done says Finished with the Glass sound" "$(notify_args 3)"
+    fi
+
+    : >"$log"
+    notify_run "done" '{}' CLAUDE_NOTIFY_SOUND=
+    if [ "$(notify_args 1)" = "@" ]; then
+        pass "claude-notify CLAUDE_NOTIFY_SOUND= sends no sound"
+    else
+        fail "claude-notify CLAUDE_NOTIFY_SOUND= sends no sound" "$(notify_args 1)"
+    fi
+
+    : >"$log"
+    notify_run attention "$attn" CLAUDE_NOTIFY=0
+    notify_run "done" '{}' CLAUDE_NOTIFY=0
+    if [ ! -s "$log" ]; then
+        pass "claude-notify CLAUDE_NOTIFY=0 silences it"
+    else
+        fail "claude-notify CLAUDE_NOTIFY=0 silences it"
+    fi
+
+    : >"$log"
+    notify_run subagent '{"agent_type":"Explore"}'
+    off=$(wc -c <"$log")
+    notify_run subagent '{"agent_type":"Explore"}' CLAUDE_NOTIFY_SUBAGENTS=1
+    if [ "$off" -eq 0 ] && notify_args 3 | grep -qx '@Subagent finished: Explore'; then
+        pass "claude-notify subagent is opt-in (CLAUDE_NOTIFY_SUBAGENTS=1)"
+    else
+        fail "claude-notify subagent is opt-in (CLAUDE_NOTIFY_SUBAGENTS=1)" "off=$off"
+    fi
+
+    : >"$log"
+    notify_run attention '{"hook_event_name":"PreToolUse","tool_input":{"questions":[{"question":"Which database?"}]}}'
+    if notify_args 3 | grep -qx '@Which database?'; then
+        pass "claude-notify shows the AskUserQuestion question for a PreToolUse event"
+    else
+        fail "claude-notify shows the AskUserQuestion question for a PreToolUse event" "$(notify_args 3)"
+    fi
+
+    # Suppression: terminal in front (and, in tmux, this pane's window showing) means no notification
+    verdict=""
+    check_sup() { # <label> <expect: sent|quiet> <env...>
+        local label=$1 expect=$2 got
+        shift 2
+        : >"$log"
+        notify_run "done" '{}' "$@"
+        if [ -s "$log" ]; then got=sent; else got=quiet; fi
+        [ "$got" = "$expect" ] || verdict="$verdict $label=$got"
+    }
+    check_sup other-app-front sent FAKE_FRONT=Safari
+    check_sup terminal-front-no-tmux quiet FAKE_FRONT=Ghostty
+    check_sup terminal-front-window-shown quiet FAKE_FRONT=Ghostty TMUX=s,1,0 TMUX_PANE=%1 FAKE_TMUX="1 1"
+    check_sup terminal-front-other-window sent FAKE_FRONT=Ghostty TMUX=s,1,0 TMUX_PANE=%1 FAKE_TMUX="0 1"
+    check_sup terminal-front-detached sent FAKE_FRONT=Ghostty TMUX=s,1,0 TMUX_PANE=%1 FAKE_TMUX="1 0"
+    check_sup always-overrides sent FAKE_FRONT=Ghostty CLAUDE_NOTIFY_ALWAYS=1
+    if [ -z "$verdict" ]; then
+        pass "claude-notify stays quiet only when the terminal and the tmux window are in view"
+    else
+        fail "claude-notify stays quiet only when the terminal and the tmux window are in view" "$verdict"
+    fi
+
+    # Debounce: two events of a kind within 2 s send one notification
+    : >"$log"
+    NOTIFY_SD=$(mktemp -d "$work/nd.XXXXXX")
+    notify_run attention "$attn"
+    notify_run attention "$attn"
+    n1=$(tr '\0' '\n' <"$log" | grep -c '^@Ping$')
+    notify_run "done" '{}'
+    n2=$(tr '\0' '\n' <"$log" | grep -c '^@Glass$')
+    notify_run attention "$attn" CLAUDE_NOTIFY_DEBOUNCE=0
+    n3=$(tr '\0' '\n' <"$log" | grep -c '^@Ping$')
+    unset NOTIFY_SD
+    if [ "$n1/$n2/$n3" = "1/1/2" ]; then
+        pass "claude-notify debounces repeats of a kind within 2 s"
+    else
+        fail "claude-notify debounces repeats of a kind within 2 s" "$n1/$n2/$n3"
+    fi
+
+    out=$(env PATH="$nf:$PATH" NOTIFY_LOG="$log" "$notify" bogus </dev/null 2>&1)
+    if [ -z "$out" ]; then
+        pass "claude-notify ignores an unknown mode silently"
+    else
+        fail "claude-notify ignores an unknown mode silently" "$out"
+    fi
+fi
+
 # ── Tracked settings ────────────────────────────────────────────────────────
 for settings in "$repo"/claude/.claude-*/settings.json; do
     account=$(basename "$(dirname "$settings")")
@@ -214,6 +370,13 @@ for settings in "$repo"/claude/.claude-*/settings.json; do
         pass "$account/settings.json wires claude-tmux-state into 6 hooks"
     else
         fail "$account/settings.json wires claude-tmux-state into 6 hooks" "$hooks"
+    fi
+    notif=$(jq -r '[.hooks | (.Notification, .Stop, .SubagentStop, .PreToolUse)
+        | [.[]?.hooks[]? | select((.command | test("claude-notify")) and .async == true)] | length] | join(" ")' "$settings")
+    if [ "$notif" = "1 1 1 1" ]; then
+        pass "$account/settings.json wires async claude-notify into 4 hooks"
+    else
+        fail "$account/settings.json wires async claude-notify into 4 hooks" "$notif"
     fi
     if [ "$(jq -r '.statusLine.refreshInterval // empty' "$settings")" = 15 ]; then
         pass "$account/settings.json refreshes the status line every 15 s"

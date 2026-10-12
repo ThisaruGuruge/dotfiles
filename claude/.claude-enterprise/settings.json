@@ -31,6 +31,12 @@
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" waiting >/dev/null 2>&1 || true",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "\"$HOME/dotfiles/bin/claude-notify\" attention >/dev/null 2>&1 || true",
+            "async": true,
+            "timeout": 5
           }
         ]
       }
@@ -42,6 +48,12 @@
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" done >/dev/null 2>&1 || true",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "\"$HOME/dotfiles/bin/claude-notify\" done >/dev/null 2>&1 || true",
+            "async": true,
+            "timeout": 5
           }
         ]
       }
@@ -52,6 +64,31 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" done >/dev/null 2>&1 || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/dotfiles/bin/claude-notify\" subagent >/dev/null 2>&1 || true",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$HOME/dotfiles/bin/claude-notify\" attention >/dev/null 2>&1 || true",
+            "async": true,
             "timeout": 5
           }
         ]
