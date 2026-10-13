@@ -15,9 +15,11 @@ _cache_tool_init() {
     # is keyed on the binary's resolved real path (${...:A}), recorded in its
     # first line: Homebrew keeps build-time mtimes on upgraded binaries, so an
     # mtime comparison alone can call a stale cache fresh forever, while a
-    # changed real path (new Cellar version) always invalidates it.
+    # changed real path (new Cellar version) always invalidates it. The init
+    # command is recorded too, so changing a flag (e.g. atuin --disable-ai)
+    # regenerates the cache instead of serving the old output forever.
     local tool_path="${commands[$tool]:A}"
-    local header="# tool-path: $tool_path"
+    local header="# tool-path: $tool_path | init: $init_cmd"
     local first_line=""
     [[ -s "$cache_file" ]] && read -r first_line <"$cache_file"
     if [[ -n "$tool_path" && "$first_line" == "$header" && "$cache_file" -nt "$tool_path" ]]; then
@@ -105,7 +107,8 @@ if (( $+commands[direnv] )); then
     precmd_functions+=(_direnv_check_once)
 fi
 
-# Initialize atuin with caching - handles Ctrl+R and up-arrow for history
+# Initialize atuin with caching - handles Ctrl+R and up-arrow for history.
+# --disable-ai leaves `?` as a plain character (atuin 18.23+ binds it to an AI helper).
 if (( $+commands[atuin] )); then
-    _cache_tool_init "atuin" "atuin init zsh"
+    _cache_tool_init "atuin" "atuin init zsh --disable-ai"
 fi

@@ -2,15 +2,61 @@
 
 set -e
 
-# Ensure script is run from ~/.dotfiles directory
-basename_dir="$(basename "$PWD")"
-if [[ ! "$basename_dir" == "dotfiles" && ! "$basename_dir" == ".dotfiles" ]]; then
+usage() {
+    cat <<'USAGE'
+Usage: ./init.sh [--dry-run | -h | --help]
+
+Interactive installer for this dotfiles repo (macOS). It can be run from any
+checkout location; the setup hard-codes ~/dotfiles, so a ~/dotfiles symlink
+to the checkout is created when the checkout lives elsewhere.
+
+Options:
+  --dry-run     Preflight only: check the checkout and ~/dotfiles, change nothing
+  -h, --help    Show this help and exit
+
+Steps (each asks before it acts):
+   1. Check macOS, Xcode command line tools and Homebrew
+   2. Install the core Brewfile (includes Go)
+   3. Install bestow and bootstrap its config
+   4. Touch ID for sudo (optional)
+   5. Optional development tools and terminal apps (packages/*.brewfile)
+   6. Nerd Font and zinit
+   7. Secret management (sops + age, encrypted ~/.env)
+   8. Back up existing dotfiles to ~/.dotfiles_backup_<timestamp>
+   9. Symlink the packages into place with bestow
+  10. tmux plugin manager, git config and commit-signing check
+  11. Verify the installation (run dotdoctor afterwards for a full health check)
+USAGE
+}
+
+case "${1:-}" in
+    -h | --help)
+        usage
+        exit 0
+        ;;
+esac
+
+# Locate the repo from this script's own real path (symlinks followed) and
+# validate it by content, so the checkout can have any name or location
+_self="${BASH_SOURCE[0]}"
+while [ -L "$_self" ]; do
+    _link="$(readlink "$_self")"
+    case "$_link" in
+        /*) _self="$_link" ;;
+        *) _self="$(dirname "$_self")/$_link" ;;
+    esac
+done
+DOTFILES_DIR="$(cd -P "$(dirname "$_self")" 2>/dev/null && pwd -P)" || DOTFILES_DIR=""
+unset _self _link
+
+if [[ -z "$DOTFILES_DIR" || ! -f "$DOTFILES_DIR/init.sh" || ! -f "$DOTFILES_DIR/Brewfile" || ! -f "$DOTFILES_DIR/zsh/.zshrc" ]]; then
     echo "❌ This script must be run from your dotfiles directory"
-    echo "Please run:"
-    echo "  cd ~/dotfiles  # or ~/.dotfiles"
-    echo "  ./init.sh"
+    echo "   (init.sh, Brewfile and zsh/.zshrc must sit next to each other; looked in: ${DOTFILES_DIR:-nowhere})"
+    echo "Run init.sh from inside your dotfiles checkout, wherever it lives:"
+    echo "  /path/to/dotfiles/init.sh"
     exit 1
 fi
+cd "$DOTFILES_DIR"
 
 # Colors for output
 RED='\033[0;31m'
@@ -27,8 +73,6 @@ CROSS="❌"
 ARROW="➜"
 INFO="ℹ️"
 WARNING="⚠️"
-
-DOTFILES_DIR="$(pwd)"
 
 # Logging functions
 log_success() {
@@ -119,6 +163,15 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Print the .app bundle names a Homebrew cask installs, one per line
+# (e.g. visual-studio-code -> Visual Studio Code.app). Prints nothing when
+# brew or jq can't tell.
+cask_app_names() {
+    command_exists jq || return 0
+    brew info --cask --json=v2 "$1" 2>/dev/null |
+        jq -r '.casks[].artifacts[] | objects | .app? // empty | .[] | strings' 2>/dev/null || true
+}
+
 # True when $1 is a sops-encrypted dotenv file. sops encrypts each value on its
 # own (KEY=ENC[...]) and always writes a sops_mac= line, so the first line of an
 # encrypted file can be anything; don't test it for #ENC[.
@@ -159,6 +212,58 @@ physical_path() {
     local dir
     dir=$(cd -P "$(dirname "$1")" 2>/dev/null && pwd -P) || return 1
     echo "$dir/$(basename "$1")"
+}
+
+# The hooks, CLAUDE_CODE_PLUGIN_DIRS, status line, aliases and tmux config all
+# hard-code ~/dotfiles, so that path must resolve to this checkout. Prints
+# "ok" (it already does), "missing" (nothing there yet) or "conflict:<why>"
+canonical_path_state() {
+    local canonical="$HOME/dotfiles" resolved
+    if [ -L "$canonical" ] && [ ! -e "$canonical" ]; then
+        echo "conflict:$canonical is a dangling symlink (points to $(readlink "$canonical"))"
+    elif [ -e "$canonical" ]; then
+        resolved=$(cd -P "$canonical" 2>/dev/null && pwd -P) || resolved=""
+        if [ "$resolved" = "$DOTFILES_DIR" ]; then
+            echo "ok"
+        else
+            echo "conflict:$canonical already exists and is not this checkout (${resolved:-not a directory})"
+        fi
+    else
+        echo "missing"
+    fi
+}
+
+# Make ~/dotfiles resolve to this checkout. With "check" it only reports (used
+# by --dry-run and before the confirmation); with "create" it adds the symlink.
+# Returns non-zero when ~/dotfiles is something else.
+ensure_canonical_path() {
+    local mode="$1" state
+    state=$(canonical_path_state)
+    case "$state" in
+        ok)
+            if [ "$HOME/dotfiles" = "$DOTFILES_DIR" ]; then
+                log_success "Checkout is at ~/dotfiles"
+            else
+                log_success "The path ~/dotfiles already resolves to this checkout ($DOTFILES_DIR)"
+            fi
+            ;;
+        missing)
+            if [ "$mode" = "create" ]; then
+                if ! ln -s "$DOTFILES_DIR" "$HOME/dotfiles"; then
+                    log_error "Could not create the symlink ~/dotfiles"
+                    return 1
+                fi
+                log_success "Created symlink ~/dotfiles -> $DOTFILES_DIR"
+            else
+                log_info "Would create symlink ~/dotfiles -> $DOTFILES_DIR (the setup hard-codes ~/dotfiles)"
+            fi
+            ;;
+        conflict:*)
+            log_error "${state#conflict:}"
+            log_info "The setup hard-codes ~/dotfiles. Move or remove that path, or run init.sh from the checkout at ~/dotfiles"
+            return 1
+            ;;
+    esac
 }
 
 # Check if running on macOS
@@ -266,7 +371,11 @@ install_bestow() {
     mkdir -p "$bestow_config_dir"
     if [ ! -f "$bestow_config_dir/config.yaml" ]; then
         log_info "Bootstrapping bestow config (source: $DOTFILES_DIR, destination: $HOME)..."
-        bestow init --source "$DOTFILES_DIR" --destination "$HOME" >/dev/null 2>&1
+        local init_out
+        if ! init_out=$(bestow init --source "$DOTFILES_DIR" --destination "$HOME" 2>&1); then
+            log_error "bestow init failed: $init_out"
+            exit 1
+        fi
         log_success "bestow config created at $bestow_config_dir/config.yaml"
     fi
 }
@@ -451,14 +560,16 @@ install_terminal_apps() {
                             already_installed=true
                             install_status="via Homebrew"
                         else
-                            # Check if app exists in /Applications (manual install)
+                            # Check if the cask's app already sits in /Applications
+                            # (manual install); brew knows the real .app names
                             local app_name
-                            # Convert package name to app name (e.g., postman -> Postman.app)
-                            app_name=$(echo "$package_name" | sed 's/-/ /g; s/\b\(.\)/\u\1/g; s/ //g')
-                            if [ -d "/Applications/${app_name}.app" ]; then
-                                already_installed=true
-                                install_status="manually installed"
-                            fi
+                            while IFS= read -r app_name; do
+                                if [ -n "$app_name" ] && [ -d "/Applications/$app_name" ]; then
+                                    already_installed=true
+                                    install_status="manually installed"
+                                    break
+                                fi
+                            done < <(cask_app_names "$package_name")
                         fi
                     else
                         if brew_formula_installed "$package_name"; then
@@ -475,10 +586,17 @@ install_terminal_apps() {
 
                         if confirm "  Install $description?"; then
                             if [ "$package_type" = "cask" ]; then
-                                if brew install --cask "$package_name" 2>&1 | tee /dev/tty | grep -q "It seems there is already an App"; then
+                                # The status must come from brew, not from grep or tee
+                                local cask_out
+                                if cask_out=$(
+                                    set -o pipefail
+                                    brew install --cask "$package_name" 2>&1 | tee /dev/tty
+                                ); then
+                                    log_success "Installed $package_name"
+                                elif grep -q "It seems there is already an App" <<<"$cask_out"; then
                                     log_warning "$package_name appears to be manually installed - skipping Homebrew install"
                                 else
-                                    log_success "Installed $package_name"
+                                    log_warning "Failed to install $package_name"
                                 fi
                             else
                                 if brew install "$package_name"; then
@@ -1266,13 +1384,31 @@ $(cat "$sudo_local")
 
 # Print final instructions
 print_final_instructions() {
-    echo -e "\n${GREEN}🎉 Dotfiles installation completed!${NC}\n"
+    local test_rc="${1:-0}"
+
+    if [ "$test_rc" -eq 0 ]; then
+        echo -e "\n${GREEN}🎉 Dotfiles installation completed!${NC}\n"
+    else
+        echo -e "\n${YELLOW}${WARNING}  Dotfiles installation completed with problems (see the test results above).${NC}"
+        echo -e "${YELLOW}Run ${BLUE}dotdoctor${YELLOW} after restarting your terminal to see what needs fixing.${NC}\n"
+    fi
 
     echo -e "${CYAN}Next steps:${NC}"
     echo -e "1. ${YELLOW}Restart your terminal${NC} or run: ${BLUE}source ~/.zshrc${NC}"
     echo -e "2. ${YELLOW}Configure your terminal font${NC} to use 'FiraCode Nerd Font'"
-    echo -e "3. ${YELLOW}Test the setup${NC} with: ${BLUE}take test-directory${NC}"
+    echo -e "3. ${YELLOW}Check the setup${NC} with: ${BLUE}dotdoctor${NC}"
     echo -e "4. ${YELLOW}Explore available aliases${NC} with: ${BLUE}alias | grep git${NC}"
+
+    echo -e "\n${CYAN}Manual steps (macOS needs your consent, so init.sh can't do these):${NC}"
+    echo -e "• ${YELLOW}Hammerspoon (Caps Lock: tap for Escape, hold for Control):${NC}"
+    echo -e "    ${BLUE}git clone https://github.com/jasonrudolph/ControlEscape.spoon.git ~/.hammerspoon/Spoons/ControlEscape.spoon${NC}"
+    echo -e "    Grant Hammerspoon Accessibility and Input Monitoring when prompted, and set Caps Lock to Control in"
+    echo -e "    System Settings > Keyboard > Keyboard Shortcuts > Modifier Keys"
+    if [ ! -L "$HOME/.claude" ]; then
+        echo -e "• ${YELLOW}Claude Code:${NC} ~/.claude is not a symlink; point it at the personal config:"
+        echo -e "    ${BLUE}ln -s ~/.claude-personal ~/.claude${NC}  (move or remove an existing ~/.claude directory first)"
+    fi
+    echo -e "• ${YELLOW}tmux plugins:${NC} inside tmux press ${BLUE}prefix + I${NC} (capital i) to install the plugins"
 
     echo -e "\n${CYAN}Terminal font configuration:${NC}"
     echo -e "• ${YELLOW}Ghostty:${NC} Already configured in ~/.config/ghostty/config (FiraCode Nerd Font)"
@@ -1292,18 +1428,36 @@ print_final_instructions() {
     echo -e "• Open an issue on GitHub"
 
     echo ""
-    echo -e "${GREEN}╔══════════════════════════════════════════╗${NC}"
-    echo -e "${GREEN}║          🎉 Installation Complete! 🎉     ║${NC}"
-    echo -e "${GREEN}╚══════════════════════════════════════════╝${NC}"
-    echo ""
-    echo -e "${GREEN}Enjoy your enhanced development environment! 🚀${NC}"
+    if [ "$test_rc" -eq 0 ]; then
+        echo -e "${GREEN}╔══════════════════════════════════════════╗${NC}"
+        echo -e "${GREEN}║          🎉 Installation Complete! 🎉     ║${NC}"
+        echo -e "${GREEN}╚══════════════════════════════════════════╝${NC}"
+        echo ""
+        echo -e "${GREEN}Enjoy your enhanced development environment! 🚀${NC}"
+    else
+        echo -e "${YELLOW}Installation finished, but the checks found problems: run dotdoctor.${NC}"
+    fi
     echo ""
 }
 
 # Main execution
 main() {
-    if [ "$1" == "--dry-run" ]; then
-        echo "Dry run successful"
+    local dry_run=false
+    case "${1:-}" in
+        "") ;;
+        --dry-run) dry_run=true ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+
+    if [ "$dry_run" = true ]; then
+        echo "Preflight only: nothing will be changed"
+        echo "Checkout: $DOTFILES_DIR"
+        ensure_canonical_path check || exit 1
+        echo "Dry run successful (preflight only: nothing changed)"
         exit 0
     fi
 
@@ -1315,14 +1469,10 @@ main() {
     echo -e "${PURPLE}╚══════════════════════════════════════════╝${NC}"
     echo ""
 
-    # Verify we're in the right directory
-    if [ ! -f "$(pwd)/init.sh" ] || [ ! -f "$(pwd)/zsh/.zshrc" ]; then
-        log_error "Please run this script from the dotfiles directory"
-        log_info "Usage: cd ~/dotfiles && ./init.sh  # or ~/.dotfiles"
-        exit 1
-    fi
-
     log_info "Starting installation from: $DOTFILES_DIR"
+    # Refuse early if ~/dotfiles is something else; the symlink itself is
+    # only created after the confirmation below
+    ensure_canonical_path check || exit 1
     log_info "This script will set up your complete development environment"
     echo -e "${CYAN}${INFO} During installation, press 'y' for yes, 'n' for no, or 'q' to quit (no Enter needed)${NC}"
 
@@ -1332,6 +1482,7 @@ main() {
     fi
 
     # Run installation steps
+    ensure_canonical_path create || exit 1
     check_macos
     check_xcode_tools
     setup_homebrew
@@ -1348,9 +1499,12 @@ main() {
     install_tpm     # Needs ~/.tmux.conf from bestow_packages
     setup_git_config
     check_git_signing
-    test_installation || true # Problems are reported above; still print the next steps
+    # Problems are reported above; still print the next steps, but not the
+    # celebratory banner
+    local test_rc=0
+    test_installation || test_rc=$?
 
-    print_final_instructions
+    print_final_instructions "$test_rc"
 }
 
 # Run main function

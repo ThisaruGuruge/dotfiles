@@ -89,7 +89,9 @@ return {
               ["q"] = require("telescope.actions").close,
             },
           },
-          file_ignore_patterns = { "node_modules", ".git/", "%.lock" },
+          -- Lua patterns, not globs: a bare ".git/" also matches "git/" and
+          -- "lazygit/" (the "." is any character). Anchor it to a real .git dir.
+          file_ignore_patterns = { "node_modules/", "^%.git/", "/%.git/", "%.lock$" },
           layout_config = {
             horizontal = {
               preview_width = 0.55,

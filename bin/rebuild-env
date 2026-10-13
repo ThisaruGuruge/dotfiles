@@ -12,7 +12,8 @@
 #   1. Refuses to run if ~/.env already decrypts normally (then use edit_secrets).
 #   2. Reads the variable names (and values, only into a private temp dir) with --ignore-mac.
 #   3. Asks, per variable: keep, replace (hidden input) or remove. Lets you add new ones.
-#   4. Encrypts the result to a new file next to ~/.env, checks it decrypts and has
+#   4. Encrypts the result to a new file next to ~/.env (next to the file it points to
+#      when ~/.env is a symlink, which stays a symlink), checks it decrypts and has
 #      exactly the names you chose.
 #   5. Keeps the broken file as ~/.env.broken-mac.<time> (still encrypted), then swaps
 #      the new file in. Plaintext only ever exists in a 0700 temp dir that is removed on exit.
@@ -20,7 +21,15 @@
 # Values are never printed. Secrets typed here are hidden and never go into shell history.
 #
 # Usage:   rebuild-env
+#          rebuild-env -h | --help
 # Test overrides (leave unset normally): ENV_FILE, SOPS_CONFIG, SOPS_AGE_KEY_FILE, PROMPT_INPUT
+
+case "${1:-}" in
+    -h | --help)
+        sed -n '2,/^[^#]/{/^#/s/^# \{0,1\}//p;}' "$0"
+        exit 0
+        ;;
+esac
 
 set -euo pipefail
 umask 077
@@ -38,7 +47,16 @@ die() {
 
 command -v sops >/dev/null || die "sops is not installed (brew install sops)"
 command -v age-keygen >/dev/null || die "age is not installed (brew install age)"
-[ -f "$ENV_FILE" ] || die "$ENV_FILE does not exist"
+ENV_LINK_NOTE=""
+if [ -L "$ENV_FILE" ]; then
+    [ -e "$ENV_FILE" ] || die "$ENV_FILE is a symlink to $(readlink -- "$ENV_FILE"), which does not exist. Remove the link or restore its target first."
+    # Like edit_secrets: work on the file the link points to, so the link stays a link
+    TARGET="$(readlink -f -- "$ENV_FILE")"
+    ENV_LINK_NOTE="$ENV_FILE is a symlink; rebuilding its target, $TARGET"
+else
+    TARGET="$ENV_FILE"
+fi
+[ -f "$TARGET" ] || die "$ENV_FILE does not exist"
 [ -f "$SOPS_AGE_KEY_FILE" ] || die "age key not found at $SOPS_AGE_KEY_FILE"
 
 # How to tell sops who may decrypt: the machine's ~/.sops.yaml if it lists our key,
@@ -52,14 +70,16 @@ else
 fi
 
 # 1. Is it actually broken?
-if sops -d --input-type dotenv --output-type dotenv "$ENV_FILE" >/dev/null 2>&1; then
+if sops -d --input-type dotenv --output-type dotenv "$TARGET" >/dev/null 2>&1; then
     echo "$ENV_FILE decrypts normally, so nothing is wrong with it. Use edit_secrets instead."
     exit 0
 fi
-if ! sops -d --ignore-mac --input-type dotenv --output-type dotenv "$ENV_FILE" >/dev/null 2>&1; then
+if ! sops -d --ignore-mac --input-type dotenv --output-type dotenv "$TARGET" >/dev/null 2>&1; then
     die "$ENV_FILE does not decrypt even with --ignore-mac. This is not a MAC problem
        (wrong age key, or a damaged file). Restore a backup instead: ls -la ~/.env.backup.*"
 fi
+
+[ -z "$ENV_LINK_NOTE" ] || echo "note: $ENV_LINK_NOTE"
 
 # Prompts come from the terminal (PROMPT_INPUT is only for testing).
 exec 3<"${PROMPT_INPUT:-/dev/tty}"
@@ -68,7 +88,7 @@ tmp="$(mktemp -d "${TMPDIR:-/tmp}/rebuild-env.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
 
 # 2. Read the current variables into a temp file (never printed).
-sops -d --ignore-mac --input-type dotenv --output-type dotenv "$ENV_FILE" >"$tmp/current"
+sops -d --ignore-mac --input-type dotenv --output-type dotenv "$TARGET" >"$tmp/current"
 
 # 3. Decide per variable.
 : >"$tmp/plain"
@@ -119,7 +139,7 @@ done
 [ -s "$tmp/plain" ] || die "nothing left to store; refusing to write an empty $ENV_FILE"
 
 # 4. Encrypt to a new file beside the original, then verify it.
-new="${ENV_FILE}.new.$$"
+new="${TARGET}.new.$$"
 sops "${sops_args[@]}" --encrypt --input-type dotenv --output-type dotenv \
     --filename-override "$ENV_FILE" "$tmp/plain" >"$new"
 trap 'rm -rf "$tmp"; rm -f "$new"' EXIT
@@ -130,10 +150,10 @@ got="$(sed -E 's/=.*//' "$tmp/check" | sort)"
 cmp -s "$tmp/plain" "$tmp/check" || die "values differ after a round trip; $ENV_FILE was not changed"
 
 # 5. Swap in, keeping the broken file (still encrypted) for now.
-broken="$ENV_FILE.broken-mac.$(date +%Y%m%d_%H%M%S)"
-cp -p "$ENV_FILE" "$broken"
-mv "$new" "$ENV_FILE"
-chmod 600 "$ENV_FILE"
+broken="$TARGET.broken-mac.$(date +%Y%m%d_%H%M%S)"
+cp -p "$TARGET" "$broken"
+mv "$new" "$TARGET"
+chmod 600 "$TARGET"
 
 echo
 echo "Done. $ENV_FILE now decrypts normally and holds these variables:"

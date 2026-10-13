@@ -37,7 +37,8 @@ Read-only health check for the dotfiles setup. Prints one line per check:
 Checks:
   - every non-ignored file of every bestow package is linked into $HOME
     (bin -> ~/bin), via `bestow stow -n` run once per package
-  - no dangling symlinks into the repo
+  - ~/dotfiles resolves to the repo being checked
+  - no dangling symlinks into the repo, and no stray ~/<package> link trees
   - ~/.config/bestow/config.yaml matches the repo copy
   - ~/.claude -> ~/.claude-personal and the settings.local.json link
   - age key present, ~/.env sops-encrypted, no plaintext secrets left around
@@ -272,7 +273,8 @@ check_packages() {
         name="${d%/}"
         name="${name##*/}"
         case "$name" in
-            bin | docs | packages | claude-*) continue ;;
+            # tests holds the repo's own test fixtures, not a config package.
+            bin | docs | packages | claude-* | tests) continue ;;
             # Bootstrapped by init.sh (bestow init), not linked; see check_bestow_config.
             bestow) continue ;;
         esac
@@ -318,6 +320,74 @@ check_dangling() {
         note "fix: remove each with rm (they point at files that no longer exist)"
     else
         ok "no dangling symlinks into the repo"
+    fi
+}
+
+# A real directory ~/<package> full of symlinks into the repo is a leftover from
+# a stow run with the wrong destination (the dangling scan above only looks one
+# level deep in ~, so it never sees these). Flag it only when every file in it is
+# a link into the repo; anything else may be the user's own data.
+check_stray_trees() {
+    local d name tree link target abs stray="" bad nlinks
+    for d in "$DOTFILES"/*/; do
+        name="${d%/}"
+        name="${name##*/}"
+        case "$name" in
+            # ~/bin is a real directory of links by design; these are not packages.
+            bin | docs | packages | claude-mods) continue ;;
+        esac
+        tree="$HOME/$name"
+        [[ -d "$tree" && ! -L "$tree" ]] || continue
+
+        bad="$(find "$tree" ! -type d ! -type l -print 2>/dev/null | head -n 1)"
+        [[ -z "$bad" ]] || continue
+        nlinks=0
+        while IFS= read -r link; do
+            [[ -z "$link" ]] && continue
+            target="$(readlink "$link")"
+            if [[ "$target" == /* ]]; then
+                abs="$target"
+            else
+                abs="$(dirname "$link")/$target"
+            fi
+            if ! in_repo "$abs"; then
+                bad="$link"
+                break
+            fi
+            nlinks=$((nlinks + 1))
+        done < <(find "$tree" -type l 2>/dev/null)
+        if [[ -z "$bad" && $nlinks -gt 0 ]]; then
+            stray="${stray}$(tilde "$tree") ($nlinks link(s) into the repo)"$'\n'
+        fi
+    done
+
+    if [[ -n "$stray" ]]; then
+        warn "$(printf '%s' "$stray" | grep -c .) stray link tree(s) in ~ named after a stow package"
+        printf '%s' "$stray" | notes_capped 10
+        note "fix: confirm each holds only symlinks (find <dir> ! -type d ! -type l), then rm -r it"
+    else
+        ok "no stray <package> link trees in ~"
+    fi
+}
+
+# Other tooling and docs refer to the repo as ~/dotfiles, wherever the checkout
+# actually lives, so that path has to exist and lead to the repo being checked.
+check_repo_location() {
+    local canonical="$HOME/dotfiles" resolved
+    if [[ ! -e "$canonical" ]]; then
+        fail "~/dotfiles does not exist"
+        note "fix: ln -s $DOTFILES ~/dotfiles"
+        return
+    fi
+    resolved="$(cd -P "$canonical" 2>/dev/null && pwd)"
+    if [[ "$resolved" == "$DOTFILES" ]]; then
+        ok "~/dotfiles resolves to this repo"
+    elif [[ $IN_WORKTREE -eq 1 || $DOTFILES_EXPLICIT -eq 1 ]]; then
+        warn "~/dotfiles resolves to $resolved, not $DOTFILES"
+        note "expected when checking a worktree or another checkout; otherwise: ln -sfn $DOTFILES ~/dotfiles"
+    else
+        fail "~/dotfiles resolves to $resolved, not $DOTFILES"
+        note "fix: ln -sfn $DOTFILES ~/dotfiles (if ~/dotfiles is a real directory, move it aside first)"
     fi
 }
 
@@ -572,10 +642,14 @@ check_full() {
 
 printf '%sdotdoctor%s  %s%s%s\n' "$C_BOLD" "$C_OFF" "$C_DIM" "$DOTFILES" "$C_OFF"
 
+section "Repo location"
+check_repo_location
+
 check_packages
 
 section "Stale links"
 check_dangling
+check_stray_trees
 
 section "Bestow"
 check_bestow_config

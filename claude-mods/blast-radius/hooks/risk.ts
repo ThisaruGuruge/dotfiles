@@ -6,6 +6,7 @@ export type RiskKind =
   | 'git-clean'
   | 'git-discard'
   | 'git-stash-clear'
+  | 'git-worktree-force'
   | 'sql'
   | 'adopt'
   | 'chmod-r'
@@ -13,6 +14,8 @@ export type RiskKind =
   | 'mkfs'
   | 'find-delete'
   | 'rsync-delete'
+  | 'shred'
+  | 'truncate'
   | 'nested'
 
 export type Risk = {
@@ -30,8 +33,10 @@ export type Risk = {
   gitArgs?: string[]
   /** The host an `ssh host '...'` runs it on; nothing local can preview it. */
   remote?: string
-  /** `rm` run by `xargs`: its targets come from the input, not the command line. */
+  /** `rm` run by `xargs` or `fd -x`: its targets come from the input or the matches, not the command line. */
   fromXargs?: true
+  /** Run by `find -exec sh -c '...'` on each match: find's own words, to preview what it matches. */
+  findArgs?: string[]
 }
 
 export const LABELS: Record<RiskKind, string> = {
@@ -42,13 +47,16 @@ export const LABELS: Record<RiskKind, string> = {
   'git-clean': 'git clean (deletes untracked files)',
   'git-discard': 'git checkout/restore/switch that discards uncommitted changes',
   'git-stash-clear': 'git stash clear (drops every stash)',
+  'git-worktree-force': 'git worktree remove --force (deletes its uncommitted and untracked files)',
   sql: 'destructive SQL or migration',
   adopt: 'stow/bestow --adopt (overwrites repo files)',
   'chmod-r': 'recursive chmod',
   dd: 'dd (raw block write)',
-  mkfs: 'mkfs (formats a device)',
+  mkfs: 'mkfs, newfs or diskutil erase (formats a device)',
   'find-delete': 'find that deletes (-delete, -exec rm)',
   'rsync-delete': 'rsync --delete (removes files at the destination)',
+  shred: 'shred (overwrites file contents beyond recovery)',
+  truncate: 'truncate (cuts files to a size, losing what is past it)',
   nested: 'destructive command nested too deeply to check',
 }
 
@@ -83,6 +91,16 @@ const WRAPPERS: Record<string, { short: string; long: string[] }> = {
   ionice: { short: 'cnpP', long: ['--class', '--classdata', '--pid', '--pgid', '--uid'] },
   // watch joins the rest of its words and hands them to sh -c
   watch: { short: 'nq', long: ['--interval', '--equexit'] },
+  // macOS: arch picks the architecture (its options are words, see SINGLE_DASH), xcrun runs a developer tool
+  arch: { short: '', long: [] },
+  xcrun: { short: '', long: ['--sdk', '--toolchain'] },
+}
+
+// Wrappers whose options are whole single-dash words (`arch -arm64`, `arch -arch x86_64`), not
+// clusters of letters: the ones listed take the next word as their value, any other takes none.
+const SINGLE_DASH: Record<string, string[]> = {
+  arch: ['-arch', '-d', '-e'],
+  xcrun: ['-sdk', '-toolchain'],
 }
 
 // Wrappers whose first positional argument is theirs, not the program (`timeout 5 git push -f`).
@@ -632,7 +650,8 @@ function findProgram(tokens: string[]): Program {
         break
       }
       if (a.startsWith('-') && a.length > 1) {
-        const w = optionWidth(spec, a)
+        const single = SINGLE_DASH[name]
+        const w = single && !a.startsWith('--') ? (single.includes(a) ? 2 : 1) : optionWidth(spec, a)
         const dir = chdirOf(name, a, tokens[i + 1])
         if (dir !== undefined) chdir = dir
         if (name === 'env' && (a === '-S' || a === '--split-string') && tokens[i + 1] !== undefined) {
@@ -813,14 +832,18 @@ export function joinPath(baseDir: string | undefined, dir: string): string {
 
 const RM_LIKE = new Set(['rm', 'unlink', 'shred', 'srm', 'trash'])
 
-/** find's words with -delete and any `-exec rm ... ;|+` taken out, or null when another action would run. */
-export function findPreviewArgs(args: string[]): string[] | null {
+/**
+ * find's words with -delete and any `-exec rm ... ;|+` taken out, or null when
+ * another action would run. `shells`: `-exec sh -c '...' ... ;|+` is taken out too.
+ */
+export function findPreviewArgs(args: string[], shells = false): string[] | null {
   const out: string[] = []
   for (let i = 0; i < args.length; i++) {
     const a = args[i] ?? ''
     if (a === '-delete') continue
     if (/^-(exec|execdir|ok|okdir)$/.test(a)) {
-      if (!RM_LIKE.has(base(args[i + 1] ?? ''))) return null
+      const prog = base(args[i + 1] ?? '')
+      if (!RM_LIKE.has(prog) && !(shells && SHELLS.has(prog))) return null
       while (i < args.length && args[i] !== ';' && args[i] !== '+') i++
       continue
     }
@@ -832,6 +855,52 @@ export function findPreviewArgs(args: string[]): string[] | null {
 
 const findDeletes = (args: string[]) =>
   args.some((a, i) => a === '-delete' || (/^-(exec|execdir|ok|okdir)$/.test(a) && RM_LIKE.has(base(args[i + 1] ?? ''))))
+
+/** The command a shell runs with -c: the first word after the -c cluster that is not an option. */
+function shellPayload(args: string[]): string | undefined {
+  const at = args.findIndex(a => cluster(a, 'c'))
+  return at >= 0 ? args.slice(at + 1).find(a => !a.startsWith('-') && !a.startsWith('+')) : undefined
+}
+
+/** The payloads of find's `-exec sh -c '...' ... ;|+` (and -execdir, -ok, -okdir). */
+function findShellPayloads(args: string[]): string[] {
+  const out: string[] = []
+  for (let i = 0; i < args.length; i++) {
+    if (!/^-(exec|execdir|ok|okdir)$/.test(args[i] ?? '') || !SHELLS.has(base(args[i + 1] ?? ''))) continue
+    let end = i + 2
+    while (end < args.length && args[end] !== ';' && args[end] !== '+') end++
+    const payload = shellPayload(args.slice(i + 2, end))
+    if (payload !== undefined) out.push(payload)
+    i = end
+  }
+  return out
+}
+
+/** A command's words that are not options or their values (`shred -n 3 a b`: a, b). */
+export function operands(args: string[], spec: { short: string; long: string[] }): string[] {
+  const out: string[] = []
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i] ?? ''
+    if (a === '--') {
+      out.push(...args.slice(i + 1))
+      break
+    }
+    if (a.startsWith('-') && a.length > 1) {
+      i += optionWidth(spec, a) - 1
+      continue
+    }
+    out.push(a)
+  }
+  return out
+}
+
+export const SHRED_OPTS = { short: 'ns', long: ['--iterations', '--size', '--random-source'] }
+export const TRUNCATE_OPTS = { short: 'sr', long: ['--size', '--reference'] }
+
+// diskutil verbs that erase or repartition (diskutil reads verbs case-insensitively)
+const DISKUTIL_ERASE = /^(erase|zeroDisk|randomDisk|secureErase|partitionDisk|reformat)/i
+// ... and `diskutil apfs eraseVolume|deleteContainer|deleteVolume`
+const DISKUTIL_APFS_ERASE = /^(erase|delete)/i
 
 /** Strips a function definition's head (`f()`, `function f`), so its body reads as commands. */
 const stripFunction = (seg: string) =>
@@ -898,27 +967,52 @@ function classifySegment(segment: string, segCwd: string | undefined, depth: num
       )
         push('git-push-delete', sa, extra)
     } else if (g.sub === 'clean') {
-      const c = parseClean(sa)
-      if (c.force > 0 && !c.dry) push('git-clean', sa, extra)
+      // Not just with -f: `-c clean.requireForce=false` (or that setting in a config) deletes
+      // without it. -i is no exemption either: a pipe can answer its menu.
+      if (!parseClean(sa).dry) push('git-clean', sa, extra)
     } else if ((g.sub === 'checkout' || g.sub === 'restore' || g.sub === 'switch') && discards(g.sub, sa)) {
       push('git-discard', sa, extra)
     } else if (g.sub === 'stash' && sa[0] === 'clear') push('git-stash-clear', sa, extra)
+    else if (g.sub === 'worktree' && sa[0] === 'remove' && sa.slice(1).some(a => isLong(a, '--force') || cluster(a, 'f'))) {
+      push('git-worktree-force', sa, extra)
+    }
   } else if (prog === 'stow' || prog === 'bestow') {
     if (args.includes('--adopt')) push('adopt')
   } else if (prog === 'chmod' || prog === 'chown') {
     if (hasShortFlag(args, 'R') || args.includes('--recursive')) push('chmod-r')
   } else if (prog === 'dd') {
     push('dd')
-  } else if (prog === 'mkfs' || prog.startsWith('mkfs.')) {
+  } else if (prog === 'mkfs' || prog.startsWith('mkfs.') || prog === 'newfs' || prog.startsWith('newfs_')) {
     push('mkfs')
+  } else if (prog === 'diskutil') {
+    const verb = args[0] ?? ''
+    if (DISKUTIL_ERASE.test(verb) || (/^(apfs|ap)$/i.test(verb) && DISKUTIL_APFS_ERASE.test(args[1] ?? ''))) push('mkfs')
+  } else if (prog === 'shred' || prog === 'gshred') {
+    push('shred')
+  } else if (prog === 'truncate' || prog === 'gtruncate') {
+    push('truncate')
+  } else if (prog === 'fd' || prog === 'fdfind') {
+    // fd -x/-X rm deletes every match, like xargs rm
+    const at = args.findIndex(a => a === '-x' || a === '-X' || a === '--exec' || a === '--exec-batch')
+    if (at >= 0 && base(args[at + 1] ?? '') === 'rm') push('rm', args.slice(at + 2), { fromXargs: true })
   } else if (prog === 'find') {
     if (findDeletes(args)) push('find-delete')
+    // find -exec sh -c 'rm -rf "$1"' _ {} \;: the payload runs on each match, where find runs
+    for (const payload of findShellPayloads(args)) {
+      for (const r of classifyAt(payload, depth + 1, cwd)) {
+        if (r.kind === 'nested' || r.kind === 'sql' || r.remote !== undefined) {
+          out.push(r)
+          continue
+        }
+        const { cwd: _cwd, gitArgs: _g, ...rest } = r
+        out.push({ ...rest, findArgs: args, ...(cwd !== undefined ? { cwd } : {}) })
+      }
+    }
   } else if (prog === 'rsync') {
     if (args.some(a => a === '--del' || a.startsWith('--delete'))) push('rsync-delete')
   } else if (SHELLS.has(prog)) {
     // bash -c 'payload' (also -lc, -ec): the payload is the first word after the flag that is not an option
-    const at = args.findIndex(a => cluster(a, 'c'))
-    const payload = at >= 0 ? args.slice(at + 1).find(a => !a.startsWith('-') && !a.startsWith('+')) : undefined
+    const payload = shellPayload(args)
     if (payload !== undefined) out.push(...classifyAt(payload, depth + 1, cwd))
     // bash <<< 'payload', sh -s <<< 'payload'
     if (shellReadsStdin(args)) for (const h of hereStrings) out.push(...classifyAt(h, depth + 1, cwd))
@@ -991,10 +1085,13 @@ export function scrubMessages(command: string): string {
 function looksDestructive(text: string): boolean {
   return (
     /\brm\s+(?:-[A-Za-z]*[rR]|--recursive)/.test(text) ||
-    (/\bgit\b/.test(text) && /\b(?:push|reset|clean|checkout|restore|switch|stash)\b/.test(text)) ||
+    (/\bgit\b/.test(text) && /\b(?:push|reset|clean|checkout|restore|switch|stash|worktree)\b/.test(text)) ||
     (/\bfind\b/.test(text) && /-(?:delete|exec)\b/.test(text)) ||
+    /\bfd(?:find)?\b[^\n]{0,200}\s(?:-[xX]|--exec(?:-batch)?)\s+(?:\S*\/)?rm\b/.test(text) ||
     /\brsync\b[^\n]{0,200}--del/.test(text) ||
-    /\b(?:dd|mkfs(?:\.\w+)?)\b/.test(text) ||
+    /\b(?:dd|mkfs(?:\.\w+)?|newfs(?:_\w+)?|g?shred)\b/.test(text) ||
+    /\bg?truncate\s+-/.test(text) ||
+    /\bdiskutil\s+(?:ap(?:fs)?\s+)?(?:erase|zeroDisk|randomDisk|secureErase|partitionDisk|reformat|delete)/i.test(text) ||
     /\bch(?:mod|own)\s+-[A-Za-z]*R/.test(text) ||
     /--adopt\b/.test(text) ||
     SQL_DESTRUCTIVE.test(text) ||

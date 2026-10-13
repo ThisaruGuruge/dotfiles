@@ -32,7 +32,7 @@ if (( $+commands[tmux] )) && \
     # but shares windows with the 'main' group
     if tmux has-session -t main 2>/dev/null; then
         # Create a grouped session (shares windows, independent view)
-        tmux new-session -t main
+        tmux new-session -t main \; set-option destroy-unattached on
     else
         # First terminal: create the main session
         tmux new-session -s main
@@ -106,6 +106,3 @@ done
 # Source .p10k.zsh after all plugins are loaded. This file is managed by stow
 # (zsh/.p10k.zsh -> ~/.p10k.zsh) and can be regenerated with `p10k configure`.
 [[ -f "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
-
-# Rancher Desktop
-[[ -d "$HOME/.rd/bin" ]] && export PATH="$HOME/.rd/bin:$PATH"

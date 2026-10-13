@@ -77,28 +77,28 @@ Inside yazi.nvim floating window:
 
 ## LSP
 
-| Key          | Action                                                             | Source                 |
-| ------------ | ------------------------------------------------------------------ | ---------------------- |
-| `gd`         | Go to definition                                                   | plugins/lsp.lua        |
-| `gD`         | Go to declaration                                                  | plugins/lsp.lua        |
-| `grr`        | References (Telescope; overrides the built-in)                     | plugins/lsp.lua        |
-| `gri`        | Implementations (Telescope; overrides the built-in)                | plugins/lsp.lua        |
-| `grt`        | Type definitions (Telescope; overrides the built-in)               | plugins/lsp.lua        |
-| `grn`        | Rename (Neovim built-in)                                           | built-in               |
-| `gra`        | Code action (Neovim built-in)                                      | built-in               |
-| `gO`         | Document symbols to location list (Neovim built-in)                | built-in               |
-| `K`          | Hover documentation                                                | plugins/lsp.lua        |
-| `<leader>lr` | Rename symbol                                                      | plugins/lsp.lua        |
-| `<leader>la` | Code action                                                        | plugins/lsp.lua        |
-| `<leader>lf` | Format buffer                                                      | plugins/formatting.lua |
-| `<leader>ld` | Show diagnostics                                                   | plugins/lsp.lua        |
-| `<leader>lq` | Buffer diagnostics to quickfix (spell excluded, jumps to first)    | plugins/lsp.lua        |
-| `<leader>lW` | Workspace diagnostics to quickfix (spell excluded, jumps to first) | plugins/lsp.lua        |
-| `<leader>ll` | Lint buffer (markdownlint on Markdown)                             | plugins/lint.lua       |
-| `<leader>lh` | Toggle inlay hints (parameter names, inferred types)               | plugins/lsp.lua        |
-| `<leader>lc` | Run codelens under the cursor                                      | plugins/lsp.lua        |
-| `[d`         | Previous diagnostic                                                | plugins/lsp.lua        |
-| `]d`         | Next diagnostic                                                    | plugins/lsp.lua        |
+| Key          | Action                                                             | Source                                 |
+| ------------ | ------------------------------------------------------------------ | -------------------------------------- |
+| `gd`         | Go to definition                                                   | plugins/lsp.lua                        |
+| `gD`         | Go to declaration                                                  | plugins/lsp.lua                        |
+| `grr`        | References (Telescope; overrides the built-in)                     | plugins/lsp.lua                        |
+| `gri`        | Implementations (Telescope; overrides the built-in)                | plugins/lsp.lua                        |
+| `grt`        | Type definitions (Telescope; overrides the built-in)               | plugins/lsp.lua                        |
+| `grn`        | Rename (Neovim built-in)                                           | built-in                               |
+| `gra`        | Code action (Neovim built-in)                                      | built-in                               |
+| `gO`         | Document symbols to location list (Neovim built-in)                | built-in                               |
+| `K`          | Hover documentation                                                | plugins/lsp.lua                        |
+| `<leader>lr` | Rename symbol                                                      | plugins/lsp.lua                        |
+| `<leader>la` | Code action                                                        | plugins/lsp.lua                        |
+| `<leader>lf` | Format buffer                                                      | plugins/formatting.lua                 |
+| `<leader>ld` | Show diagnostics                                                   | plugins/lsp.lua                        |
+| `<leader>lq` | Buffer diagnostics to quickfix (spell excluded, jumps to first)    | plugins/lsp.lua                        |
+| `<leader>lW` | Workspace diagnostics to quickfix (spell excluded, jumps to first) | plugins/lsp.lua                        |
+| `<leader>ll` | Lint buffer (markdownlint on Markdown)                             | plugins/lint.lua                       |
+| `<leader>lh` | Toggle inlay hints (parameter names, inferred types)               | plugins/lsp.lua                        |
+| `<leader>lc` | Run codelens under the cursor                                      | plugins/lsp.lua                        |
+| `[d`         | Previous diagnostic                                                | built-in (float via diagnostic.config) |
+| `]d`         | Next diagnostic                                                    | built-in (float via diagnostic.config) |
 
 > `gr` and `gi` are deliberately **not** mapped. A bare `gr` sits on the `gr*`
 > prefix and makes `grr`/`gri`/`grn`/`gra` wait out `timeoutlen`, and `gi` is
@@ -187,8 +187,7 @@ Open with `<leader>fy` to browse yank history in a Telescope picker.
 | Key (in picker) | Mode            | Action                                   |
 | --------------- | --------------- | ---------------------------------------- |
 | `<CR>`          | insert / normal | Select (put in register, ready to paste) |
-| `<C-p>`         | insert          | Paste after cursor                       |
-| `<C-k>`         | insert          | Paste before cursor                      |
+| `<C-y>`         | insert          | Paste after cursor                       |
 | `<C-d>`         | insert          | Delete entry from history                |
 | `p`             | normal          | Paste after cursor                       |
 | `P`             | normal          | Paste before cursor                      |
@@ -385,7 +384,7 @@ Adds sign-column indicators and extra navigation on top of Vim's built-in marks 
 ## Debugging (nvim-dap)
 
 Language-agnostic. Every binding below works for any configured debugger
-(Go, Python, Java, Ballerina).
+(Go, Python, Ballerina).
 
 | Key          | Action                     | Source          |
 | ------------ | -------------------------- | --------------- |

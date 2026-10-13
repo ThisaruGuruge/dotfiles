@@ -6,7 +6,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "bash /Users/thisaru/.claude-personal/statusline-command.sh",
+    "command": "bash \"$HOME/.claude-personal/statusline-command.sh\"",
     "refreshInterval": 15
   },
   "hooks": {

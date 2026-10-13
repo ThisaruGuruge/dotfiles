@@ -20,12 +20,13 @@ function engine(
     exitCode: 0,
     stdout: '',
   }),
+  stat: { kind: string; size: number } = { kind: 'dir', size: 0 },
 ) {
   const calls: Call[] = []
   const asked: string[] = []
   const state = { ran: false }
   on('env.get', () => ({ value: '/Users/me' }) as never)
-  on('fs.stat', () => ({ value: { kind: 'dir', size: 0, mtimeMs: 0, isLink: false } }) as never)
+  on('fs.stat', () => ({ value: { ...stat, mtimeMs: 0, isLink: false } }) as never)
   on('process.run', ($, e) => {
     calls.push({
       argv: e.argv,
@@ -222,6 +223,46 @@ describe('previews where the command runs', () => {
     await $.tool.call(bash("ssh host 'rm -rf /srv/app'"))
     expect(eng.calls.length).toBe(0)
     expect(eng.asked[0]).toContain('Runs on host')
+  })
+
+  test('find -exec sh -c rm previews what find matches, never the shell', async ($, on) => {
+    const eng = engine(on, 'Cancel', () => ({ exitCode: 0, stdout: './a/node_modules\n./b/node_modules\n' }))
+    await $.tool.call(bash("find . -name node_modules -exec sh -c 'rm -rf \"$1\"' _ {} \\;"))
+    expect(eng.calls.length).toBe(1)
+    expect(eng.calls[0]?.argv).toEqual(['find', '.', '-name', 'node_modules'])
+    expect(eng.asked[0]).toContain('[recursive delete (rm -r)]')
+    expect(eng.asked[0]).toContain('Run by find -exec on each of 2 entries')
+    expect(eng.state.ran).toBe(false)
+  })
+
+  test('git clean without -f previews as a dry run', async ($, on) => {
+    const eng = engine(on, 'Cancel', argv =>
+      argv.includes('clean') ? { exitCode: 0, stdout: 'Would remove .env' } : { exitCode: 0, stdout: '' },
+    )
+    await $.tool.call(bash('git -c clean.requireForce=false clean -dx'))
+    const clean = eng.calls.find(c => c.argv.includes('clean'))
+    expect(clean?.argv).toEqual(['git', ...GIT_SAFE, 'clean', '-n', '-dx'])
+    expect(eng.asked[0]).toContain('Would remove .env')
+  })
+
+  test('git worktree remove --force previews the worktree it deletes', async ($, on) => {
+    const eng = engine(on, 'Cancel', () => ({ exitCode: 0, stdout: ' M src/app.ts\n?? notes.txt\n' }))
+    await $.tool.call(bash('git --git-dir=/r/.git -C /repo worktree remove --force ../wt'))
+    expect(eng.calls.length).toBe(1)
+    expect(eng.calls[0]?.argv).toEqual(['git', ...GIT_SAFE, '-C', '/repo/../wt', 'status', '--short', '--untracked-files=normal'])
+    expect(eng.calls[0]?.env).toEqual({ GIT_OPTIONAL_LOCKS: '0' })
+    expect(eng.asked[0]).toContain('?? notes.txt')
+    expect(eng.asked[0]).toContain('ignored files')
+  })
+
+  test('shred and truncate preview their files', async ($, on) => {
+    const eng = engine(on, 'Cancel', () => ({ exitCode: 0, stdout: 'Regular File' }), { kind: 'file', size: 2048 })
+    await $.tool.call(bash('truncate -s 0 app.log'))
+    expect(eng.asked[0]).toContain('- app.log  Regular File, 2.0 KB')
+    expect(eng.asked[0]).toContain('Data past the new size is lost')
+    await $.tool.call(bash('shred -n 3 -u key.txt'))
+    expect(eng.asked[1]).toContain('- key.txt  Regular File')
+    expect(eng.asked[1]).not.toContain('- 3 ')
   })
 
   test('find -delete with -exec is never run for a preview', async ($, on) => {

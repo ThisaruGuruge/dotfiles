@@ -3,7 +3,8 @@
 # ZSH Startup Profiler
 # Measures time taken by each component during shell initialization
 
-set -e
+# No `set -e`: a failing probe (missing tool, non-interactive quirk) must not
+# abort the remaining measurements.
 
 echo "🔍 ZSH Startup Performance Profiler"
 echo "===================================="
@@ -51,11 +52,13 @@ time_command() {
     printf "${color}%-50s %8d ms${NC}\n" "$description" "$avg_ms"
 
     # Return average time for later analysis
-    echo "$avg_ms" >> /tmp/zsh_profile_times.txt
+    echo "$avg_ms" >> "$times_file"
 }
 
-# Clean up temporary file
-rm -f /tmp/zsh_profile_times.txt
+# Private per-run results file, removed on exit
+times_file=$(mktemp "${TMPDIR:-/tmp}/zsh_profile_times.XXXXXX")
+compdump_dir=$(mktemp -d "${TMPDIR:-/tmp}/zsh_profile_compdump.XXXXXX")
+trap 'rm -rf "$times_file" "$compdump_dir"' EXIT
 
 echo "Testing component initialization times (5 iterations each)..."
 echo "--------------------------------------------------------------"
@@ -70,17 +73,15 @@ if [[ -d "${HOME}/.local/share/zinit/plugins/romkatv---powerlevel10k" ]]; then
 else
     echo "Powerlevel10k plugin not found - skipping prompt timing"
 fi
-time_command "Zinit load completions" "zinit light zsh-users/zsh-completions"
-time_command "Zinit load fzf-tab" "zinit light Aloxaf/fzf-tab"
 time_command "FZF initialization" "fzf --zsh"
-time_command "Zoxide initialization" "zoxide init --cmd cd zsh"
-time_command "Atuin initialization" "atuin init zsh --disable-up-arrow --disable-ctrl-r"
+time_command "Zoxide initialization" "zoxide init --cmd z zsh"
+time_command "Atuin initialization" "atuin init zsh --disable-ai"
 time_command "SDKMAN initialization" "source ~/.sdkman/bin/sdkman-init.sh"
-time_command "rbenv initialization" "rbenv init - zsh"
-time_command "pyenv initialization" "pyenv init -"
-time_command "compinit (completion system)" "autoload -Uz compinit && compinit -i"
+command -v rbenv >/dev/null 2>&1 && time_command "rbenv initialization" "rbenv init - zsh"
+command -v pyenv >/dev/null 2>&1 && time_command "pyenv initialization" "pyenv init -"
+# Dump to a throwaway file so the real ~/.zcompdump is never rewritten
+time_command "compinit (completion system)" "autoload -Uz compinit && compinit -i -d \"$compdump_dir/zcompdump\""
 time_command "Source .aliases.sh" "source ~/.aliases.sh"
-time_command "Source .functions.sh" "source ~/.functions.sh"
 time_command "Source .paths.sh" "source ~/.paths.sh"
 
 # Test file operations that may be slow
@@ -89,7 +90,6 @@ echo "File I/O Operations:"
 echo "--------------------------------------------------------------"
 time_command "Read .env file (if exists)" "[ -f ~/.env ] && cat ~/.env"
 time_command "NVM directory scan" "ls -t ~/.nvm/versions/node 2>/dev/null | head -1"
-time_command "JMeter path discovery (.paths.sh)" "find ~/Downloads ~/tools /opt /usr/local -maxdepth 1 -name 'apache-jmeter-*' -type d 2>/dev/null | head -n 1"
 
 echo ""
 echo "Full Shell Startup:"
@@ -120,12 +120,12 @@ echo "📊 Analysis:"
 echo "--------------------------------------------------------------"
 
 # Parse and analyze results
-if [ -f /tmp/zsh_profile_times.txt ]; then
+if [ -s "$times_file" ]; then
     # Calculate total estimated time
     total_time=0
     while read -r time_ms; do
         total_time=$((total_time + time_ms))
-    done < /tmp/zsh_profile_times.txt
+    done < "$times_file"
 
     echo "Estimated total initialization time: ${BLUE}${total_time}ms${NC}"
     echo ""
@@ -142,9 +142,6 @@ if [ -f /tmp/zsh_profile_times.txt ]; then
         echo "  ${GREEN}✓ Startup time is acceptable (<1s)${NC}"
     fi
 fi
-
-# Cleanup
-rm -f /tmp/zsh_profile_times.txt
 
 echo ""
 echo "🔬 Detailed profiling with zprof:"

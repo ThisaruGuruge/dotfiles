@@ -26,11 +26,9 @@ PASSED=0
 FAILED=0
 WARNINGS=0
 
-# Get dotfiles directory
-DOTFILES_DIR="${HOME}/dotfiles"
-if [ ! -d "$DOTFILES_DIR" ]; then
-    DOTFILES_DIR="${HOME}/.dotfiles"
-fi
+# Repo holding this script. ${0:A:h:h} resolves symlinks, so this works from
+# ~/bin, a worktree or a clone, and a worktree tests its own files.
+DOTFILES_DIR="${0:A:h:h}"
 
 # Print section header
 print_header() {
@@ -196,7 +194,7 @@ fi
 # ============================================================================
 print_header "Brewfile"
 
-BREWFILE_PATH="${0:A:h:h}/Brewfile"
+BREWFILE_PATH="$DOTFILES_DIR/Brewfile"
 if ! command -v brew >/dev/null 2>&1; then
     print_test "brew bundle" "warn" "Homebrew not installed; skipping Brewfile check"
 elif [[ ! -f "$BREWFILE_PATH" ]]; then
@@ -257,13 +255,6 @@ print_header "Development Tools"
 # Claude Code (critical for this workflow!)
 test_tool "Claude Code" "claude" "claude --version"
 
-# mdcat (markdown renderer)
-test_tool "mdcat" "mdcat" "mdcat --version"
-
-# Yazi (terminal file manager)
-test_tool "Yazi" "yazi" "yazi --version"
-test_tool "chafa" "chafa" "chafa --version | head -1"
-
 # Git
 test_tool "Git" "git" "git --version"
 
@@ -298,13 +289,6 @@ print_header "Shell Plugins & Features"
 # Note: Functions and aliases are loaded in the parent shell but not visible in test subshell
 echo -e "${CYAN}  Custom Functions & Aliases: ${RESET}Loaded in parent shell (not testable in subshell)"
 
-# Check for plugin manager installations instead
-if [[ -d "${HOME}/.local/share/zinit/zinit.git" ]]; then
-    print_test "Zinit Plugin Manager" "pass" "Installed"
-else
-    print_test "Zinit Plugin Manager" "warn" "Not found"
-fi
-
 # Test Powerlevel10k prompt configuration
 local p10k_config="$HOME/.p10k.zsh"
 if [[ -f "$p10k_config" ]] || [[ -L "$p10k_config" ]]; then
@@ -334,8 +318,7 @@ fi
 # ============================================================================
 print_header "Shell Core (repo files)"
 
-# ${0:A:h:h} resolves symlinks, so this works from ~/bin, a worktree or a clone.
-local sc_repo="${0:A:h:h}"
+local sc_repo="$DOTFILES_DIR"
 local sc_tmp
 sc_tmp="$(mktemp -d "${TMPDIR:-/tmp}/zsh-core-test.XXXXXX")"
 local sc_prelude='source "$R/zsh/.aliases.sh"; for f in "$R"/zsh/.functions.d/*.zsh; do source "$f"; done'
@@ -659,7 +642,7 @@ fi
 
 # --- completions --------------------------------------------------------------
 local sc_missing="" sc_c
-for sc_c in _extract _kill_by_port _awake _reload _edit_commands; do
+for sc_c in _awake _extract _kill_by_port _envrc _install_lazygit_latest _dotdoctor; do
     if [[ ! -f "$sc_repo/zsh/completions/$sc_c" ]] || ! head -1 "$sc_repo/zsh/completions/$sc_c" | grep -q '^#compdef ' || ! zsh -n "$sc_repo/zsh/completions/$sc_c" 2>/dev/null; then
         sc_missing+=" $sc_c"
     fi
@@ -882,7 +865,7 @@ fi
 print_header "Tmux Configuration"
 
 # Checked against the repo this script lives in, so it also works from a worktree
-local tmux_repo="${0:A:h:h}"
+local tmux_repo="$DOTFILES_DIR"
 local tmux_conf="$tmux_repo/tmux/.tmux.conf"
 local tmux_palette="$tmux_repo/tmux/.local/bin/tmux-palette-entries"
 local ghostty_conf="$tmux_repo/ghostty/.config/ghostty/config"
@@ -1000,14 +983,24 @@ fi
 print_header "Claude Code"
 
 # The checks live in tests/claude/check.sh (bash, runs in a temp HOME); this only reports them.
-# ${0:A:h:h} is the repo holding this script, so a worktree tests its own files.
+# DOTFILES_DIR is the repo holding this script, so a worktree tests its own files.
+# A suite that dies early (non-zero exit, or no PASS line at all) must not look green.
+local claude_out claude_rc claude_status claude_name claude_detail
+local -i claude_pass=0 claude_fail=0
+claude_out="$(bash "$DOTFILES_DIR/tests/claude/check.sh" "$DOTFILES_DIR" 2>&1)"
+claude_rc=$?
 while IFS='|' read -r claude_status claude_name claude_detail; do
     case "$claude_status" in
-        PASS) print_test "$claude_name" "pass" "$claude_detail" ;;
-        FAIL) print_test "$claude_name" "fail" "$claude_detail" ;;
+        PASS) print_test "$claude_name" "pass" "$claude_detail"; (( claude_pass++ )) ;;
+        FAIL) print_test "$claude_name" "fail" "$claude_detail"; (( claude_fail++ )) ;;
         WARN) print_test "$claude_name" "warn" "$claude_detail" ;;
     esac
-done < <(bash "${0:A:h:h}/tests/claude/check.sh" "${0:A:h:h}" 2>&1)
+done <<<"$claude_out"
+if (( claude_pass == 0 )); then
+    print_test "Claude checks ran" "fail" "tests/claude/check.sh produced no PASS lines (exit $claude_rc): ${claude_out[(f)-1]}"
+elif (( claude_rc != 0 && claude_fail == 0 )); then
+    print_test "Claude checks exit status" "fail" "tests/claude/check.sh exited $claude_rc without reporting a FAIL"
+fi
 
 # ============================================================================
 # PERFORMANCE CHECKS
@@ -1065,6 +1058,33 @@ for fn_def in "prs:04-git.zsh" "prw:04-git.zsh" "envrc:02-navigation.zsh"; do
     fi
 done
 unset dotdoctor_bin fn_def fn_name fn_file
+
+# Every bin/<name> in CLAUDE.md's directory tree must exist. CLAUDE.md is untracked,
+# so it is absent in CI and in worktrees; the check is skipped there.
+claude_md="$DOTFILES_DIR/CLAUDE.md"
+if [[ ! -f "$claude_md" ]]; then
+    print_test "CLAUDE.md bin/ tree matches bin/" "skip" "CLAUDE.md not present (untracked); skipped"
+else
+    local -a tree_bins tree_missing=()
+    local tree_name
+    # Lines between the top-level "bin/" entry and the next top-level entry.
+    tree_bins=(${(f)"$(awk '
+        /^(├|└)── / { inbin = ($0 ~ /^(├|└)── bin\//); next }
+        inbin && /^│   (├|└)── / { sub(/^│   (├|└)── /, ""); print $1 }
+    ' "$claude_md")"})
+    for tree_name in "${tree_bins[@]}"; do
+        [[ -e "$DOTFILES_DIR/bin/$tree_name" ]] || tree_missing+=("$tree_name")
+    done
+    if (( ${#tree_bins[@]} == 0 )); then
+        print_test "CLAUDE.md bin/ tree matches bin/" "warn" "found no bin/ entries in CLAUDE.md's directory tree; has the format changed?"
+    elif (( ${#tree_missing[@]} )); then
+        print_test "CLAUDE.md bin/ tree matches bin/" "fail" "listed in CLAUDE.md but missing from bin/: ${(j:, :)tree_missing}"
+    else
+        print_test "CLAUDE.md bin/ tree matches bin/" "pass" "${#tree_bins[@]} entries exist"
+    fi
+    unset tree_bins tree_missing tree_name
+fi
+unset claude_md
 
 # Behavioural tests (scratch HOME, fake gh/fzf/claude; never touches your setup)
 shell_helpers_test="$DOTFILES_DIR/bin/test-shell-helpers"

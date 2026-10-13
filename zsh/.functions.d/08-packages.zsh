@@ -55,13 +55,13 @@ list_dotfiles_tools() {
     echo "💡 Add a tool: edit Brewfile or packages/*.brewfile, then run 'brew bundle'"
 }
 
-# Install or update lazygit from official tap
+# Install or update lazygit from the jesseduffield tap
 install_lazygit_latest() {
     local action="${1:-install}"
 
     case "$action" in
         install)
-            echo "🚀 Installing lazygit from official tap..."
+            echo "🚀 Installing lazygit from the jesseduffield tap..."
             if ! brew tap | grep -q "jesseduffield/lazygit"; then
                 echo "Adding jesseduffield/lazygit tap..."
                 brew tap jesseduffield/lazygit
@@ -69,7 +69,7 @@ install_lazygit_latest() {
             brew install jesseduffield/lazygit/lazygit
             ;;
         update)
-            echo "🔄 Updating lazygit from official tap..."
+            echo "🔄 Updating lazygit from the jesseduffield tap..."
             brew upgrade jesseduffield/lazygit/lazygit
             ;;
         check)
@@ -88,12 +88,12 @@ install_lazygit_latest() {
             echo "Usage: install_lazygit_latest [install|update|check]"
             echo ""
             echo "Examples:"
-            echo "  install_lazygit_latest          # Install from official tap"
-            echo "  install_lazygit_latest install  # Install from official tap"
+            echo "  install_lazygit_latest          # Install from the jesseduffield tap"
+            echo "  install_lazygit_latest install  # Install from the jesseduffield tap"
             echo "  install_lazygit_latest update   # Update to latest version"
             echo "  install_lazygit_latest check    # Check current installation"
             echo ""
-            echo "💡 Using official jesseduffield tap for frequent updates"
+            echo "💡 Using the jesseduffield tap (can run ahead of homebrew-core)"
             return 1
             ;;
     esac

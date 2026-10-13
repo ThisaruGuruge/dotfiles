@@ -50,6 +50,8 @@ cd ~/dotfiles
 ./init.sh
 ```
 
+The checkout can live anywhere (the script finds the repo from its own path). The rest of the setup hard-codes `~/dotfiles`, so when the checkout is elsewhere `init.sh` creates a `~/dotfiles` symlink pointing at it (and stops with a clear message if `~/dotfiles` is already something else). `./init.sh --dry-run` is a preflight only: it checks the checkout and `~/dotfiles` and changes nothing; `./init.sh --help` lists the steps.
+
 The script is interactive; it will:
 
 - Validate macOS + Xcode CLT, install Homebrew, jq, Go (needed to install `bestow`)
@@ -63,7 +65,7 @@ The script is interactive; it will:
 - Back up existing dotfiles and symlink everything via `bestow`
 - Install TPM (pinned release) and the tmux plugins
 - Check that the SSH commit-signing key exists (offers to create it)
-- Test the install with `test-zsh` and show next steps
+- Verify the install and show next steps (run `dotdoctor` for a full health check; the final output also lists the manual steps: the Hammerspoon spoon and permissions, the `~/.claude` symlink, tmux plugins)
 
 ### Option 2 – Manual setup
 
@@ -218,8 +220,6 @@ bestow unstow zsh
 
 > **`bin` is the exception**: it links into `~/bin`, so always stow it as `bestow stow bin -d ~/bin`. Don't run a bare `bestow stow` across every package — with the single `$HOME` destination in bestow's config it would link `bin/*` straight into `~`.
 
-**Alternative**: For cross-platform dotfile management, consider [Chezmoi](https://www.chezmoi.io/).
-
 ## Quick Start Commands
 
 ```bash
@@ -300,7 +300,7 @@ Both need `gh` and `jq`; `prs` also needs `fzf`. PR titles are untrusted text: c
 
 - **`cp` / `mv`** are small functions, not aliases: they prompt before overwriting (`-i`, verbose) only when a human is at the terminal, and run the plain command otherwise (scripts, agents, pipes). They do not force `-r`; copy directories with `cp -R`. `sudo cp` / `sudo mv` run the plain commands (sudo runs the binary, not the shell function), so pass `-i` yourself there.
 - **`awake`** keeps the Mac from idle-sleeping in the background (`caffeinate -i`: the display may still sleep or lock, and it works on AC and battery). `awake screen` also keeps the display on, `awake ac` holds only while plugged in, `awake for 2h|30m|90s|<pid>` is timed or tied to a process, and `awake stop` / `awake status` release it or show the mode, start time, battery and floor. A watcher checks the battery every 60 seconds and, when you are on battery at or below the floor (default 20%, `AWAKE_BATTERY_FLOOR` or `--floor N`), releases the hold and posts a macOS notification so the Mac can sleep. Closing the lid still sleeps the Mac unless it is on AC power with an external display. Starting with new settings replaces the hold only once the new one is running, and starts or stops from several shells at once are serialised by a lock. The pidfile is `${TMPDIR:-/tmp}/dotfiles-awake.pid` (it holds only the caffeinate PID); a shell with a different `TMPDIR`, such as a sandboxed agent shell, sees a separate hold. This replaces `dont_sleep`, `stay_awake`, `stay_awake_stop` and `stay_awake_for`.
-- **Atuin** opens Ctrl+R on `global` history (the whole machine) and cycles global, workspace, directory, host, session; the UI is full-style with the search bar on top and tabs shown. Failed commands are still recorded.
+- **Atuin** opens Ctrl+R on `global` history (the whole machine) and cycles global, workspace, directory, host, session; the UI is full-style with the search bar on top and tabs shown. Failed commands are still recorded. Atuin's AI `?` trigger is disabled (`atuin init zsh --disable-ai`), so a leading `?` is not intercepted.
 - **Completions** for custom functions live in `zsh/completions/` (stowed to `~/completions/`, on `fpath` before `compinit`): `extract`, `kill_by_port`, `awake`, `edit-*` and `reload`. bestow links per file, so after pulling a new completion file run `bestow stow zsh` (to link it into `~/completions/`) and then `rm ~/.zcompdump*` once.
 
 ## Suffix Aliases

@@ -12,6 +12,12 @@ return {
   -- is in place for every session, including one that only ever opens a file.
   event = "BufReadPre",
   init = function()
+    -- persistence.nvim has no option for this: it saves with whatever
+    -- 'sessionoptions' is set to. Leaving out `terminal` and `blank` keeps
+    -- toggleterm shells and empty windows out of the session (they come back
+    -- respawned or empty).
+    vim.opt.sessionoptions = { "buffers", "curdir", "tabpages", "winsize", "help", "globals", "skiprtp", "folds" }
+
     -- Diffview tabs hold scratch buffers that restore as empty windows.
     vim.api.nvim_create_autocmd("User", {
       pattern = "PersistenceSavePre",
@@ -21,9 +27,6 @@ return {
     })
   end,
   opts = {
-    -- Skip `terminal` and `blank` so toggleterm shells and empty windows are
-    -- not saved (they come back respawned or empty).
-    options = { "buffers", "curdir", "tabpages", "winsize", "help", "globals", "skiprtp", "folds" },
     -- A quick `nvim README.md` (one buffer) must not overwrite the project's
     -- saved session, so only write one when at least two real buffers are open.
     need = 2,

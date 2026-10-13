@@ -40,6 +40,27 @@ test('counts tool calls and edited files in the summary', async ($, on) => {
   expect(await pane.find({ type: 'Text', text: /^Edit\s+█+ 2/ })).toBeDefined()
 })
 
+test('a denied or failed edit is not counted as a file edited', async ($, on) => {
+  on('tool.call', ($, e) => {
+    const path = (e as unknown as { file_path?: string }).file_path
+    if (path === '/r/denied.ts') return { deny: 'blocked by a hook' } as never
+    if (path === '/r/failed.ts') return { result: 'old_string not found', isError: true } as never
+    return { result: 'ok', ref: 1, text: '' } as never
+  })
+  on('clock.now', () => ({ value: 1_000 }))
+  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 1_000_000 }, rateLimits: [] } }))
+
+  await $.tool.call({ tool: 'Write', file_path: '/r/denied.ts', content: 'x' } as never)
+  await $.tool.call({ tool: 'Edit', file_path: '/r/failed.ts', old_string: 'a', new_string: 'b' } as never)
+  await $.tool.call({ tool: 'Edit', file_path: '/r/ok.ts', old_string: 'a', new_string: 'b' } as never)
+
+  const pane = await $.ui.mount(PANE)
+
+  expect(await pane.find({ type: 'Text', text: 'Files edited 1' })).toBeDefined()
+  // every call still counts as a tool call
+  expect(await pane.find({ type: 'Text', text: /Top tools \(3 calls\)/ })).toBeDefined()
+})
+
 test('formats durations and bars', () => {
   expect(formatDuration(45_000)).toBe('45s')
   expect(formatDuration(125_000)).toBe('2m 5s')

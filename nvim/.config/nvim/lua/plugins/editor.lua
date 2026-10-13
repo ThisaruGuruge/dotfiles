@@ -59,8 +59,16 @@ return {
           return
         end
         local sr, sc, er, ec = get_node_range(node)
+        -- The root node of a file that ends in a newline ends at column 0 of
+        -- the line after the last one, which doesn't exist. End the selection
+        -- at the end of the real last line of the node instead.
+        if ec == 0 and er > sr then
+          er = er - 1
+          local last = vim.api.nvim_buf_get_lines(0, er, er + 1, false)[1] or ""
+          ec = #last
+        end
         vim.api.nvim_buf_set_mark(0, "<", sr + 1, sc, {})
-        vim.api.nvim_buf_set_mark(0, ">", er + 1, ec - 1, {})
+        vim.api.nvim_buf_set_mark(0, ">", er + 1, math.max(ec - 1, 0), {})
         vim.cmd("normal! gv")
       end
 
@@ -76,11 +84,15 @@ return {
           vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "n", false)
           return
         end
-        local node = vim.treesitter.get_node()
-        if node then
-          selection_stack = { node }
-          select_node(node)
+        -- get_node() raises when the buffer has no parser (plain text, an
+        -- unknown filetype); behave like an ordinary <CR> there.
+        local ok, node = pcall(vim.treesitter.get_node)
+        if not ok or not node then
+          vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<CR>", true, false, true), "n", false)
+          return
         end
+        selection_stack = { node }
+        select_node(node)
       end, { desc = "Init treesitter selection" })
 
       vim.keymap.set("x", "<CR>", function()

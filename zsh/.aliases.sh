@@ -66,8 +66,8 @@ alias -s conf="\$EDITOR"
 alias -s config="\$EDITOR"
 alias -s ini="\$EDITOR"
 
-alias showFiles='defaults write com.apple.finder AppleShowAllFiles YES; killall Finder /System/Library/CoreServices/Finder.app'
-alias hideFiles='defaults write com.apple.finder AppleShowAllFiles NO; killall Finder /System/Library/CoreServices/Finder.app'
+alias showFiles='defaults write com.apple.finder AppleShowAllFiles YES; killall Finder'
+alias hideFiles='defaults write com.apple.finder AppleShowAllFiles NO; killall Finder'
 
 # Switch Java
 alias use_java_17="sdk default java 17.0.11-tem"
@@ -92,7 +92,6 @@ alias edit-paths="nvim ~/.paths.sh"
 alias edit-git="nvim ~/.config/git/config"
 alias edit-ghostty="nvim ~/.config/ghostty/config"
 alias edit-nvim="nvim ~/.config/nvim/init.lua"
-alias edit-vim="nvim ~/.vimrc"
 alias edit-p10k="nvim ~/.p10k.zsh"
 alias edit-tmux="nvim ~/.tmux.conf"
 alias edit-lazygit="nvim ~/.config/lazygit/config.yml"
@@ -104,7 +103,7 @@ alias ...="cd ../../"
 alias ....="cd ../../../"
 alias .....="cd ../../../../"
 alias ......="cd ../../../../../"
-alias remove_empty_dirs="find . -type d | tail -r | xargs rmdir 2>/dev/null"
+alias remove_empty_dirs='find . -mindepth 1 -type d -empty -not -path "*/.git/*" -not -name .git -delete'
 
 # Directory stack navigation
 alias ds='dirs -v | head -10'
@@ -207,6 +206,11 @@ function grh() {
 
 function gcla() {
     echo "\e[31mThis will DELETE all untracked files and DISCARD all modifications.\e[0m"
+    # Show exactly what would be lost before asking.
+    echo "Would remove (git clean -dn):"
+    git clean -dn
+    echo "Working tree (git status -s):"
+    git status -s
     read -q "?Continue? [y/N] " && echo && git clean -df && git checkout -- . || echo
 }
 
@@ -249,7 +253,7 @@ alias dlogf='docker logs -f'
 alias dstop='docker stop'
 alias drm='docker rm'
 alias drmi='docker rmi'
-alias dprune='docker system prune -f'
+alias dprune='docker system prune'
 alias lzd='lazydocker'
 
 # Colima shortcuts (container runtime — docker/lzd aliases above talk to it once running)
@@ -305,7 +309,6 @@ alias tkt='tmux kill-session -t'
 
 # Ballerina
 alias b='bal'
-alias bc='bal clean'
 alias bb='bal build'
 alias br='bal run'
 alias bv='bal -v'

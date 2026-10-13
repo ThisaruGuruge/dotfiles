@@ -34,44 +34,6 @@ jobs:
         go install mvdan.cc/sh/v3/cmd/shfmt@v3.7.0
         echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
-    - name: Validate shell scripts with shellcheck
-      run: |
-        echo "Checking shell scripts..."
-        find . -name "*.sh" -not -path "./.git/*" -not -name ".functions.sh" -not -name ".aliases.sh" | xargs shellcheck -e SC1091,SC2039
-
-        echo "Checking other shell config files..."
-        find . -name ".paths.sh" | xargs shellcheck -e SC1091,SC2039
-
-        echo "Checking zsh syntax with native zsh parser..."
-        if command -v zsh >/dev/null 2>&1; then
-          echo "  Checking zsh/.zshrc..."
-          zsh -n zsh/.zshrc && echo "  ✅ zsh/.zshrc" || exit 1
-
-          echo "  Checking zsh/.functions.sh..."
-          zsh -n zsh/.functions.sh && echo "  ✅ zsh/.functions.sh" || exit 1
-
-          echo "  Checking zsh/.aliases.sh..."
-          zsh -n zsh/.aliases.sh && echo "  ✅ zsh/.aliases.sh" || exit 1
-
-          echo "  Checking modular zsh configs..."
-          if [ -d "zsh/.zshrc.d" ]; then
-            find zsh/.zshrc.d -name "*.zsh" -type f | while read -r file; do
-              zsh -n "$file" && echo "  ✅ $file" || exit 1
-            done
-          fi
-        else
-          echo "⚠️ zsh not available for syntax checking"
-          exit 1
-        fi
-
-    - name: Check shell script formatting
-      run: |
-        echo "Checking shell script formatting..."
-        find . -name "*.sh" -not -path "./.git/*" -not -name ".aliases.sh" | xargs shfmt -d -i 4 -ci
-
-        echo "Checking zsh config formatting..."
-        find . -name ".functions.sh" -o -name ".paths.sh" | xargs shfmt -d -i 4 -ci
-
     - name: Lint (bin/lint)
       run: |
         npm install -g @johnnymorganz/stylua-bin@2.5.2
@@ -97,15 +59,16 @@ jobs:
         echo "Checking for hardcoded paths..."
 
         # Check for variable assignments with hardcoded /Users/ paths
+        # (git grep searches tracked files only, so .git/ needs no filter)
         echo "  Checking variable assignments..."
-        if grep -r '="/Users/' --include="*.sh" --include=".zshrc" --include=".functions.sh" --include=".aliases.sh" --include=".paths.sh" . | grep -v ".git" | grep -v "RANCHER" | grep -v '# ' | grep -v "example"; then
+        if git grep -nE '="/Users/' -- '*.sh' ':(glob)**/.zshrc' | grep -v "RANCHER" | grep -v '# ' | grep -v "example"; then
           echo "❌ Found hardcoded paths in variable assignments!"
           exit 1
         fi
 
         # Check for command usage with hardcoded /Users/ paths
         echo "  Checking command usage..."
-        if grep -rE '(cd|source|\.)\s+/Users/' --include="*.sh" --include=".zshrc" --include=".functions.sh" --include=".aliases.sh" --include=".paths.sh" . | grep -v ".git" | grep -v "RANCHER" | grep -v '# ' | grep -v "documentation"; then
+        if git grep -nE '(cd|source|\.)[[:space:]]+/Users/' -- '*.sh' ':(glob)**/.zshrc' | grep -v "RANCHER" | grep -v '# ' | grep -v "documentation"; then
           echo "❌ Found hardcoded paths in commands!"
           exit 1
         fi
@@ -113,8 +76,11 @@ jobs:
         echo "✅ No hardcoded paths found"
 
         echo "Checking for secrets in files..."
-        # Look for actual secret patterns, not documentation about secrets
-        if grep -r "password\s*=\s*[\"']\S\|secret\s*=\s*[\"']\S\|token\s*=\s*[\"']\S\|key\s*=\s*[\"']\S" --include="*.sh" --include=".zshrc" . | grep -v ".git" | grep -v "example" | grep -v "template" | grep -v "your_" | grep -v "github_token_here" | grep -v "ENC\["; then
+        # Look for actual secret patterns, not documentation about secrets.
+        # The value must be a non-empty quoted string (signing_key="" is not a secret).
+        # The names are alternated so this step's own text is not itself a hit.
+        secret_pat="(pass""word|sec""ret|tok""en|k""ey)[[:space:]]*=[[:space:]]*[\"'][^\"'[:space:]]"
+        if git grep -nE "$secret_pat" -- '*.sh' ':(glob)**/.zshrc' | grep -v "example" | grep -v "template" | grep -v "your_" | grep -v "github_token_here" | grep -v "ENC\["; then
           echo "❌ Potential secrets found!"
           exit 1
         else
@@ -122,7 +88,7 @@ jobs:
         fi
 
         echo "Checking for TODO/FIXME comments..."
-        if grep -r "TODO\|FIXME" --include="*.sh" --include=".zshrc" --include="*.md" . | grep -v ".git"; then
+        if git grep -nE 'TODO|FIXME' -- '*.sh' ':(glob)**/.zshrc' '*.md'; then
           echo "ℹ️ Found TODO/FIXME comments (informational only)"
         fi
 
@@ -154,17 +120,28 @@ jobs:
         echo "Testing zsh configuration syntax..."
         zsh -n zsh/.zshrc
 
-        # Test functions syntax
+        # Test functions syntax (a zsh file, not bash)
         echo "Testing functions syntax..."
-        bash -n zsh/.functions.sh
+        zsh -n zsh/.functions.sh
 
-        # Test aliases syntax
+        # Test aliases syntax (a zsh file, not bash)
         echo "Testing aliases syntax..."
-        bash -n zsh/.aliases.sh
+        zsh -n zsh/.aliases.sh
 
         # Test paths syntax
         echo "Testing paths syntax..."
         bash -n zsh/.paths.sh
+
+    # The behavioural suites run in a scratch HOME with fake binaries. jq is
+    # preinstalled on the macOS runners; tmux is not.
+    - name: Install tmux
+      run: brew install tmux
+
+    - name: Run shell helper tests
+      run: zsh bin/test-shell-helpers
+
+    - name: Run Claude Code config tests
+      run: bash tests/claude/check.sh
 
     - name: Test installation script safety
       run: |

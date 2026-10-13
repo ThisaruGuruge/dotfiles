@@ -15,7 +15,7 @@ M.setup = function(dap)
       -- Launch a new process
       local adapter = {
         type = "executable",
-        command = require("mason-registry").get_package("debugpy"):get_install_path() .. "/venv/bin/python",
+        command = vim.fn.expand("$MASON/packages/debugpy") .. "/venv/bin/python",
         args = { "-m", "debugpy.adapter" },
       }
       cb(adapter)

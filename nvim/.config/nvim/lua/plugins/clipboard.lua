@@ -11,8 +11,12 @@ return {
           telescope = {
             i = {
               select = "<CR>",
-              paste = "<C-p>",
-              paste_behind = "<C-k>",
+              -- <C-p> and <C-k> stay Telescope's own keys (move up / scroll
+              -- the preview). neoclip merges these tables over its defaults,
+              -- so paste_behind must be disabled with `false` rather than
+              -- omitted; use P in normal mode instead.
+              paste = "<C-y>",
+              paste_behind = false,
               delete = "<C-d>",
             },
             n = {

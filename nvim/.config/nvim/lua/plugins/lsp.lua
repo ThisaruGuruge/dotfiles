@@ -164,7 +164,10 @@ return {
       })
 
       -- Java-specific settings
-      local jdtls_path = require("mason-registry").get_package("jdtls"):get_install_path()
+      -- $MASON is set by mason.nvim's setup(); asking the registry instead
+      -- raises "Cannot find package jdtls" on a fresh machine, before the
+      -- registry has been downloaded, which aborts this whole config.
+      local jdtls_path = vim.fn.expand("$MASON/packages/jdtls")
       local jdtls_launcher = vim.fn.glob(jdtls_path .. "/plugins/org.eclipse.equinox.launcher_*.jar")
       local jdtls_config = vim.fn.glob(jdtls_path .. "/config_mac")
 
@@ -390,18 +393,8 @@ return {
           vim.keymap.set("n", "<leader>lq", function()
             open_diag_qf(0)
           end, vim.tbl_extend("force", opts, { desc = "Buffer diagnostics to quickfix" }))
-          vim.keymap.set(
-            "n",
-            "[d",
-            vim.diagnostic.goto_prev,
-            vim.tbl_extend("force", opts, { desc = "Previous diagnostic" })
-          )
-          vim.keymap.set(
-            "n",
-            "]d",
-            vim.diagnostic.goto_next,
-            vim.tbl_extend("force", opts, { desc = "Next diagnostic" })
-          )
+          -- [d and ]d are Neovim's built-in diagnostic jumps; the float on
+          -- arrival comes from `jump.on_jump` in vim.diagnostic.config below.
 
           -- Inlay hints — parameter names and inferred types rendered inline.
           -- On by default wherever the server supports them, toggled per buffer
@@ -439,6 +432,12 @@ return {
         float = {
           border = "rounded",
           source = "always",
+        },
+        -- Open the diagnostic float after [d / ]d lands on a diagnostic.
+        jump = {
+          on_jump = function(_, bufnr)
+            vim.diagnostic.open_float({ bufnr = bufnr, scope = "cursor", focus = false })
+          end,
         },
       })
 

@@ -383,6 +383,11 @@ for settings in "$repo"/claude/.claude-*/settings.json; do
     else
         fail "$account/settings.json refreshes the status line every 15 s"
     fi
+    if jq -e '.statusLine.command | contains("/Users/") | not' "$settings" >/dev/null 2>&1; then
+        pass "$account/settings.json status line command has no hard-coded home path"
+    else
+        fail "$account/settings.json status line command has no hard-coded home path"
+    fi
 done
 
 # Private project details belong in ~/.claude-personal/projects.d/<repo>.json, never in this public

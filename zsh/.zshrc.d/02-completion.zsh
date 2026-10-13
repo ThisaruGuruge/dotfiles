@@ -74,7 +74,7 @@ if [[ -d "$NVM_DIR/versions/node" ]]; then
     fi
 fi
 
-zinit cdreplay -q
+(( $+functions[zinit] )) && zinit cdreplay -q
 
 # SDKMAN - lazy-loaded for faster startup (saves ~1s)
 if [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]]; then

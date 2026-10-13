@@ -1,11 +1,25 @@
 #!/bin/bash
-# Script to adopt existing .config directories into dotfiles
+# Adopt an existing ~/.config/<app-name> directory into the dotfiles repo.
+# It moves the directory to <app-name>/.config/<app-name> in the repo, adds a
+# .bestowignore if the package has none, and stows the package so the files are
+# symlinked back. It refuses an app that is already managed.
+#
 # Usage: ./bin/adopt-config <app-name>
+#        ./bin/adopt-config -h | --help
+
+case "${1:-}" in
+    -h | --help)
+        sed -n '2,/^[^#]/{/^#/s/^# \{0,1\}//p;}' "$0"
+        exit 0
+        ;;
+esac
 
 set -e
 
-APP_NAME="$1"
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+APP_NAME="${1:-}"
+# Resolve a symlinked invocation (e.g. ~/bin/adopt-config) to the real repo
+SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
+DOTFILES_DIR="$(cd "$(dirname "$SELF")/.." && pwd)"
 CONFIG_SOURCE="$HOME/.config/$APP_NAME"
 CONFIG_DEST="$DOTFILES_DIR/$APP_NAME/.config/$APP_NAME"
 
@@ -28,11 +42,32 @@ if [ ! -d "$CONFIG_SOURCE" ]; then
     exit 1
 fi
 
+# bestow links per file and never links a directory, so "already managed" means
+# the repo already has this package's config, or the live directory already
+# holds links that resolve into the repo.
 if [ -L "$CONFIG_SOURCE" ]; then
     echo -e "${YELLOW}$APP_NAME is already a symlink, skipping${NC}"
     readlink "$CONFIG_SOURCE"
     exit 0
 fi
+
+if [ -e "$CONFIG_DEST" ]; then
+    echo -e "${RED}Error: $CONFIG_DEST already exists in the repo; $APP_NAME looks already managed${NC}"
+    echo "Nothing was moved. Remove or merge it by hand if you really mean to re-adopt."
+    exit 1
+fi
+
+DOTFILES_REAL="$(cd -P "$DOTFILES_DIR" && pwd -P)"
+while IFS= read -r link; do
+    target="$(readlink -f "$link" 2>/dev/null || true)"
+    case "$target" in
+        "$DOTFILES_REAL"/*)
+            echo -e "${YELLOW}$APP_NAME is already managed: $link -> $target${NC}"
+            echo "Nothing was moved."
+            exit 1
+            ;;
+    esac
+done < <(find "$CONFIG_SOURCE" -type l 2>/dev/null)
 
 echo -e "${GREEN}Adopting $APP_NAME into dotfiles...${NC}"
 echo ""
@@ -44,7 +79,9 @@ echo ""
 
 # Check if it contains sensitive data. List file names only (-l): printing the
 # matching lines would put the secrets themselves on screen and in scrollback.
-if grep -r -l -I -i -E "(token|password|key|secret|credential)" "$CONFIG_SOURCE" 2>/dev/null | head -10; then
+hits="$(grep -r -l -I -i -E "(token|password|key|secret|credential)" "$CONFIG_SOURCE" 2>/dev/null | head -10 || true)"
+if [ -n "$hits" ]; then
+    echo "$hits"
     echo ""
     echo -e "${YELLOW}⚠️  Warning: the files above may contain sensitive data!${NC}"
     echo -e "${YELLOW}Make sure to add appropriate .bestowignore and .gitignore entries${NC}"

@@ -91,6 +91,12 @@ show_tools() {
     echo "  awake              - Keep the Mac from idle-sleeping (awake status | awake stop)"
     echo "  kill_by_port 3000  - Stop whatever is listening on port 3000"
     echo "  extract / compress - Unpack / pack archives"
+    echo "  dotdoctor          - Read-only health check of the dotfiles setup"
+    echo "  envrc work|personal - Pin the Claude/gws account for this directory"
+    echo "  rebuild-env        - Rebuild ~/.env after sops reports 'MAC mismatch'"
+    echo ""
+    echo "🧭 More help:"
+    echo "  tmux: prefix + ? (palette)   nvim: <space> (which-key)"
     echo ""
     echo "💡 Pro tip: Type 'alias' to see all available shortcuts!"
 }
@@ -260,7 +266,7 @@ alias_help() {
             echo "  dstop   docker stop (stop container)"
             echo ""
             echo "Cleanup:"
-            echo "  dprune  docker system prune -f (cleanup unused)"
+            echo "  dprune  docker system prune (cleanup unused; asks before deleting)"
             echo ""
             echo "Colima (container runtime — must be running before dps/dex/etc. work):"
             echo "  colima-start     colima start (boot the VM + docker daemon)"
@@ -349,7 +355,22 @@ alias_help() {
             ;;
 
         *)
-            echo "❓ Alias '$alias_name' not found in documentation."
+            # Not in the curated docs: if the name is a real alias or
+            # function, show its definition instead of claiming it is unknown.
+            if (( $+aliases[$alias_name] )); then
+                echo "ℹ️  '$alias_name' has no curated docs; its definition:"
+                echo ""
+                whence -v -- "$alias_name"
+                return 0
+            elif (( $+functions[$alias_name] )); then
+                echo "ℹ️  '$alias_name' has no curated docs; its definition:"
+                echo ""
+                whence -f -- "$alias_name" | head -40
+                return 0
+            fi
+
+            echo "❓ '$alias_name' is not a defined alias or function, and is not in the documentation."
+            echo "   To find one by keyword: alias_search <keyword>"
             echo ""
             echo "Available categories:"
             echo "  File operations: ls, ll, bat, g (ripgrep), f (fd)"

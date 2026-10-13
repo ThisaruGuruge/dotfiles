@@ -143,6 +143,55 @@ test('rowsModeOf falls back to auto for bad input', () => {
   expect(rowsModeOf('always')).toBe('always')
 })
 
+const finished = { answer: 'done', durationMs: 10, isAborted: false, turnId: 't1', agentId: 'a1', reason: 'answer' } as never
+
+test('a finished agent continued in the same session runs again', async ($, on) => {
+  on('clock.now', () => ({ value: 1_000 }))
+  on('agent.spawn', () => ({ model: 'claude-sonnet-5-5', agentId: 'a1' }) as never)
+  on('turn.complete', () => ({ text: '' }) as never)
+  on('tool.call', () => ({ result: 'ok' }) as never)
+
+  await $.agent.spawn({ prompt: 'find auth', description: 'Find auth flow', subagentType: 'Explore' })
+  await $.turn.complete(finished)
+
+  const pane = await $.ui.mount(PANE)
+  expect(await pane.find({ type: 'Text', text: /Agents \(0 running, 1 total\)/ })).toBeDefined()
+
+  await $.tool.call({ tool: 'Bash', input: { command: 'ls' }, agentId: 'a1' } as never)
+
+  expect(await pane.find({ type: 'Text', text: /Agents \(1 running, 1 total\)/ })).toBeDefined()
+})
+
+test('a finished agent sending a request again runs again', async ($, on) => {
+  on('clock.now', () => ({ value: 1_000 }))
+  on('agent.spawn', () => ({ model: 'claude-sonnet-5-5', agentId: 'a1' }) as never)
+  on('turn.complete', () => ({ text: '' }) as never)
+  // biome-ignore lint/correctness/useYield: the engine's stand-in answers without chunks
+  on('turn.step', async function* (_$, e) {
+    return { turnId: e.turnId, index: e.index, answer: 'ok', toolUses: [], stopReason: 'end_turn' } as never
+  })
+
+  await $.agent.spawn({ prompt: 'find auth', description: 'Find auth flow', subagentType: 'Explore' })
+  await $.turn.complete(finished)
+  for await (const _ of $.turn.step({ turnId: 't2', index: 0, model: 'm', messageCount: 1, agentId: 'a1' } as never));
+
+  const pane = await $.ui.mount(PANE)
+  expect(await pane.find({ type: 'Text', text: /Agents \(1 running, 1 total\)/ })).toBeDefined()
+})
+
+test('a finished agent stays finished until it starts work again', async ($, on) => {
+  on('clock.now', () => ({ value: 1_000 }))
+  on('agent.spawn', () => ({ model: 'claude-sonnet-5-5', agentId: 'a1' }) as never)
+  on('turn.complete', () => ({ text: '' }) as never)
+
+  await $.agent.spawn({ prompt: 'find auth', description: 'Find auth flow', subagentType: 'Explore' })
+  await $.turn.complete(finished)
+  await $.turn.complete(finished)
+
+  const pane = await $.ui.mount(PANE)
+  expect(await pane.find({ type: 'Text', text: /Agents \(0 running, 1 total\)/ })).toBeDefined()
+})
+
 test('adopts a resumed agent that never fired agent.spawn', async ($, on) => {
   on('clock.now', () => ({ value: 2_000 }))
   on('tool.call', () => ({ result: 'ok' }) as never)
