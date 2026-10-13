@@ -17,6 +17,9 @@ return {
               -- omitted; use P in normal mode instead.
               paste = "<C-y>",
               paste_behind = false,
+              -- neoclip's default <C-q> (replay a macro) would shadow
+              -- Telescope's <C-q> (send results to quickfix) in this picker.
+              replay = false,
               delete = "<C-d>",
             },
             n = {
