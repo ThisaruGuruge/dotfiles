@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.0] - 2026-10-13
+
 ### Security
 
 - `conventions` mod: the repo's own `bin/lint` now runs only in the checkout the mod is loaded from (its `CLAUDE_CODE_PLUGIN_DIRS` entry) and that checkout's linked worktrees; a fork or copy with the same layout gets the generic shfmt / `zsh -n` / stylua checks instead of having its `bin/lint` executed outside the permission system
