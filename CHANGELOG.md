@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.1] - 2026-10-13
+
 ### Fixed
 
 - Neoclip picker: `<C-q>` sends results to the quickfix list like every other Telescope picker (neoclip's insert-mode macro replay on `<C-q>` is disabled)
