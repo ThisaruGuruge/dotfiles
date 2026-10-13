@@ -15,7 +15,7 @@
 if [[ "$1" == "--list" ]]; then
     waiting=$(tmux list-windows -a -F $'#{session_name}\t#{@claude_state}' 2>/dev/null |
         awk -F'\t' '$2 == "waiting" { printf "%s\t", $1 }')
-    tmux list-sessions -F "#{session_created}	#{session_name}	#{?session_attached,●,}" |
+    tmux list-sessions -F $'#{session_created}\t#{session_name}\t#{?session_attached,●,}' |
         sort -n -k1,1 |
         awk -F'\t' -v waiting="$waiting" '
             BEGIN {

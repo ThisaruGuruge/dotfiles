@@ -21,7 +21,7 @@ Every script in this directory is bash, POSIX sh or zsh (no Python). Convention:
 | `profile-startup` | bash | Quick shell startup timing |
 | `profile-zsh-startup` | zsh | Detailed zsh startup profiler (per-component timing) |
 | `rebuild-env` | bash | Rebuild `~/.env` after sops reports `MAC mismatch` (the encrypted file was edited by hand): keep, replace or remove each variable, add new ones, re-encrypt |
-| `reset-dotfiles` | bash | Interactively reset/clean dotfiles symlinks and caches |
+| `reset-dotfiles` | bash | Remove every bestow-managed symlink, then optionally the `~/.dotfiles_backup*` directories and the `packages/*.brewfile` packages (every prompt defaults to no) |
 | `sync-brewfile` | bash | Compare/sync `Brewfile` with installed Homebrew packages |
 | `test-shell-helpers` | zsh | Behavioural tests for `dotdoctor`, `envrc`, `prs`/`prw` and the direnv hook (run by `test-zsh`) |
 | `test-zsh-config` | zsh | Validation suite (run via `test-zsh`) |
@@ -30,6 +30,8 @@ Every script in this directory is bash, POSIX sh or zsh (no Python). Convention:
 | `tmux-status-sysinfo` | zsh | tmux status bar: load average and RAM, plus `☕` while `awake` holds |
 
 ## Scripts
+
+`adopt-config`, `rebuild-env`, `reset-dotfiles` and `sync-brewfile` print their usage and exit with `-h` / `--help`, before doing anything. `reset-dotfiles --help` in particular does not start the removal.
 
 ### `audit-configs`
 Audit your `~/.config` directory to see what's managed by dotfiles vs what's not.
@@ -54,8 +56,8 @@ Migrate an existing config from `~/.config/<app>` into your dotfiles repo.
 ```
 
 **What it does:**
-1. Checks if config exists and isn't already a symlink
-2. Shows size and warns about sensitive data
+1. Checks that the config exists and is not already managed: it refuses when `<app>/.config/<app>` already exists in the repo or when files under `~/.config/<app>` are symlinks into the repo (bestow links per file, never whole directories)
+2. Shows size and lists files that may hold sensitive data (names only)
 3. Moves config to `~/dotfiles/<app>/.config/<app>` (a new top-level bestow package)
 4. Creates `.bestowignore` for sensitive files
 5. Stows the package to create the symlink back
@@ -152,11 +154,19 @@ One-time macOS setup: System Settings > Notifications > **Script Editor** (`osas
 attributed to it) must allow banners or alerts and sounds. A Focus mode silences them like any other app.
 
 ### `rebuild-env`
-Recover `~/.env` when sops reports `MAC mismatch`. That happens when the encrypted file was edited by hand (for example deleting lines in a normal editor), which breaks its checksum. The script refuses to run on a healthy file, reads the values with `--ignore-mac`, asks per variable whether to keep, replace (hidden input) or remove it, lets you add new ones, then encrypts, verifies the round trip and swaps the file in. The broken file is kept as `~/.env.broken-mac.<time>` (still encrypted). Values are never printed.
+Recover `~/.env` when sops reports `MAC mismatch`. That happens when the encrypted file was edited by hand (for example deleting lines in a normal editor), which breaks its checksum. The script refuses to run on a healthy file, reads the values with `--ignore-mac`, asks per variable whether to keep, replace (hidden input) or remove it, lets you add new ones, then encrypts, verifies the round trip and swaps the file in. The broken file is kept as `~/.env.broken-mac.<time>` (still encrypted). Values are never printed. If `~/.env` is a symlink, the file it points to is rebuilt (new and broken-copy files are written beside the target) and the link stays a link; a dangling link is refused.
 
 **Usage:**
 ```bash
 rebuild-env
+```
+
+### `reset-dotfiles`
+Undo what `init.sh` set up: it previews the links `bestow unstow` would remove (the main package set and the `bin` package in `~/bin`), prints how many, and asks before removing them. If bestow fails during the preview the script stops and shows bestow's error rather than an empty list. It then walks every `~/.dotfiles_backup*` directory (init.sh writes `~/.dotfiles_backup_<timestamp>`), lists it and offers removal, defaulting to no; if you keep one it prints the `cp -a <dir>/. ~/` command that restores it. The optional package uninstall only touches `packages/*.brewfile` entries; the core `Brewfile` packages stay installed. Uninstalling Homebrew itself is a separate, doubly-confirmed prompt.
+
+**Usage:**
+```bash
+reset-dotfiles
 ```
 
 ### `sync-brewfile`
@@ -227,6 +237,8 @@ cd ~/dotfiles
 ./init.sh
 # All configs are symlinked automatically!
 ```
+
+The checkout can be anywhere: `init.sh` locates the repo from its own path and, when it is not at `~/dotfiles`, creates a `~/dotfiles` symlink to it (the hooks, status line, aliases and tmux config all use that path). `./init.sh --dry-run` is a preflight that changes nothing, and `./init.sh --help` lists the steps.
 
 ## Tips
 

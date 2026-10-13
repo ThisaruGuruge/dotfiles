@@ -12,7 +12,15 @@ cd() {
     # Check if this is an interactive shell with a terminal
     if [[ -o interactive ]] && [[ -t 0 ]]; then
         # Interactive use - use zoxide for smart directory jumping
-        if command -v __zoxide_z >/dev/null 2>&1; then
+        # __zoxide_z sends anything it does not recognise to `zoxide query`,
+        # so cd's own forms (cd -P dir, cd -L, cd old new) would become fuzzy
+        # queries. Those go straight to the builtin; "-", "--" and "-N" stay
+        # with zoxide.
+        if (( $# > 1 )) && [[ $1 != -- ]]; then
+            builtin cd "$@"
+        elif [[ $1 == -[^-0-9]* ]]; then
+            builtin cd "$@"
+        elif command -v __zoxide_z >/dev/null 2>&1; then
             __zoxide_z "$@"
         else
             # Fallback if zoxide isn't loaded yet

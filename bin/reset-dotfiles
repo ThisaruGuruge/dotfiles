@@ -1,7 +1,20 @@
 #!/bin/bash
-
 # Dotfiles Reset/Clean Script
-# This script removes all symlinks created by Stow and optionally removes installed packages
+# Removes every bestow-managed symlink (the main package set into $HOME and the
+# bin package into ~/bin), then offers, one prompt each and defaulting to "no":
+#   - removing the ~/.dotfiles_backup* directories init.sh created
+#   - uninstalling the packages/*.brewfile packages (the core Brewfile stays)
+#   - uninstalling Homebrew entirely
+#
+# Usage: reset-dotfiles
+#        reset-dotfiles -h | --help
+
+case "${1:-}" in
+    -h | --help)
+        sed -n '2,/^[^#]/{/^#/s/^# \{0,1\}//p;}' "$0"
+        exit 0
+        ;;
+esac
 
 set -e # Exit on any error
 
@@ -86,8 +99,9 @@ brew_cask_installed() {
     grep -qxF -e "$1" -e "${1##*/}" <<<"$BREW_CASKS"
 }
 
-# Get the dotfiles directory
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Get the dotfiles directory (resolve a symlinked invocation such as ~/bin/reset-dotfiles)
+SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
+DOTFILES_DIR="$(cd "$(dirname "$SELF")/.." && pwd)"
 cd "$DOTFILES_DIR"
 
 echo ""
@@ -107,70 +121,91 @@ fi
 # Check what will be removed
 log_step "Checking current bestow setup"
 
-echo ""
-log_warning "The following symlinks will be removed:"
-echo ""
-bestow unstow --dry-run -v 2>/dev/null | grep -E "REMOVE:" | sed -E 's/.*REMOVE: //' | sed 's/^/  - /'
+# Preview what bestow would remove. Sets LINKS to the links, one per line.
+# The output and exit status are captured so that a bestow failure is shown
+# instead of looking like an empty list.
+preview_links() {
+    local out
+    if ! out=$(bestow unstow "$@" --dry-run -v 2>&1); then
+        log_error "bestow could not preview the removal; nothing was changed. Its output:"
+        echo "$out" >&2
+        return 1
+    fi
+    LINKS=$(grep -E "REMOVE:" <<<"$out" | sed -E 's/.*REMOVE: //' || true)
+}
+
+ALL_LINKS=""
+preview_links || exit 1
+ALL_LINKS="$LINKS"
 # bin/ symlinks into ~/bin, not $HOME, so it needs a separate destination
 if [ -d "$DOTFILES_DIR/bin" ]; then
-    bestow unstow bin -d "$HOME/bin" --dry-run -v 2>/dev/null | grep -E "REMOVE:" | sed -E 's/.*REMOVE: //' | sed 's/^/  - /'
+    preview_links bin -d "$HOME/bin" || exit 1
+    if [ -n "$LINKS" ]; then
+        ALL_LINKS="${ALL_LINKS:+$ALL_LINKS
+}$LINKS"
+    fi
 fi
 
 echo ""
-if ! confirm "Do you want to proceed with removing these symlinks?" "n"; then
-    log_info "Aborted by user"
-    exit 0
-fi
-
-# Remove bestow symlinks
-log_step "Removing bestow symlinks"
-
-if bestow unstow 2>&1; then
-    log_success "Removed all bestow-managed symlinks"
+LINK_COUNT=0
+if [ -n "$ALL_LINKS" ]; then
+    LINK_COUNT=$(printf '%s\n' "$ALL_LINKS" | wc -l | tr -d ' ')
+    log_warning "The following symlinks will be removed:"
+    echo ""
+    printf '%s\n' "$ALL_LINKS" | sed 's/^/  - /'
+    echo ""
+    log_info "$LINK_COUNT links will be removed"
+    echo ""
+    if ! confirm "Do you want to proceed with removing these symlinks?" "n"; then
+        log_info "Aborted by user"
+        exit 0
+    fi
 else
-    log_error "Failed to remove some symlinks"
+    log_info "No bestow-managed symlinks found: nothing to remove"
 fi
 
-if [ -d "$DOTFILES_DIR/bin" ]; then
-    if bestow unstow bin -d "$HOME/bin" 2>&1; then
-        log_success "Removed bin package symlinks from ~/bin"
+if [ "$LINK_COUNT" -gt 0 ]; then
+    # Remove bestow symlinks
+    log_step "Removing bestow symlinks"
+
+    if bestow unstow 2>&1; then
+        log_success "Removed all bestow-managed symlinks"
     else
-        log_error "Failed to remove bin package symlinks"
+        log_error "Failed to remove some symlinks"
+    fi
+
+    if [ -d "$DOTFILES_DIR/bin" ]; then
+        if bestow unstow bin -d "$HOME/bin" 2>&1; then
+            log_success "Removed bin package symlinks from ~/bin"
+        else
+            log_error "Failed to remove bin package symlinks"
+        fi
     fi
 fi
 
 # Additional cleanup
 log_step "Additional cleanup"
 
-# Remove Chezmoi directories if they exist
-if [ -d "$HOME/.local/share/chezmoi" ]; then
-    if confirm "Found Chezmoi directory. Remove ~/.local/share/chezmoi?" "y"; then
-        rm -rf "$HOME/.local/share/chezmoi"
-        log_success "Removed ~/.local/share/chezmoi"
-    fi
-fi
-
-if [ -d "$HOME/.config/chezmoi" ]; then
-    if confirm "Found Chezmoi config. Remove ~/.config/chezmoi?" "y"; then
-        rm -rf "$HOME/.config/chezmoi"
-        log_success "Removed ~/.config/chezmoi"
-    fi
-fi
-
-# Check for backup directory
-BACKUP_DIR="$HOME/.dotfiles_backup"
-if [ -d "$BACKUP_DIR" ]; then
-    log_info "Found backup directory at $BACKUP_DIR"
-    if confirm "Do you want to remove the backup directory?" "n"; then
-        rm -rf "$BACKUP_DIR"
-        log_success "Removed backup directory"
+# init.sh writes ~/.dotfiles_backup_<timestamp>; older runs used ~/.dotfiles_backup
+shopt -s nullglob
+BACKUP_DIRS=("$HOME"/.dotfiles_backup*/)
+shopt -u nullglob
+for backup_dir in "${BACKUP_DIRS[@]}"; do
+    backup_dir="${backup_dir%/}"
+    log_info "Found backup directory at $backup_dir"
+    find "$backup_dir" -mindepth 1 -maxdepth 1 | sed 's/^/      /'
+    if confirm "Do you want to remove $backup_dir?" "n"; then
+        rm -rf -- "$backup_dir"
+        log_success "Removed $backup_dir"
     else
-        log_info "Keeping backup directory"
+        log_info "Keeping $backup_dir"
+        log_info "To restore its files: $(printf 'cp -a %q/. ~/' "$backup_dir")"
     fi
-fi
+done
 
 # Optional: Remove installed packages
 echo ""
+log_info "Only the optional packages/*.brewfile entries are removed; the core Brewfile packages stay installed"
 if confirm "Do you want to uninstall packages that were installed via init.sh?" "n"; then
     log_step "Uninstalling packages"
 

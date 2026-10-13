@@ -20,8 +20,9 @@
 #      rabe mod (~25 s of a ~30 s run) is skipped unless it differs from the
 #      merge base with origin/dev or origin/main, or LINT_VENDORED=1 is set.
 #
-# Every non-README file in bin/ must be listed below (by shebang), so a new
-# script cannot silently escape linting.
+# Every non-README file in bin/, every script in tmux/.local/bin/ (except the
+# tmux-palette-entries data file) and every tests/**/*.sh must be listed below
+# (by shebang), so a new script cannot silently escape linting.
 #
 # zsh files are never fed to shellcheck/shfmt (neither parses zsh).
 
@@ -105,6 +106,14 @@ BASH_FILES=(
     bin/dotdoctor
     claude/.claude-enterprise/statusline-command.sh
     claude/.claude-personal/statusline-command.sh
+    tmux/.local/bin/tmux-claude-next
+    tmux/.local/bin/tmux-palette
+    tmux/.local/bin/tmux-session-creator
+    tmux/.local/bin/tmux-session-layout
+    tmux/.local/bin/tmux-session-switcher
+    tmux/.local/bin/tmux-sessionizer
+    tests/claude/check.sh
+    tests/claude/statusline/make-repos.sh
 )
 
 # zsh files: modules plus zsh-shebang scripts.
@@ -112,16 +121,30 @@ ZSH_FILES=(
     zsh/.zshrc
     zsh/.zshenv
     zsh/.zprofile
+    zsh/.p10k.zsh
     zsh/.functions.sh
     zsh/.aliases.sh
     zsh/.functions.d/*.zsh
     zsh/.zshrc.d/*.zsh
+    zsh/completions/_*
     bin/profile-zsh-startup
     bin/test-shell-helpers
     bin/test-zsh-config
     bin/tmux-status-battery
     bin/tmux-status-sysinfo
 )
+
+# Files that must appear in BASH_FILES or ZSH_FILES: one path per line.
+coverage_candidates() {
+    local f
+    for f in bin/* tmux/.local/bin/[!.]*; do
+        case "$f" in
+            bin/README.md | tmux/.local/bin/tmux-palette-entries) continue ;;
+        esac
+        [ -f "$f" ] && printf '%s\n' "$f"
+    done
+    [ -d tests ] && find tests -type f -name '*.sh' | LC_ALL=C sort
+}
 
 in_list() {
     local x=$1 g
@@ -158,9 +181,9 @@ lint_file() {
         nvim/.config/nvim/*.lua)
             file_check "stylua $f" stylua --check "$f" || status=1
             ;;
-        bin/README.md) ;;
+        bin/README.md | tmux/.local/bin/tmux-palette-entries) ;;
         bin/[!/.]*/*) ;;
-        bin/[!/.]*)
+        bin/[!/.]* | tmux/.local/bin/[!.]* | tests/*.sh)
             if ! in_list "$f" "${BASH_FILES[@]}" "${ZSH_FILES[@]}"; then
                 printf '%s is not in BASH_FILES or ZSH_FILES in bin/lint\n' "$f"
                 printf 'fix: add it to BASH_FILES (bash) or ZSH_FILES (zsh) in bin/lint\n'
@@ -179,21 +202,15 @@ if [ -n "$FILE" ]; then
     exit
 fi
 
-step "bin/ coverage (every script is listed)"
+step "script coverage (bin/, tmux/.local/bin/, tests/**/*.sh are all listed)"
 unlisted=0
-for f in bin/*; do
-    case "$f" in bin/README.md) continue ;; esac
-    [ -f "$f" ] || continue
-    listed=0
-    for g in "${BASH_FILES[@]}" "${ZSH_FILES[@]}"; do
-        [ "$g" = "$f" ] && listed=1 && break
-    done
-    if [ "$listed" -eq 0 ]; then
+while IFS= read -r f; do
+    if ! in_list "$f" "${BASH_FILES[@]}" "${ZSH_FILES[@]}"; then
         fail "$f is not in BASH_FILES or ZSH_FILES in bin/lint"
         unlisted=1
     fi
-done
-[ "$unlisted" -eq 0 ] && ok "all bin/ scripts listed"
+done < <(coverage_candidates)
+[ "$unlisted" -eq 0 ] && ok "all scripts listed"
 
 step "listed files exist"
 missing=0

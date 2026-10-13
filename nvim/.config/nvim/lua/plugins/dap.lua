@@ -139,7 +139,7 @@ return {
       -- one bit of per-language knowledge core can't hand off to a
       -- `dap-<lang>.lua` file. Adapters installed outside Mason don't belong here.
       require("mason-nvim-dap").setup({
-        ensure_installed = { "delve", "debugpy", "java-debug-adapter", "java-test" },
+        ensure_installed = { "delve", "debugpy" },
         automatic_installation = true,
         -- Intentionally empty. mason-nvim-dap ships its own adapters and
         -- configurations (a `delve` adapter with four `type = "delve"` Go

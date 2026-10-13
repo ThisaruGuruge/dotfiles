@@ -101,6 +101,24 @@ jobs:
             RANGE="HEAD"
           fi
 
+          # The commit this run analyses. The release must be cut from exactly
+          # this commit; the changelog step fails if main has moved on.
+          ANALYSED=$(git rev-parse HEAD)
+          echo "analysed=$ANALYSED" >> "$GITHUB_OUTPUT"
+
+          # Nothing to release: no commits since the last tag, or only the
+          # bot's own chore(release) commits (a changelog PR that merged but
+          # was never tagged must not trigger a release of its own).
+          COUNT=$(git rev-list --count "$RANGE")
+          NON_RELEASE=$(git log --format='%s' "$RANGE" | grep -vcE '^chore\(release\):' || true)
+          if [ "$COUNT" -eq 0 ] || [ "$NON_RELEASE" -eq 0 ]; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ No releasable commits in $RANGE ($COUNT commit(s), $NON_RELEASE not chore(release)) — no tag created"
+            echo "ℹ️ No releasable commits since ${LATEST_TAG} — no tag created" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "release=true" >> "$GITHUB_OUTPUT"
+
           COMMITS=$(git log --format='%B' "$RANGE")
 
           # Conventional Commits: feat! / fix(scope)!: / "BREAKING CHANGE:" -> major,
@@ -117,6 +135,7 @@ jobs:
 
       - name: Calculate next version
         id: next
+        if: steps.bump.outputs.release == 'true'
         env:
           LATEST_TAG: ${{ steps.latest.outputs.tag }}
           BUMP: ${{ steps.bump.outputs.bump }}
@@ -148,6 +167,7 @@ jobs:
 
       - name: Update CHANGELOG.md
         id: changelog
+        if: steps.bump.outputs.release == 'true'
         env:
           VERSION: ${{ steps.next.outputs.version }}
         run: |
@@ -163,11 +183,23 @@ jobs:
           fi
 
       - name: Commit CHANGELOG update via PR
-        if: steps.changelog.outputs.updated == 'true'
+        if: steps.bump.outputs.release == 'true' && steps.changelog.outputs.updated == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.next.outputs.tag }}
+          ANALYSED: ${{ steps.bump.outputs.analysed }}
         run: |
+          # The version and changelog were computed from $ANALYSED. If main has
+          # moved since, tagging would release commits that were never
+          # analysed (wrong bump, missing notes). Stop before any side effect
+          # (branch, push, PR); a queued run or a re-dispatch releases them.
+          git fetch origin main
+          CURRENT=$(git rev-parse origin/main)
+          if [ "$CURRENT" != "$ANALYSED" ]; then
+            echo "::error::main moved from ${ANALYSED} to ${CURRENT} while this run was in progress; nothing was tagged or pushed. A queued run, or a re-run of this workflow (workflow_dispatch), will release it."
+            exit 1
+          fi
+
           BRANCH="release/changelog-${VERSION}"
 
           # main is protected: changes must land via PR, not a direct push.
@@ -182,11 +214,19 @@ jobs:
             --body "Automated CHANGELOG update for release ${VERSION}.")
 
           # GitHub can take a moment to compute mergeability after PR creation; retry briefly.
+          merged=false
           for i in 1 2 3 4 5; do
-            gh pr merge "$PR_URL" --rebase --delete-branch && break
+            if gh pr merge "$PR_URL" --rebase --delete-branch; then
+              merged=true
+              break
+            fi
             echo "Merge attempt $i failed, retrying in 5s..."
             sleep 5
           done
+          [ "$merged" = true ] || {
+            echo "::error::could not merge $PR_URL"
+            exit 1
+          }
 
           # Bring main up to date with the merged commit before tagging it.
           git checkout main
@@ -194,6 +234,7 @@ jobs:
           git reset --hard origin/main
 
       - name: Create and push tag
+        if: steps.bump.outputs.release == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEXT_TAG: ${{ steps.next.outputs.tag }}
@@ -210,6 +251,7 @@ jobs:
       # green even when the release run fails, leaving a tag with no GitHub
       # Release and nothing to signal it (this is how 2.1.0 was lost).
       - name: Verify the release was published
+        if: steps.bump.outputs.release == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NEXT_TAG: ${{ steps.next.outputs.tag }}
@@ -234,6 +276,7 @@ jobs:
           exit 1
 
       - name: Summary
+        if: steps.bump.outputs.release == 'true'
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}

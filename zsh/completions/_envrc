@@ -1,0 +1,15 @@
+#compdef envrc
+
+# Completion for the envrc() function (zsh/.functions.d/02-navigation.zsh).
+
+(( CURRENT > 2 )) && return
+
+local -a subcommands
+subcommands=(
+  'work:pin this directory to the enterprise (work) account'
+  'personal:pin this directory to the personal account'
+  'status:show which pin applies here and where it comes from'
+  'off:remove the pin from this directory'
+)
+
+_describe -t commands 'envrc' subcommands

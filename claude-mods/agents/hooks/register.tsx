@@ -21,11 +21,27 @@ const isRunning = (a: AgentRec) => a.status === 'run'
 const elapsed = (a: AgentRec, at: number) => (a.endedAt ?? Math.max(at, a.startedAt)) - a.startedAt
 
 // A resumed or background agent never fires `agent.spawn` in this session, so the first request or tool call that
-// carries an unknown agent id adopts it, and the pane opens as it would for a fresh spawn.
-const adopt = async ($: Parameters<Parameters<Register>[0]>[0], agentId: string, model?: string) => {
-  if ((await read($, list)).some(a => a.agentId === agentId)) return
+// carries an unknown agent id adopts it, and the pane opens as it would for a fresh spawn. With `revive`, one that
+// finished and is continued in this session (SendMessage) runs again: its counters carry on, its clock restarts.
+// Only what starts work revives (a request about to be sent, a tool call); the end of a request does not, so a
+// late one cannot reopen an agent its turn.complete just closed.
+const adopt = async ($: Parameters<Parameters<Register>[0]>[0], agentId: string, model?: string, revive = true) => {
+  const known = (await read($, list)).find(a => a.agentId === agentId)
+  if (known && (known.status === 'run' || !revive)) return
   const at = await $.clock.now()
   const wasIdle = !(await read($, list)).some(isRunning)
+  if (known) {
+    await update($, list, all =>
+      all.map(a => {
+        if (a.agentId !== agentId) return a
+        const { endedAt: _ended, ...rest } = a
+        return { ...rest, status: 'run' as const, startedAt: at }
+      }),
+    )
+    await update($, now, () => at)
+    if (wasIdle) void $.ui.open({ id: PANE, title: 'Agents' }).catch(() => {})
+    return
+  }
   const rec: AgentRec = {
     id: agentId,
     agentId,
@@ -127,10 +143,13 @@ export const register: Register = (on, options) => {
 
   // Each model request of a subagent: the effort it ran at and what it cost in tokens.
   on('turn.step', async function* ($, e, next) {
+    // A finished agent sending a request again was continued: it runs again
+    const known = e.agentId ? (await read($, list).catch(() => [])).find(a => a.agentId === e.agentId) : undefined
+    if (e.agentId && known && known.status !== 'run') await adopt($, e.agentId).catch(() => {})
     const result = yield* next(e)
     const usage = result.usage
     if (!e.agentId || !usage) return result
-    await adopt($, e.agentId, usage.model || e.model).catch(() => {})
+    await adopt($, e.agentId, usage.model || e.model, false).catch(() => {})
 
     const context =
       usage.input_tokens + usage.cache_read_input_tokens + usage.cache_creation_input_tokens + usage.output_tokens

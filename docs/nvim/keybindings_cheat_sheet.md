@@ -62,6 +62,18 @@ The dashboard appears when opening Neovim without arguments. Press the shortcut 
 | `<Space>ep` | `n`  | Find files in installed plugins                                                             |
 | `<C-p>`     | `n`  | Find git files                                                                              |
 
+Inside the clipboard history picker (`<Space>fy`):
+
+| Key     | Mode   | Action                                                   |
+| :------ | :----- | :------------------------------------------------------- |
+| `<C-y>` | insert | Paste after cursor                                       |
+| `<C-d>` | insert | Delete entry from history                                |
+| `p`     | normal | Paste after cursor                                       |
+| `P`     | normal | Paste before cursor (there is no insert-mode equivalent) |
+| `dd`    | normal | Delete entry from history                                |
+
+`<C-p>` and `<C-k>` keep their usual Telescope meaning in this picker.
+
 ---
 
 ## File Navigation (Yazi)
@@ -287,7 +299,7 @@ One session per working directory and git branch, saved on exit. Nothing is rest
 
 ## Debugging (nvim-dap)
 
-Works for every configured debugger — Go, Python, Java, Ballerina.
+Works for every configured debugger — Go, Python, Ballerina.
 
 F-key equivalents for stepping mid-session:
 

@@ -25,16 +25,26 @@ export function looksLikeCode(v: string): boolean {
   return WORDY.test(v) && (/[a-z][A-Z]/.test(v) || /[A-Za-z]_[A-Za-z]/.test(v))
 }
 
+/**
+ * A value after a credential's name that looks like the secret itself. Hex
+ * runs count (a 40- or 64-character hex string is a common session or webhook
+ * secret); a commit hash is only hidden when a credential's name comes first.
+ */
 export function isSecretLike(v: string): boolean {
-  return (
-    !PLACEHOLDER.test(v) &&
-    LOOKS_RANDOM.test(v) &&
-    /[0-9]/.test(v) &&
-    /[A-Za-z]/.test(v) &&
-    !looksLikeCode(v) &&
-    !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(v) // commit and file hashes
-  )
+  return !PLACEHOLDER.test(v) && LOOKS_RANDOM.test(v) && /[0-9]/.test(v) && /[A-Za-z]/.test(v) && !looksLikeCode(v)
 }
+
+/**
+ * A whole quoted value after a credential's name (a quoted password holding `&` and `()`):
+ * as isSecretLike, but any printable characters but a space count, since a
+ * quoted password may hold `&`, `(` or `|`.
+ */
+export function isQuotedSecret(v: string): boolean {
+  return v.length >= 8 && !PLACEHOLDER.test(v) && /[0-9]/.test(v) && /[A-Za-z]/.test(v) && !looksLikeCode(v)
+}
+
+/** A file path (`/home/x1`, `~/.secrets/db2`, `./x1`): what a name ending in `_pwd` may hold. */
+const isPath = (v: string) => /^(?:~|\.{1,2})?\//.test(v)
 
 /**
  * A value in a URL or an Authorization header that could be a real
@@ -57,9 +67,31 @@ function isUrlPassword(v: string, head: string, after: string): boolean {
   return isCredentialValue(v) && v !== user && !LOCAL_HOST.test(after.replace(/^@/, ''))
 }
 
-// What follows a credential's name: an optional closing quote, `:` or `=`, an optional opening quote
-const ASSIGN = `["']?\\s*[:=]\\s*["']?`
-const VALUE = "([^\\s\"'`,;]{8,})"
+// What follows a credential's name: an optional closing quote, `:` or `=`, an optional opening
+// quote. A quote may be escaped, up to three backslashes deep (`{\"token\":\"...\"}`, and JSON
+// held in a JSON string, as in an AWS SecretString), so the value also stops at a backslash,
+// and at a `<` (`<bash-stdout>TOKEN=...</bash-stdout>`, the rows of `!` bash mode).
+const QUOTE = String.raw`\\{0,3}["']`
+const ASSIGN = String.raw`(?:${QUOTE})?\s*[:=]\s*(?:${QUOTE})?`
+const VALUE = "([^\\s\"'`,;\\\\<]{8,})"
+// A quoted value is taken whole up to its closing quote (a quoted password holding `&` and `()`), up to 200
+// characters and with no space in it; longer or spaced ones fall back to VALUE.
+const OPEN = String.raw`(?:${QUOTE})?\s*[:=]\s*\\{0,3}`
+const QUOTED = (q: '"' | "'") => String.raw`${q})([^\s${q}\\]{1,200})(?=\\{0,3}${q})`
+
+/**
+ * The value after a credential's name, in three rules: a whole double-quoted
+ * value, a whole single-quoted one, then an unquoted (or space-holding) one.
+ * Quoted ones run first; what they hide is a placeholder the last one skips.
+ */
+function named(kind: string, name: string, flags: string, opts: { notPath?: true } = {}): Rule[] {
+  const ok = (v: string) => !opts.notPath || !isPath(v)
+  return [
+    { kind, re: new RegExp(`(${name}${OPEN}${QUOTED('"')}`, flags), prefix: true, check: v => isQuotedSecret(v) && ok(v) },
+    { kind, re: new RegExp(`(${name}${OPEN}${QUOTED("'")}`, flags), prefix: true, check: v => isQuotedSecret(v) && ok(v) },
+    { kind, re: new RegExp(`(${name}${ASSIGN})${VALUE}`, flags), prefix: true, check: v => isSecretLike(v) && ok(v) },
+  ]
+}
 
 // Conservative: each rule needs a distinctive prefix or shape.
 const RULES: Rule[] = [
@@ -104,33 +136,24 @@ const RULES: Rule[] = [
     prefix: true,
     check: isUrlPassword,
   },
-  {
-    // name = value: only the value is replaced, and only when it looks random
-    kind: 'password',
-    re: new RegExp(
-      `((?<![A-Za-z0-9])(?:password|passwd|secret(?:[_-]?key)?|api[_-]?key|access[_-]?key|auth[_-]?token|client[_-]?secret)${ASSIGN})${VALUE}`,
-      'gi',
-    ),
-    prefix: true,
-  },
-  {
-    // GITHUB_TOKEN=, NPM_AUTH_TOKEN:, packagePAT=, githubToken:, "private_key": ...
-    // Starting only at the head of a name, with a bounded prefix, keeps `a-a-a-...` linear.
-    kind: 'credential',
-    re: new RegExp(
-      `((?<![A-Za-z0-9_-])(?:[A-Za-z0-9]+[_-]){0,10}(?:token|pat|private[_-]?key|credentials?)${ASSIGN})${VALUE}`,
-      'gi',
-    ),
-    prefix: true,
-  },
-  {
-    kind: 'credential',
-    re: new RegExp(
-      `((?<![A-Za-z0-9_])[A-Za-z0-9_]*(?:PAT|TOKEN|SECRET|PASSWORD|PASSWD|APIKEY|API_KEY|Token|Secret|Password|ApiKey|Pat)${ASSIGN})${VALUE}`,
-      'g',
-    ),
-    prefix: true,
-  },
+  // name = value: only the value is replaced, and only when it looks random. Names stay
+  // narrow: a blanket `*_KEY` would hide CACHE_KEY=v2-abc123, and a file read with a value
+  // hidden is written back with the placeholder in it.
+  ...named(
+    'password',
+    '(?<![A-Za-z0-9])(?:password|passwd|passphrase|secret(?:[_-]?key)?|api[_-]?key|access[_-]?key|auth[_-]?token|client[_-]?secret|(?:encryption|signing|master|session)[_-]key)',
+    'gi',
+  ),
+  // DB_PASS=, MYSQL_PWD=: only after another word, and not a path (`OLD_PWD=/home/x1`)
+  ...named('password', '(?<=[A-Za-z0-9][_-])(?:pass|pwd)', 'gi', { notPath: true }),
+  // GITHUB_TOKEN=, NPM_AUTH_TOKEN:, packagePAT=, githubToken:, "private_key": ...
+  // Starting only at the head of a name, with a bounded prefix, keeps `a-a-a-...` linear.
+  ...named('credential', '(?<![A-Za-z0-9_-])(?:[A-Za-z0-9]+[_-]){0,10}(?:token|pat|private[_-]?key|credentials?)', 'gi'),
+  ...named(
+    'credential',
+    '(?<![A-Za-z0-9_])[A-Za-z0-9_]*(?:PAT|TOKEN|SECRET|PASSWORD|PASSWD|APIKEY|API_KEY|Token|Secret|Password|ApiKey|Pat)',
+    'g',
+  ),
 ]
 
 export function redactText(text: string, counts: Counts): string {
@@ -170,6 +193,27 @@ export function redactBlocks(blocks: Block[], counts: Counts): Block[] {
     }
     return b
   })
+}
+
+export const WITHHELD = '[redact: scan failed, content withheld]'
+
+/**
+ * What a row keeps when it could not be scanned: each text block and each
+ * tool_result's content become WITHHELD, every tool_result keeping its id and
+ * error flag; media and the blocks the engine pins stay as they were. Never
+ * throws, whatever the content.
+ */
+export function withhold(content: unknown): Block[] {
+  const text = (): Block => ({ type: 'text', text: WITHHELD })
+  if (!Array.isArray(content)) return [text()]
+  const out = content.flatMap((b: unknown): Block[] => {
+    if (b === null || typeof b !== 'object' || typeof (b as Block).type !== 'string') return []
+    const block = b as Block
+    if (block.type === 'text') return [text()]
+    if (block.type === 'tool_result') return [{ ...block, content: [text()] }]
+    return [block]
+  })
+  return out.length > 0 ? out : [text()]
 }
 
 export const total = (c: Counts) => Object.values(c).reduce((a, n) => a + n, 0)

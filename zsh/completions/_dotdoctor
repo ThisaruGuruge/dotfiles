@@ -1,0 +1,7 @@
+#compdef dotdoctor
+
+# Completion for bin/dotdoctor.
+
+_arguments -S \
+  '--full[also run brew bundle check and claude plugin validate]' \
+  '(- *)'{-h,--help}'[show help]'

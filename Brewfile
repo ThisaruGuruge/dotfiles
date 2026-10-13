@@ -3,7 +3,6 @@
 # Install with: brew bundle
 
 # Homebrew taps
-tap "jesseduffield/lazygit"    # Official lazygit tap for frequent updates
 tap "jesseduffield/lazydocker" # Official lazydocker tap
 tap "gdubw/gng"                # GNG - Gradle run-anywhere tool
 
@@ -21,7 +20,7 @@ brew "dust"                         # Modern du replacement (d alias)
 brew "ripgrep"                      # Fast text search
 brew "fd"                           # Find replacement
 brew "git-delta"                    # Git diff viewer
-brew "lazygit"                      # Terminal UI for git (official tap for frequent updates)
+brew "lazygit"                      # Terminal UI for git (homebrew-core)
 brew "lazydocker"                   # Terminal UI for Docker
 brew "tmux"                         # Terminal multiplexer
 brew "htop"                         # System monitor

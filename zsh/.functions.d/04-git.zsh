@@ -31,13 +31,20 @@ gs() {
     local bold=$'\033[1m'
     local dim=$'\033[2m'
 
-    # Parse porcelain v2 output
+    # Parse porcelain v2 output. -z gives NUL-terminated records with paths
+    # verbatim (no quoting), so names with spaces survive; a rename ("2 ...")
+    # is followed by one extra record holding the old path, which we skip.
     local branch_head="" branch_upstream="" ahead=0 behind=0
     local -a staged_files modified_files untracked_files conflict_files
     local -a fields
-    local xy idx wt fname
+    local xy idx wt fname line
+    local skip_next=false
 
-    while IFS= read -r line; do
+    while IFS= read -r -d '' line; do
+        if [[ "$skip_next" == true ]]; then
+            skip_next=false
+            continue
+        fi
         case "$line" in
             "# branch.head "*)
                 branch_head="${line#\# branch.head }"
@@ -54,38 +61,43 @@ gs() {
                 ;;
             "1 "*|"2 "*)
                 # Format: 1 XY sub mH mI mW hH hI path
-                #     or: 2 XY sub mH mI mW hH hI xNN path\torigPath
+                #     or: 2 XY sub mH mI mW hH hI xNN path  (old path in the next record)
+                # The path is everything after the fixed fields, spaces included.
                 fields=("${(@s/ /)line}")
                 xy="${fields[2]}"
                 idx="${xy[1]}"
                 wt="${xy[2]}"
                 if [[ "$line" == "2 "* ]]; then
-                    fname="${fields[10]}"
-                    fname="${fname%%	*}"
+                    fname="${(j: :)fields[10,-1]}"
+                    skip_next=true
                 else
-                    fname="${fields[9]}"
+                    fname="${(j: :)fields[9,-1]}"
                 fi
                 [[ "$idx" != "." ]] && staged_files+=("${idx} ${fname}")
                 [[ "$wt" != "." ]] && modified_files+=("${wt} ${fname}")
                 ;;
             "u "*)
-                fname="${line##* }"
-                conflict_files+=("${fname}")
+                # Format: u XY sub m1 m2 m3 mW h1 h2 h3 path
+                fields=("${(@s/ /)line}")
+                conflict_files+=("${(j: :)fields[11,-1]}")
                 ;;
             "? "*)
                 untracked_files+=("${line#\? }")
                 ;;
         esac
-    done < <(git status --porcelain=v2 --branch 2>/dev/null)
+    done < <(git status --porcelain=v2 -z --branch 2>/dev/null)
 
     local stash_count
     stash_count=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
 
     # ── Header: branch + remote ──
     printf "\n"
-    printf "  ${blue}${bold} ${branch_head}${reset}"
+    # Branch names, commit subjects and paths are untrusted: they go through
+    # %s (a "%" in a subject is not a printf directive) with control
+    # characters blanked so they cannot inject escape sequences.
+    printf '  %s%s %s%s' "$blue" "$bold" "${branch_head//[[:cntrl:]]/?}" "$reset"
     if [[ -n "$branch_upstream" ]]; then
-        printf " ${subtext}←${reset} ${teal}${branch_upstream}${reset}"
+        printf ' %s←%s %s%s%s' "$subtext" "$reset" "$teal" "${branch_upstream//[[:cntrl:]]/?}" "$reset"
     fi
 
     # Ahead/behind
@@ -105,7 +117,7 @@ gs() {
     local last_commit
     last_commit=$(git log -1 --format="%ar · %s" 2>/dev/null)
     if [[ -n "$last_commit" ]]; then
-        printf "  ${subtext}${dim} ${last_commit}${reset}\n"
+        printf '  %s%s %s%s\n' "$subtext" "$dim" "${last_commit//[[:cntrl:]]/?}" "$reset"
     fi
 
     # ── Summary line ──
@@ -133,7 +145,7 @@ gs() {
         for f in "${staged_files[@]}"; do
             local st="${f%% *}"
             local name="${f#* }"
-            printf "  ${green}  ${st} ${name}${reset}\n"
+            printf '  %s  %s %s%s\n' "$green" "$st" "${name//[[:cntrl:]]/?}" "$reset"
         done
     fi
 
@@ -142,21 +154,21 @@ gs() {
         for f in "${modified_files[@]}"; do
             local st="${f%% *}"
             local name="${f#* }"
-            printf "  ${peach}  ${st} ${name}${reset}\n"
+            printf '  %s  %s %s%s\n' "$peach" "$st" "${name//[[:cntrl:]]/?}" "$reset"
         done
     fi
 
     if (( conflict_n > 0 )); then
         printf "\n  ${red}${bold} Conflicts${reset}\n"
         for f in "${conflict_files[@]}"; do
-            printf "  ${red}   ${f}${reset}\n"
+            printf '  %s   %s%s\n' "$red" "${f//[[:cntrl:]]/?}" "$reset"
         done
     fi
 
     if (( untracked_n > 0 )); then
         printf "\n  ${mauve}${bold} Untracked${reset}\n"
         for f in "${untracked_files[@]}"; do
-            printf "  ${mauve}  ${f}${reset}\n"
+            printf '  %s  %s%s\n' "$mauve" "${f//[[:cntrl:]]/?}" "$reset"
         done
     fi
 

@@ -97,7 +97,7 @@
 [alias]
     unstage = reset HEAD --
     undo = reset --soft HEAD~1
-    cleanup = !git branch --merged | grep -v '\\*\\|main\\|dev' | xargs -n 1 git branch -d
+    cleanup = !git for-each-ref --merged HEAD --format='%(refname:short)' refs/heads | grep -vxE 'main|master|dev|develop' | grep -vxF \"$(git branch --show-current)\" | xargs -n 1 git branch -d
 
 [commit]
     gpgSign = true

@@ -63,7 +63,7 @@ homebrew_command_not_found_handle() {
   if [[ "${cmd}" != "-h" ]] && [[ "${cmd}" != "--help" ]] && [[ "${cmd}" != "--usage" ]] && [[ "${cmd}" != "-?" ]]
   then
     local txt
-    txt="$(brew which-formula --explain "${cmd}" 2>/dev/null)"
+    txt="$(HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_ANALYTICS=1 HOMEBREW_NO_ENV_HINTS=1 brew which-formula --explain "${cmd}" 2>/dev/null)"
   fi
 
   if [[ -z "${txt}" ]]

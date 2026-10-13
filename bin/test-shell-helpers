@@ -321,6 +321,81 @@ env GOOGLE_WORKSPACE_CLI_CONFIG_DIR= "$REPO/bin/gws" >/dev/null 2>&1 || GWS_RC=$
 check "bin/gws guard blocks when the gws dir is set but empty" rc_is $GWS_RC 64
 
 # ---------------------------------------------------------------------------
+# alias_help, cd, remove_empty_dirs, gs
+# ---------------------------------------------------------------------------
+group "alias_help, cd, remove_empty_dirs, gs"
+FN=$REPO/zsh/.functions.d
+
+# alias_help falls back to the real definition for undocumented names
+out=$(
+    export PATH=$FAKE:$PATH
+    zsh -f -c "source '$ALIASES' >/dev/null 2>&1; source '$FN/07-docs.zsh'; alias_help ccp" 2>&1
+)
+check "alias_help ccp does not claim it is not found" lacks_fixed "not found" <(print -r -- "$out")
+check "alias_help ccp shows the definition" has_fixed "_ccp" <(print -r -- "$out")
+out=$(zsh -f -c "source '$FN/07-docs.zsh'; alias_help zz_no_such_name" 2>&1)
+check "alias_help on an undefined name points at alias_search" has_fixed "alias_search" <(print -r -- "$out")
+
+# cd -P must reach the builtin instead of zoxide's fuzzy query (needs a tty:
+# the wrapper only calls zoxide in an interactive shell)
+if (( $+commands[script] )); then
+    mkdir -p "$TMP/cdt/real"
+    ln -s real "$TMP/cdt/link"
+    cat >"$TMP/cdt/run.zsh" <<EOS
+__zoxide_z() { print -r -- "ZOXIDE \$*"; }
+source '$FN/01-core.zsh'
+builtin cd '$TMP/cdt'
+cd -P link && print -r -- "P=\$PWD"
+builtin cd '$TMP/cdt'
+cd link
+EOS
+    out=$(script -q /dev/null zsh -f -i "$TMP/cdt/run.zsh" 2>&1 </dev/null | tr -d '\r')
+    check "cd -P goes to the builtin (resolves the symlink)" has_fixed "P=$TMP/cdt/real" <(print -r -- "$out")
+    check "cd -P is not sent to zoxide" lacks_fixed "ZOXIDE -P" <(print -r -- "$out")
+    check "plain cd still goes through zoxide" has_fixed "ZOXIDE link" <(print -r -- "$out")
+else
+    skip "cd -P passthrough (script(1) not available)"
+fi
+
+# remove_empty_dirs: spaces, quotes, nested empties; .git internals survive
+RED=$TMP/red
+mkdir -p "$RED/My Docs/empty" "$RED/it's/x" "$RED/a/b/c" "$RED/keep"
+: >"$RED/keep/file"
+git -C "$RED" init -q . >/dev/null 2>&1
+(
+    cd "$RED" && zsh -f -c "setopt aliases; source '$ALIASES' >/dev/null 2>&1; eval remove_empty_dirs"
+) >/dev/null 2>&1
+check "remove_empty_dirs removes a dir name with spaces" test ! -e "$RED/My Docs"
+check "remove_empty_dirs removes a dir name with a quote" test ! -e "$RED/it's"
+check "remove_empty_dirs removes nested empties" test ! -e "$RED/a"
+check "remove_empty_dirs keeps dirs with files" test -f "$RED/keep/file"
+check "remove_empty_dirs keeps .git/refs" test -d "$RED/.git/refs/heads"
+
+# gs: paths with spaces, '%' in the commit subject, renames, conflicts
+GSR=$TMP/gsr
+mkdir -p "$GSR"
+gsg() { git -C "$GSR" -c user.name=t -c user.email=t@t "$@"; }
+{
+    gsg init -q -b main .
+    print a >"$GSR/my file.txt"
+    print b >"$GSR/old.txt"
+    print k >"$GSR/conf.txt"
+    gsg add . && gsg commit -q -m base
+    gsg checkout -q -b side && print side >"$GSR/conf.txt" && gsg commit -q -am side
+    gsg checkout -q main && print main >"$GSR/conf.txt" && gsg commit -q -am "raise coverage to 90% done"
+    gsg merge side
+    gsg mv old.txt "new name.txt"
+    print c >>"$GSR/my file.txt"
+    print u >"$GSR/un tracked.txt"
+} >/dev/null 2>&1
+out=$(cd "$GSR" && zsh -f -c "source '$FN/04-git.zsh'; gs" 2>&1 | sed $'s/\033\\[[0-9;]*m//g')
+check "gs prints a '%' in the commit subject verbatim" has_fixed "raise coverage to 90% done" <(print -r -- "$out")
+check "gs keeps spaces in a modified path" has_fixed "M my file.txt" <(print -r -- "$out")
+check "gs keeps spaces in a renamed path" has_fixed "R new name.txt" <(print -r -- "$out")
+check "gs keeps spaces in an untracked path" has_fixed "un tracked.txt" <(print -r -- "$out")
+check "gs lists the conflict" has_fixed "1 conflicts" <(print -r -- "$out")
+
+# ---------------------------------------------------------------------------
 # prs / prw
 # ---------------------------------------------------------------------------
 group "prs, prw"
@@ -582,6 +657,28 @@ else
     check "rebuild-env: added variable" has_fixed "DELTA=four" "$REDIR/b.dec"
     check "rebuild-env: broken file kept" test -n "$(print -r -- $REDIR/.env.broken-mac.*(N))"
     check "rebuild-env: output shows names only" lacks_fixed "newgamma" "$REDIR/b.out"
+
+    # (d) a symlinked .env: the link stays a link and its target is rebuilt
+    SYMDIR=$REDIR/sym
+    mkdir -p "$SYMDIR/real"
+    grep -v '^BETA=' "$REDIR/good.env" >"$SYMDIR/real/target.env"
+    ln -s real/target.env "$SYMDIR/.env"
+    printf '\n\n\n' >"$SYMDIR/answers"
+    ENV_FILE=$SYMDIR/.env SOPS_CONFIG=$REDIR/none.yaml PROMPT_INPUT=$SYMDIR/answers \
+        "$RE" >"$SYMDIR/d.out" 2>&1
+    sops -d --input-type dotenv --output-type dotenv "$SYMDIR/real/target.env" >"$SYMDIR/d.dec" 2>/dev/null
+    check "rebuild-env: symlinked .env stays a symlink" test -L "$SYMDIR/.env"
+    check "rebuild-env: symlinked .env keeps its target" test "$(readlink "$SYMDIR/.env")" = "real/target.env"
+    check "rebuild-env: symlinked .env target is rebuilt" has_fixed "ALPHA=one" "$SYMDIR/d.dec"
+    check "rebuild-env: symlinked .env broken copy sits beside the target" test -n "$(print -r -- $SYMDIR/real/target.env.broken-mac.*(N))"
+    check "rebuild-env: symlinked .env leaves nothing beside the link" test -z "$(print -r -- $SYMDIR/.env.*(N))"
+    # a dangling link is refused without touching anything
+    ln -s real/missing.env "$SYMDIR/dangling.env"
+    rc=0
+    ENV_FILE=$SYMDIR/dangling.env SOPS_CONFIG=$REDIR/none.yaml PROMPT_INPUT=/dev/null \
+        "$RE" >"$SYMDIR/e.out" 2>&1 || rc=$?
+    check "rebuild-env: dangling .env symlink is refused" test "$rc" -ne 0
+    check "rebuild-env: dangling .env message names the missing target" has "which does not exist" "$SYMDIR/e.out"
     unset SOPS_AGE_KEY_FILE
 fi
 

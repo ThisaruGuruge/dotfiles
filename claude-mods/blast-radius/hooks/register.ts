@@ -1,6 +1,20 @@
 import type { Register } from 'claude-code'
 
-import { LABELS, classify, cleanDryRun, clip, cluster, findPreviewArgs, human, isGlob, isLong, rmTargets } from './risk'
+import {
+  LABELS,
+  SHRED_OPTS,
+  TRUNCATE_OPTS,
+  classify,
+  cleanDryRun,
+  clip,
+  cluster,
+  findPreviewArgs,
+  human,
+  isGlob,
+  isLong,
+  operands,
+  rmTargets,
+} from './risk'
 import type { Risk } from './risk'
 
 const RUN = 'Run it'
@@ -95,8 +109,7 @@ async function previewTarget($: Sh, w: Where, raw: string): Promise<string[]> {
   }
 }
 
-async function previewRm($: Sh, w: Where, risk: Risk): Promise<string[]> {
-  const targets = rmTargets(risk.args)
+async function previewRm($: Sh, w: Where, risk: Risk, targets = rmTargets(risk.args)): Promise<string[]> {
   if (targets.length === 0) {
     return [`Could not parse targets from: ${risk.segment.slice(0, 200)}`]
   }
@@ -121,6 +134,44 @@ async function previewChmod($: Sh, w: Where, risk: Risk): Promise<string[]> {
   return lines.length ? lines : ['Could not parse targets']
 }
 
+/**
+ * What a find that is safe to run (its delete actions taken out) matches right
+ * now. `head` words the count line.
+ */
+async function previewFindMatches($: Sh, w: Where, args: string[], head: (n: string) => string): Promise<string[]> {
+  const r = await run($, w, ['find', ...args])
+  const hits = r.stdout.split('\n').filter(Boolean)
+  // find exits non-zero on a bad expression and on unreadable directories; only the first means "unknown"
+  if (r.exitCode !== 0 && hits.length === 0) {
+    throw new Error(`find exited ${r.exitCode}: ${r.stderr.trim().slice(0, 200)}`)
+  }
+  // Output past the cap is cut mid-line: drop the partial last line and say the count is a floor
+  if (r.isStdoutTruncated) hits.pop()
+  const more = r.isStdoutTruncated ? '+' : ''
+  const out = hits.length ? [head(`${hits.length}${more}`), ...clip(hits)] : ['Nothing matches right now']
+  if (r.exitCode !== 0 && !r.isStdoutTruncated) out.push(`(find also reported errors: ${r.stderr.trim().split('\n')[0]?.slice(0, 150) ?? ''})`)
+  return out
+}
+
+/** `git worktree remove --force <wt>`: what the worktree holds that would go with it. */
+async function previewWorktree($: Sh, w: Where, risk: Risk): Promise<string[]> {
+  const wt = risk.args.slice(1).find(a => !a.startsWith('-'))
+  if (wt === undefined) return [`Could not parse the worktree from: ${risk.segment.slice(0, 200)}`]
+  if (/[$`]/.test(wt) || isGlob(wt)) return [`? ${wt}  (contains a variable, substitution or glob, cannot resolve)`]
+  // The worktree's own status: the command's --git-dir/--work-tree name the main repository, not it.
+  // Untracked files are listed even when the repo's config hides them.
+  const r = await run($, w, ['git', ...GIT_SAFE, '-C', resolve(wt, w), 'status', '--short', '--untracked-files=normal'], GIT_ENV)
+  if (r.exitCode !== 0) throw new Error(`git status failed: ${r.stderr.trim().slice(0, 200)}`)
+  const status = r.stdout.trimEnd()
+  return [
+    `Worktree: ${wt}`,
+    ...(status
+      ? ['Uncommitted and untracked files that would be deleted:', ...clip(status.split('\n'))]
+      : ['(no uncommitted or untracked files)']),
+    'Its ignored files (build output, .env) are deleted too.',
+  ]
+}
+
 async function previewFor($: Sh, risk: Risk): Promise<string[]> {
   if (risk.remote !== undefined) return [`Runs on ${risk.remote}; nothing there can be previewed from here.`]
   if (risk.kind === 'nested') {
@@ -129,8 +180,14 @@ async function previewFor($: Sh, risk: Risk): Promise<string[]> {
       `Command: ${risk.segment.slice(0, 300)}`,
     ]
   }
-  if (risk.fromXargs) return ['rm under xargs: the paths come from its input, so they cannot be listed here.']
+  if (risk.fromXargs) return ['rm under xargs or fd -x: the paths come from its input or matches, so they cannot be listed here.']
   const w = await where($, risk)
+  if (risk.findArgs) {
+    // find -exec sh -c '...': list what find matches, never running the shell
+    const args = findPreviewArgs(risk.findArgs, true)
+    if (args === null) return ['Run by find -exec on each match, with another -exec/-ok action: not previewed, it would run it.']
+    return previewFindMatches($, w, args, n => `Run by find -exec on each of ${n} entries:`)
+  }
   switch (risk.kind) {
     case 'rm':
       return previewRm($, w, risk)
@@ -174,6 +231,15 @@ async function previewFor($: Sh, risk: Risk): Promise<string[]> {
       const dry = await git($, w, risk, cleanDryRun(risk.args))
       return dry ? ['Would remove:', ...clip(dry.split('\n'))] : ['Nothing to remove right now']
     }
+    case 'git-worktree-force':
+      return previewWorktree($, w, risk)
+    case 'shred':
+    case 'truncate': {
+      const targets = operands(risk.args, risk.kind === 'shred' ? SHRED_OPTS : TRUNCATE_OPTS)
+      const lines = await previewRm($, w, risk, targets)
+      lines.push(risk.kind === 'shred' ? 'Their contents are overwritten and cannot be recovered.' : 'Data past the new size is lost.')
+      return lines
+    }
     case 'git-stash-clear': {
       const list = await git($, w, risk, ['stash', 'list'])
       return list ? ['Stashes that would be dropped:', ...clip(list.split('\n'), 8)] : ['(no stashes)']
@@ -202,18 +268,7 @@ async function previewFor($: Sh, risk: Risk): Promise<string[]> {
       // Never run a find that would act on its own (-exec, -ok, -fprint...); -delete and -exec rm are dropped
       const args = findPreviewArgs(risk.args)
       if (args === null) return ['find with another -exec/-ok action: not previewed, it would run it.']
-      const r = await run($, w, ['find', ...args])
-      const hits = r.stdout.split('\n').filter(Boolean)
-      // find exits non-zero on a bad expression and on unreadable directories; only the first means "unknown"
-      if (r.exitCode !== 0 && hits.length === 0) {
-        throw new Error(`find exited ${r.exitCode}: ${r.stderr.trim().slice(0, 200)}`)
-      }
-      // Output past the cap is cut mid-line: drop the partial last line and say the count is a floor
-      if (r.isStdoutTruncated) hits.pop()
-      const more = r.isStdoutTruncated ? '+' : ''
-      const out = hits.length ? [`Would delete ${hits.length}${more} entries:`, ...clip(hits)] : ['Nothing matches right now']
-      if (r.exitCode !== 0 && !r.isStdoutTruncated) out.push(`(find also reported errors: ${r.stderr.trim().split('\n')[0]?.slice(0, 150) ?? ''})`)
-      return out
+      return previewFindMatches($, w, args, n => `Would delete ${n} entries:`)
     }
     case 'rsync-delete': {
       const pos = risk.args.filter(a => !a.startsWith('-'))

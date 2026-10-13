@@ -58,12 +58,17 @@ export const register: Register = on => {
       [e.tool]: (counts[e.tool] ?? 0) + 1,
     }))
 
-    const path = (e as unknown as { file_path?: unknown }).file_path
-    if (FILE_TOOLS.has(e.tool) && typeof path === 'string') {
-      await update($, files, list => (list.includes(path) ? list : [...list, path]))
-    }
+    const r = await next(e)
+    // Only an edit that went through counts: not one a hook or the person denied, nor one that failed.
+    // Nothing may throw past next(), or the .catch below would run the tool a second time.
+    try {
+      const path = (e as unknown as { file_path?: unknown }).file_path
+      if (FILE_TOOLS.has(e.tool) && typeof path === 'string' && r.deny === undefined && r.isError !== true) {
+        await update($, files, list => (list.includes(path) ? list : [...list, path]))
+      }
+    } catch {}
 
-    return next(e)
+    return r
   }).catch(($, e, next) => next(e))
 
   on('turn.complete', async ($, e, next) => {

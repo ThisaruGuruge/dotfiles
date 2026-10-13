@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { looksLikeCode, redactBlocks, redactText } from './patterns'
+import { WITHHELD, looksLikeCode, redactBlocks, redactText, withhold } from './patterns'
 import type { Counts } from './patterns'
 
 const run = (s: string) => {
@@ -62,6 +62,69 @@ describe('redactText', () => {
     for (const [input, want] of cases) expect(run(input).out).toBe(want)
   })
 
+  test('hides hex secrets after a credential name, not a hash after `commit`', () => {
+    const hex40 = 'a7c2'.repeat(10)
+    const hex64 = 'a7c2'.repeat(16)
+    expect(run(`SESSION_SECRET=${hex64}`).out).toBe('SESSION_SECRET=[REDACTED:password]')
+    expect(run(`WEBHOOK_SECRET=${hex40}`).out).toBe('WEBHOOK_SECRET=[REDACTED:password]')
+    expect(run(`password=${hex40}`).out).toBe('password=[REDACTED:password]')
+    for (const s of [`commit ${hex40}`, `sha256 ${hex64}`, `git show ${hex40}`]) expect(run(s).out).toBe(s)
+  })
+
+  test('hides the values of the narrower key and password names', () => {
+    const v = rnd(24)
+    const cases: [string, string][] = [
+      [`ENCRYPTION_KEY=${v}`, 'ENCRYPTION_KEY=[REDACTED:password]'],
+      [`SIGNING_KEY: ${v}`, 'SIGNING_KEY: [REDACTED:password]'],
+      [`MASTER_KEY=${v}`, 'MASTER_KEY=[REDACTED:password]'],
+      [`APP_SESSION_KEY=${v}`, 'APP_SESSION_KEY=[REDACTED:password]'],
+      [`PRIVATE_KEY=${v}`, 'PRIVATE_KEY=[REDACTED:credential]'],
+      [`DB_PASS=${v}`, 'DB_PASS=[REDACTED:password]'],
+      [`MYSQL_PWD=${v}`, 'MYSQL_PWD=[REDACTED:password]'],
+      [`GPG_PASSPHRASE=${v}`, 'GPG_PASSPHRASE=[REDACTED:password]'],
+      [`passphrase: ${v}`, 'passphrase: [REDACTED:password]'],
+    ]
+    for (const [input, want] of cases) expect(run(input).out).toBe(want)
+  })
+
+  test('leaves other *_KEY names, paths and ordinary assignments alone', () => {
+    const samples = [
+      'CACHE_KEY=v2-abc123',
+      'CACHE_KEY=v2-abc123-def456',
+      'PRIMARY_KEY=user_id2024',
+      'SORT_KEY: created_at2',
+      'OLD_PWD=/home/user/src2',
+      'PROJECT_PWD="~/work/repo2"',
+      'bypass=abc12345xyz',
+      'const first_pass = compute(x1)',
+      '"password": "Enter your password (min 8 chars)"',
+      'password: "changeme"',
+    ]
+    for (const s of samples) expect(run(s).out).toBe(s)
+  })
+
+  test('hides values inside escaped JSON', () => {
+    const v = rnd(24)
+    // A JSON string holding JSON: {\"token\":\"...\"}
+    expect(run(`{\\"token\\":\\"${v}\\"}`).out).toBe('{\\"token\\":\\"[REDACTED:credential]\\"}')
+    // An AWS SecretString: "SecretString": "{\"password\":\"...\"}", itself escaped once more
+    const once = `"SecretString": "{\\"password\\":\\"${v}\\",\\"user\\":\\"app\\"}"`
+    expect(run(once).out).toBe('"SecretString": "{\\"password\\":\\"[REDACTED:password]\\",\\"user\\":\\"app\\"}"')
+    const twice = `\\"SecretString\\": \\"{\\\\\\"password\\\\\\":\\\\\\"${v}\\\\\\"}\\"`
+    expect(run(twice).out).not.toContain(v)
+    expect(run(twice).out).toContain('[REDACTED:password]')
+  })
+
+  test('takes a quoted value whole, symbols and all', () => {
+    const pw = part('Tr0ub', '4dor&3', '(x)')
+    expect(run(`PASSWORD="${pw}"`).out).toBe('PASSWORD="[REDACTED:password]"')
+    expect(run(`api_key: '${pw}|z'`).out).toBe("api_key: '[REDACTED:password]'")
+    expect(run(`"githubToken": "${pw};x,y"`).out).toBe('"githubToken": "[REDACTED:credential]"')
+    // Past 200 characters it is judged as an unquoted value, which a `(` rules out
+    const long = `PASSWORD="${'a1('.repeat(80)}"`
+    expect(run(long).out).toBe(long)
+  })
+
   test('hides bearer tokens, auth headers and URL passwords', () => {
     const v = rnd(32)
     expect(run(`curl -H "Authorization: Bearer ${v}" x`).out).toBe(
@@ -92,7 +155,8 @@ describe('redactText', () => {
 
   test('stays linear on long adversarial runs', () => {
     // Each of these took seconds with unanchored repetition; 80 KB must stay well under 200 ms
-    const inputs = ['a-', 'a_', 'a+', 'a.', 'x9-', 'a://b:', 'Bearer ', 'TOKEN'].map(u => u.repeat(Math.ceil(80000 / u.length)))
+    const units = ['a-', 'a_', 'a+', 'a.', 'x9-', 'a://b:', 'Bearer ', 'TOKEN', 'password="', '\\"token\\":\\"', 'a_pass=', 'x\\\\\\']
+    const inputs = [...units.map(u => u.repeat(Math.ceil(80000 / u.length))), `password="${'a1'.repeat(40000)}`]
     for (const s of inputs) {
       const t = Date.now()
       run(s)
@@ -189,4 +253,64 @@ test('a tool result is redacted before it is stored', async ($, on) => {
     .catch(() => undefined)
   expect(stored.join('')).toContain('[REDACTED:credential]')
   expect(stored.join('')).not.toContain(rnd(24))
+})
+
+test('`!` bash-mode output (the command door) is redacted before it is stored', async ($, on) => {
+  const stored: string[] = []
+  on('ui.toast', () => ({ value: undefined }) as never)
+  on('session.append', ($$, e, next) => {
+    stored.push(JSON.stringify(e.message))
+    return next(e)
+  })
+  const v = rnd(24)
+  await $.session
+    .append({
+      door: 'command',
+      message: { type: 'user', role: 'user', content: [{ type: 'text', text: `<bash-stdout>GITHUB_TOKEN=${v}</bash-stdout>` }] },
+    } as never)
+    .catch(() => undefined)
+  expect(stored.join('')).toContain('<bash-stdout>GITHUB_TOKEN=[REDACTED:credential]</bash-stdout>')
+  expect(stored.join('')).not.toContain(v)
+})
+
+test('a row whose scan fails is withheld, its tool_use_id kept', async ($, on) => {
+  const stored: unknown[] = []
+  on('session.append', ($$, e, next) => {
+    stored.push(e.message)
+    return next(e)
+  })
+  const v = rnd(24)
+  // A null block makes the scan throw
+  await $.session
+    .append({
+      door: 'tool-result',
+      message: {
+        type: 'user',
+        role: 'user',
+        content: [{ type: 'tool_result', tool_use_id: 't9', content: [{ type: 'text', text: `GITHUB_TOKEN=${v}` }, null] }],
+      },
+    } as never)
+    .catch(() => undefined)
+  const row = JSON.stringify(stored)
+  expect(row).toContain('[redact: scan failed, content withheld]')
+  expect(row).toContain('t9')
+  expect(row).not.toContain(v)
+})
+
+describe('withhold', () => {
+  test('keeps the shape: ids, error flags and media, text replaced', () => {
+    const out = withhold([
+      { type: 'text', text: 'x' },
+      { type: 'tool_result', tool_use_id: 't1', is_error: true, content: 'y' },
+      { type: 'image', source: {} },
+      null,
+    ])
+    expect(out).toEqual([
+      { type: 'text', text: WITHHELD },
+      { type: 'tool_result', tool_use_id: 't1', is_error: true, content: [{ type: 'text', text: WITHHELD }] },
+      { type: 'image', source: {} },
+    ])
+    expect(withhold('not blocks')).toEqual([{ type: 'text', text: WITHHELD }])
+    expect(withhold([])).toEqual([{ type: 'text', text: WITHHELD }])
+  })
 })

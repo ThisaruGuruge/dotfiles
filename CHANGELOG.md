@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- `conventions` mod: the repo's own `bin/lint` now runs only in the checkout the mod is loaded from (its `CLAUDE_CODE_PLUGIN_DIRS` entry) and that checkout's linked worktrees; a fork or copy with the same layout gets the generic shfmt / `zsh -n` / stylua checks instead of having its `bin/lint` executed outside the permission system
+- `redact` mod: hex values after a credential name (`SESSION_SECRET=`, `WEBHOOK_SECRET=`, `password=`) are now hidden; `ENCRYPTION_KEY`, `SIGNING_KEY`, `MASTER_KEY`, `SESSION_KEY`, `*_PASS`, `*_PWD` and `PASSPHRASE` values are hidden (other `*_KEY` names such as `CACHE_KEY` are left alone); secrets inside escaped JSON (`{\"token\":\"...\"}`, AWS SecretString) and quoted values with symbols (a quoted password holding `&` and `()`) are hidden; `!` bash-mode and slash-command output is redacted too
+- `redact` mod: a tool result, attachment, hook context or command row whose scan fails is stored as `[redact: scan failed, content withheld]` instead of unscanned
+- `blast-radius` mod: asks before `git worktree remove --force` (previewing the worktree's uncommitted and untracked files), `shred`, `truncate`, any `git clean` that is not a dry run (so `git -c clean.requireForce=false clean -dx` no longer slips through), `rm -rf` inside `find -exec sh -c '...'` (also `bash -c`, `-execdir`, `-ok`), macOS disk erasers (`diskutil eraseDisk`/`zeroDisk`/`partitionDisk`/..., `newfs_apfs`) and `fd -x`/`-X rm`; it sees through `arch -arm64` and `xcrun`
+
+### Added
+
+- `init.sh` runs from any checkout location: it finds the repo from its own path, validates it by content, and creates a `~/dotfiles` symlink when the checkout lives elsewhere (the hooks, mods, status line and aliases use `~/dotfiles`); `dotdoctor` checks that `~/dotfiles` resolves to the repo
+- `init.sh --help` lists the steps and exits without starting the installer; `--dry-run` is now labelled a preflight that changes nothing; its final steps say to run `dotdoctor`, list the manual steps (Hammerspoon spoon and permissions, `~/.claude` symlink, tmux `prefix+I`) and report "completed with problems" instead of the celebratory banner when the install test fails
+- `-h|--help` for `reset-dotfiles`, `adopt-config`, `rebuild-env` and `sync-brewfile` (`reset-dotfiles --help` used to start the removal flow)
+- Tab completion for `envrc`, `install_lazygit_latest` and `dotdoctor`
+- `dotdoctor` warns about stray `~/<package>` directories that hold only symlinks into the repo (leftovers from an older stow run)
+- `test-zsh` verifies that every `bin/` entry in `CLAUDE.md`'s directory tree exists (skipped when `CLAUDE.md` is absent)
+- CI: the macOS job runs `bin/test-shell-helpers` and `tests/claude/check.sh`; `bin/lint` covers the tmux scripts, `tests/**/*.sh`, `zsh/.p10k.zsh` and the completions
+
+### Changed
+
+- `reset-dotfiles` drops all Chezmoi handling and lists and offers to remove every `~/.dotfiles_backup*` directory (printing a restore command if kept), aborts with bestow's error when the preview fails, shows the link count, and says that only `packages/*.brewfile` entries are uninstalled
+- `dprune` asks for confirmation again; `gcla` shows `git clean -dn` and `git status -s` before asking
+- `alias_help` prints the definition of any defined alias or function that has no curated docs; `show_tools` lists `dotdoctor`, `envrc`, `rebuild-env` and the tmux / nvim help keys; `edit_dotfiles` "browse all files" is an fzf picker over tracked files when fzf is installed
+- Removed the Rancher Desktop `~/.rd/bin` PATH lines from the zsh and bash configs (the `bash/.bashrc` file is now empty) and all Chezmoi mentions from the README
+- Atuin is initialised with `--disable-ai`, so `?` is a normal character instead of launching atuin 18.23's AI helper; the shell-init cache header now records the init command, so changing a flag regenerates the cache (every tool cache regenerates once on upgrade)
+- Neoclip picker: insert-mode paste moved from `<C-p>` to `<C-y>` and insert-mode paste-behind was removed (use `P` in normal mode), so Telescope keeps `<C-p>` and `<C-k>`
+- `lazygit` is installed from homebrew-core and the redundant `jesseduffield/lazygit` tap is dropped from the `Brewfile`; `install_lazygit_latest` stays as the opt-in tap path
+- CI no longer carries separate shellcheck, shfmt and `zsh -n` steps (`bin/lint` covers them); the macOS job checks `zsh/.functions.sh` and `zsh/.aliases.sh` with `zsh -n` instead of `bash -n`
+
+### Removed
+
+- The `bc='bal clean'` alias (it shadowed `/usr/bin/bc`, also inside Claude Code's Bash tool), `edit-vim` (no `.vimrc` package) and the dead `_reload` / `_edit_commands` completions (alias names expand before completion; run `bestow stow zsh` to clear the dangling links)
+- The non-functional Java debug configuration and the `java-debug-adapter` / `java-test` Mason packages
+
+### Fixed
+
+- Auto-tag skips cleanly when there is nothing to release and fails before any side effect when `main` moves during a run; it also fails when the changelog PR cannot be merged instead of tagging anyway
+- CI hardcoded-path and secret scans use `git grep` and no longer drop lines containing `.git` (such as `github` or `signing_key`); the secret pattern requires a non-empty quoted value
+- `test-zsh` tests the repo that holds the script instead of guessing `~/dotfiles`, fails when `tests/claude/check.sh` crashes, and no longer runs the mdcat / yazi / chafa / Zinit checks twice
+- `dotdoctor` no longer treats `tests/` as a stow package; `.bestowignore` ignores it and lists `claude-mods` once
+- `update_dotfiles` prunes old `backup-*` branches (the unquoted glob made zsh fail), restores the changes it auto-stashed (up to date, cancelled, after a pull; the stash ref is kept on conflict or pull failure) and refuses to run on a detached HEAD
+- `gs` keeps spaces in file paths, prints `%` in commit subjects and branch names literally, and strips control characters; `remove_empty_dirs` works with spaces and quotes and never touches `.git`; `cd -P dir`, `cd -L` and `cd old new` reach the builtin `cd` instead of becoming zoxide queries; `edit_dotfiles` splits a multi-word `$EDITOR`; `showFiles` / `hideFiles` use `killall Finder`
+- A mistyped command no longer triggers a slow `brew update` (the `command_not_found_handler` lookup runs with auto-update, analytics and env hints off); shells no longer print `command not found: zinit` when zinit is missing
+- Grouped tmux sessions (`main-1`, `main-2`, ...) are destroyed when their terminal closes (`destroy-unattached`)
+- `profile-zsh-startup` runs to completion, no longer rewrites `~/.zcompdump` or uses a fixed `/tmp` file; `tmux-session-switcher` builds its format with `$'...\t...'` instead of literal tabs
+- `init.sh`: cask installs take their status from `brew` (a failed install no longer logs "Installed"), already-installed apps are detected from the cask's real `.app` names, and a failing `bestow init` prints bestow's error instead of dying silently
+- `adopt-config` no longer always prints the sensitive-data warning and refuses to adopt an app that is already managed; `rebuild-env` rebuilds the target of a symlinked `~/.env` instead of replacing the link
+- Git: the `cleanup` alias no longer deletes a merged `master` or `develop` or spares branches that merely contain "main" or "dev"; the global ignore no longer hides source directories (`pkg/`, `env/`, `var/`, `parts/`, `downloads/`, `/tmp/`, `/.config`, `/spec/*`, `/test/*`) in every repo
+- Neovim: Telescope no longer hides `git/` and `lazygit/`; formatting falls back to the language server for filetypes without a CLI formatter and Java formats through jdtls; persistence.nvim saves sessions without terminal or blank windows; treesitter `<CR>` no longer errors at the file root; `[d` / `]d` use Neovim's built-in jumps (float on jump kept via `diagnostic.config`); LSP setup no longer errors on a fresh machine before the Mason registry is downloaded
+- Claude Code: the enterprise `autoMode.environment` is generic instead of describing one throwaway repo; both `settings.json` files build the status line command from `$HOME`; the `agents` mod shows a continued subagent as running again; `session-wrapped` no longer counts denied or failed edits as "Files edited"; the `conventions` mod notes tab indentation in new `bin/` scripts missing from `bin/lint`'s lists
+
 ## [2.10.0] - 2026-10-12
 
 ### Changed
@@ -27,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added `bin/claude-notify`, wired into both Claude Code accounts' hooks, which shows a macOS notification (via `osascript`, title `Claude · <repo> (Personal|Work)`) when a session finishes (`Stop`) or needs you (`Notification`: permission prompt or idle, and `PreToolUse` on `AskUserQuestion`); subagent completion (`SubagentStop`) is opt-in with `CLAUDE_NOTIFY_SUBAGENTS=1`. It stays quiet while the terminal is frontmost and, in tmux, this pane's window is showing; repeats within 2 s send one notification; `CLAUDE_NOTIFY=0`, `CLAUDE_NOTIFY_ALWAYS=1` and `CLAUDE_NOTIFY_SOUND` adjust it. Title, body and sound are passed to AppleScript as argv, and `tests/claude/check.sh` covers it with a fake `osascript`. One-time setup: allow banners and sounds for Script Editor in System Settings > Notifications
-- Added `uv` (fast Python package and project manager) to the core `Brewfile`; it appears in `show_tools` / `list_dotfiles_tools`, which read the Brewfile, and `test-zsh` checks it
+- Added `uv` (fast Python package and project manager) to the core `Brewfile`; it appears in `list_dotfiles_tools`, which reads the Brewfile, and `test-zsh` checks it
 - Added `bin/rebuild-env`, which rebuilds `~/.env` after sops reports `MAC mismatch` (the encrypted file was edited by hand): it keeps, replaces or removes each variable with hidden prompts, adds new ones, verifies the round trip and keeps the broken file as `~/.env.broken-mac.<time>`; `edit_secrets` now points to it when decryption fails with that error, and `test-shell-helpers` covers both
 - Added the `writing-ballerina-beps` Claude skill (`SKILL.md` and `bep-template.md`) under `claude/.claude-personal/skills/`, linked into `~/.claude-personal/skills/` by `bestow stow claude`
 

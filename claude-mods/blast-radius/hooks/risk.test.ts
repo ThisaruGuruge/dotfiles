@@ -1,11 +1,14 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import {
+  SHRED_OPTS,
+  TRUNCATE_OPTS,
   classify,
   cleanDryRun,
   findPreviewArgs,
   joinPath,
   lex,
+  operands,
   parseClean,
   sanitize,
   scrubMessages,
@@ -251,6 +254,70 @@ describe('classify', () => {
     expect(kinds('git clean -fn')).toEqual([])
   })
 
+  test('git clean asks without -f, since config can drop the need for it', () => {
+    expect(kinds('git -c clean.requireForce=false clean -dx')).toEqual(['git-clean'])
+    expect(kinds('git clean -d')).toEqual(['git-clean'])
+    expect(kinds('git clean')).toEqual(['git-clean'])
+    // a pipe can answer the interactive menu
+    expect(kinds("printf 'c\\n' | git clean -di")).toEqual(['git-clean'])
+    for (const c of ['git clean -nd', 'git clean --dry-run -dx', 'git -c clean.requireForce=false clean -n']) expect(kinds(c)).toEqual([])
+  })
+
+  test('flags git worktree remove --force, shred and truncate', () => {
+    expect(kinds('git worktree remove --force ../wt')).toEqual(['git-worktree-force'])
+    expect(kinds('git worktree remove -f ../wt')).toEqual(['git-worktree-force'])
+    expect(kinds('git -C /repo worktree remove --forc /repo/.claude/worktrees/x')).toEqual(['git-worktree-force'])
+    expect(classify('git -C /repo worktree remove -f wt')[0]?.cwd).toBe('/repo')
+    expect(kinds('shred -u secrets.txt')).toEqual(['shred'])
+    expect(kinds('sudo gshred -n 3 /dev/disk4')).toEqual(['shred'])
+    expect(kinds('truncate -s 0 app.log')).toEqual(['truncate'])
+    expect(kinds('gtruncate --size=0 app.log')).toEqual(['truncate'])
+    const safe = ['git worktree remove ../wt', 'git worktree list', 'git worktree prune', 'git branch -D old', 'rm *.log', 'rm -f a b', '$RM -rf x']
+    for (const c of safe) expect(kinds(c)).toEqual([])
+  })
+
+  test('flags rm in a shell that find -exec runs', () => {
+    const cmds = [
+      "find . -name node_modules -exec sh -c 'rm -rf \"$1\"' _ {} \\;",
+      "find . -type d -exec bash -c 'rm -rf \"$0\"' {} \\;",
+      "find . -type d -execdir zsh -ec 'rm -r \"$1\"' _ {} +",
+    ]
+    for (const c of cmds) expect(kinds(c)).toEqual(['rm'])
+    const [r] = classify("cd /srv && find . -name node_modules -exec sh -c 'cd .. && rm -rf \"$1\"' _ {} \\;")
+    expect(r?.findArgs).toEqual(['.', '-name', 'node_modules', '-exec', 'sh', '-c', 'cd .. && rm -rf "$1"', '_', '{}', ';'])
+    // where find runs, not where its payload cds to
+    expect(r?.cwd).toBe('/srv')
+    expect(kinds("find . -exec sh -c 'git push -f' \\;")).toEqual(['git-push-force'])
+    const safe = [
+      "find . -name '*.ts' -exec sh -c 'wc -l \"$1\"' _ {} \\;",
+      "rg 'rm -rf' bin/",
+      'git log --grep "rm -r"',
+      "echo 'rm -rf x'",
+    ]
+    for (const c of safe) expect(kinds(c)).toEqual([])
+  })
+
+  test('macOS: diskutil erase, newfs, arch, xcrun and fd -x rm', () => {
+    expect(kinds('diskutil eraseDisk APFS X disk4')).toEqual(['mkfs'])
+    expect(kinds('diskutil erasevolume APFS X disk4s1')).toEqual(['mkfs'])
+    expect(kinds('sudo diskutil zeroDisk disk4')).toEqual(['mkfs'])
+    expect(kinds('diskutil partitionDisk disk4 GPT APFS X 100%')).toEqual(['mkfs'])
+    expect(kinds('diskutil apfs deleteContainer disk4')).toEqual(['mkfs'])
+    expect(kinds('newfs_apfs /dev/disk4s1')).toEqual(['mkfs'])
+    expect(kinds('sudo newfs_hfs -v X /dev/disk4s1')).toEqual(['mkfs'])
+    expect(kinds('arch -arm64 git push -f origin main')).toEqual(['git-push-force'])
+    expect(kinds('arch -arm64e git push -f')).toEqual(['git-push-force'])
+    expect(kinds('arch -arch x86_64 -e A=1 rm -rf build')).toEqual(['rm'])
+    expect(kinds('xcrun git push --force')).toEqual(['git-push-force'])
+    expect(kinds('xcrun --sdk macosx git push -f')).toEqual(['git-push-force'])
+    expect(kinds('xcrun -sdk macosx git push -f')).toEqual(['git-push-force'])
+    expect(kinds('fd -e log -X rm')).toEqual(['rm'])
+    expect(kinds('fd -t f -x rm {}')).toEqual(['rm'])
+    expect(classify('fd -e log --exec-batch rm')[0]?.fromXargs).toBe(true)
+    const safe = ['diskutil list', 'diskutil info disk4', 'diskutil apfs list', 'arch', 'arch -arm64 ls', 'xcrun --show-sdk-path', 'fd -e log', 'fd -x wc -l']
+    for (const c of safe) expect(kinds(c)).toEqual([])
+  })
+
   test('flags other ways to lose work', () => {
     expect(kinds('git checkout -f main')).toEqual(['git-discard'])
     expect(kinds('git checkout -- .')).toEqual(['git-discard'])
@@ -283,6 +350,9 @@ describe('classify', () => {
     expect(kinds('bash -c "bash -c \'bash -c \\"git push -f\\"\'"')).toEqual(['nested'])
     expect(kinds('eval "$(echo "$(echo "$(git push -f)")")"')).toEqual(['nested'])
     expect(kinds('bash -c "bash -c \'bash -c \\"echo hi\\"\'"')).toEqual([])
+    for (const c of ['git worktree remove -f x', 'shred -u x', 'truncate -s 0 x', 'newfs_apfs /dev/disk4s1', 'diskutil eraseDisk APFS X disk4', 'fd -X rm']) {
+      expect(kinds(`bash -c "bash -c 'bash -c \\"${c}\\"'"`)).toEqual(['nested'])
+    }
   })
 
   test('stays fast on long adversarial input', () => {
@@ -372,6 +442,7 @@ describe('parsing', () => {
 
   test('parses git clean as git does', () => {
     expect(parseClean(['-fdx', '-e', '-n'])).toEqual({ force: 1, dry: false, letters: ['d', 'x'], excludes: ['-n'], paths: [] })
+    expect(cleanDryRun(['-di'])).toEqual(['clean', '-n', '-d'])
     expect(parseClean(['-fexyz']).excludes).toEqual(['xyz'])
     expect(parseClean(['--forc', '--dry']).dry).toBe(true)
     expect(cleanDryRun(['-ffdx'])).toEqual(['clean', '-n', '-ffdx'])
@@ -383,6 +454,16 @@ describe('parsing', () => {
     expect(findPreviewArgs(['.', '-name', '*.o', '-exec', 'rm', '{}', '+'])).toEqual(['.', '-name', '*.o'])
     expect(findPreviewArgs(['.', '-execdir', '/bin/rm', '-f', '{}', ';', '-print'])).toEqual(['.', '-print'])
     expect(findPreviewArgs(['.', '-exec', 'touch', '{}', ';', '-delete'])).toBeNull()
+    const shell = ['.', '-name', 'node_modules', '-exec', 'sh', '-c', 'rm -rf "$1"', '_', '{}', ';', '-print']
+    expect(findPreviewArgs(shell)).toBeNull()
+    expect(findPreviewArgs(shell, true)).toEqual(['.', '-name', 'node_modules', '-print'])
+    expect(findPreviewArgs(['.', '-exec', 'bash', '-c', 'x', '+', '-exec', 'touch', '{}', ';'], true)).toBeNull()
+  })
+
+  test('takes the operands of shred and truncate', () => {
+    expect(operands(['-n', '3', '-u', 'a', 'b'], SHRED_OPTS)).toEqual(['a', 'b'])
+    expect(operands(['-s', '0', 'x.log'], TRUNCATE_OPTS)).toEqual(['x.log'])
+    expect(operands(['-s0', '--size=1M', '--reference', 'r', '--', '-odd'], TRUNCATE_OPTS)).toEqual(['-odd'])
   })
 
   test('joins directories', () => {

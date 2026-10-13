@@ -23,7 +23,7 @@ return {
       {
         "<leader>lf",
         function()
-          require("conform").format({ async = true, lsp_fallback = true })
+          require("conform").format({ async = true })
         end,
         mode = "",
         desc = "Format buffer",
@@ -44,8 +44,8 @@ return {
           -- Scoped to indentation only: the default ruleset is CodeNarc's
           -- full application-code rule set (see lsp.lua's Groovy/Gradle
           -- comment for why that's unusable on a build.gradle). Trailing
-          -- whitespace is already handled by the `["*"] = trim_whitespace`
-          -- formatter below, so it's left out here.
+          -- whitespace is handled by the separate `trim_whitespace` formatter
+          -- listed next to it in formatters_by_ft, so it's left out here.
           ["npm-groovy-lint"] = {
             args = { "--fix", "-r", "Indentation,IndentationClosingBraces,IndentationComments", "$FILENAME" },
           },
@@ -64,12 +64,24 @@ return {
           yaml = { "prettierd", "prettier", stop_after_first = true },
           markdown = { "prettierd", "prettier", stop_after_first = true },
           go = { "gofmt", "goimports" },
-          java = { "google_java_format" },
-          groovy = { "npm-groovy-lint" },
+          -- jdtls formats Java (google_java_format isn't installed). "prefer"
+          -- uses only the language server when one is attached.
+          java = { lsp_format = "prefer" },
+          groovy = { "npm-groovy-lint", "trim_whitespace" },
           rust = { "rustfmt" },
           sh = { "shfmt" },
-          ["*"] = { "trim_whitespace" },
+          -- Every filetype without an entry above (Ballerina, Dockerfile, ...):
+          -- the language server formats first when one is attached, then
+          -- trailing whitespace is trimmed. Not `["*"]`: a wildcard entry
+          -- counts as a formatter for every filetype, so conform would never
+          -- fall back to the language server.
+          ["_"] = { "trim_whitespace", lsp_format = "first" },
         },
+        -- Filetypes with a CLI formatter list use the language server only
+        -- when none of those formatters is available. Do not pass
+        -- lsp_fallback at the call sites: call-site options override
+        -- per-filetype ones and would cancel the java and `_` entries.
+        default_format_opts = { lsp_format = "fallback" },
         format_on_save = function(bufnr)
           if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
             return
@@ -79,7 +91,7 @@ return {
           if require("thisarug.bigfile").is_big(bufnr) then
             return
           end
-          return { timeout_ms = 3000, lsp_fallback = true }
+          return { timeout_ms = 3000 }
         end,
       })
 

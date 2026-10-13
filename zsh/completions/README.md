@@ -16,11 +16,17 @@ This directory contains custom ZSH completion functions that provide description
 
 ## Current Completions
 
-- `_edit_commands` - Provides descriptions for all `edit-*` aliases
-- `_reload` - Description for the `reload` alias
 - `_extract` - `extract <TAB>` offers only archive files (zip, tar.*, rar, 7z, ...)
 - `_kill_by_port` - `kill_by_port <TAB>` lists the TCP ports something is listening on, with the owning command
 - `_awake` - `awake <TAB>` offers the subcommands, durations after `for`, and PIDs
+- `_envrc` - `envrc <TAB>` offers `work`, `personal`, `status` and `off`
+- `_install_lazygit_latest` - `install_lazygit_latest <TAB>` offers `install`, `update` and `check`
+- `_dotdoctor` - `dotdoctor <TAB>` offers `--full` and `-h`/`--help`
+
+Completions attach to the command name the user types, and an alias expands
+before completion runs (`complete_aliases` is unset), so do not add a `#compdef`
+for an alias name such as `reload` or `edit-*`: it would never fire. Complete
+the function or script the alias points at instead.
 
 ## Adding New Completions
 

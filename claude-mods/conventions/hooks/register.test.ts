@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'claude-code/testing'
+import { describe, expect, mock, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
 type Ran = { argv: readonly string[]; cwd?: string; timeoutMs?: number }
@@ -7,13 +7,20 @@ type Proc = (argv: readonly string[]) => { exitCode: number; stdout?: string; st
 const DOT = '/r/dot'
 const OTHER = '/r/other'
 
-// The dotfiles repo is recognised by bin/lint plus this mod's manifest; the other
-// repo is any git repo; /r/none has no .git anywhere above it.
-const REPOS: Record<string, string> = {
-  [`${DOT}/bin/lint`]: '#!/bin/bash\n',
-  [`${DOT}/claude-mods/conventions/.claude-plugin/plugin.json`]: '{"name":"conventions"}\n',
+// The dotfiles layout is bin/lint plus this mod's manifest; the other repo is any
+// git repo; /r/none has no .git anywhere above it.
+const layout = (root: string) => ({
+  [`${root}/bin/lint`]: '#!/bin/bash\n',
+  [`${root}/claude-mods/conventions/.claude-plugin/plugin.json`]: '{"name":"conventions"}\n',
+})
+const REPOS: Record<string, string> = layout(DOT)
+const DIRS = [`${DOT}/.git`, `${OTHER}/.git`, '/r/fork/.git']
+
+// The session loads this mod from the owner's checkout, /r/dot (HOME is /r)
+const ENV = {
+  HOME: '/r',
+  CLAUDE_CODE_PLUGIN_DIRS: '~/dot/claude-mods/statusbar:~/dot/claude-mods/conventions/',
 }
-const DIRS = [`${DOT}/.git`, `${OTHER}/.git`]
 
 // Fixtures are assembled at runtime so no token-shaped literal sits in the source.
 const part = (...p: string[]) => p.join('')
@@ -27,19 +34,24 @@ function engine(
   on: On,
   files: Record<string, string>,
   proc: Proc = () => ({ exitCode: 0 }),
-  opts: { links?: Record<string, string>; toolResult?: Record<string, unknown> } = {},
+  opts: { links?: Record<string, string>; toolResult?: Record<string, unknown>; env?: Record<string, string> | null } = {},
 ) {
   const lookup = (path: string) => files[path] ?? REPOS[path]
+  // A folder: a listed one, or one above a file
+  const isDir = (path: string) =>
+    DIRS.includes(path) || [...Object.keys(files), ...Object.keys(REPOS), ...DIRS].some(k => k.startsWith(`${path}/`))
   const ran: Ran[] = []
+  if (opts.env !== null) mock.env(on, opts.env ?? ENV)
   on('fs.stat', (_$, e) => {
     const text = lookup(e.path)
     const real = opts.links?.[e.path]
     const target = real ?? e.path
     const t = real !== undefined ? lookup(real) : text
+    const resolved = e.resolve ? { realPath: target } : {}
     if (t !== undefined) {
-      return { value: { kind: 'file', size: t.length, mtimeMs: 0, isLink: real !== undefined, ...(e.resolve ? { realPath: target } : {}) } } as never
+      return { value: { kind: 'file', size: t.length, mtimeMs: 0, isLink: real !== undefined, ...resolved } } as never
     }
-    if (DIRS.includes(e.path)) return { value: { kind: 'dir', size: 0, mtimeMs: 0, isLink: false } } as never
+    if (isDir(target)) return { value: { kind: 'dir', size: 0, mtimeMs: 0, isLink: real !== undefined, ...resolved } } as never
     return { deny: 'ENOENT: no such file' } as never
   })
   on('fs.read', (_$, e) => {
@@ -132,12 +144,26 @@ describe('in the dotfiles repo (on by default)', () => {
     const wt = '/r/dot-wt'
     const file = `${wt}/init.sh`
     const eng = engine(on, {
+      ...layout(wt),
       [`${wt}/.git`]: 'gitdir: /r/dot/.git/worktrees/x\n',
-      [`${wt}/bin/lint`]: '#!/bin/bash\n',
-      [`${wt}/claude-mods/conventions/.claude-plugin/plugin.json`]: '{"name":"conventions"}\n',
+      [`${DOT}/.git/worktrees/x/gitdir`]: `${wt}/.git\n`,
       [file]: '\techo hi\n',
     })
     expect(notes(await $.tool.call(edit(file)))).toContain('conventions (advisory, the edit was applied): init.sh')
+    expect(eng.ran[0]?.argv).toEqual([`${wt}/bin/lint`, '--file', file])
+  })
+
+  test('a worktree linked with relative paths counts too', async ($, on) => {
+    const wt = '/r/wt-rel'
+    const file = `${wt}/init.sh`
+    // Each is relative to the folder of the file that holds it
+    const eng = engine(on, {
+      ...layout(wt),
+      [`${wt}/.git`]: 'gitdir: ../dot/.git/worktrees/y\n',
+      [`${DOT}/.git/worktrees/y/gitdir`]: '../../../../wt-rel/.git\n',
+      [file]: 'echo hi\n',
+    })
+    await $.tool.call(edit(file))
     expect(eng.ran[0]?.argv).toEqual([`${wt}/bin/lint`, '--file', file])
   })
 
@@ -274,6 +300,18 @@ describe('more edges', () => {
     expect(text).not.toContain('tab indentation')
   })
 
+  test('a new bin/ script bin/lint does not list still gets the tab note', async ($, on) => {
+    const file = `${DOT}/bin/brand-new`
+    engine(on, { [file]: '#!/bin/bash\nif true; then\n\techo hi\nfi\n' }, () => ({
+      exitCode: 1,
+      stdout: 'bin/brand-new is not in BASH_FILES or ZSH_FILES in bin/lint\nfix: add it to BASH_FILES (bash) or ZSH_FILES (zsh) in bin/lint',
+    }))
+    const text = notes(await $.tool.call(edit(file)))
+    expect(text).toContain('tab indentation on line 3')
+    expect(text).toContain('Fix: shfmt -i 4 -ci -w bin/brand-new')
+    expect(text).toContain('fix: add it to BASH_FILES')
+  })
+
   test('a tool that fails silently or says the file is missing is not reported', async ($, on) => {
     const file = `${DOT}/init.sh`
     engine(on, { [file]: 'echo ok\n' }, () => ({ exitCode: 1 }))
@@ -295,6 +333,64 @@ describe('more edges', () => {
     })
     expect((await $.tool.call(edit(file))).context).toBeUndefined()
     expect(eng.ran).toEqual([])
+  })
+
+  test("a fork or copy with the repo's layout never runs its own bin/lint", async ($, on) => {
+    const fork = '/r/fork'
+    const sh = `${fork}/bin/new-script`
+    const eng = engine(on, { ...layout(fork), [sh]: '#!/bin/bash\n\techo hi\n' }, argv => ({ exitCode: 1, stdout: `${argv[0]} says no` }))
+    const text = notes(await $.tool.call(edit(sh)))
+    // Still on by default, with the generic checks in place of bin/lint
+    expect(text).toContain('tab indentation on line 2')
+    expect(eng.ran.map(r => r.argv)).toEqual([['shfmt', '-i', '4', '-ci', '-d', sh]])
+  })
+
+  test('a .git file naming the repo is not enough: the worktree must be linked back', async ($, on) => {
+    const fake = '/r/fake'
+    const file = `${fake}/init.sh`
+    const eng = engine(on, {
+      ...layout(fake),
+      [`${fake}/.git`]: 'gitdir: /r/dot/.git/worktrees/x\n',
+      [`${DOT}/.git/worktrees/x/gitdir`]: '/r/dot-wt/.git\n',
+      [file]: 'echo hi\n',
+    })
+    await $.tool.call(edit(file))
+    expect(eng.ran.some(r => r.argv[0]?.endsWith('/bin/lint'))).toBe(false)
+  })
+
+  test('a .git file pointing outside the repo, or into it by `..`, is not trusted', async ($, on) => {
+    const fake = '/r/fake2'
+    const file = `${fake}/init.sh`
+    const sneaky = '/r/dot/.git/worktrees/../../../fake2/admin'
+    const eng = engine(
+      on,
+      {
+        ...layout(fake),
+        [`${fake}/.git`]: `gitdir: ${sneaky}\n`,
+        [`${fake}/admin/gitdir`]: `${fake}/.git\n`,
+        [file]: 'echo hi\n',
+      },
+      undefined,
+      { links: { [sneaky]: `${fake}/admin` } },
+    )
+    await $.tool.call(edit(file))
+    expect(eng.ran.some(r => r.argv[0]?.endsWith('/bin/lint'))).toBe(false)
+  })
+
+  test('without CLAUDE_CODE_PLUGIN_DIRS, bin/lint is not run but the generic checks are', async ($, on) => {
+    const file = `${DOT}/init.sh`
+    const eng = engine(on, { [file]: '#!/bin/bash\n\techo hi\n' }, undefined, { env: null })
+    expect(notes(await $.tool.call(edit(file)))).toContain('tab indentation on line 2')
+    expect(eng.ran.map(r => r.argv)).toEqual([['shfmt', '-i', '4', '-ci', '-d', file]])
+  })
+
+  test('a plugin dir naming another checkout does not trust this one', async ($, on) => {
+    const file = `${DOT}/init.sh`
+    const eng = engine(on, { [file]: 'echo hi\n', ...layout('/r/fork') }, undefined, {
+      env: { HOME: '/r', CLAUDE_CODE_PLUGIN_DIRS: '/r/fork/claude-mods/conventions' },
+    })
+    await $.tool.call(edit(file))
+    expect(eng.ran.some(r => r.argv[0]?.endsWith('/bin/lint'))).toBe(false)
   })
 
   test('an unknown /conventions argument does not toggle', async ($, on) => {

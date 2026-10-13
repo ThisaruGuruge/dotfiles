@@ -112,7 +112,7 @@ This validates:
 
 ### Linting
 
-`./bin/lint` is the single lint entry point (CI runs it too): `shellcheck` and `shfmt -i 4 -ci -d` on the bash scripts, `zsh -n` on the zsh files, `stylua --check nvim/.config/nvim` (stylua skips hidden directories, so `nvim/` alone checks nothing), and `claude plugin test` for each mod in `claude-mods/` that has hooks (local only: CI does not install `claude`, so the mod tests are skipped there). `bin/lint` also fails when a script in `bin/` is not in its file lists. Tools that are missing are reported as skipped locally and as failures with `CI=true`.
+`./bin/lint` is the single lint entry point (CI runs it too): `shellcheck` and `shfmt -i 4 -ci -d` on the bash scripts, `zsh -n` on the zsh files, `stylua --check nvim/.config/nvim` (stylua skips hidden directories, so `nvim/` alone checks nothing), and `claude plugin test` for each mod in `claude-mods/` that has hooks (local only: CI does not install `claude`, so the mod tests are skipped there). `bin/lint` also fails when a script in `bin/`, a script in `tmux/.local/bin/` (except the `tmux-palette-entries` data file) or a `tests/**/*.sh` file is not in its file lists. The zsh lists include `zsh/.p10k.zsh` and the `zsh/completions/_*` completions. Tools that are missing are reported as skipped locally and as failures with `CI=true`.
 
 `bin/lint --file <path>` checks a single file (shellcheck and `shfmt -i 4 -ci -d` for the bash scripts it lists, `zsh -n` for its zsh files, `stylua --check` for Neovim Lua) and prints only problems, each with a `fix:` line. The `conventions` mod runs it after every edit Claude Code makes in this repo. The vendored `claude-mods/rabe` mod (most of the run time) is skipped unless it differs from the merge base with `origin/dev` or `origin/main`, or `LINT_VENDORED=1` is set.
 
@@ -120,11 +120,10 @@ This validates:
 
 All pull requests are automatically validated through GitHub Actions:
 
-- **Shellcheck**: Validates shell script syntax and best practices
-- **shfmt**: Checks shell script formatting
+- **Lint**: `bin/lint` (shellcheck, `shfmt -i 4 -ci -d`, `zsh -n`, `stylua --check`) is the only shell lint step; CI runs it with `CI=true`, so a missing tool is a failure
 - **JSON validation**: Validates JSON config files
-- **Security scanning**: Checks for hardcoded paths and secrets
-- **macOS testing**: Tests on macOS environment
+- **Security scanning**: `git grep` over the tracked shell files for hardcoded `/Users/` paths and secret-looking assignments (a non-empty quoted value)
+- **macOS testing** (pull requests only): `zsh -n`/`bash -n` syntax checks, the installer safety check, and the behavioural suites `bin/test-shell-helpers` and `tests/claude/check.sh` (tmux is installed on the runner; both suites use a scratch `HOME` and fake binaries)
 
 ---
 

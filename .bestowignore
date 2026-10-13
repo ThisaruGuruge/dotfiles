@@ -8,6 +8,7 @@
 docs
 .git
 packages
+tests
 
 # Files
 LICENSE
@@ -31,4 +32,3 @@ claude-mods
 *.bak
 *~
 lazy-lock.json
-claude-mods

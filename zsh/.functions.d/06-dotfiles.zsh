@@ -604,12 +604,20 @@ edit_dotfiles() {
             description="Installation Script"
             ;;
         11)
-            echo ""
-            echo "📁 Available dotfiles:"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            find "$dotfiles_dir" -type f \( -name ".*" -o -name "*.sh" -o -name "*.json" -o -name "Brewfile" -o -name "README.md" \) ! -path "*/.git/*" | sed "s|$dotfiles_dir/||" | sort
-            echo ""
-            read -r "relative_path?Enter file path to edit (relative to $dotfiles_dir): "
+            local relative_path=""
+            if command -v fzf >/dev/null 2>&1; then
+                # Pick from every tracked file, with a preview.
+                local previewer='cat {}'
+                command -v bat >/dev/null 2>&1 && previewer='bat --color=always --style=numbers --line-range=:200 {}'
+                relative_path=$(git -C "$dotfiles_dir" ls-files | fzf --prompt="dotfile> " --preview "cd ${(q)dotfiles_dir} && $previewer")
+            else
+                echo ""
+                echo "📁 Available dotfiles:"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                find "$dotfiles_dir" -type f \( -name ".*" -o -name "*.sh" -o -name "*.json" -o -name "Brewfile" -o -name "README.md" \) ! -path "*/.git/*" | sed "s|$dotfiles_dir/||" | sort
+                echo ""
+                read -r "relative_path?Enter file path to edit (relative to $dotfiles_dir): "
+            fi
             if [ -n "$relative_path" ]; then
                 file_to_edit="$dotfiles_dir/$relative_path"
                 description="Custom File: $relative_path"
@@ -646,7 +654,11 @@ edit_dotfiles() {
 
     # Edit the file
     echo "🖊️  Opening $description for editing..."
-    ${EDITOR:-vim} "$file_to_edit"
+    # zsh does not word-split $EDITOR (e.g. "code -w"), so split it the same way
+    # edit_secrets does.
+    local -a ed=(${(z)${EDITOR:-vim}})
+    ed=("${(Q)ed[@]}")
+    "${ed[@]}" "$file_to_edit"
 
     # Check if file (or, for a directory, anything under it) was modified
     local modified=false
@@ -730,6 +742,20 @@ edit_dotfiles() {
 }
 
 # Update dotfiles repository and apply changes
+# Restore the stash update_dotfiles made before pulling. On a conflict the
+# stash entry is kept (git leaves it in place), so say where the changes are.
+_update_dotfiles_unstash() {
+    local dotfiles_dir="$1"
+    echo "♻️  Restoring your stashed changes..."
+    if git -C "$dotfiles_dir" stash pop; then
+        echo "✅ Stashed changes restored"
+    else
+        echo "❌ Could not restore your stashed changes cleanly"
+        echo "💡 They are still saved in stash@{0}: resolve conflicts, then run: git -C $dotfiles_dir stash drop"
+        return 1
+    fi
+}
+
 update_dotfiles() {
     # Try to detect dotfiles directory - prefer dotfiles over .dotfiles
     local dotfiles_dir=""
@@ -764,9 +790,18 @@ update_dotfiles() {
     local current_commit
     current_branch=$(git -C "$dotfiles_dir" branch --show-current 2>/dev/null || echo "unknown")
     current_commit=$(git -C "$dotfiles_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
-    echo "   Branch: $current_branch"
+    echo "   Branch: ${current_branch:-(detached HEAD)}"
     echo "   Commit: $current_commit"
     echo ""
+
+    # Detached HEAD gives an empty branch name; there is nothing to pull into.
+    if [ -z "$current_branch" ]; then
+        echo "❌ HEAD is detached (or unborn) - check out a branch first, e.g.:"
+        echo "   git -C $dotfiles_dir switch main"
+        return 1
+    fi
+
+    local stashed=false
 
     # Check for uncommitted changes
     if ! git -C "$dotfiles_dir" diff-index --quiet HEAD --; then
@@ -775,7 +810,11 @@ update_dotfiles() {
         echo ""
 
         if confirm "Stash uncommitted changes before updating?"; then
-            git -C "$dotfiles_dir" stash push -m "Auto-stash before dotfiles update $(date)"
+            if ! git -C "$dotfiles_dir" stash push -m "Auto-stash before dotfiles update $(date)"; then
+                echo "❌ Could not stash your changes - update cancelled"
+                return 1
+            fi
+            stashed=true
             echo "✅ Changes stashed"
         else
             echo "❌ Update cancelled - commit or stash your changes first"
@@ -789,6 +828,7 @@ update_dotfiles() {
         echo "✅ Fetch completed"
     else
         echo "❌ Failed to fetch from remote"
+        [ "$stashed" = true ] && _update_dotfiles_unstash "$dotfiles_dir"
         return 1
     fi
 
@@ -798,6 +838,7 @@ update_dotfiles() {
 
     if [ "$commits_behind" = "0" ]; then
         echo "✅ Already up to date!"
+        [ "$stashed" = true ] && _update_dotfiles_unstash "$dotfiles_dir"
         return 0
     fi
 
@@ -810,6 +851,7 @@ update_dotfiles() {
     echo ""
     if ! confirm "Apply these updates?"; then
         echo "❌ Update cancelled"
+        [ "$stashed" = true ] && _update_dotfiles_unstash "$dotfiles_dir"
         return 0
     fi
 
@@ -827,7 +869,16 @@ update_dotfiles() {
     else
         echo "❌ Update failed - you may need to resolve conflicts"
         echo "💡 Your backup is available at branch: $backup_branch"
+        if [ "$stashed" = true ]; then
+            echo "💡 Your local changes are still in the stash:"
+            git -C "$dotfiles_dir" stash list -1
+            echo "   Restore them with: git -C $dotfiles_dir stash pop"
+        fi
         return 1
+    fi
+
+    if [ "$stashed" = true ]; then
+        _update_dotfiles_unstash "$dotfiles_dir"
     fi
 
     # Show what changed
@@ -886,7 +937,7 @@ update_dotfiles() {
     # Cleanup old backup branches (keep last 5)
     echo ""
     echo "🧹 Cleaning up old backups..."
-    git -C "$dotfiles_dir" for-each-ref --format='%(refname:short)' refs/heads/backup-* | sort -r | tail -n +6 | while read -r branch; do
+    git -C "$dotfiles_dir" for-each-ref --format='%(refname:short)' 'refs/heads/backup-*' | sort -r | tail -n +6 | while read -r branch; do
         git -C "$dotfiles_dir" branch -D "$branch"
         echo "   🗑️ Removed old backup: $branch"
     done

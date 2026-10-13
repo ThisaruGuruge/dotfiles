@@ -3,6 +3,3 @@ source ~/.profile
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 [ -f "$HOME/.rover/env" ] && source "$HOME/.rover/env"
-
-# Rancher Desktop
-[[ -d "$HOME/.rd/bin" ]] && export PATH="$HOME/.rd/bin:$PATH"

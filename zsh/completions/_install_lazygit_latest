@@ -1,0 +1,14 @@
+#compdef install_lazygit_latest
+
+# Completion for install_lazygit_latest() (zsh/.functions.d/08-packages.zsh).
+
+(( CURRENT > 2 )) && return
+
+local -a actions
+actions=(
+  'install:install lazygit from the official tap'
+  'update:upgrade lazygit to the latest version'
+  'check:report whether lazygit is installed'
+)
+
+_describe -t actions 'install_lazygit_latest' actions
