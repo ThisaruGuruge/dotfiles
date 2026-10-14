@@ -18,6 +18,7 @@ Every script in this directory is bash, POSIX sh or zsh (no Python). Convention:
 | `gws-account` | bash | Shared helper behind `gwsp`/`gwse` (per-account config dir + keyring) |
 | `gwsp` / `gwse` | bash | Google Workspace CLI, personal / enterprise account |
 | `lint` | bash | Single lint entry point: shellcheck, shfmt, `zsh -n`, stylua, mod tests (also run by CI). `lint --file <path>` lints one file and prints only problems, each with a `fix:` line (used by the `conventions` mod) |
+| `newproject` | bash | Start a project: folder, `git init`, language scaffold, minimal `CLAUDE.md`, first commit, then open Claude Code on the skills setup (see `docs/NEW_PROJECT.md`) |
 | `profile-startup` | bash | Quick shell startup timing |
 | `profile-zsh-startup` | zsh | Detailed zsh startup profiler (per-component timing) |
 | `rebuild-env` | bash | Rebuild `~/.env` after sops reports `MAC mismatch` (the encrypted file was edited by hand): keep, replace or remove each variable, add new ones, re-encrypt |

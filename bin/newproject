@@ -1,0 +1,155 @@
+#!/bin/bash
+# Start a new project in one command: create the folder, git init, scaffold the
+# language, add a minimal CLAUDE.md, make the first commit, then open Claude Code
+# on /setup-matt-pocock-skills (issue tracker, labels, glossary and ADR layout).
+# The skills themselves are global plugins (mattpocock-skills, frontend-design),
+# so there is nothing to install per project.
+#
+# Usage: newproject <name> [--lang go|ballerina|ts|none] [--github]
+#                          [--dir <parent>] [--account personal|enterprise] [--no-claude]
+#        newproject -h | --help
+#
+#   --lang       scaffold: go (go mod init), ballerina (bal init), ts (pnpm init),
+#                none (default)
+#   --github     also create a private GitHub repo and add it as origin (nothing is pushed)
+#   --dir        parent folder (default: $NEWPROJECT_ROOT, else ~/Projects)
+#   --account    Claude Code account to open (default: personal)
+#   --no-claude  stop after the scaffold and print the next steps
+
+case "${1:-}" in
+    -h | --help)
+        sed -n '2,/^[^#]/{/^#/s/^# \{0,1\}//p;}' "$0"
+        exit 0
+        ;;
+esac
+
+set -e
+
+die() {
+    echo "newproject: $*" >&2
+    exit 1
+}
+
+NAME=""
+LANG_KIND="none"
+GITHUB=0
+PARENT="${NEWPROJECT_ROOT:-$HOME/Projects}"
+ACCOUNT="personal"
+LAUNCH=1
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --lang)
+            [ $# -ge 2 ] || die "--lang needs a value"
+            LANG_KIND="$2"
+            shift 2
+            ;;
+        --dir)
+            [ $# -ge 2 ] || die "--dir needs a value"
+            PARENT="$2"
+            shift 2
+            ;;
+        --account)
+            [ $# -ge 2 ] || die "--account needs a value"
+            ACCOUNT="$2"
+            shift 2
+            ;;
+        --github)
+            GITHUB=1
+            shift
+            ;;
+        --no-claude)
+            LAUNCH=0
+            shift
+            ;;
+        -*)
+            die "unknown option: $1 (see --help)"
+            ;;
+        *)
+            [ -z "$NAME" ] || die "only one project name allowed"
+            NAME="$1"
+            shift
+            ;;
+    esac
+done
+
+[ -n "$NAME" ] || die "usage: newproject <name> [options] (see --help)"
+case "$NAME" in
+    */* | .*) die "the name must be a plain folder name, not a path: $NAME" ;;
+esac
+case "$LANG_KIND" in
+    go | ballerina | ts | none) ;;
+    *) die "--lang must be go, ballerina, ts or none" ;;
+esac
+case "$ACCOUNT" in
+    personal | enterprise) ;;
+    *) die "--account must be personal or enterprise" ;;
+esac
+
+DEST="$PARENT/$NAME"
+[ ! -e "$DEST" ] || die "$DEST already exists"
+command -v git >/dev/null 2>&1 || die "git is required"
+
+mkdir -p "$DEST"
+cd "$DEST"
+git init -q -b main
+echo "Created $DEST"
+
+case "$LANG_KIND" in
+    go)
+        if command -v go >/dev/null 2>&1; then
+            owner="$(gh api user --jq .login 2>/dev/null || true)"
+            go mod init "github.com/${owner:-$USER}/$NAME" 2>&1 | sed 's/^/  /'
+        else
+            echo "  skipped go scaffold: go is not installed"
+        fi
+        ;;
+    ballerina)
+        if command -v bal >/dev/null 2>&1; then
+            bal init 2>&1 | sed 's/^/  /'
+        else
+            echo "  skipped ballerina scaffold: bal is not installed"
+        fi
+        ;;
+    ts)
+        if command -v pnpm >/dev/null 2>&1; then
+            pnpm init 2>&1 | sed 's/^/  /'
+        else
+            echo "  skipped ts scaffold: pnpm is not installed"
+        fi
+        ;;
+esac
+
+# Minimal on purpose: /setup-matt-pocock-skills edits this file (it never creates
+# one when CLAUDE.md or AGENTS.md is missing without asking), and /grill-with-docs
+# grows the glossary and ADRs from here.
+printf '# %s\n\nTODO: one line on what this project is.\n' "$NAME" >CLAUDE.md
+
+git add -A
+git commit -q -m "chore: initial commit"
+echo "Made the first commit"
+
+if [ "$GITHUB" -eq 1 ]; then
+    command -v gh >/dev/null 2>&1 || die "--github needs the gh CLI"
+    gh repo create "$NAME" --private --source . --remote origin >/dev/null
+    echo "Created the private GitHub repo and added it as origin (nothing pushed)"
+fi
+
+SETUP_SKILL="/mattpocock-skills:setup-matt-pocock-skills"
+
+if [ "$LAUNCH" -eq 0 ]; then
+    cat <<EOF
+
+Next steps (inside $DEST):
+  1. Open Claude Code and run $SETUP_SKILL
+  2. /mattpocock-skills:grill-with-docs   align on the first feature
+  3. /mattpocock-skills:to-spec           write it up as a spec issue
+  4. /mattpocock-skills:to-tickets        split it into tickets
+  5. /mattpocock-skills:implement-spec    build them
+EOF
+    exit 0
+fi
+
+command -v claude >/dev/null 2>&1 || die "claude is not installed (rerun with --no-claude)"
+echo "Opening Claude Code on $SETUP_SKILL"
+exec env GOOGLE_WORKSPACE_CLI_CONFIG_DIR='' CLAUDE_CONFIG_DIR="$HOME/.claude-$ACCOUNT" claude "$SETUP_SKILL"
