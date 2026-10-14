@@ -118,7 +118,9 @@
   },
   "enabledPlugins": {
     "gopls-lsp@claude-plugins-official": true,
-    "allium@juxt-plugins": true
+    "allium@juxt-plugins": true,
+    "mattpocock-skills@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
   },
   "autoCompactWindow": 500000,
   "autoUpdatesChannel": "stable",
