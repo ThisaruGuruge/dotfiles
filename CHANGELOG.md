@@ -9,12 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `newproject` (`bin/newproject`): one command to start a project. It creates the folder, runs `git init`, scaffolds Go, Ballerina or TypeScript, writes a minimal `CLAUDE.md`, makes the first commit (`--github` also creates a private repo), then opens Claude Code on `/mattpocock-skills:setup-matt-pocock-skills`. Guide in `docs/NEW_PROJECT.md`
-- Claude Code plugins `mattpocock-skills` and `frontend-design` (from `claude-plugins-official`) enabled for the personal account
+- Claude Code plugins `mattpocock-skills` and `frontend-design` (from `claude-plugins-official`) enabled for the personal account; guide to starting a project with them in `docs/NEW_PROJECT.md`
 
 ### Changed
 
 - Replaced the local rewrites of `grill-me`, `grill-with-docs`, `improve-codebase-architecture`, `retro`, `wait-what` and `wizard` with the originals from the `mattpocock-skills` plugin, which also brings the skills they depend on (`grilling`, `domain-modeling`, `codebase-design`, `writing-for-agents`); removed the unused `new-project-setup` skill
+- Removed the `allium` plugin and the `juxt-plugins` marketplace
 
 ## [2.11.1] - 2026-10-13
 

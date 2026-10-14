@@ -95,7 +95,6 @@ BASH_FILES=(
     bin/gwse
     bin/gwsp
     bin/lint
-    bin/newproject
     bin/profile-startup
     bin/rebuild-env
     bin/reset-dotfiles
