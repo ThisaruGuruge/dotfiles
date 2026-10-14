@@ -15,11 +15,13 @@ stack after the spec is final, not before.
 
 | Plugin | Source | What you get |
 | ------ | ------ | ------------ |
-| `mattpocock-skills` | [mattpocock/skills](https://github.com/mattpocock/skills) via `claude-plugins-official` | 27 skills: grilling, domain modelling, spec and ticket flow, TDD, bug diagnosis, code review, PR bodies, handoff |
+| `mattpocock-skills` | [mattpocock/skills](https://github.com/mattpocock/skills) via its own marketplace (`mattpocock`) | 27 skills: grilling, domain modelling, spec and ticket flow, TDD, bug diagnosis, code review, PR bodies, handoff |
 | `frontend-design` | `claude-plugins-official` | Design guidance for building or reshaping UI |
 
 Both are listed under `enabledPlugins` in `claude/.claude-personal/settings.json` and update
-themselves. They are enabled for the personal account only. Skills marked manual-only
+themselves. `mattpocock` is declared under `extraKnownMarketplaces` there, so a fresh machine picks it
+up. It is not the official marketplace on purpose: that one pins an older commit (1.2.3) that leaves
+`retro`, `pr` and `implement-spec` out. They are enabled for the personal account only. Skills marked manual-only
 (`disable-model-invocation`) are not in the session context at all; you call them by name. Plugin
 skills are namespaced: `/mattpocock-skills:tdd`. Typing `/tdd` also works when no other skill has
 that name.

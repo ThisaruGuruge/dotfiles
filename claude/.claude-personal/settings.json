@@ -118,8 +118,16 @@
   },
   "enabledPlugins": {
     "gopls-lsp@claude-plugins-official": true,
-    "mattpocock-skills@claude-plugins-official": true,
+    "mattpocock-skills@mattpocock": true,
     "frontend-design@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "mattpocock": {
+      "source": {
+        "source": "github",
+        "repo": "mattpocock/skills"
+      }
+    }
   },
   "autoCompactWindow": 500000,
   "autoUpdatesChannel": "stable",
