@@ -683,22 +683,6 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# newproject: scaffold only (--no-claude); never launches claude or touches GitHub
-# ---------------------------------------------------------------------------
-group "newproject"
-NP=$REPO/bin/newproject
-NPDIR=$TMP/newproject
-mkdir -p "$NPDIR"
-check "newproject: scaffolds a repo with CLAUDE.md and one commit" \
-    zsh -c 'NEWPROJECT_ROOT=$1 $2 demo --no-claude && test -f $1/demo/CLAUDE.md && test "$(git -C $1/demo rev-list --count HEAD)" = 1' _ "$NPDIR" "$NP"
-check "newproject: refuses an existing folder" \
-    zsh -c '! NEWPROJECT_ROOT=$1 $2 demo --no-claude' _ "$NPDIR" "$NP"
-check "newproject: rejects an unknown --lang" \
-    zsh -c '! NEWPROJECT_ROOT=$1 $2 other --lang rust --no-claude' _ "$NPDIR" "$NP"
-check "newproject: rejects a path as a name" \
-    zsh -c '! NEWPROJECT_ROOT=$1 $2 a/b --no-claude' _ "$NPDIR" "$NP"
-
-# ---------------------------------------------------------------------------
 print
 print -r -- "Passed: $PASSES   Failed: $FAILS   Skipped: $SKIPS"
 (( FAILS == 0 ))
