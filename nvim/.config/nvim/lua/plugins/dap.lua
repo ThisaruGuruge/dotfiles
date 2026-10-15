@@ -1,8 +1,25 @@
 -- Debug Adapter Protocol (DAP) — core, language-agnostic setup.
 --
--- Adapters and configurations deliberately do NOT live here. Each language
--- gets its own `dap-<lang>.lua` file so adding a debugger is a drop-in; see
--- "Adding a debugger" in CLAUDE.md for the three ways a language plugs in.
+-- This file owns nvim-dap, dap-ui, virtual text, the gutter signs and every
+-- `<leader>d*` / F-key binding. Do NOT add adapters or configurations to it.
+-- A language plugs in one of three ways:
+--
+--   1. The language plugin registers itself with nvim-dap. Nothing to do
+--      (`ballerina.nvim` ships its own `lua/ballerina/dap.lua`).
+--   2. A dedicated dap extension plugin exists: add a spec in
+--      `lua/plugins/dap-<lang>.lua` (`dap-go.lua` uses `leoluz/nvim-dap-go`).
+--   3. You are hand-writing the adapter and configurations: add a module at
+--      `lua/thisarug/dap/<lang>.lua` exporting `setup(dap)` (see `python.lua`).
+--      The loop at the end of `config` auto-discovers it; no edit here.
+--
+-- The one exception to "core knows no languages": `mason-nvim-dap`'s
+-- `ensure_installed` lives here, because `setup()` can only be called once.
+-- Add Mason-installed adapters there.
+--
+-- `mason-nvim-dap`'s `handlers = {}` is load-bearing. It ships its own
+-- adapters and configurations, and enabling the default handlers duplicates
+-- whatever the per-language files register (a Go launch would offer twelve
+-- near-identical entries). Keep it empty.
 local function map(lhs, rhs, desc, mode)
   return { lhs, rhs, desc = desc, mode = mode }
 end

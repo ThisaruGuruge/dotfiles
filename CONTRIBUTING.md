@@ -12,6 +12,8 @@ Thank you for your interest in contributing to this dotfiles repository! This do
 - [Release Process](#release-process)
 - [Pull Request Process](#pull-request-process)
 - [Adding New Packages](#adding-new-packages)
+- [Adding a Neovim Plugin](#adding-a-neovim-plugin)
+- [Adding a Shell Alias or Function](#adding-a-shell-alias-or-function)
 - [Reporting Issues](#reporting-issues)
 
 ---
@@ -471,6 +473,49 @@ brew install your-package
 # Or test full init
 ./init.sh
 ```
+
+If the package has shell integration, initialise it in `zsh/.zshrc.d/05-shell-integrations.zsh`; if it brings aliases, add them to `zsh/.aliases.sh` (see [Adding a Shell Alias or Function](#adding-a-shell-alias-or-function)).
+
+When asked to add any plugin, tool or integration, update every file that references the area, not just the primary config: README, CHANGELOG, keybinding docs and validation scripts.
+
+---
+
+## Adding a Neovim Plugin
+
+1. Add the plugin spec to the appropriate file in `nvim/.config/nvim/lua/plugins/`
+2. If it adds keybindings, register them in which-key (`editor.lua`)
+3. Update `nvim/.config/nvim/KEYBINDINGS.md` with the new keybindings
+4. Update `docs/nvim/keybindings_cheat_sheet.md`
+5. Add a line to `CHANGELOG.md` under `## [Unreleased]`
+6. Update `README.md` if it is a notable addition
+
+New files need `bestow stow nvim` before nvim sees them, because bestow links per file, not per directory.
+
+### Adding a Debugger (nvim-dap)
+
+The rules for where a language's adapter and configurations go are in the header comment of `nvim/.config/nvim/lua/plugins/dap.lua`. After adding one, update `KEYBINDINGS.md`, `docs/nvim/keybindings_cheat_sheet.md`, `CHANGELOG.md` and the which-key `<leader>d` block in `editor.lua`.
+
+---
+
+## Adding a Shell Alias or Function
+
+**Alias**
+
+1. Add it to `zsh/.aliases.sh` in the appropriate section, following the existing naming
+2. Wrap it in a command-existence check if the tool might not be installed:
+
+   ```zsh
+   if command -v <tool> &>/dev/null; then
+       alias x='<tool> ...'
+   fi
+   ```
+
+3. Suffix aliases go under "Suffix Aliases for File Types": `alias -s <ext>='<command>'`
+
+**Function**
+
+1. Add it to the matching module in `zsh/.functions.d/`, with a clear comment on what it does
+2. For a new category, create the next numbered file
 
 ---
 
