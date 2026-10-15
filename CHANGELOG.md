@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.12.0] - 2026-10-15
+
 ### Added
 
 - Claude Code plugins `mattpocock-skills` (from Matt Pocock's own `mattpocock` marketplace, because the official marketplace pins an older version without `retro`, `pr` and `implement-spec`) and `frontend-design` (from `claude-plugins-official`) enabled for the personal account; guide to starting a project with them in `docs/NEW_PROJECT.md`
