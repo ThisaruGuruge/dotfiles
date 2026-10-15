@@ -13,5 +13,3 @@ Symlinks are managed by `bestow`, the owner's own Go tool (`github.com/redpierro
 - `.bestowignore` uses globs, not regexes, and must sit at the package root. The root file's patterns are also matched against package directory names (a `claude*` glob once hid the `claude` package).
 - bestow cannot manage the config file it reads, so `~/.config/bestow/config.yaml` is bootstrapped by `init.sh` and kept in sync with the repo copy by hand.
 - Never run a bare `bestow stow`; it stows every package, including ones that need a custom destination.
-
-TODO(owner): confirm the reason for writing bestow in the first place (beyond the GNU Stow friction above).

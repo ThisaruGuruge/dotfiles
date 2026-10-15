@@ -14,5 +14,3 @@ Secrets live in `~/.env`, encrypted with SOPS and an age key (`~/.config/sops/ag
 - The decrypted cache (`~/.cache/zsh/env_cache.v2`) is written `0600` under `umask 077` and is valid only for the current file's MAC. An earlier cache could leave a world-readable copy of the ciphertext.
 - Hand-editing the encrypted file breaks its MAC; `rebuild-env` recovers from that.
 - `edit_secrets` is the only supported way to edit; plaintext exists only in a private temp dir that is removed on exit.
-
-TODO(owner): record why SOPS+age was chosen over `pass`, 1Password CLI or macOS Keychain, if those were weighed.
