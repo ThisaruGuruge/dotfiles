@@ -10,9 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Claude Code plugins `mattpocock-skills` (from Matt Pocock's own `mattpocock` marketplace, because the official marketplace pins an older version without `retro`, `pr` and `implement-spec`) and `frontend-design` (from `claude-plugins-official`) enabled for the personal account; guide to starting a project with them in `docs/NEW_PROJECT.md`
+- `GLOSSARY.md` (the repo's vocabulary: Package, Bestow, Account, Mod, Pin, Secrets file and more) and five ADRs in `docs/adr/` recording why the repo uses bestow, a SOPS+age `~/.env`, repo-loaded mods, Ghostty and automatic releases; reasoning the history does not record is marked `TODO(owner)`
 
 ### Changed
 
+- Slimmed `CLAUDE.md` to the conventions and gotchas an agent cannot find by looking (the directory tree, tool stack and per-script descriptions are gone) and added a "Where things live" section pointing at `GLOSSARY.md`, `docs/adr/` and `CONTRIBUTING.md`; the add-a-package, Neovim plugin, alias and function checklists moved to `CONTRIBUTING.md`, and the nvim-dap rules moved into the header comment of `dap.lua`
+- `test-zsh` now checks that the documents `CLAUDE.md` points at exist, instead of comparing its `bin/` tree with `bin/`
 - Replaced the local rewrites of `grill-me`, `grill-with-docs`, `improve-codebase-architecture`, `retro`, `wait-what` and `wizard` with the originals from the `mattpocock-skills` plugin, which also brings the skills they depend on (`grilling`, `domain-modeling`, `codebase-design`, `writing-for-agents`); removed the unused `new-project-setup` skill
 - Removed the `allium` plugin and the `juxt-plugins` marketplace
 

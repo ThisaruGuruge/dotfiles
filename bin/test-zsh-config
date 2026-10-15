@@ -1059,30 +1059,22 @@ for fn_def in "prs:04-git.zsh" "prw:04-git.zsh" "envrc:02-navigation.zsh"; do
 done
 unset dotdoctor_bin fn_def fn_name fn_file
 
-# Every bin/<name> in CLAUDE.md's directory tree must exist. CLAUDE.md is untracked,
-# so it is absent in CI and in worktrees; the check is skipped there.
+# CLAUDE.md points agents at GLOSSARY.md, docs/adr/, CONTRIBUTING.md and bin/README.md; they must exist.
 claude_md="$DOTFILES_DIR/CLAUDE.md"
 if [[ ! -f "$claude_md" ]]; then
-    print_test "CLAUDE.md bin/ tree matches bin/" "skip" "CLAUDE.md not present (untracked); skipped"
+    print_test "CLAUDE.md doc pointers resolve" "skip" "CLAUDE.md not present; skipped"
 else
-    local -a tree_bins tree_missing=()
-    local tree_name
-    # Lines between the top-level "bin/" entry and the next top-level entry.
-    tree_bins=(${(f)"$(awk '
-        /^(├|└)── / { inbin = ($0 ~ /^(├|└)── bin\//); next }
-        inbin && /^│   (├|└)── / { sub(/^│   (├|└)── /, ""); print $1 }
-    ' "$claude_md")"})
-    for tree_name in "${tree_bins[@]}"; do
-        [[ -e "$DOTFILES_DIR/bin/$tree_name" ]] || tree_missing+=("$tree_name")
+    local -a pointer_missing=()
+    local pointer
+    for pointer in GLOSSARY.md docs/adr CONTRIBUTING.md bin/README.md; do
+        [[ -e "$DOTFILES_DIR/$pointer" ]] || pointer_missing+=("$pointer")
     done
-    if (( ${#tree_bins[@]} == 0 )); then
-        print_test "CLAUDE.md bin/ tree matches bin/" "warn" "found no bin/ entries in CLAUDE.md's directory tree; has the format changed?"
-    elif (( ${#tree_missing[@]} )); then
-        print_test "CLAUDE.md bin/ tree matches bin/" "fail" "listed in CLAUDE.md but missing from bin/: ${(j:, :)tree_missing}"
+    if (( ${#pointer_missing[@]} )); then
+        print_test "CLAUDE.md doc pointers resolve" "fail" "missing: ${(j:, :)pointer_missing}"
     else
-        print_test "CLAUDE.md bin/ tree matches bin/" "pass" "${#tree_bins[@]} entries exist"
+        print_test "CLAUDE.md doc pointers resolve" "pass" "GLOSSARY.md, docs/adr, CONTRIBUTING.md, bin/README.md exist"
     fi
-    unset tree_bins tree_missing tree_name
+    unset pointer_missing pointer
 fi
 unset claude_md
 
