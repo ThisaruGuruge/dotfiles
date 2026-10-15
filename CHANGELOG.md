@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Claude Code plugins `mattpocock-skills` (from Matt Pocock's own `mattpocock` marketplace, because the official marketplace pins an older version without `retro`, `pr` and `implement-spec`) and `frontend-design` (from `claude-plugins-official`) enabled for the personal account; guide to starting a project with them in `docs/NEW_PROJECT.md`
-- `GLOSSARY.md` (the repo's vocabulary: Package, Bestow, Account, Mod, Pin, Secrets file and more) and five ADRs in `docs/adr/` recording why the repo uses bestow, a SOPS+age `~/.env`, repo-loaded mods, Ghostty and automatic releases; reasoning the history does not record is marked `TODO(owner)`
+- `GLOSSARY.md` (the repo's vocabulary: Package, Bestow, Account, Mod, Pin, Secrets file and more) and five ADRs in `docs/adr/` recording why the repo uses bestow, a SOPS+age `~/.env`, repo-loaded mods, Ghostty and automatic releases
 
 ### Changed
 
