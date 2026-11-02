@@ -19,7 +19,9 @@ esac
 
 set -u
 
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve a symlinked invocation (e.g. ~/bin/sync-brewfile) to the real repo
+SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
+DOTFILES_DIR="$(cd -P "$(dirname "$SELF")/.." && pwd -P)"
 
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'

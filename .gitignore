@@ -18,6 +18,8 @@ atuin/**/history.db*
 *.key
 *.pem
 credentials*
+# age private keys (~/.config/sops/age/keys.txt decrypts ~/.env)
+**/age/keys.txt
 git/.config/git/work.gitconfig
 git/.config/git/personal.gitconfig
 git/.config/git/allowed_signers

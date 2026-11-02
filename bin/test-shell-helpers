@@ -611,6 +611,15 @@ EOF
 fi
 
 # ---------------------------------------------------------------------------
+# _dotfiles_env_parse reserved names
+# ---------------------------------------------------------------------------
+group "~/.env parser reserved names"
+# zsh runs $NULLCMD / $READNULLCMD for a bare redirection (`>f`, `<f`) and
+# expands the message part of $MAILPATH entries when it checks mail
+rn_got="$(zsh -c 'source "$1"; NULLCMD=cat READNULLCMD=more; unset MAILPATH; printf "NULLCMD=touch\nREADNULLCMD=touch\nMAILPATH=x\nRN_OK=1\n" | _dotfiles_env_parse -q; print -r -- "$NULLCMD|$READNULLCMD|${MAILPATH-unset}|$RN_OK"' _ "$REPO/zsh/.functions.d/06-dotfiles.zsh" 2>/dev/null)"
+check "env parser: NULLCMD, READNULLCMD and MAILPATH are refused, other names load" test "$rn_got" = "cat|more|unset|1"
+
+# ---------------------------------------------------------------------------
 # rebuild-env + the edit_secrets MAC mismatch hint
 # ---------------------------------------------------------------------------
 group "rebuild-env, edit_secrets MAC hint"
@@ -653,10 +662,22 @@ else
     sops -d --input-type dotenv --output-type dotenv "$REDIR/.env" >"$REDIR/b.dec" 2>/dev/null
     check "rebuild-env: rebuilt file decrypts normally" test -s "$REDIR/b.dec"
     check "rebuild-env: kept variable" has_fixed "ALPHA=one" "$REDIR/b.dec"
-    check "rebuild-env: replaced variable" has_fixed "GAMMA=newgamma" "$REDIR/b.dec"
-    check "rebuild-env: added variable" has_fixed "DELTA=four" "$REDIR/b.dec"
+    check "rebuild-env: replaced variable" has_fixed "GAMMA='newgamma'" "$REDIR/b.dec"
+    check "rebuild-env: added variable" has_fixed "DELTA='four'" "$REDIR/b.dec"
     check "rebuild-env: broken file kept" test -n "$(print -r -- $REDIR/.env.broken-mac.*(N))"
     check "rebuild-env: output shows names only" lacks_fixed "newgamma" "$REDIR/b.out"
+
+    # (b2) values with shell metacharacters come back literally through the loader
+    grep -v '^BETA=' "$REDIR/good.env" >"$REDIR/.env"
+    # answers: ALPHA, GAMMA, then new vars (names/values) -- build explicitly
+    printf '%s\n' 'hunter2&x' 'pa$$w0rd' 'EXTRA' "it's \\a \"q\" \$HOME \`x\`" '' >"$REDIR/answers2"
+    ENV_FILE=$REDIR/.env SOPS_CONFIG=$REDIR/none.yaml PROMPT_INPUT=$REDIR/answers2 \
+        "$RE" >"$REDIR/b2.out" 2>&1
+    sops -d --input-type dotenv --output-type dotenv "$REDIR/.env" >"$REDIR/b2.dec" 2>/dev/null
+    check "rebuild-env: metacharacter values rebuild" test -s "$REDIR/b2.dec"
+    check "rebuild-env: no skipped-line warning for metacharacter values" lacks "skip some lines" "$REDIR/b2.out"
+    b2_got="$(zsh -c 'source "$1"; unset ALPHA GAMMA EXTRA; _dotfiles_env_parse <"$2"; print -r -- "$ALPHA|$GAMMA|$EXTRA"' _ "$REPO/zsh/.functions.d/06-dotfiles.zsh" "$REDIR/b2.dec")"
+    check "rebuild-env: metacharacter values load literally" test "$b2_got" = 'hunter2&x|pa$$w0rd|'"it's \\a \"q\" \$HOME \`x\`"
 
     # (d) a symlinked .env: the link stays a link and its target is rebuilt
     SYMDIR=$REDIR/sym

@@ -74,6 +74,7 @@ _dotfiles_env_parse() {
         # prompts (expanded with prompt_subst) and what zsh/bash run by themselves
         'PS[1-4]' PROMPT 'PROMPT[2-4]' RPROMPT RPROMPT2 'RPS[12]' SPROMPT
         PROMPT_EOL_MARK PROMPT_COMMAND PERIOD TMOUT '*_functions'
+        NULLCMD READNULLCMD MAIL MAILPATH MAILCHECK
         # where shells and the dynamic linker look for code
         PATH path FPATH fpath MODULE_PATH module_path CDPATH cdpath ZDOTDIR
         ENV BASH_ENV 'LD_*' 'DYLD_*'
@@ -723,10 +724,12 @@ edit_dotfiles() {
             echo ""
             if confirm "Commit changes to git?"; then
                 git -C "$dotfiles_dir" add "$file_to_edit"
+                local commit_msg
                 echo "Enter commit message:"
                 read -r "commit_msg?> "
                 if [ -n "$commit_msg" ]; then
-                    git -C "$dotfiles_dir" commit -m "$commit_msg"
+                    # Pathspec: commit only this file, not whatever else is staged
+                    git -C "$dotfiles_dir" commit -m "$commit_msg" -- "$file_to_edit"
                     echo "✅ Changes committed to git"
                 else
                     echo "❌ Empty commit message - changes staged but not committed"

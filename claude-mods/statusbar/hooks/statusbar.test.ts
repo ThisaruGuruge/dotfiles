@@ -31,6 +31,14 @@ test('categories get distinct colors', async () => {
   expect(paint(rows[4]).color).toBe('#45475a')
 })
 
+test('MCP tools are MCP, not the built-in tools', async () => {
+  const mcp = paint({ name: 'MCP tools', tokens: 9000, color: 'x', kind: 'used' as const })
+  const tools = paint({ name: 'System tools', tokens: 9000, color: 'x', kind: 'used' as const })
+  expect(mcp.name).toBe('MCP')
+  expect(tools.name).toBe('tools')
+  expect(mcp.color).not.toBe(tools.color)
+})
+
 test('barCells fills the width and marks the compact point', async () => {
   const cells = barCells(rows, 40, 30)
   expect(cells.length).toBe(40)

@@ -25,6 +25,9 @@ const ENV = {
 // Fixtures are assembled at runtime so no token-shaped literal sits in the source.
 const part = (...p: string[]) => p.join('')
 const ghToken = part('gh', 'p_') + 'a1B2'.repeat(9)
+// Blob ids for bin/lint: as committed, and edited
+const BLOB = 'ab12'.repeat(10)
+const EDITED = 'cd34'.repeat(10)
 
 /**
  * Stands in for the engine beneath the plugin: an in-memory file system, a
@@ -34,13 +37,25 @@ function engine(
   on: On,
   files: Record<string, string>,
   proc: Proc = () => ({ exitCode: 0 }),
-  opts: { links?: Record<string, string>; toolResult?: Record<string, unknown>; env?: Record<string, string> | null } = {},
+  opts: {
+    links?: Record<string, string>
+    toolResult?: Record<string, unknown>
+    env?: Record<string, string> | null
+    /**
+     * The bin/lint-at-HEAD git calls: the blob ids of the working file and of
+     * HEAD's (the same by default), an exit code for every git call, or 'missing' (no git).
+     * `git diff` always exits 0 here, as it does when a clean filter hides an edit.
+     */
+    lintGit?: { work?: string; head?: string; exitCode?: number | 'missing' }
+  } = {},
 ) {
   const lookup = (path: string) => files[path] ?? REPOS[path]
   // A folder: a listed one, or one above a file
   const isDir = (path: string) =>
     DIRS.includes(path) || [...Object.keys(files), ...Object.keys(REPOS), ...DIRS].some(k => k.startsWith(`${path}/`))
   const ran: Ran[] = []
+  // The bin/lint-at-HEAD question, kept apart so `ran` lists the checks themselves
+  const gits: Ran[] = []
   if (opts.env !== null) mock.env(on, opts.env ?? ENV)
   on('fs.stat', (_$, e) => {
     const text = lookup(e.path)
@@ -59,6 +74,14 @@ function engine(
     return (text !== undefined ? { value: text } : { deny: 'ENOENT: no such file' }) as never
   })
   on('process.run', (_$, e) => {
+    if (e.argv[0] === 'git') {
+      gits.push({ argv: e.argv, ...(e.init?.cwd !== undefined ? { cwd: e.init.cwd } : {}) })
+      const g = opts.lintGit ?? {}
+      const code = g.exitCode ?? 0
+      if (code === 'missing') return { deny: 'spawn ENOENT' } as never
+      const stdout = e.argv.includes('hash-object') ? `${g.work ?? BLOB}\n` : e.argv.includes('rev-parse') ? `${g.head ?? BLOB}\n` : ''
+      return { value: { stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false, exitCode: code } } as never
+    }
     ran.push({
       argv: e.argv,
       ...(e.init?.cwd !== undefined ? { cwd: e.init.cwd } : {}),
@@ -70,7 +93,7 @@ function engine(
     return { value: { stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false, ...r } } as never
   })
   on('tool.call', { tool: ['Edit', 'Write', 'Read'] }, () => ({ result: 'ok', ref: 1, text: 'ok', ...opts.toolResult }) as never)
-  return { ran }
+  return { ran, gits }
 }
 
 const edit = (file_path: string) => ({ tool: 'Edit', file_path, old_string: 'a', new_string: 'b' }) as never
@@ -343,6 +366,41 @@ describe('more edges', () => {
     // Still on by default, with the generic checks in place of bin/lint
     expect(text).toContain('tab indentation on line 2')
     expect(eng.ran.map(r => r.argv)).toEqual([['shfmt', '-i', '4', '-ci', '-d', sh]])
+  })
+
+  test('an edit to bin/lint itself never runs it; the generic checks stand in', async ($, on) => {
+    const lint = `${DOT}/bin/lint`
+    const eng = engine(on, { [lint]: '#!/bin/bash\n\techo pwned\n' }, argv => ({ exitCode: 1, stdout: `${argv[0]} says no` }))
+    const text = notes(await $.tool.call(edit(lint)))
+    expect(text).toContain('tab indentation on line 2')
+    expect(eng.ran.map(r => r.argv)).toEqual([['shfmt', '-i', '4', '-ci', '-d', lint]])
+    expect(eng.gits).toEqual([])
+  })
+
+  for (const [why, lintGit] of [
+    ['it differs from HEAD, even when a clean filter would make `git diff` call it unchanged', { head: EDITED }],
+    ['git prints no blob id', { work: '' }],
+    ['git fails', { exitCode: 128 }],
+    ['git is missing', { exitCode: 'missing' }],
+  ] as const) {
+    test(`bin/lint is not run when ${why}; the generic checks stand in`, async ($, on) => {
+      const file = `${DOT}/init.sh`
+      const eng = engine(on, { [file]: '#!/bin/bash\necho hi\n' }, undefined, { lintGit })
+      await $.tool.call(edit(file))
+      expect(eng.ran.map(r => r.argv)).toEqual([['shfmt', '-i', '4', '-ci', '-d', file]])
+      expect(eng.gits.every(g => g.cwd === DOT && !g.argv.includes('diff'))).toBe(true)
+    })
+  }
+
+  test('bin/lint is compared by its bytes, with no filter and no configured command', async ($, on) => {
+    const file = `${DOT}/init.sh`
+    const eng = engine(on, { [file]: '#!/bin/bash\necho hi\n' })
+    await $.tool.call(edit(file))
+    expect(eng.gits.map(g => g.argv)).toEqual([
+      ['git', '-c', 'core.fsmonitor=false', 'hash-object', '--no-filters', '--', `${DOT}/bin/lint`],
+      ['git', '-c', 'core.fsmonitor=false', 'rev-parse', '--verify', '--quiet', 'HEAD:bin/lint'],
+    ])
+    expect(eng.ran[0]?.argv).toEqual([`${DOT}/bin/lint`, '--file', file])
   })
 
   test('a .git file naming the repo is not enough: the worktree must be linked back', async ($, on) => {

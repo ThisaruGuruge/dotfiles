@@ -42,6 +42,19 @@ if [ ! -d "$CONFIG_SOURCE" ]; then
     exit 1
 fi
 
+# Never move an age private key into the repo: ~/.config/sops/age/keys.txt
+# decrypts ~/.env (ADR 0002), and this repo is public.
+age_keys="$({
+    find "$CONFIG_SOURCE" -path '*/age/*keys.txt' 2>/dev/null
+    grep -rlI 'AGE-SECRET-KEY-1' "$CONFIG_SOURCE" 2>/dev/null
+} | sort -u | head -5)"
+if [ "$APP_NAME" = "sops" ] || [ -n "$age_keys" ]; then
+    echo -e "${RED}Error: refusing to adopt $APP_NAME: it holds (or is the home of) an age private key${NC}"
+    [ -n "$age_keys" ] && echo "$age_keys"
+    echo "The key decrypts ~/.env and must stay out of the repo. Nothing was moved."
+    exit 1
+fi
+
 # bestow links per file and never links a directory, so "already managed" means
 # the repo already has this package's config, or the live directory already
 # holds links that resolve into the repo.
@@ -117,6 +130,7 @@ if [ ! -f "$PACKAGE_ROOT/.bestowignore" ]; then
 *.key
 credentials*
 secrets*
+**/age/keys.txt
 EOF
 fi
 

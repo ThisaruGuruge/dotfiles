@@ -93,12 +93,27 @@ function named(kind: string, name: string, flags: string, opts: { notPath?: true
   ]
 }
 
+// A PEM private key: BEGIN through END, or, when the text stops short of END
+// (`head -20 ~/.ssh/id_rsa`, a Read with a limit, cut-off output), BEGIN through
+// the run of header (`Proc-Type: ...`, then one blank line) and base64 lines after it.
+// A line break may be JSON-escaped (`\n`), and a line may carry a line number
+// (`cat -n`'s `     2<tab>`, a Read's `     2→`, `grep -n`'s `2:`). A base64 line must
+// end at a line break, a closing quote or the end, so `next: 1` after it is kept.
+// Header and base64 lines share no `:`, and a base64 run is anchored to its line end, so it stays linear.
+const PEM_NL = String.raw`(?:\r?\n|(?:\\r)?\\n)`
+const PEM_LINE_NO = String.raw`(?:[ \t]*\d+(?:\t|\\t|→|\\u2192|:))?`
+const PEM_EOL = String.raw`(?=\r?\n|\\[rn]|\\?"|$)`
+const PEM_HEADERS = String.raw`(?:(?:${PEM_NL}${PEM_LINE_NO}[ \t]*[A-Za-z][A-Za-z-]*:[^\r\n\\]*)+(?:${PEM_NL}${PEM_LINE_NO}(?=${PEM_NL}))?)?`
+const PEM_BODY = String.raw`(?:${PEM_NL}${PEM_LINE_NO}[ \t]*[A-Za-z0-9+/=]+${PEM_EOL})*`
+const PEM_KEY = String.raw`-----BEGIN [A-Z0-9 ]*PRIVATE KEY(?: BLOCK)?-----`
+const PRIVATE_KEY = new RegExp(
+  String.raw`${PEM_KEY}(?:[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY(?: BLOCK)?-----|${PEM_HEADERS}${PEM_BODY})`,
+  'g',
+)
+
 // Conservative: each rule needs a distinctive prefix or shape.
 const RULES: Rule[] = [
-  {
-    kind: 'private-key',
-    re: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY(?: BLOCK)?-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY(?: BLOCK)?-----/g,
-  },
+  { kind: 'private-key', re: PRIVATE_KEY },
   { kind: 'age-key', re: /AGE-SECRET-KEY-1[A-Z0-9]{50,}/g },
   { kind: 'aws-access-key', re: /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g },
   { kind: 'github-token', re: /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{30,}\b/g },
