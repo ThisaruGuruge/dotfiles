@@ -22,6 +22,9 @@ jobs:
 
     steps:
       # Credentials stay persisted: the "Create or verify tag" step pushes.
+      # A tag-push run starts on the tag; a dispatched run starts on the ref it
+      # was dispatched from (main), so "Create or verify tag" moves it onto the
+      # tag when the tag already exists. fetch-depth 0 brings every tag.
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -56,9 +59,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
+          if git rev-parse -q --verify "refs/tags/${TAG}^{commit}" >/dev/null; then
             echo "✅ Tag $TAG already exists"
+            # Build the tarball, Brewfile and notes from the tagged commit, not
+            # from whatever main holds now (dispatched and recovery runs).
+            git checkout -q --detach "refs/tags/${TAG}^{commit}"
           else
+            # Only a dispatch can get here; the tag is cut from the checked-out ref.
             echo "📝 Creating tag $TAG"
             # Extract version for commit message
             VERSION="${TAG#v}"

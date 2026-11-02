@@ -8,6 +8,11 @@ on:
 
 permissions: {}
 
+# GitHub keeps only one pending run per concurrency group, so a run waiting
+# behind an in-progress release is cancelled when a newer merge queues. The
+# `check` job therefore never judges a PR by its own files: it asks whether
+# anything releasable is unreleased since the last tag, so the surviving run
+# still releases the cancelled run's commits.
 concurrency:
   group: auto-tag-main
   cancel-in-progress: false
@@ -18,18 +23,23 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: read
+      contents: read
     outputs:
       skip: ${{ steps.files.outputs.skip }}
 
     steps:
-      - name: Determine changed files
+      - name: Checkout main
+        if: github.event_name != 'workflow_dispatch'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Determine unreleased files
         id: files
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT_NAME: ${{ github.event_name }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPOSITORY: ${{ github.repository }}
         run: |
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             echo "skip=false" >> "$GITHUB_OUTPUT"
@@ -37,24 +47,33 @@ jobs:
             exit 0
           fi
 
-          CHANGED_FILES=$(gh api "repos/${REPOSITORY}/pulls/${PR_NUMBER}/files" --paginate --jq '.[].filename')
-          echo "Changed files:"
-          echo "$CHANGED_FILES"
+          # Everything changed since the last release, not just this PR's
+          # files: an earlier code PR may be unreleased because its run was
+          # cancelled while queued or failed because main moved.
+          LATEST_TAG=$(git tag -l '[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1)
+          if [ -n "$LATEST_TAG" ]; then
+              echo "Files changed since ${LATEST_TAG}:"
+              FILE_LIST=(git diff -z --name-only --no-renames "$LATEST_TAG" HEAD)
+          else
+              echo "No release tag yet; checking every file in main:"
+              FILE_LIST=(git ls-tree -r -z --name-only HEAD)
+          fi
 
-          # Skip tagging a release when a PR only touches plumbing (.github/**)
-          # or docs (*.md) — those don't warrant a release on their own.
+          # Skip tagging a release when everything unreleased only touches
+          # plumbing (.github/**) or docs (*.md) — those don't warrant a
+          # release on their own.
           SKIP=true
-          while IFS= read -r file; do
-            [ -z "$file" ] && continue
-            case "$file" in
-              .github/*|*.md) ;;
-              *) SKIP=false ;;
-            esac
-          done <<< "$CHANGED_FILES"
+          while IFS= read -r -d '' file; do
+              echo "$file"
+              case "$file" in
+                  .github/*|*.md) ;;
+                  *) SKIP=false ;;
+              esac
+          done < <("${FILE_LIST[@]}")
 
           echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
           if [ "$SKIP" = "true" ]; then
-            echo "ℹ️ All changed files are plumbing/docs (.github/** or *.md) — skipping release"
+              echo "ℹ️ Everything since the last release is plumbing/docs (.github/** or *.md) — skipping release"
           fi
 
   tag:
@@ -192,11 +211,12 @@ jobs:
           # The version and changelog were computed from $ANALYSED. If main has
           # moved since, tagging would release commits that were never
           # analysed (wrong bump, missing notes). Stop before any side effect
-          # (branch, push, PR); a queued run or a re-dispatch releases them.
+          # (branch, push, PR); the next run releases them, because the check job
+          # decides from the files unreleased since the last tag.
           git fetch origin main
           CURRENT=$(git rev-parse origin/main)
           if [ "$CURRENT" != "$ANALYSED" ]; then
-            echo "::error::main moved from ${ANALYSED} to ${CURRENT} while this run was in progress; nothing was tagged or pushed. A queued run, or a re-run of this workflow (workflow_dispatch), will release it."
+            echo "::error::main moved from ${ANALYSED} to ${CURRENT} while this run was in progress; nothing was tagged or pushed. The next run of this workflow (any merged PR, even a docs-only one) releases everything since the last tag; if no run is pending, start one with workflow_dispatch."
             exit 1
           fi
 
