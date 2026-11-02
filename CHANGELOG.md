@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.13.0] - 2026-11-02
+
 ### Security
 
 - `adopt-config` refuses `sops` and any directory holding an age `keys.txt` or an `AGE-SECRET-KEY-1` value, and `**/age/keys.txt` is git-ignored and in adopt-config's default `.bestowignore`; `audit-configs` and `bin/README.md` no longer recommend adopting `sops` (doing so moved the private key that decrypts `~/.env` into the repo)
