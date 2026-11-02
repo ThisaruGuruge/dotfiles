@@ -109,7 +109,6 @@ BASH_FILES=(
     tmux/.local/bin/tmux-claude-next
     tmux/.local/bin/tmux-palette
     tmux/.local/bin/tmux-session-creator
-    tmux/.local/bin/tmux-session-layout
     tmux/.local/bin/tmux-session-switcher
     tmux/.local/bin/tmux-sessionizer
     tests/claude/check.sh
