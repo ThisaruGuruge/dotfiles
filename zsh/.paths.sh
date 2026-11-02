@@ -12,9 +12,14 @@
 export GOPATH="${GOPATH:-$HOME/go}"
 [ -d "$GOPATH/bin" ] && export PATH="$GOPATH/bin:$PATH"
 
-# Ballerina - Always set BALLERINA_HOME (required for IDE extensions)
+# Ballerina - Always set BALLERINA_HOME (required for IDE extensions).
+# Prefer the installer's /Library/Ballerina, else the Homebrew formula's libexec.
+_ballerina_brew="${HOMEBREW_PREFIX:-/opt/homebrew}/opt/ballerina/libexec"
 if [ -d "/Library/Ballerina" ]; then
     export BALLERINA_HOME=/Library/Ballerina
+    export PATH=$BALLERINA_HOME/bin:$PATH
+elif [ -d "$_ballerina_brew" ]; then
+    export BALLERINA_HOME="$_ballerina_brew"
     export PATH=$BALLERINA_HOME/bin:$PATH
 else
     # Set BALLERINA_HOME even if directory doesn't exist to prevent IDE extensions from breaking
@@ -24,6 +29,7 @@ else
         echo "⚠️  Warning: BALLERINA_HOME set to $BALLERINA_HOME but directory not found" >&2
     fi
 fi
+unset _ballerina_brew
 
 path_dedupe() {
     if [ -n "$PATH" ]; then

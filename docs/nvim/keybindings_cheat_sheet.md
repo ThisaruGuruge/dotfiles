@@ -307,8 +307,8 @@ F-key equivalents for stepping mid-session:
 | :------ | :--- | :----------------------- |
 | `F5`    | `n`  | Continue / start session |
 | `F10`   | `n`  | Step over                |
-| `F11`   | `n`  | Step into                |
-| `S-F11` | `n`  | Step out                 |
+| `F7`    | `n`  | Step into                |
+| `F8`    | `n`  | Step out                 |
 | `F6`    | `n`  | Terminate session        |
 
 | Key         | Mode   | Action                   |
@@ -318,8 +318,8 @@ F-key equivalents for stepping mid-session:
 | `<Space>dp` | `n`    | Log point                |
 | `<Space>dc` | `n`    | Continue / start (`F5`)  |
 | `<Space>do` | `n`    | Step over (`F10`)        |
-| `<Space>di` | `n`    | Step into (`F11`)        |
-| `<Space>dO` | `n`    | Step out (`S-F11`)       |
+| `<Space>di` | `n`    | Step into (`F7`)         |
+| `<Space>dO` | `n`    | Step out (`F8`)          |
 | `<Space>dC` | `n`    | Run to cursor            |
 | `<Space>dq` | `n`    | Terminate session (`F6`) |
 | `<Space>dR` | `n`    | Restart session          |
@@ -347,7 +347,7 @@ into a hover window when the cursor lands on them. The REPL is not docked —
 
 **Debug a test** — put the cursor inside a `func TestX(t *testing.T)` and hit
 `<Space>dt`. Delve builds the test binary, the UI opens, and execution stops at
-your breakpoints. Step with `F10`/`F11`.
+your breakpoints. Step with `F10`/`F7`/`F8`.
 
 **Debug a CLI with arguments** — set a breakpoint (`<Space>db`) anywhere,
 including deep in an `internal/` package, then `<Space>dc` → _Debug program

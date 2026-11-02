@@ -53,12 +53,17 @@ time_command() {
 
     # Return average time for later analysis
     echo "$avg_ms" >> "$times_file"
+    # The verdict rests on this measurement alone
+    case "$description" in
+        "Complete zsh startup"*) echo "$avg_ms" > "$startup_file" ;;
+    esac
 }
 
 # Private per-run results file, removed on exit
 times_file=$(mktemp "${TMPDIR:-/tmp}/zsh_profile_times.XXXXXX")
+startup_file=$(mktemp "${TMPDIR:-/tmp}/zsh_profile_startup.XXXXXX")
 compdump_dir=$(mktemp -d "${TMPDIR:-/tmp}/zsh_profile_compdump.XXXXXX")
-trap 'rm -rf "$times_file" "$compdump_dir"' EXIT
+trap 'rm -rf "$times_file" "$startup_file" "$compdump_dir"' EXIT
 
 echo "Testing component initialization times (5 iterations each)..."
 echo "--------------------------------------------------------------"
@@ -119,15 +124,14 @@ echo ""
 echo "📊 Analysis:"
 echo "--------------------------------------------------------------"
 
-# Parse and analyze results
-if [ -s "$times_file" ]; then
-    # Calculate total estimated time
-    total_time=0
-    while read -r time_ms; do
-        total_time=$((total_time + time_ms))
-    done < "$times_file"
+# The verdict uses the "Complete zsh startup" measurement only. The component timings
+# above are informational: several are steps that do not run at startup, and they
+# overlap with the full sample, so summing them would overstate it.
+if [ -s "$startup_file" ]; then
+    total_time=$(cat "$startup_file")
 
-    echo "Estimated total initialization time: ${BLUE}${total_time}ms${NC}"
+    echo "Complete zsh startup: ${BLUE}${total_time}ms${NC}"
+    echo "(component timings above are informational and are not added up)"
     echo ""
 
     # Show recommendations

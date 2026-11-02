@@ -275,7 +275,7 @@ check_packages() {
         case "$name" in
             # tests holds the repo's own test fixtures, not a config package.
             bin | docs | packages | claude-* | tests) continue ;;
-            # Bootstrapped by init.sh (bestow init), not linked; see check_bestow_config.
+            # Bootstrapped by init.sh (bestow init), maybe linked later; see check_bestow_config.
             bestow) continue ;;
         esac
         pkgs+=("$name")
@@ -404,7 +404,7 @@ check_bestow_config() {
     else
         warn "bestow config differs from the repo copy"
         note "diff $(tilde "$live") $repo"
-        note "init.sh bootstraps the live file; keep the two in sync by hand"
+        note "a bootstrapped (unlinked) live file is kept in sync by hand"
     fi
 }
 

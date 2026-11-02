@@ -410,8 +410,8 @@ F-key equivalents for the stepping commands, for use mid-session:
 | ------- | ------------------------ |
 | `F5`    | Continue / start session |
 | `F10`   | Step over                |
-| `F11`   | Step into                |
-| `S-F11` | Step out                 |
+| `F7`    | Step into                |
+| `F8`    | Step out                 |
 | `F6`    | Terminate session        |
 
 ### The debug UI
