@@ -96,7 +96,7 @@ under it. Files matching any pattern — from the repo-root `.bestowignore`, the
 `~/.config/bestow/.bestowignore`, or the package's own — won't be symlinked by bestow.
 
 The repo-root `.bestowignore` lists the repo's documentation files (`README.md`, `CHANGELOG.md`,
-`CONTRIBUTING.md`, `SECURITY.md`, `KEYBINDINGS.md`) by name rather than ignoring every `*.md`,
+`CONTRIBUTING.md`, `SECURITY.md`, `KEYBINDINGS.md`; the last also matches `nvim/.config/nvim/KEYBINDINGS.md`) by name rather than ignoring every `*.md`,
 because a blanket `*.md` would also skip `SKILL.md` and the other markdown files inside a Claude
 skill. A new documentation file inside a package needs its own entry (or a package-level ignore).
 

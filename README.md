@@ -7,7 +7,7 @@ A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CL
 - **Fast Zsh environment** – zinit-managed plugins, fzf-tab completion, syntax highlighting, autosuggestions, zoxide (via `z` command), Atuin history (Ctrl+R and up-arrow), and Ghostty compatible key bindings
 - **Powerlevel10k prompt** – pure-Zsh rendering (no binary subprocess per draw), instant prompt on startup, contextual Git state, Go/Java/Python/Ballerina indicators, transient prompt for clean scrollback, full Catppuccin Mocha theme matching the tmux status bar
 - **Modern CLI stack** – eza, bat, dust, ripgrep, fd, yazi (with inline image previews in Ghostty/iTerm2, chafa fallback for other terminals), jless, lazygit, lazydocker, tmux, direnv, atuin, gh, git-delta, gng (`gw`), uv (Python packages and projects), and curated helper aliases/functions (`take`, `kill_by_port`, `show_tools`, etc.)
-- **Debugging in Neovim** – nvim-dap with a DAP UI, inline variable values while stepping, and one keymap set (`<leader>d…` plus `F5`/`F10`/`F11`) shared by every language. Go (delve) supports debugging the test under the cursor, launching the program with arguments, and attaching to a remote `dlv --headless`; Python, Java, and Ballerina are wired in too. Adding another debugger is a single drop-in file: a module at `nvim/.config/nvim/lua/thisarug/dap/<lang>.lua` exporting `setup(dap)` is picked up automatically by `lua/plugins/dap.lua`
+- **Debugging in Neovim** – nvim-dap with a DAP UI, inline variable values while stepping, and one keymap set (`<leader>d…` plus `F5`/`F7`/`F8`/`F10`) shared by every language. Go (delve) supports debugging the test under the cursor, launching the program with arguments, and attaching to a remote `dlv --headless`; Python, Java, and Ballerina are wired in too. Adding another debugger is a single drop-in file: a module at `nvim/.config/nvim/lua/thisarug/dap/<lang>.lua` exporting `setup(dap)` is picked up automatically by `lua/plugins/dap.lua`
 - **Go tooling in Neovim** – gopls with inlay hints and codelenses, `<leader>G…` for code generation (`if err != nil` guards, struct tags, interface stubs, test and doc-comment generation), and `<leader>T…` to run tests from the buffer with a summary tree and watch mode (Go, plus pytest and Vitest via neotest adapters)
 - **Sessions and branch review in Neovim** – persistence.nvim restores a project's buffers and layout on demand (`<leader>qs`, or `s` on the dashboard), and diffview.nvim reviews a branch against the default branch (`<leader>gv`) or walks a file's history (`<leader>gh`)
 - **Smart aliases** – Single-letter shortcuts for modern tools (`v` for nvim, `g` for ripgrep, `f` for fd, `z` for zoxide) while keeping original commands for scripts
@@ -16,10 +16,10 @@ A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CL
 - **Touch ID for sudo** – Use your fingerprint instead of typing passwords in the terminal (works inside tmux too via `pam-reattach`)
 - **Caps Lock remap** – Hammerspoon + `ControlEscape.spoon`: tap Caps Lock for Escape, hold for Control — a Karabiner alternative that needs only Accessibility/Input Monitoring permissions, no blockable system extension
 - **Claude Code, two accounts** – `ccp` (personal) and `cce` (enterprise) run Claude Code against separate config dirs, with TypeScript mods for a status band, risk previews, secret redaction and a subagent pane (see [Claude Code](#claude-code)); tmux shows which windows are waiting on Claude
-- **Project sessions in tmux** – `prefix + f` opens a project with three windows (`[Claude]`, `[Nvim]`, `[Shell]`)
+- **Project sessions in tmux** – `prefix + f` opens a project as its own named tmux session, creating it on first use
 - **Secrets handled correctly** – SOPS + age encryption, `edit_secrets` workflow, and automatic `.env` handling inside `init.sh`
 - **Brewfile-driven** – Curated `Brewfile` with optional category files in `packages/` for modular installation
-- **Validation + profiling** – `bin/lint` (shellcheck, shfmt, `zsh -n`, stylua, mod tests; also run by CI), `test-zsh` integration tests, `dotdoctor` health check, `profile_startup` quick timing, and `bin/profile-zsh-startup` for deep dives
+- **Validation + profiling** – `bin/lint` (shellcheck, shfmt, `zsh -n`, stylua, mod tests; the mod tests need `claude` installed, so CI skips them and they run locally only), `test-zsh` integration tests, `dotdoctor` health check, `profile_startup` quick timing, and `bin/profile-zsh-startup` for deep dives
 
 ## Prerequisites
 
@@ -151,7 +151,7 @@ Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 | `<tool>/.config/<tool>/` | XDG configs, one stow package per tool (`ghostty`, `lazygit`, `nvim`, `yazi`, `ripgrep`, `typos`) |
 | `zsh/.p10k.zsh`          | Powerlevel10k prompt config (Catppuccin Mocha, stowed to `~/.p10k.zsh`)                           |
 | `git/`                   | `.gitconfig`, ignore rules, delta settings                                                        |
-| `tmux/`                  | Modern tmux config + keybinds, project session layout, Claude state in status bar                 |
+| `tmux/`                  | Modern tmux config + keybinds, project sessions, Claude state in status bar                 |
 | `claude/`                | Per-account Claude Code `settings.json` and status line, stowed to `~/.claude-personal` and `~/.claude-enterprise` |
 | `claude-mods/`           | Claude Code mods (not a stow package; loaded through `CLAUDE_CODE_PLUGIN_DIRS`)                   |
 | `tests/`                 | Golden-output and behaviour tests for the Claude Code helpers (`tests/claude/check.sh`, run by `test-zsh`) |
@@ -180,6 +180,8 @@ colima-start                                     # boots the VM, sets the `colim
 docker ps                                        # talks to colima automatically
 lzd                                               # lazydocker also works unchanged — it just follows the active docker context
 ```
+
+The `colima` Package holds `colima.yaml.example` only, not a linked config: `colima start` rewrites `~/.config/colima/default/colima.yaml` as a regular file, which would replace a link. To apply the tracked settings, copy the example over it (`cp colima/.config/colima/default/colima.yaml.example ~/.config/colima/default/colima.yaml`) or paste it in with `colima start --edit`.
 
 Colima lifecycle aliases (`zsh/.aliases.sh`, only defined if `colima` is installed):
 
@@ -267,7 +269,7 @@ Two accounts, each with its own config directory (`claude/` is the stow package 
 
 ### tmux project sessions
 
-`prefix + f` (sessionizer) and `prefix + S` (new session) create a session with three windows: `[Claude]` (runs `claude` with the directory's `.envrc` applied), `[Nvim]` (nvim over a small shell, the window the session opens on) and `[Shell]` (plain shell). `SESSIONIZER_LAYOUT=bare` gives a single shell instead. After pulling, run `bestow stow tmux` if a new helper script is missing. Key reference: [`docs/TMUX_KEYBINDINGS.md`](docs/TMUX_KEYBINDINGS.md).
+`prefix + f` (sessionizer) and `prefix + S` (new session) create a session with one shell window in the chosen directory. Key reference: [`docs/TMUX_KEYBINDINGS.md`](docs/TMUX_KEYBINDINGS.md).
 
 ### Per-project accounts (`envrc`)
 
@@ -300,8 +302,8 @@ Both need `gh` and `jq`; `prs` also needs `fzf`. PR titles are untrusted text: c
 
 - **`cp` / `mv`** are small functions, not aliases: they prompt before overwriting (`-i`, verbose) only when a human is at the terminal, and run the plain command otherwise (scripts, agents, pipes). They do not force `-r`; copy directories with `cp -R`. `sudo cp` / `sudo mv` run the plain commands (sudo runs the binary, not the shell function), so pass `-i` yourself there.
 - **`awake`** keeps the Mac from idle-sleeping in the background (`caffeinate -i`: the display may still sleep or lock, and it works on AC and battery). `awake screen` also keeps the display on, `awake ac` holds only while plugged in, `awake for 2h|30m|90s|<pid>` is timed or tied to a process, and `awake stop` / `awake status` release it or show the mode, start time, battery and floor. A watcher checks the battery every 60 seconds and, when you are on battery at or below the floor (default 20%, `AWAKE_BATTERY_FLOOR` or `--floor N`), releases the hold and posts a macOS notification so the Mac can sleep. Closing the lid still sleeps the Mac unless it is on AC power with an external display. Starting with new settings replaces the hold only once the new one is running, and starts or stops from several shells at once are serialised by a lock. The pidfile is `${TMPDIR:-/tmp}/dotfiles-awake.pid` (it holds only the caffeinate PID); a shell with a different `TMPDIR`, such as a sandboxed agent shell, sees a separate hold. This replaces `dont_sleep`, `stay_awake`, `stay_awake_stop` and `stay_awake_for`.
-- **Atuin** opens Ctrl+R on `global` history (the whole machine) and cycles global, workspace, directory, host, session; the UI is full-style with the search bar on top and tabs shown. Failed commands are still recorded. Atuin's AI `?` trigger is disabled (`atuin init zsh --disable-ai`), so a leading `?` is not intercepted.
-- **Completions** for custom functions live in `zsh/completions/` (stowed to `~/completions/`, on `fpath` before `compinit`): `extract`, `kill_by_port`, `awake`, `edit-*` and `reload`. bestow links per file, so after pulling a new completion file run `bestow stow zsh` (to link it into `~/completions/`) and then `rm ~/.zcompdump*` once.
+- **Atuin** opens Ctrl+R on `global` history (the whole machine) and cycles global, workspace, directory, host, session; the UI is full-style with the search bar at the bottom (`invert = false`) and tabs shown. Failed commands are still recorded. Atuin's AI `?` trigger is disabled (`atuin init zsh --disable-ai`), so a leading `?` is not intercepted.
+- **Completions** for custom functions live in `zsh/completions/` (stowed to `~/completions/`, on `fpath` before `compinit`): `extract`, `kill_by_port`, `awake`, `dotdoctor`, `envrc`, `install_lazygit_latest`. bestow links per file, so after pulling a new completion file run `bestow stow zsh` (to link it into `~/completions/`) and then `rm ~/.zcompdump*` once.
 
 ## Suffix Aliases
 

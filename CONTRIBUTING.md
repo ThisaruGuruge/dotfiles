@@ -322,24 +322,24 @@ git config --local commit.template ~/.gitmessage
 
 ## Release Process
 
-Every PR merged into `main` is automatically tagged and released — there is no manual tagging or batching of changes into a single release.
+Every PR merged into `main` is automatically tagged and released — there is no manual tagging. To batch several fixes into one release, squash them into `dev` and merge `dev` into `main` once (see [Batching a release with the `dev` branch](#batching-a-release-with-the-dev-branch)).
 
 ### How it works
 
 1. **`auto-tag.yml`** runs when a PR is merged into `main` (a `dev` to `main` PR counts). It:
-   - Skips entirely if every changed file in the PR is plumbing (`.github/**`) or docs (`*.md`) — no release is cut for CI/workflow tweaks or documentation-only changes
+   - Skips if every file changed since the last release tag is plumbing (`.github/**`) or docs (`*.md`); a docs-only merge still releases code that an earlier, cancelled run left unreleased
    - Otherwise, reads the commits introduced since the last tag to decide the version bump, following [Semantic Versioning](https://semver.org/):
      - Any `feat!:`/`fix(scope)!:`/`BREAKING CHANGE:` commit → **major** bump
      - Any `feat:` commit → **minor** bump
      - Otherwise (`fix`, `chore`, `refactor`, etc.) → **patch** bump
    - Renames the `## [Unreleased]` section in `CHANGELOG.md` to the new version (with today's date) and pushes a fresh empty `## [Unreleased]` section above it
    - Creates and pushes the new `X.Y.Z` tag (no `v` prefix — matches existing tags/releases in this repo)
-2. **`release.yml`** runs when that tag is pushed. It creates the GitHub Release, pulling notes from the versioned `CHANGELOG.md` section and attaching `Brewfile` and a source tarball.
+2. **`release.yml`** is dispatched explicitly by `auto-tag.yml` after it pushes the tag (a tag pushed with `GITHUB_TOKEN` triggers no workflow). It creates the GitHub Release, pulling notes from the versioned `CHANGELOG.md` section and attaching `Brewfile` and a source tarball.
 
 ### What this means for contributors
 
-- **Keep PRs small and focused.** Each merged PR (that touches actual config/code) becomes its own release, so bundle only the changes that logically belong together.
-- **CI/workflow-only or docs-only PRs don't trigger a release** — mix in even one non-`.github`/non-`.md` file and the PR becomes release-worthy again.
+- **Keep PRs small and focused.** Each PR merged into `main` (that touches actual config/code) becomes its own release; PRs into `dev` do not, so batch related fixes there first.
+- **CI/workflow-only or docs-only PRs don't trigger a release on their own** (they do release code left unreleased since the last tag) — mix in even one non-`.github`/non-`.md` file and the PR becomes release-worthy again.
 - **Add your `CHANGELOG.md` entry under `## [Unreleased]`** in your PR — this becomes that release's notes. If you skip it, the release is still created but with auto-generated notes from commit history instead.
 - **Use accurate Conventional Commit types** (see above) — they directly drive the version bump. A `feat:` you meant as a `fix:` will bump minor instead of patch.
 - No manual `git tag` or version bump PRs are needed; don't create them yourself.
@@ -353,7 +353,7 @@ When several changes should ship as one release, land them on `dev` and merge `d
 3. **Open one PR from `dev` to `main` and merge it with "Rebase and merge"** (never "Squash"). The version bump is read from the individual commit lines since the last tag, so squashing would collapse a `feat:` and several `fix:` commits into the PR title. With a rebase merge the bump is the highest type among them.
 4. **After the release, reset `dev` to `main`** (`git push --force-with-lease origin main:dev`), so the next batch starts clean.
 
-A PR whose files are all under `.github/` or are `*.md` still skips the release when merged to `main`, but a `dev` → `main` PR that carries code does not.
+A merge to `main` skips the release only when everything changed since the last tag is under `.github/` or is `*.md`; a `dev` → `main` PR that carries code always releases.
 
 ---
 
@@ -374,7 +374,7 @@ A PR whose files are all under `.github/` or are `*.md` still skips the release 
    ./bin/test-zsh-config
    ```
 
-3. **Lint** (shellcheck, shfmt, `zsh -n`, stylua, mod tests; the same run CI does):
+3. **Lint** (shellcheck, shfmt, `zsh -n`, stylua, mod tests; CI runs the same checks except the mod tests, which need `claude` and run only locally):
 
    ```bash
    ./bin/lint
@@ -493,7 +493,7 @@ New files need `bestow stow nvim` before nvim sees them, because bestow links pe
 
 ### Adding a Debugger (nvim-dap)
 
-The rules for where a language's adapter and configurations go are in the header comment of `nvim/.config/nvim/lua/plugins/dap.lua`. After adding one, update `KEYBINDINGS.md`, `docs/nvim/keybindings_cheat_sheet.md`, `CHANGELOG.md` and the which-key `<leader>d` block in `editor.lua`.
+The rules for where a language's adapter and configurations go are in the header comment of `nvim/.config/nvim/lua/plugins/dap.lua`. After adding one, update `nvim/.config/nvim/KEYBINDINGS.md`, `docs/nvim/keybindings_cheat_sheet.md`, `CHANGELOG.md` and the which-key `<leader>d` block in `editor.lua`.
 
 ---
 
@@ -585,8 +585,8 @@ zsh -x
 # Test specific file syntax
 zsh -n zsh/.zshrc
 
-# Run shellcheck on specific file
-shellcheck zsh/.functions.sh
+# Lint one file (shellcheck cannot parse zsh)
+zsh -n zsh/.functions.sh   # or: ./bin/lint --file <path>
 
 # Profile startup performance
 ./bin/profile-startup        # quick timing

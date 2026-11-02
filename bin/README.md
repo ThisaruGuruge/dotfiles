@@ -17,7 +17,7 @@ Every script in this directory is bash, POSIX sh or zsh (no Python). Convention:
 | `gws` | bash | Guard: refuses bare `gws`; requires an account-scoped invocation |
 | `gws-account` | bash | Shared helper behind `gwsp`/`gwse` (per-account config dir + keyring) |
 | `gwsp` / `gwse` | bash | Google Workspace CLI, personal / enterprise account |
-| `lint` | bash | Single lint entry point: shellcheck, shfmt, `zsh -n`, stylua, mod tests (also run by CI). `lint --file <path>` lints one file and prints only problems, each with a `fix:` line (used by the `conventions` mod) |
+| `lint` | bash | Single lint entry point: shellcheck, shfmt, `zsh -n`, stylua, mod tests (CI runs the same checks except the mod tests, which need `claude` and run locally only). `lint --file <path>` lints one file and prints only problems, each with a `fix:` line (used by the `conventions` mod) |
 | `profile-startup` | bash | Quick shell startup timing |
 | `profile-zsh-startup` | zsh | Detailed zsh startup profiler (per-component timing) |
 | `rebuild-env` | bash | Rebuild `~/.env` after sops reports `MAC mismatch` (the encrypted file was edited by hand): keep, replace or remove each variable, add new ones, re-encrypt |
@@ -56,7 +56,7 @@ Migrate an existing config from `~/.config/<app>` into your dotfiles repo.
 ```
 
 **What it does:**
-1. Checks that the config exists and is not already managed: it refuses when `<app>/.config/<app>` already exists in the repo or when files under `~/.config/<app>` are symlinks into the repo (bestow links per file, never whole directories)
+1. Checks that the config exists and is not already managed: it refuses when `<app>/.config/<app>` already exists in the repo or when files under `~/.config/<app>` are symlinks into the repo (bestow links per file, never whole directories). It also refuses `sops` and any config holding an age private key (`age/keys.txt` or `*keys.txt` under an `age/` directory): that key decrypts `~/.env` and must never enter the repo
 2. Shows size and lists files that may hold sensitive data (names only)
 3. Moves config to `~/dotfiles/<app>/.config/<app>` (a new top-level bestow package)
 4. Creates `.bestowignore` for sensitive files
@@ -118,8 +118,8 @@ It is a script in `bin/`, so it works from any shell. It checks the repo the scr
 `bin/test-shell-helpers` exercises it (exit codes, hard errors, worktrees, `--full`) together with `envrc`, `prs`/`prw` and the direnv hook, using a scratch `HOME` and fake `gh`/`fzf`/`claude`/`brew`; `test-zsh` runs it.
 
 ### `claude-statusline` / `claude-tmux-state`
-Claude Code helpers, called from `claude/.claude-*/` by their repo path (`~/dotfiles/bin/...`): the root
-`.bestowignore` skips `claude-*`, so they are not linked into `~/bin`.
+Claude Code helpers, called from `claude/.claude-*/` by their repo path (`~/dotfiles/bin/...`). They are
+also linked into `~/bin` like every other script here (the root `.bestowignore` skips only `claude-mods`).
 
 - `claude-statusline --label NAME --color 'R;G;B' [--cost nonzero|always]` draws the status line both
   accounts' `statusline-command.sh` exec: account, Remote Control (`◉ RC` / `○ RC off`), vim mode,
@@ -220,11 +220,10 @@ git push
 
 # 2. Adopt configs you want to manage
 ./bin/adopt-config fish
-./bin/adopt-config sops
 
 # 3. Review and commit
-git add fish/.config/fish sops/.config/sops
-git commit -m "Adopt fish and sops configurations"
+git add fish/.config/fish
+git commit -m "Adopt fish configuration"
 git push
 ```
 
