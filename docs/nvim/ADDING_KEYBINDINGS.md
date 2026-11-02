@@ -4,38 +4,38 @@ This guide explains how to add new keybindings that will automatically appear in
 
 ## Location
 
-All keybindings are centralized in: **`nvim/.config/nvim/lua/plugins/editor.lua`** (the `nvim` stow package, symlinked to `~/.config/nvim`)
+Which-key descriptions and most bindings live in: **`nvim/.config/nvim/lua/plugins/editor.lua`** (the `nvim` stow package, symlinked to `~/.config/nvim`)
 
 ## Steps to Add a New Keybinding
 
 ### Important: Use which-key's `wk.add()` for BOTH binding AND description
 
-In the `wk.add({})` section (around line 125+), add BOTH the command and description:
+In the `wk.add({})` section, add BOTH the command and description:
 
 ```lua
 -- In the appropriate group section
-{ "<leader>xc", "<cmd>YourCommand<cr>", desc = "Your Description", icon = "" },
+{ "<leader>pc", "<cmd>YourCommand<cr>", desc = "Your Description", icon = "" },
 ```
 
 **Do NOT use `vim.keymap.set()` separately** - which-key v3 handles both the keybinding and the description in one place.
 
 ### 3. Add a group if needed
 
-If you're creating a new prefix (like `<leader>x` for the first time):
+If you're creating a new prefix (like `<leader>p` for the first time):
 
 ```lua
 -- Add group first
-{ "<leader>x", group = "Your Group Name", icon = "" },
+{ "<leader>p", group = "Your Group Name", icon = "" },
 
 -- Then add individual commands
-{ "<leader>xc", desc = "Your Command", icon = "" },
+{ "<leader>pc", desc = "Your Command", icon = "" },
 ```
 
 ## Example: Adding a New Git Command
 
 ```lua
 -- In the wk.add({}) section, add:
-{ "<leader>gc", "<cmd>Git commit<cr>", desc = "Git Commit", icon = "" },
+{ "<leader>gB", "<cmd>Gitsigns blame<cr>", desc = "Git Blame (full)", icon = "" },
 ```
 
 That's it! One line does both the keybinding and the description.

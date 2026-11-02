@@ -80,7 +80,8 @@ return {
 
       -- Stepping. Each has an F-key twin matching the VS Code / IntelliJ
       -- layout, for use mid-session when the leader prefix is a keystroke too
-      -- many. F5/F6/F10/F11 are otherwise unused across nvim, tmux, and ghostty.
+      -- many. F5/F6/F7/F8/F10 are otherwise unused across nvim, tmux, and ghostty.
+      -- F11 and S-F11 are macOS Show Desktop.
       map("<leader>dc", function()
         require("dap").continue()
       end, "Continue / start"),
@@ -96,13 +97,13 @@ return {
       map("<leader>di", function()
         require("dap").step_into()
       end, "Step into"),
-      map("<F11>", function()
+      map("<F7>", function()
         require("dap").step_into()
       end, "Debug: step into"),
       map("<leader>dO", function()
         require("dap").step_out()
       end, "Step out"),
-      map("<S-F11>", function()
+      map("<F8>", function()
         require("dap").step_out()
       end, "Debug: step out"),
       map("<leader>dC", function()
