@@ -2,7 +2,8 @@
 # tmux-status-claude — "󰂞 N waiting: sessA, sessB" for tmux's status-right.
 #
 # Counts windows whose @claude_state option is "waiting" (set per window by
-# bin/claude-tmux-state from Claude Code hooks) and lists the sessions they live in.
+# bin/claude-tmux-state from Claude Code hooks) and lists the sessions (or session groups) they live in; a window shared by grouped
+# sessions counts once.
 # Prints nothing when no window is waiting, so the status bar stays quiet.
 #
 # No cache file on purpose: tmux runs a #() command at most once per second and
@@ -23,13 +24,17 @@ case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
 esac
 
 # First line: how many windows are waiting. Then one line per session, in window order.
-summary=$(tmux list-windows -a -F $'#{session_name}\t#{@claude_state}' 2>/dev/null |
+summary=$(tmux list-windows -a -F $'#{window_id}\t#{session_grouped}\t#{session_group}\t#{session_name}\t#{@claude_state}' 2>/dev/null |
     awk -F '\t' '
-        $2 == "waiting" {
+        # Grouped sessions (main, main-1, ...) share windows: count each window once
+        # and name it by its group.
+        $5 == "waiting" && !($1 in win) {
+            win[$1] = 1
             total++
-            if (!($1 in seen)) {
-                seen[$1] = 1
-                order[++n] = $1
+            name = ($2 == 1 && $3 != "") ? $3 : $4
+            if (!(name in seen)) {
+                seen[name] = 1
+                order[++n] = name
             }
         }
         END {

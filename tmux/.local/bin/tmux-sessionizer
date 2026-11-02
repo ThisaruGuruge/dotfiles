@@ -2,8 +2,7 @@
 # TMux Sessionizer - Fuzzy find projects and switch to named sessions
 # Inspired by ThePrimeagen's sessionizer
 #
-# New sessions get the standard layout from tmux-session-layout ([Claude] / [Nvim] /
-# [Shell] windows); SESSIONIZER_LAYOUT=bare keeps a single shell window. Existing sessions
+# New sessions are a single plain shell window in the project directory. Existing sessions
 # are never touched. Two projects with the same folder name get parent-qualified
 # session names (e.g. "work/api" and "personal/api").
 
@@ -114,15 +113,9 @@ else
     selected_name=$(pick_session_name "$selected")
 fi
 
-# If session doesn't exist, create it (detached) with the standard layout
+# If session doesn't exist, create it (detached)
 if ! tmux has-session -t="$selected_name" 2>/dev/null; then
-    layout_helper="$(cd "$(dirname "$0")" && pwd)/tmux-session-layout"
-    if [[ -x "$layout_helper" ]]; then
-        "$layout_helper" "$selected_name" "$selected"
-    else
-        warn "tmux-session-layout is missing next to $(basename "$0"): opening a bare session. Run: bestow stow tmux"
-        tmux new-session -ds "$selected_name" -c "$selected"
-    fi || {
+    tmux new-session -ds "$selected_name" -c "$selected" || {
         warn "Could not create session '$selected_name'"
         exit 1
     }
