@@ -6,11 +6,6 @@
   "permissions": {
     "defaultMode": "auto"
   },
-  "statusLine": {
-    "type": "command",
-    "command": "bash \"$HOME/.claude-enterprise/statusline-command.sh\"",
-    "refreshInterval": 15
-  },
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -18,8 +13,8 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" working >/dev/null 2>&1 || true",
-            "async": true,
-            "timeout": 5
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -35,8 +30,8 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-notify\" attention >/dev/null 2>&1 || true",
-            "async": true,
-            "timeout": 5
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -52,8 +47,8 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-notify\" done >/dev/null 2>&1 || true",
-            "async": true,
-            "timeout": 5
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -75,8 +70,8 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-notify\" subagent >/dev/null 2>&1 || true",
-            "async": true,
-            "timeout": 5
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -88,8 +83,8 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-notify\" attention >/dev/null 2>&1 || true",
-            "async": true,
-            "timeout": 5
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -100,8 +95,8 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" resume >/dev/null 2>&1 || true",
-            "async": true,
-            "timeout": 5
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -117,6 +112,11 @@
         ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$HOME/.claude-enterprise/statusline-command.sh\"",
+    "refreshInterval": 15
   },
   "effortLevel": "xhigh",
   "autoUpdatesChannel": "stable",
@@ -149,5 +149,6 @@
       "**Org-specific CLIs**: None configured"
     ]
   },
-  "hideVimModeIndicator": true
+  "hideVimModeIndicator": true,
+  "model": "sonnet"
 }
