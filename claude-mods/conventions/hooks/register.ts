@@ -185,6 +185,29 @@ async function run($: $, argv: string[], cwd: string, quietCodes: number[] = [])
   }
 }
 
+/**
+ * Whether the checkout's bin/lint is as committed: the blob id of its bytes
+ * equals HEAD's. An edit to it (by this session or anyone) is not reviewed by
+ * the permission system, so a changed copy is never run. Not `git diff`: that
+ * applies gitattributes filters (and may run a filter command), and an edited
+ * attributes file can make a changed bin/lint look clean. `hash-object
+ * --no-filters` and `rev-parse` run no configured command. Any error counts as changed.
+ */
+async function lintAtHead($: $, root: string): Promise<boolean> {
+  const git = async (...args: string[]) => {
+    const r = await $.process.run(['git', '-c', 'core.fsmonitor=false', ...args], { cwd: root, timeoutMs: TIMEOUT_MS })
+    const id = r.stdout.trim()
+    return r.exitCode === 0 && /^[0-9a-f]{40,64}$/.test(id) ? id : undefined
+  }
+  try {
+    const work = await git('hash-object', '--no-filters', '--', `${root}/bin/lint`)
+    const head = await git('rev-parse', '--verify', '--quiet', 'HEAD:bin/lint')
+    return work !== undefined && work === head
+  } catch {
+    return false
+  }
+}
+
 /** The message for an edited file, or undefined when it is clean or out of scope. */
 export async function review($: $, edited: string): Promise<string | undefined> {
   if (!edited.startsWith('/')) return undefined
@@ -222,17 +245,17 @@ export async function review($: $, edited: string): Promise<string | undefined> 
   }
 
   const tools: Promise<string | undefined>[] = []
-  if (isOwn) {
-    // bin/lint knows which files are bash, zsh or nvim Lua; it says nothing about the rest,
-    // so it is only spawned for a path it covers and a check the repo has on
-    if (lintChecks(rel).some(has)) {
-      tools.push(
-        run($, [`${root}/bin/lint`, '--file', file], root, [2]).then(
-          o => o && toolProblem(`bin/lint --file ${rel}`, o),
-        ),
-      )
-    }
-  } else {
+  // bin/lint knows which files are bash, zsh or nvim Lua; it says nothing about the rest,
+  // so it is only spawned for a path it covers and a check the repo has on
+  const covered = isOwn && lintChecks(rel).some(has)
+  // ...and only as committed: never right after an edit to bin/lint itself, nor while it
+  // differs from HEAD, or an unreviewed script would run. The generic checks stand in.
+  const ownLint = covered && rel !== 'bin/lint' && (await lintAtHead($, root))
+  if (ownLint) {
+    tools.push(
+      run($, [`${root}/bin/lint`, '--file', file], root, [2]).then(o => o && toolProblem(`bin/lint --file ${rel}`, o)),
+    )
+  } else if (!isOwn || covered) {
     if (lang === 'bash' && has('shfmt')) {
       tools.push(
         run($, ['shfmt', '-i', '4', '-ci', '-d', file], root).then(
@@ -254,7 +277,7 @@ export async function review($: $, edited: string): Promise<string | undefined> 
   const found = (await Promise.all(tools)).filter((p): p is string => p !== undefined)
   // shfmt and stylua already report tab indentation, with the same fix: one note, not two.
   // Only when bin/lint ran one of them: a new bin/ script it does not list still gets the note.
-  const tabsInTool = isOwn && lang !== 'zsh' && found.some(o => /fix: (?:shfmt|stylua) /.test(o))
+  const tabsInTool = ownLint && lang !== 'zsh' && found.some(o => /fix: (?:shfmt|stylua) /.test(o))
   if (tabNote !== undefined && !tabsInTool) problems.unshift(tabNote)
   problems.push(...found)
 

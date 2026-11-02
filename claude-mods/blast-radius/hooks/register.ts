@@ -93,7 +93,9 @@ async function previewTarget($: Sh, w: Where, raw: string): Promise<string[]> {
     if (kind === null) return [`- ${raw}  (does not exist)`]
     const stat = await $.fs.stat(path)
     if (stat.kind !== 'dir') return [`- ${raw}  ${kind}, ${human(stat.size)}`]
-    const danger = path === '/' || path === w.home || `${path}/` === w.home
+    // `~/`, `/Users/me/` and `/Users/me` are all home; `//` is still root
+    const bare = (p: string) => p.replace(/\/+$/, '') || '/'
+    const danger = bare(path) === '/' || (w.home !== undefined && w.home !== '' && bare(path) === bare(w.home))
     // Counting can time out on a big tree; the size is then unknown, not a reason to skip the question
     const [count, kb] = await Promise.all([
       countEntries($, w, COUNT_FILES, path).catch(() => '?'),

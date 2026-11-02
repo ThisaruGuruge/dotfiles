@@ -7,7 +7,10 @@
 # at least one file symlinked into the dotfiles repo", not "the directory
 # itself is a symlink".
 
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve a symlinked invocation (e.g. ~/bin/audit-configs) to the real repo;
+# physical path, because readlink -f below yields physical link targets
+SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
+DOTFILES_DIR="$(cd -P "$(dirname "$SELF")/.." && pwd -P)"
 
 # Colors
 GREEN='\033[0;32m'
@@ -84,9 +87,9 @@ echo "  ./bin/adopt-config fish"
 echo ""
 echo "Configs that should probably be adopted:"
 echo "  - fish (if you use fish shell)"
-echo "  - sops (encryption settings)"
 echo ""
 echo "Configs that should NOT be adopted (credentials/cache):"
+echo "  - sops (holds age/keys.txt, the private key that decrypts ~/.env; adopt-config refuses it)"
 echo "  - gcloud (credentials, 86MB)"
 echo "  - github-copilot (auth tokens)"
 echo "  - configstore (app-generated)"

@@ -42,6 +42,49 @@ describe('redactText', () => {
     }
   })
 
+  test('hides a private key, whole or cut off before its END line', () => {
+    // Obviously fake base64: a repeated filler, not key material
+    const begin = part('-----BEGIN OPENSSH PRIVATE', ' KEY-----')
+    const end = part('-----END OPENSSH PRIVATE', ' KEY-----')
+    const body = ['QUFBQUFB'.repeat(8), 'QkJCQkJC'.repeat(8), 'Q0NDQw==']
+    const whole = run(`key:\n${begin}\n${body.join('\n')}\n${end}\ndone`)
+    expect(whole.out).toBe('key:\n[REDACTED:private-key]\ndone')
+    expect(whole.counts['private-key']).toBe(1)
+
+    // head -3: no END line, the text just stops
+    expect(run(`${begin}\n${body[0]}\n${body[1]}`).out).toBe('[REDACTED:private-key]')
+    // cut off mid-line, then more output after a blank line or a non-base64 line
+    expect(run(`${begin}\n${body[0]}\nQUFB\n\nnext: ok`).out).toBe('[REDACTED:private-key]\n\nnext: ok')
+    expect(run(`${begin}\n${body[0]}\n(truncated)`).out).toBe('[REDACTED:private-key]\n(truncated)')
+    // a traditional encrypted key's headers and the blank line after them
+    const rsa = part('-----BEGIN RSA PRIVATE', ' KEY-----')
+    const enc = `${rsa}\nProc-Type: 4,ENCRYPTED\nDEK-Info: AES-128-CBC,00FF\n\n${body[0]}\n${body[1]}`
+    expect(run(enc).out).toBe('[REDACTED:private-key]')
+    // JSON-escaped line breaks
+    expect(run(`{"k":"${begin}\\n${body[0]}\\n${body[1]}"}`).out).toBe('{"k":"[REDACTED:private-key]"}')
+    // line-numbered: cat -n, a Read result's arrow, grep -n; the number before BEGIN stays
+    for (const sep of ['\t', '→']) {
+      const lines = [begin, body[0], body[1]].map((l, i) => `     ${i + 1}${sep}${l}`).join('\n')
+      expect(run(lines).out).toBe(`     1${sep}[REDACTED:private-key]`)
+    }
+    expect(run(`1:${begin}\n2:${body[0]}\n3:${body[1]}`).out).toBe('1:[REDACTED:private-key]')
+    const encN = `     1\t${rsa}\n     2\tProc-Type: 4,ENCRYPTED\n     3\tDEK-Info: AES-128-CBC,00FF\n     4\t\n     5\t${body[0]}`
+    expect(run(encN).out).toBe('     1\t[REDACTED:private-key]')
+    // a following `word: value` line is not swallowed
+    expect(run(`key: |\n  ${begin}\n  ${body[0]}\n  ${body[1]}\nnext: 1`).out).toBe(
+      'key: |\n  [REDACTED:private-key]\nnext: 1',
+    )
+  })
+
+  test('a truncated private key with adversarial input stays fast', () => {
+    const begin = part('-----BEGIN OPENSSH PRIVATE', ' KEY-----')
+    for (const s of [`${begin}\n${'A'.repeat(400_000)}!`, `${begin}${'\n 1:a'.repeat(80_000)}`, `${begin}\n${'1'.repeat(400_000)} x`]) {
+      const t = performance.now()
+      redactText(s, {})
+      expect(performance.now() - t).toBeLessThan(500)
+    }
+  })
+
   test('keeps the name of a password assignment, hides the value', () => {
     const { out } = run(`DB_PASSWORD=${pwd} and password: "${pwd}"`)
     expect(out).toBe('DB_PASSWORD=[REDACTED:password] and password: "[REDACTED:password]"')

@@ -22,8 +22,9 @@ const OTHER = '#9399b2'
 // Category colors validated for a dark surface (lightness band, CVD separation)
 const PALETTE: [RegExp, string, string, string][] = [
   [/system prompt/i, '#e66767', 'system', 'sys'],
-  [/tools/i, '#9085e9', 'tools', 'tools'],
+  // MCP before tools: "MCP tools" is MCP, not the built-in tools
   [/mcp/i, '#d55181', 'MCP', 'mcp'],
+  [/tools/i, '#9085e9', 'tools', 'tools'],
   [/agent/i, '#c98500', 'agents', 'agents'],
   [/memory/i, '#199e70', 'memory', 'mem'],
   [/skill/i, '#d95926', 'skills', 'skills'],

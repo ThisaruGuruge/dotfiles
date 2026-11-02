@@ -218,6 +218,17 @@ describe('previews where the command runs', () => {
     expect(q).toContain('directory: 100000 files')
   })
 
+  test('home is flagged however it is spelled, and root too', async ($, on) => {
+    const eng = engine(on, 'Cancel', argv => (argv[0] === 'sh' ? { exitCode: 0, stdout: '7\n' } : { exitCode: 0, stdout: 'Directory' }))
+    for (const target of ['~', '~/', '/Users/me', '/Users/me/', '/Users/me//', '/', '//']) {
+      await $.tool.call(bash(`rm -rf ${target}`))
+    }
+    await $.tool.call(bash('rm -rf /Users/me/src'))
+    expect(eng.asked.length).toBe(8)
+    for (const q of eng.asked.slice(0, 7)) expect(q).toContain('filesystem root or your home directory')
+    expect(eng.asked[7]).not.toContain('filesystem root or your home directory')
+  })
+
   test('an ssh payload is not previewed locally', async ($, on) => {
     const eng = engine(on, 'Cancel')
     await $.tool.call(bash("ssh host 'rm -rf /srv/app'"))

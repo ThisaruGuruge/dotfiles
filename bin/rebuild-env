@@ -45,6 +45,22 @@ die() {
     exit 1
 }
 
+# NAME=VALUE in a form _dotfiles_env_parse reads back literally: single quotes when
+# the value has no single quote, else double quotes with \ " $ ` escaped.
+emit_var() {
+    local name="$1" value="$2"
+    case "$value" in
+        *\'*)
+            value="${value//\\/\\\\}"
+            value="${value//\"/\\\"}"
+            value="${value//\$/\\\$}"
+            value="${value//\`/\\\`}"
+            printf '%s="%s"\n' "$name" "$value"
+            ;;
+        *) printf "%s='%s'\n" "$name" "$value" ;;
+    esac
+}
+
 command -v sops >/dev/null || die "sops is not installed (brew install sops)"
 command -v age-keygen >/dev/null || die "age is not installed (brew install age)"
 ENV_LINK_NOTE=""
@@ -107,7 +123,7 @@ while IFS= read -r line || [ -n "$line" ]; do
     case "$answer" in
         '') printf '%s=%s\n' "$name" "$value" >>"$tmp/plain" ;;
         -) echo "  removed $name" ;;
-        *) printf '%s=%s\n' "$name" "$answer" >>"$tmp/plain" ;;
+        *) emit_var "$name" "$answer" >>"$tmp/plain" ;;
     esac
 done <"$tmp/current"
 
@@ -133,10 +149,20 @@ while :; do
     printf 'Value for %s (hidden): ' "$newname"
     IFS= read -rs -u 3 newvalue || newvalue=""
     printf '\n'
-    printf '%s=%s\n' "$newname" "$newvalue" >>"$tmp/plain"
+    emit_var "$newname" "$newvalue" >>"$tmp/plain"
 done
 
 [ -s "$tmp/plain" ] || die "nothing left to store; refusing to write an empty $ENV_FILE"
+
+# Same check edit_secrets makes: say which lines the shell loader would skip (names only).
+loader="$(dirname -- "$(readlink -f -- "$0")")/../zsh/.functions.d/06-dotfiles.zsh"
+if command -v zsh >/dev/null && [ -f "$loader" ]; then
+    skipped="$(zsh -c 'source "$1" && (_dotfiles_env_parse <"$2") 2>&1 >/dev/null' _ "$loader" "$tmp/plain" || true)"
+    if [ -n "$skipped" ]; then
+        echo "warning: Saved anyway, but new shells will skip some lines:"
+        printf '%s\n' "${skipped//dotfiles: /   }"
+    fi
+fi
 
 # 4. Encrypt to a new file beside the original, then verify it.
 new="${TARGET}.new.$$"
