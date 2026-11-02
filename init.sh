@@ -1028,11 +1028,11 @@ setup_secret_management() {
 bestow_packages() {
     log_step "Using bestow to manage dotfiles"
 
-    local packages=("zsh" "bash" "bin" "nvim" "git" "tmux" "direnv" "ssh" "atuin" "gh" "htop" "lazygit" "ripgrep" "yazi" "claude" "typos" "dust" "ghostty" "hammerspoon" "colima")
+    local packages=("zsh" "bash" "bin" "nvim" "git" "tmux" "direnv" "ssh" "atuin" "gh" "htop" "lazygit" "ripgrep" "yazi" "claude" "typos" "dust" "ghostty" "hammerspoon")
 
     echo ""
     echo -e "${CYAN}If a dotfile already exists at the destination, how should it be handled?${NC}"
-    echo -e "  ${YELLOW}b${NC}) Backup existing files (renamed to *.bestow.backup) and symlink"
+    echo -e "  ${YELLOW}b${NC}) Backup existing files (renamed to *.bestow.bak) and symlink"
     echo -e "  ${YELLOW}k${NC}) Keep existing files as-is (skip only the conflicting files)"
     echo ""
 

@@ -4,11 +4,7 @@
     "BASH_OUTPUT_MAX_LENGTH": "150000",
     "CLAUDE_CODE_PLUGIN_DIRS": "~/dotfiles/claude-mods/statusbar:~/dotfiles/claude-mods/blast-radius:~/dotfiles/claude-mods/redact:~/dotfiles/claude-mods/agents:~/dotfiles/claude-mods/rabe:~/dotfiles/claude-mods/session-wrapped:~/dotfiles/claude-mods/conventions"
   },
-  "statusLine": {
-    "type": "command",
-    "command": "bash \"$HOME/.claude-personal/statusline-command.sh\"",
-    "refreshInterval": 15
-  },
+  "model": "sonnet",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -16,8 +12,8 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" working >/dev/null 2>&1 || true",
-            "async": true,
-            "timeout": 5
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -33,8 +29,8 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-notify\" attention >/dev/null 2>&1 || true",
-            "async": true,
-            "timeout": 5
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -50,8 +46,8 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-notify\" done >/dev/null 2>&1 || true",
-            "async": true,
-            "timeout": 5
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -73,8 +69,8 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-notify\" subagent >/dev/null 2>&1 || true",
-            "async": true,
-            "timeout": 5
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -86,8 +82,8 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-notify\" attention >/dev/null 2>&1 || true",
-            "async": true,
-            "timeout": 5
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -98,8 +94,8 @@
           {
             "type": "command",
             "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" resume >/dev/null 2>&1 || true",
-            "async": true,
-            "timeout": 5
+            "timeout": 5,
+            "async": true
           }
         ]
       }
@@ -115,6 +111,11 @@
         ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$HOME/.claude-personal/statusline-command.sh\"",
+    "refreshInterval": 15
   },
   "enabledPlugins": {
     "gopls-lsp@claude-plugins-official": true,
@@ -135,9 +136,8 @@
   "theme": "dark",
   "editorMode": "vim",
   "verbose": true,
+  "autoCompactEnabled": true,
   "agentPushNotifEnabled": true,
-  "hideVimModeIndicator": false,
-  "model": "sonnet",
   "autoMode": {
     "environment": [
       "### Org-wide",
@@ -164,5 +164,6 @@
       "**Trusted repo**: The git repository the agent started in and its configured remote(s)",
       "**Org-specific CLIs**: None configured"
     ]
-  }
+  },
+  "hideVimModeIndicator": false
 }

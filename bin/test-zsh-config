@@ -682,7 +682,7 @@ fi
 sc_check "bin/sync-brewfile is read-only (no dump / --force)" "script rewrites a Brewfile" \
     bash -c '! grep -v "^[[:space:]]*#" "$1" | grep -Eq "bundle dump|--force"' _ "$sc_repo/bin/sync-brewfile"
 sc_check "atuin: global filter, invert, full style, tabs; failed commands not suppressed" "unexpected atuin settings" \
-    bash -c 'f="$1"; grep -q "^filter_mode = \"global\"" "$f" && grep -q "^invert = true" "$f" && grep -q "^style = \"full\"" "$f" && grep -q "^show_tabs = true" "$f" && grep -q "filters = \[ \"global\", \"workspace\"" "$f" && ! grep -Eq "^store_failed" "$f"' _ "$sc_repo/atuin/.config/atuin/config.toml"
+    bash -c 'f="$1"; grep -q "^filter_mode = \"global\"" "$f" && grep -q "^invert = false" "$f" && grep -q "^style = \"full\"" "$f" && grep -q "^show_tabs = true" "$f" && grep -q "filters = \[ \"global\", \"workspace\"" "$f" && ! grep -Eq "^store_failed" "$f"' _ "$sc_repo/atuin/.config/atuin/config.toml"
 sc_check "fzf Ctrl-T / Alt-C previews configured" "FZF_CTRL_T_OPTS / FZF_ALT_C_OPTS missing" \
     bash -c 'grep -q "^export FZF_CTRL_T_OPTS" "$1" && grep -q "^export FZF_ALT_C_OPTS" "$1" && ! grep -q "^export FZF_DEFAULT_OPTS" "$1"' _ "$sc_repo/zsh/.zshrc.d/05-shell-integrations.zsh"
 
@@ -922,7 +922,7 @@ if [[ -f "$tmux_conf" ]]; then
         if (( ${#missing_keys[@]} == 0 )); then
             print_test "Tmux palette covers every prefix binding" "pass" "${#conf_keys[@]} bindings checked"
         else
-            print_test "Tmux palette covers every prefix binding" "warn" "Missing from tmux-palette-entries: ${(j:, :)missing_keys}"
+            print_test "Tmux palette covers every prefix binding" "fail" "Missing from tmux-palette-entries: ${(j:, :)missing_keys}"
         fi
 
         # Every palette command must parse as tmux config (isolated throwaway server)
@@ -958,7 +958,6 @@ if [[ -f "$tmux_conf" ]]; then
     local tm_script
     for tm_script in \
         "$tmux_repo/tmux/.local/bin/tmux-palette" \
-        "$tmux_repo/tmux/.local/bin/tmux-session-layout" \
         "$tmux_repo/tmux/.local/bin/tmux-sessionizer" \
         "$tmux_repo/tmux/.local/bin/tmux-session-creator" \
         "$tmux_repo/tmux/.local/bin/tmux-session-switcher" \

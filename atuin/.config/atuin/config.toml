@@ -57,7 +57,7 @@ inline_height = 0
 inline_height_shell_up_key_binding = 40
 
 ## Invert UI (search bar at top)
-invert = true
+invert = false
 
 ## Show command preview (useful for long commands)
 show_preview = true
