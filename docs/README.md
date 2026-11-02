@@ -18,7 +18,7 @@ This directory contains additional documentation for the dotfiles repository.
 - [YAZI_KEYBINDINGS.md](YAZI_KEYBINDINGS.md) - Yazi file manager keybindings
 
 ### TMux
-- [TMUX_KEYBINDINGS.md](TMUX_KEYBINDINGS.md) - TMux keybindings, project session layout and Claude state
+- [TMUX_KEYBINDINGS.md](TMUX_KEYBINDINGS.md) - TMux keybindings, sessions and Claude state
 
 ### Neovim (`nvim/`)
 - [keybindings_cheat_sheet.md](nvim/keybindings_cheat_sheet.md) - Complete Neovim keybindings reference

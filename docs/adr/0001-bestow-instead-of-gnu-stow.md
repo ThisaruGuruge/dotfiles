@@ -11,5 +11,5 @@ Symlinks are managed by `bestow`, the owner's own Go tool (`github.com/redpierro
 
 - `bestow` is a `go install` build, not a Homebrew package, so a fresh machine needs Go first. `init.sh` handles it.
 - `.bestowignore` uses globs, not regexes, and must sit at the package root. The root file's patterns are also matched against package directory names (a `claude*` glob once hid the `claude` package).
-- bestow cannot manage the config file it reads, so `~/.config/bestow/config.yaml` is bootstrapped by `init.sh` and kept in sync with the repo copy by hand.
+- bestow needs its config before it can link anything, so on a fresh machine `init.sh` bootstraps `~/.config/bestow/config.yaml` with `bestow init`. Afterwards the file may be replaced by a link to the repo copy (as on the owner's machine); `dotdoctor` checks that the live file matches the repo copy either way.
 - Never run a bare `bestow stow`; it stows every package, including ones that need a custom destination.

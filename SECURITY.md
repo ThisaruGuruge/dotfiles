@@ -19,7 +19,7 @@ We take the security of this dotfiles repository seriously. If you discover a se
 
 Instead, report security issues privately:
 
-1. **Email:** Send details to the repository maintainer at [create an issue with "SECURITY" prefix](https://github.com/ThisaruGuruge/dotfiles/issues/new)
+1. **Report privately:** Use [GitHub private vulnerability reporting](https://github.com/ThisaruGuruge/dotfiles/security/advisories/new)
 2. **Include:**
    - Description of the vulnerability
    - Steps to reproduce
@@ -163,7 +163,7 @@ The installation script:
 
 - Installs Homebrew packages from `Brewfile` (plus the optional `packages/*.brewfile` categories you pick)
 - Sets up SOPS/age encryption: an age key, a per-machine `~/.sops.yaml`, and an encrypted `~/.env`
-- Creates symlinks with bestow; a file already in the way is either renamed to `*.bestow.backup` or left alone (you choose)
+- Creates symlinks with bestow; a file already in the way is either renamed to `<file>.bestow.bak` or left alone (you choose)
 - Copies `.zshrc`, `.vimrc`, `.aliases.sh`, `.functions.sh` and `.paths.sh` to `~/.dotfiles_backup_<timestamp>` before stowing
 - Changes some files **without** keeping a copy, by design:
   - a plaintext `~/.env` (or the file a `~/.env` symlink points to) is replaced by its encrypted version, only after a `sops -d` round trip matches, and no plaintext copy is kept
@@ -282,7 +282,6 @@ GitHub Actions CI includes:
 - Shellcheck validation
 - Secret pattern scanning
 - Hardcoded path detection
-- Dependency validation
 
 ## Vulnerability Disclosure
 

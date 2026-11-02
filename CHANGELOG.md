@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- `adopt-config` refuses `sops` and any directory holding an age `keys.txt` or an `AGE-SECRET-KEY-1` value, and `**/age/keys.txt` is git-ignored and in adopt-config's default `.bestowignore`; `audit-configs` and `bin/README.md` no longer recommend adopting `sops` (doing so moved the private key that decrypts `~/.env` into the repo)
+- `conventions` mod: `bin/lint` is never run right after an edit to it, or while it differs from `HEAD`; the generic checks run instead, so an edited `bin/lint` cannot execute outside the permission system
+- `redact` mod: a private key whose `END` line is cut off (`head`, a Read with a limit, truncated output) is hidden from `BEGIN` through its base64 lines
+- The `~/.env` parser refuses `NULLCMD` and `READNULLCMD`, which zsh runs as commands for bare redirections, and `MAIL`, `MAILPATH` and `MAILCHECK` (zsh expands the message part of `MAILPATH` entries)
+- `SECURITY.md` points vulnerability reports at GitHub private vulnerability reporting instead of a public issue
+
+### Changed
+
+- Neovim debugger: step into is `F7` and step out is `F8` (macOS Show Desktop takes `F11` and `Shift+F11`)
+- The `colima` Package holds `colima.yaml.example` instead of a linked `colima.yaml` (`colima start` rewrites the file, replacing the link); `init.sh` no longer stows it. Copy the example into `~/.config/colima/default/` or apply it with `colima start --edit`
+- Atuin's search bar is at the bottom (`invert = false`)
+- `test-zsh` fails, instead of warning, when a tmux prefix binding is missing from the command palette
+- Claude Code: the enterprise account defaults to the `sonnet` model and the personal account turns on auto-compact
+- yazi plugins updated to rev `896fa5a`
+
+### Fixed
+
+- Panes restored into the home directory after a logout: tmux-resurrect drops the directory of a pane whose title is empty (its tab-separated save file collapses the empty field), and Claude Code blanks the title. A `pane-title-changed` hook now re-titles blanked panes `-` without running a shell
+- Auto-tag decides whether to release from every file changed since the last tag, so a docs-only merge that cancels a queued run no longer leaves code changes unreleased; `release.yml` builds the tarball, `Brewfile` asset and notes from the tag instead of the current `main`
+- `sync-brewfile` and `audit-configs` find the repo when run through `~/bin` (they used `$HOME`)
+- `rebuild-env` quotes the values it writes, so values containing `$`, `&` or spaces are no longer refused when the shell loads `~/.env`, and it checks the result with the shell's parser
+- `tmux-status-claude` counts each Claude window once when grouped sessions show it
+- `BALLERINA_HOME` falls back to Homebrew's ballerina when `/Library/Ballerina` is missing, so a fresh machine no longer warns in every shell
+- `profile-zsh-startup` bases its verdict on the measured full startup
+- `edit_dotfiles` commits only the edited file
+- `blast-radius` mod warns about the home directory written with a trailing slash (`rm -rf ~/`); `statusbar` mod labels MCP tools as MCP
+- Docs: stale tmux layout and `KEYBINDINGS.md` paths, the bestow config path, the `.bestow.bak` backup name, the completions list, the bestow config (bootstrapped on a fresh machine, possibly linked later), the release flow and CI coverage in `CONTRIBUTING.md`, `README.md` and `bin/README.md`, `docs/nvim/ADDING_KEYBINDINGS.md` examples, and ADR 0004's background-image note
+
+### Removed
+
+- The three-window session layout (`[Claude]`, `[Nvim]`, `[Shell]`) and `tmux-session-layout`: `prefix + f` and `prefix + S` now create a single shell window in the chosen directory
+
 ## [2.12.0] - 2026-10-15
 
 ### Added

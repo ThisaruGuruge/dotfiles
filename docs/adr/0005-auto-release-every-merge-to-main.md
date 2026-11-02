@@ -1,6 +1,6 @@
 # Release automatically on every merge to main
 
-Every pull request merged to `main` is tagged and released by `auto-tag.yml` then `release.yml` (added 2026-07-14, `d530267`), unless every changed file is under `.github/` or is `*.md`. The version bump comes from conventional commit types (`feat` minor, `!` / `BREAKING CHANGE` major, else patch); the `## [Unreleased]` section of `CHANGELOG.md` becomes the release notes. Tags have no `v` prefix.
+Every pull request merged to `main` is tagged and released by `auto-tag.yml` then `release.yml` (added 2026-07-14, `d530267`), unless every file changed since the last release tag is under `.github/` or is `*.md` (judged since the tag, not per PR, because a newer run in the concurrency group cancels a queued one). The version bump comes from conventional commit types (`feat` minor, `!` / `BREAKING CHANGE` major, else patch); the `## [Unreleased]` section of `CHANGELOG.md` becomes the release notes. Tags have no `v` prefix.
 
 ## Context
 
@@ -12,5 +12,5 @@ To avoid one release per small fix, finished work is squashed into the `dev` bra
 
 - Commit types must be accurate, because they pick the version.
 - Never create tags or bump versions by hand.
-- Docs-only and CI-only PRs are invisible to the release flow.
+- Docs-only and CI-only changes never cause a release on their own, but a docs-only merge releases any code still unreleased since the last tag.
 - History stays linear: squash or rebase merges only, no merge commits.
