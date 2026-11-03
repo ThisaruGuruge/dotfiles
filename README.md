@@ -58,6 +58,7 @@ The script is interactive; it will:
 - Install core packages from `Brewfile` with Brew
 - Offer opt-in categories (development, terminals, editors, etc.)
 - Install SDKMAN + Java 21 (optional) and brew-based Ballerina
+- Install `typescript-language-server` and `typescript` with `npm i -g` (optional; needs npm from nvm, skipped with a hint when Node is not installed yet)
 - Enable Touch ID for sudo (with tmux support via `pam-reattach`, loaded from a root-owned copy in `/opt/pam`)
 - Configure Atuin, direnv, tmux, git delta, lazygit, lazydocker, aliases, and helper functions
 - Generate/restore encrypted `.env` with SOPS + age (keys stored at `~/.config/sops/age/keys.txt`, per-machine `~/.sops.yaml`)

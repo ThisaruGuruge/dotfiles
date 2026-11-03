@@ -17,7 +17,7 @@ stack after the spec is final, not before.
 | ------ | ------ | ------------ |
 | `mattpocock-skills` | [mattpocock/skills](https://github.com/mattpocock/skills) via its own marketplace (`mattpocock`) | 27 skills: grilling, domain modelling, spec and ticket flow, TDD, bug diagnosis, code review, PR bodies, handoff |
 | `frontend-design` | `claude-plugins-official` | Design guidance for building or reshaping UI |
-| `typescript-lsp` | `claude-plugins-official` | TypeScript and JavaScript code intelligence (diagnostics, go-to-definition, references). Needs `npm i -g typescript-language-server typescript` on the machine |
+| `typescript-lsp` | `claude-plugins-official` | TypeScript and JavaScript code intelligence (diagnostics, go-to-definition, references). Needs `npm i -g typescript-language-server typescript` on the machine (`init.sh` runs it when npm is available) |
 | `gopls-lsp` | `claude-plugins-official` | Go code intelligence. Needs `gopls` on PATH (already installed for Neovim) |
 | `claude-md-management` | `claude-plugins-official` | `claude-md-improver` skill (audits CLAUDE.md files) and `/revise-claude-md` (adds session learnings). No hooks or MCP servers |
 
