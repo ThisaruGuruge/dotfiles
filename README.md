@@ -253,7 +253,7 @@ Ctrl+T / Alt+C                             # fzf file / directory picker with a 
 
 ### Claude Code
 
-Two accounts, each with its own config directory (`claude/` is the stow package that links `settings.json` and `statusline-command.sh` into both; history, sessions and auth stay local, auth in the macOS Keychain):
+Two accounts, each with its own config directory (`claude/` is the stow package that links `settings.json`, `keybindings.json` and `statusline-command.sh` into both; history, sessions and auth stay local, auth in the macOS Keychain):
 
 | Command | Account | Config dir |
 | --- | --- | --- |
@@ -263,6 +263,16 @@ Two accounts, each with its own config directory (`claude/` is the stow package 
 - `~/.claude` must be a symlink to `~/.claude-personal` (`ln -s ~/.claude-personal ~/.claude`), so plain `claude` outside a pinned directory is the personal account. `dotdoctor` checks it.
 - `ccp`/`ccpr`/`ccpc` also load `~/.claude-personal/projects.d/<repo>.json` with `--settings` when the current git repo has one. That is where a project's own `autoMode` rules go, since Claude Code ignores `autoMode` in a project's `.claude/settings*.json` and they must not live in this public repo. `<repo>` is the main checkout's directory name, so linked worktrees share it.
 - Mods in `claude-mods/` (`statusbar`, `blast-radius`, `redact`, `agents`, `conventions`) load straight from the repo via `CLAUDE_CODE_PLUGIN_DIRS` in both `settings.json` files, with nothing to link. The band above the prompt (context bar, rate limits) is the `statusbar` mod, the line below it is `bin/claude-statusline`, and `conventions` runs `bin/lint --file` after each edit Claude makes in this repo. See [`claude-mods/README.md`](claude-mods/README.md).
+- Keybindings: `claude/.claude-*/keybindings.json` (identical in both accounts; Claude Code reloads it live, no restart). Home row for the `agents` mod's pane, all as a `Ctrl+X` chord so the tmux prefix (`Ctrl+a`), vim-tmux-navigator (`Ctrl+h/j/k/l`), `Meta+k` and Claude's `Ctrl+B` stay free:
+
+  | Context | Key | Action |
+  | --- | --- | --- |
+  | `Chat` | `Ctrl+X a` | `abovePrompt:focus`: focus the pane (same as the built-in `Ctrl+X Tab`) |
+  | `Chat` | `Ctrl+X v` | `command:agents-pane`: toggle the agents pane (`/agents-pane`) |
+  | `Pane` | `j` / `k` | `abovePrompt:next` / `abovePrompt:previous`: next / previous row (same as `Tab` / `Shift+Tab`) |
+  | `Pane` | `h` or `Ctrl+X a` | `abovePrompt:leave`: back to the prompt (same as `Esc`) |
+
+  Clash audit (Claude Code 2.1.317 defaults, all contexts, and `tmux/.tmux.conf`): no clash. `Ctrl+X` chords already used are `Ctrl+K`, `Enter`, `Ctrl+S`, `Ctrl+E`, `Ctrl+A`, `Tab`, `B`, `Ctrl+B`, `1`-`3`, the arrows and `x`; `a` and `v` are free, and `j`/`k`/`h` have no `Pane` default (`Settings`, `Select`, `Transcript` and `DiffDialog` bind `j`/`k`, but only while those are open). The schemastore schema predates the `Pane` context and `abovePrompt:*`, so an editor flags them; Claude Code accepts them. `tests/claude/check.sh` checks both files are valid and identical.
 - Hooks call `bin/claude-tmux-state`, so tmux windows show when Claude is working, waiting or done (`prefix + A` jumps to the next waiting window).
 - Hooks also call `bin/claude-notify`, which shows a macOS notification when a session finishes (`Stop`), asks you something (`AskUserQuestion`) or needs you (permission prompt, idle: `Notification`). It stays quiet while the terminal and the tmux window are in view. `CLAUDE_NOTIFY=0` turns it off, `CLAUDE_NOTIFY_SUBAGENTS=1` adds subagent completions, `CLAUDE_NOTIFY_ALWAYS=1` disables the in-view suppression, `CLAUDE_NOTIFY_SOUND=<name>` changes the sound. One-time setup: allow banners and sounds for **Script Editor** under System Settings > Notifications (`osascript` notifications are attributed to it); Focus modes silence them. Details in [`bin/README.md`](bin/README.md).
 - Pin an account to a directory with `envrc` (below).
