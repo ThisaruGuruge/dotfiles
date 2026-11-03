@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Removed the vendored `rabe` mod (`/rabe`, the background-task band and pane) and its entry in both `settings.json` plugin lists: it gave no value in daily use
 - Removed the `session-wrapped` mod (`/wrapped`) and its entry in both `settings.json` plugin lists: it had no recorded use, `/usage` covers cost, and the `statusbar` mod shows context
 
 ## [2.13.0] - 2026-11-02

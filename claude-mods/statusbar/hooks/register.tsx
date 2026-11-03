@@ -385,7 +385,7 @@ export const register: Register = (on, options) => {
     const lane = (nodes: unknown[]) =>
       nodes.map((n, i) => <Box key={String(i)}>{n as never}</Box>)
 
-    // Other mods draw here too (agents, rabe): keep what they draw instead of replacing it
+    // Other mods draw here too (agents): keep what they draw instead of replacing it
     const below = await next(e)
 
     return (
