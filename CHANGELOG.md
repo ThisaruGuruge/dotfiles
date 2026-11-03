@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.14.0] - 2026-11-03
+
 ### Added
 
 - `init.sh` installs `typescript-language-server` and `typescript` with `npm i -g` (asks first): it does nothing when the server is already installed, finds npm on PATH or in the newest nvm Node version, and prints the manual command instead of failing when Node is not installed yet
