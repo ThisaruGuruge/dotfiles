@@ -6,6 +6,7 @@
   "permissions": {
     "defaultMode": "auto"
   },
+  "model": "sonnet",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -118,6 +119,17 @@
     "command": "bash \"$HOME/.claude-enterprise/statusline-command.sh\"",
     "refreshInterval": 15
   },
+  "enabledPlugins": {
+    "agents@redpierrot": true
+  },
+  "extraKnownMarketplaces": {
+    "redpierrot": {
+      "source": {
+        "source": "github",
+        "repo": "redpierrot/claude-mod-agents"
+      }
+    }
+  },
   "effortLevel": "xhigh",
   "autoUpdatesChannel": "stable",
   "theme": "dark",
@@ -150,5 +162,11 @@
     ]
   },
   "hideVimModeIndicator": true,
-  "model": "sonnet"
+  "pluginConfigs": {
+    "agents@redpierrot": {
+      "options": {
+        "rows": "auto"
+      }
+    }
+  }
 }
