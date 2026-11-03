@@ -357,6 +357,21 @@ FAKE
     fi
 fi
 
+# ── Tracked keybindings ─────────────────────────────────────────────────────
+kb_p="$repo/claude/.claude-personal/keybindings.json"
+kb_e="$repo/claude/.claude-enterprise/keybindings.json"
+if jq -e '.bindings | type == "array" and length > 0' "$kb_p" >/dev/null 2>&1 &&
+    jq -e '.bindings | type == "array" and length > 0' "$kb_e" >/dev/null 2>&1; then
+    pass "keybindings.json is valid JSON in both accounts"
+else
+    fail "keybindings.json is valid JSON in both accounts"
+fi
+if cmp -s "$kb_p" "$kb_e"; then
+    pass "keybindings.json is identical in both accounts"
+else
+    fail "keybindings.json is identical in both accounts"
+fi
+
 # ── Tracked settings ────────────────────────────────────────────────────────
 for settings in "$repo"/claude/.claude-*/settings.json; do
     account=$(basename "$(dirname "$settings")")

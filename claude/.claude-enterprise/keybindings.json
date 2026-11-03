@@ -1,0 +1,21 @@
+{
+  "$schema": "https://www.schemastore.org/claude-code-keybindings.json",
+  "bindings": [
+    {
+      "context": "Chat",
+      "bindings": {
+        "ctrl+x a": "abovePrompt:focus",
+        "ctrl+x v": "command:agents-pane"
+      }
+    },
+    {
+      "context": "Pane",
+      "bindings": {
+        "j": "abovePrompt:next",
+        "k": "abovePrompt:previous",
+        "h": "abovePrompt:leave",
+        "ctrl+x a": "abovePrompt:leave"
+      }
+    }
+  ]
+}
