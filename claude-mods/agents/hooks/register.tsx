@@ -62,18 +62,26 @@ const adopt = async ($: Parameters<Parameters<Register>[0]>[0], agentId: string,
   if (wasIdle) void $.ui.open({ id: PANE, title: 'Agents' }).catch(() => {})
 }
 
-// The transcript view needs the agent's `agentId`, and the engine drops a finished agent's task seconds after it ends,
-// so the answer is a sentence for the person, never a throw. `$.ui.view` only answers the person's own input (a press
-// or a command), which is the only place this is called from.
+// The transcript view needs the agent's `agentId`. Claude Code only lets `$.ui.view` through while the call is still
+// answering the person's press or command: the press stays "live" only until its handler returns, so `$.ui.view` must
+// be the FIRST call and the handler must return (await) the promise. A fire-and-forget chain, or an `await` on another
+// call before it, reaches the engine after the press ended and is denied "not person-initiated". The engine also
+// forgets a finished agent shortly after it ends, which it reports as a deny, so the reasons are translated here.
+export const denyText = (reason: string): string => {
+  if (/person-initiated/.test(reason)) return 'Claude Code only switches the view from a key press or a command.'
+  if (/no agent under|has ended|tasks list shows|not in this session/.test(reason))
+    return 'Transcript unavailable: the engine no longer tracks this agent (it finished a while ago).'
+  return `Cannot open the transcript: ${reason}`
+}
+
 export const openView = async ($: Parameters<Parameters<Register>[0]>[0], a: AgentRec | undefined): Promise<string> => {
   if (!a) return 'No such agent.'
   if (!a.agentId) return 'No transcript for this agent: the engine gave it no id.'
   try {
-    const live = await $.agent.list()
-    if (!live.some(x => x.id === a.agentId))
-      return 'Transcript unavailable: the engine no longer tracks this agent (it finished a while ago).'
     const shown = await $.ui.view({ agentId: a.agentId })
-    return shown.deny ? `Cannot open the transcript: ${shown.deny}` : `Viewing ${a.type.replace(/^[^:]*:/, '')} (${clip(a.label, 40)}). /agents-pane back returns.`
+    return shown.deny
+      ? denyText(shown.deny)
+      : `Viewing ${a.type.replace(/^[^:]*:/, '')} (${clip(a.label, 40)}). 0 or /agents-pane back returns.`
   } catch {
     return 'Cannot open the transcript right now.'
   }
@@ -82,7 +90,7 @@ export const openView = async ($: Parameters<Parameters<Register>[0]>[0], a: Age
 export const backToMain = async ($: Parameters<Parameters<Register>[0]>[0]): Promise<string> => {
   try {
     const shown = await $.ui.view({})
-    return shown.deny ? `Cannot go back: ${shown.deny}` : 'Back to the main conversation.'
+    return shown.deny ? denyText(shown.deny) : 'Back to the main conversation.'
   } catch {
     return 'Cannot go back right now.'
   }
@@ -258,17 +266,22 @@ export const register: Register = (on, options) => {
         </Text>
         {all.length === 0 && <Text dimColor>No subagents yet.</Text>}
         {all.length > 0 && (
-          <Text dimColor wrap="truncate-end">
-            Transcript: focus the pane, then 1-9 or Tab+Enter · /agents-pane view n
-          </Text>
+          <Box flexDirection="column">
+            <Text dimColor wrap="truncate-end">
+              {cols < 60 ? 'Ctrl+X Tab: focus · Tab: move · Esc: leave' : 'Ctrl+X then Tab: focus pane · Tab: move · Esc: leave'}
+            </Text>
+            <Text dimColor wrap="truncate-end">
+              {cols < 60 ? 'Enter or 1-9: transcript · 0: back' : 'Enter or 1-9: open transcript · 0: back to main'}
+            </Text>
+          </Box>
         )}
         {viewing && (
           <Button
             key="view-back"
             hotkey="0"
             plain
-            onPress={() => {
-              void backToMain($).then(m => $.ui.toast(m))
+            onPress={async () => {
+              $.ui.toast(await backToMain($))
             }}
           >
             ← back to the main conversation
@@ -287,8 +300,8 @@ export const register: Register = (on, options) => {
                   key={`view-${a.id}`}
                   hotkey={i < 9 ? String(i + 1) : undefined}
                   plain
-                  onPress={() => {
-                    void openView($, a).then(m => $.ui.toast(m))
+                  onPress={async () => {
+                    $.ui.toast(await openView($, a))
                   }}
                 >
                   <Text color={color}>{mark}</Text>

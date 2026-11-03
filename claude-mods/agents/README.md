@@ -12,7 +12,7 @@ It opens by itself when the first subagent starts. `/agents-pane` toggles it.
 
 The pane uses Claude Code's `$.ui.view` mod API (Claude Code 2.1.300 or later), which shows an agent's transcript in the main view.
 
-- Give the pane the keyboard (Tab to it, or click it). Press `1` to `9` to open the transcript of the agent on that row (1 is the top, newest row), or Tab to a row and press Enter. Rows beyond nine open with Tab and Enter.
+- Give the pane the keyboard (Ctrl+X then Tab, or click it). The pane shows the keys in two dim lines: Tab moves, Esc leaves. Press `1` to `9` to open the transcript of the agent on that row (1 is the top, newest row), or Tab to a row and press Enter. Rows beyond nine open with Tab and Enter.
 - `/agents-pane view <n>` does the same from the prompt (`n` counts from the top of the pane), and `/agents-pane view <id-prefix>` matches an agent id (three characters or more).
 - While an agent is in view, the pane marks it `◀ viewing` and shows a back row. Press `0` in the pane, or run `/agents-pane back`.
 
