@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { rowsModeOf } from './register'
+import { pickAgent, rowsModeOf } from './register'
 
 const PANE = {
   plugin: 'agents',
@@ -201,4 +201,85 @@ test('adopts a resumed agent that never fired agent.spawn', async ($, on) => {
   const pane = await $.ui.mount(PANE)
 
   expect(await pane.find({ type: 'Text', text: /Agents \(1 running, 1 total\)/ })).toBeDefined()
+})
+
+// Transcript view
+
+const spawnExplore = async ($: any, on: any, agents: unknown[]) => {
+  on('clock.now', () => ({ value: 1_000 }))
+  on('agent.spawn', () => ({ model: 'claude-sonnet-5-5', agentId: 'abc12345' }) as never)
+  on('agent.list', () => ({ value: agents }) as never)
+  await $.agent.spawn({ prompt: 'find auth', description: 'Find auth flow', subagentType: 'Explore' })
+}
+const live = [{ id: 'abc12345', description: 'x', type: 'Explore', status: 'running' }]
+
+test('pressing an agent row opens its transcript', async ($, on) => {
+  const asked: unknown[] = []
+  on('ui.view', (_$, e) => {
+    asked.push(e)
+    return { value: {} } as never
+  })
+  await spawnExplore($, on, live)
+
+  const pane = await $.ui.mount(PANE)
+  await pane.press({ key: 'view-abc12345' })
+
+  expect(asked).toEqual([{ agentId: 'abc12345' }])
+})
+
+test('the pane shows how to open a transcript and marks the agent in view', async ($, on) => {
+  await spawnExplore($, on, live)
+
+  const pane = await $.ui.mount({ ...PANE, props: { ...PANE.props, view: { agentId: 'abc12345' } } } as never)
+
+  expect(await pane.find({ type: 'Text', text: /Transcript: focus the pane/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: /viewing/ })).toBeDefined()
+  expect(await pane.find({ type: 'Button', key: 'view-back' } as never)).toBeDefined()
+})
+
+test('/agents-pane view 1 opens the newest agent; back returns to the main view', async ($, on) => {
+  const asked: unknown[] = []
+  on('ui.view', (_$, e) => {
+    asked.push(e)
+    return { value: {} } as never
+  })
+  await spawnExplore($, on, live)
+
+  const opened = await $.command.run({ command: 'agents-pane', args: 'view 1' } as never)
+  const back = await $.command.run({ command: 'agents-pane', args: 'back' } as never)
+
+  expect(asked).toEqual([{ agentId: 'abc12345' }, {}])
+  expect(JSON.stringify(opened)).toMatch(/Viewing Explore/)
+  expect(JSON.stringify(back)).toMatch(/Back to the main/)
+})
+
+test('an agent the engine no longer tracks fails with a sentence, not a throw', async ($, on) => {
+  let called = false
+  on('ui.view', () => {
+    called = true
+    return { value: {} } as never
+  })
+  await spawnExplore($, on, [])
+
+  const out = await $.command.run({ command: 'agents-pane', args: 'view 1' } as never)
+
+  expect(called).toBe(false)
+  expect(JSON.stringify(out)).toMatch(/unavailable/)
+})
+
+test('a refused view says why; an unknown number is reported', async ($, on) => {
+  on('ui.view', () => ({ value: { deny: 'the view moved meanwhile' } }) as never)
+  await spawnExplore($, on, live)
+
+  expect(JSON.stringify(await $.command.run({ command: 'agents-pane', args: 'view 1' } as never))).toMatch(/view moved/)
+  expect(JSON.stringify(await $.command.run({ command: 'agents-pane', args: 'view 7' } as never))).toMatch(/No such agent/)
+})
+
+test('pickAgent counts from the newest and matches an id prefix', () => {
+  const mk = (id: string) => ({ id, agentId: id }) as never
+  const all = [mk('aaa111'), mk('bbb222')]
+  expect(pickAgent(all, '1')).toMatchObject({ id: 'bbb222' })
+  expect(pickAgent(all, '2')).toMatchObject({ id: 'aaa111' })
+  expect(pickAgent(all, 'aaa')).toMatchObject({ id: 'aaa111' })
+  expect(pickAgent(all, 'a')).toBeUndefined()
 })

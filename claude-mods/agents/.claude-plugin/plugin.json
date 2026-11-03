@@ -1,7 +1,11 @@
 {
   "name": "agents",
-  "version": "0.1.0",
-  "description": "Subagent pane (rows above the prompt only as a fallback while the pane is not showing): a crab per agent type with model, effort, context, tokens, requests and the latest tool call.",
+  "version": "0.2.0",
+  "description": "Subagent pane (rows above the prompt only as a fallback while the pane is not showing): a crab per agent type with model, effort, context, tokens, requests and the latest tool call; open a subagent's transcript from the pane or with /agents-pane view.",
+  "author": {
+    "name": "TODO: author name before publishing"
+  },
+  "license": "TODO: choose a license (e.g. MIT) before publishing",
   "types": "./types/index.d.ts",
   "userConfig": {
     "rows": {

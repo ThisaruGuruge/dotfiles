@@ -62,6 +62,39 @@ const adopt = async ($: Parameters<Parameters<Register>[0]>[0], agentId: string,
   if (wasIdle) void $.ui.open({ id: PANE, title: 'Agents' }).catch(() => {})
 }
 
+// The transcript view needs the agent's `agentId`, and the engine drops a finished agent's task seconds after it ends,
+// so the answer is a sentence for the person, never a throw. `$.ui.view` only answers the person's own input (a press
+// or a command), which is the only place this is called from.
+export const openView = async ($: Parameters<Parameters<Register>[0]>[0], a: AgentRec | undefined): Promise<string> => {
+  if (!a) return 'No such agent.'
+  if (!a.agentId) return 'No transcript for this agent: the engine gave it no id.'
+  try {
+    const live = await $.agent.list()
+    if (!live.some(x => x.id === a.agentId))
+      return 'Transcript unavailable: the engine no longer tracks this agent (it finished a while ago).'
+    const shown = await $.ui.view({ agentId: a.agentId })
+    return shown.deny ? `Cannot open the transcript: ${shown.deny}` : `Viewing ${a.type.replace(/^[^:]*:/, '')} (${clip(a.label, 40)}). /agents-pane back returns.`
+  } catch {
+    return 'Cannot open the transcript right now.'
+  }
+}
+
+export const backToMain = async ($: Parameters<Parameters<Register>[0]>[0]): Promise<string> => {
+  try {
+    const shown = await $.ui.view({})
+    return shown.deny ? `Cannot go back: ${shown.deny}` : 'Back to the main conversation.'
+  } catch {
+    return 'Cannot go back right now.'
+  }
+}
+
+// Pane order is newest first; `view 1` is the top row. A longer token matches an agent id by prefix.
+export const pickAgent = (all: AgentRec[], token: string): AgentRec | undefined => {
+  const newest = all.slice().reverse()
+  if (/^\d{1,3}$/.test(token)) return newest[Number(token) - 1]
+  return token.length >= 3 ? newest.find(a => a.agentId?.startsWith(token)) : undefined
+}
+
 export type RowsMode = 'auto' | 'off' | 'always'
 
 export const rowsModeOf = (value: unknown): RowsMode => (value === 'off' || value === 'always' ? value : 'auto')
@@ -88,7 +121,14 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('command.run', { command: COMMAND }, async $ => {
+  on('command.run', { command: COMMAND }, async ($, e) => {
+    const [verb = '', token = ''] = String((e as { args?: string }).args ?? '').trim().split(/\s+/)
+    if (verb === 'view') {
+      if (!token) return { text: 'Usage: /agents-pane view <n|id>  (n counts from the top of the pane, 1 = newest).' }
+      return { text: await openView($, pickAgent(await read($, list), token)) }
+    }
+    if (verb === 'back') return { text: await backToMain($) }
+
     const isOpen = (await $.ui.panes()).some(p => p.id === PANE)
     if (isOpen) await $.ui.close({ id: PANE })
     else await $.ui.open({ id: PANE, title: 'Agents' })
@@ -203,12 +243,13 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text } = $.ui.resolve(e)
+    const { Box, Button, Text } = $.ui.resolve(e)
     const all = await read($, list)
     const at = Math.max(await read($, now), ...all.map(a => a.startedAt), 0)
     const running = all.filter(isRunning).length
     const cols = e.props.bodyColumns
     const cells = cols < 60 ? 5 : 8
+    const viewing = e.props.view?.agentId
 
     return (
       <Box flexDirection="column">
@@ -216,20 +257,51 @@ export const register: Register = (on, options) => {
           Agents ({running} running, {all.length} total)
         </Text>
         {all.length === 0 && <Text dimColor>No subagents yet.</Text>}
+        {all.length > 0 && (
+          <Text dimColor wrap="truncate-end">
+            Transcript: focus the pane, then 1-9 or Tab+Enter · /agents-pane view n
+          </Text>
+        )}
+        {viewing && (
+          <Button
+            key="view-back"
+            hotkey="0"
+            plain
+            onPress={() => {
+              void backToMain($).then(m => $.ui.toast(m))
+            }}
+          >
+            ← back to the main conversation
+          </Button>
+        )}
         {all
           .slice()
           .reverse()
-          .map(a => {
+          .map((a, i) => {
             const max = a.window
             const mark = a.status === 'run' ? '●' : a.status === 'done' ? '✓' : '✗'
             const color = a.status === 'run' ? ACCENT : a.status === 'done' ? GREEN : RED
             return (
               <Box key={a.id} flexDirection="column" marginTop={1}>
-                <Text>
-                  <Text color={color}>{mark}</Text> {CRAB}
-                  {costumeOf(a.type)} <Text bold>{a.type.replace(/^[^:]*:/, '')}</Text>{' '}
-                  <Text dimColor>{clip(a.label, Math.max(12, cols - 24))}</Text>
-                </Text>
+                <Button
+                  key={`view-${a.id}`}
+                  hotkey={i < 9 ? String(i + 1) : undefined}
+                  plain
+                  onPress={() => {
+                    void openView($, a).then(m => $.ui.toast(m))
+                  }}
+                >
+                  <Text color={color}>{mark}</Text>
+                  <Text>
+                    {' '}
+                    {CRAB}
+                    {costumeOf(a.type)}{' '}
+                  </Text>
+                  <Text bold>{a.type.replace(/^[^:]*:/, '')}</Text>
+                  <Text> </Text>
+                  <Text dimColor>{clip(a.label, Math.max(12, cols - 28))}</Text>
+                  {viewing && viewing === a.agentId && <Text color={ACCENT}> ◀ viewing</Text>}
+                </Button>
                 <Text dimColor={a.status !== 'run'}>
                   {'   '}
                   {modelName(a.model)}
