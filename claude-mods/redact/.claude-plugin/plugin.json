@@ -1,5 +1,14 @@
 {
   "name": "redact",
-  "version": "0.1.0",
-  "description": "Hides secrets (API keys, tokens, private keys) from the model in prompts and tool results"
+  "version": "0.2.0",
+  "description": "Hides secrets (API keys, tokens, private keys) from the model in prompts and tool results, and refuses tool calls that inline one",
+  "userConfig": {
+    "denyInlineSecrets": {
+      "type": "string",
+      "title": "Tool calls that inline a secret",
+      "description": "deny: refuse a call whose input holds a secret literal (16+ characters, not obviously fake) and tell the model to read it at run time; warn: run it and show a toast; off: do nothing. A call can opt out with a line \"redact-allow: <kind>\".",
+      "default": "deny",
+      "options": ["deny", "warn", "off"]
+    }
+  }
 }

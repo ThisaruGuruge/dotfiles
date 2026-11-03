@@ -6,7 +6,14 @@ export type Counts = Record<string, number>
  * secret (isSecretLike by default). `check` also sees group 1 and the text
  * right after the match.
  */
-type Rule = { kind: string; re: RegExp; prefix?: true; check?: (v: string, head: string, after: string) => boolean }
+type Rule = {
+  kind: string
+  re: RegExp
+  prefix?: true
+  check?: (v: string, head: string, after: string) => boolean
+  /** With `prefix`: rewrites the value itself (a cookie header keeps its attributes) and says how many parts it hid. */
+  rewrite?: (v: string) => { text: string; n: number }
+}
 
 const PLACEHOLDER = /^(\$|\{|<|%|\[REDACTED|ENC\[|\*+$|x+$|\.+$)/i
 const LOOKS_RANDOM = /^[A-Za-z0-9!@#$%^&*_+\-=/.~]+$/
@@ -93,6 +100,36 @@ function named(kind: string, name: string, flags: string, opts: { notPath?: true
   ]
 }
 
+// Cookie attributes that hold no secret (`Path=/`, `Expires=Wed, 21 Oct ...`, `SameSite=Lax`).
+const COOKIE_ATTR = /^(?:path|domain|expires|max-age|samesite|secure|httponly|partitioned|priority)$/i
+
+/**
+ * A `Cookie:` or `Set-Cookie:` header's value, `;`-separated: each `name=value`
+ * whose value could be a credential is hidden, and attributes (`Path`, `Expires`,
+ * `SameSite`...), short or placeholder values (`theme=dark`) and code that only names
+ * a value stay, so the header still reads. Idempotent: a placeholder is not a credential.
+ */
+export function redactCookies(v: string): { text: string; n: number } {
+  let n = 0
+  const text = v
+    .split(';')
+    .map(part => {
+      const m = /^(\s*)([^=\s;]+)=(.*)$/s.exec(part)
+      if (!m || COOKIE_ATTR.test(m[2]!)) return part
+      const val = m[3]!.replace(/^"|"$/g, '')
+      if (!isCredentialValue(val) || looksLikeCode(val)) return part
+      n++
+      return `${m[1]}${m[2]}=[REDACTED:cookie]`
+    })
+    .join(';')
+  return { text, n }
+}
+
+// The cookies that carry a login session, written `name=value` outside a header (a curl `-b`, a
+// Playwright or devtools dump, a URL query). A value needs 16+ characters and the look of a credential.
+const SESSION_COOKIE =
+  '(?<![A-Za-z0-9_.-])(?:(?:__Host-|__Secure-)?(?:next-auth|authjs)\\.session-token|PHPSESSID|JSESSIONID|ASP\\.NET_SessionId|connect\\.sid|laravel_session|_gh_sess|user_session|_?session_?id|_session|sessionid|sess)'
+
 // A PEM private key: BEGIN through END, or, when the text stops short of END
 // (`head -20 ~/.ssh/id_rsa`, a Read with a limit, cut-off output), BEGIN through
 // the run of header (`Proc-Type: ...`, then one blank line) and base64 lines after it.
@@ -151,6 +188,20 @@ const RULES: Rule[] = [
     prefix: true,
     check: isUrlPassword,
   },
+  {
+    // A Cookie or Set-Cookie header, also as a JSON header (escaped quotes included)
+    kind: 'cookie',
+    re: new RegExp(String.raw`(\b(?:Set-)?Cookie(?:${QUOTE})?\s*:\s*(?:${QUOTE})?)([^\r\n"'\\<]{6,})`, 'gi'),
+    prefix: true,
+    check: v => redactCookies(v).n > 0,
+    rewrite: redactCookies,
+  },
+  {
+    kind: 'cookie',
+    re: new RegExp(String.raw`(${SESSION_COOKIE}=)([A-Za-z0-9%._~+/=-]{16,})`, 'g'),
+    prefix: true,
+    check: v => isCredentialValue(v) && !looksLikeCode(v),
+  },
   // name = value: only the value is replaced, and only when it looks random. Names stay
   // narrow: a blanket `*_KEY` would hide CACHE_KEY=v2-abc123, and a file read with a value
   // hidden is written back with the placeholder in it.
@@ -171,12 +222,20 @@ const RULES: Rule[] = [
   ),
 ]
 
-export function redactText(text: string, counts: Counts): string {
+/**
+ * `accept` (the deny guard's) narrows what counts: a match it refuses is still hidden, so no later
+ * rule finds the same value under another kind, but is not counted. Without it every match a rule
+ * keeps is counted.
+ */
+export type Accept = (kind: string, value: string) => boolean
+
+export function redactText(text: string, counts: Counts, accept?: Accept): string {
   let out = text
   for (const rule of RULES) {
     out = out.replace(rule.re, (...m: unknown[]) => {
       const whole = m[0] as string
       if (!rule.prefix) {
+        if (accept && !accept(rule.kind, whole)) return '[REDACTED:ignored]'
         counts[rule.kind] = (counts[rule.kind] ?? 0) + 1
         return `[REDACTED:${rule.kind}]`
       }
@@ -186,6 +245,12 @@ export function redactText(text: string, counts: Counts): string {
       const end = (m[m.length - 2] as number) + whole.length
       const after = (m[m.length - 1] as string).slice(end, end + 64)
       if (!(rule.check ?? isSecretLike)(value, head, after)) return whole
+      if (accept && !accept(rule.kind, value)) return rule.rewrite ? whole : `${head}[REDACTED:ignored]${whole.slice(head.length + value.length)}`
+      if (rule.rewrite) {
+        const { text, n } = rule.rewrite(value)
+        counts[rule.kind] = (counts[rule.kind] ?? 0) + n
+        return `${head}${text}${whole.slice(head.length + value.length)}`
+      }
       counts[rule.kind] = (counts[rule.kind] ?? 0) + 1
       return `${head}[REDACTED:${rule.kind}]${whole.slice(head.length + value.length)}`
     })
@@ -208,6 +273,20 @@ export function redactBlocks(blocks: Block[], counts: Counts): Block[] {
     }
     return b
   })
+}
+
+/**
+ * Redacts every string in a JSON-like value (a tool's result record), keys kept.
+ * Throws past 40 levels of nesting or on a cycle, so a caller can withhold.
+ */
+export function redactDeep(v: unknown, counts: Counts, depth = 0): unknown {
+  if (depth > 40) throw new Error('redact: result nested too deeply')
+  if (typeof v === 'string') return redactText(v, counts)
+  if (Array.isArray(v)) return v.map(x => redactDeep(x, counts, depth + 1))
+  if (v !== null && typeof v === 'object') {
+    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, redactDeep(x, counts, depth + 1)]))
+  }
+  return v
 }
 
 export const WITHHELD = '[redact: scan failed, content withheld]'

@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { WITHHELD, looksLikeCode, redactBlocks, redactText, withhold } from './patterns'
+import { WITHHELD, looksLikeCode, redactBlocks, redactDeep, redactText, withhold } from './patterns'
+import { total } from './patterns'
+import { allowedKinds, denyMessage, findInlineSecrets, inputStrings, modeOf } from './guard'
 import type { Counts } from './patterns'
 
 const run = (s: string) => {
@@ -340,6 +342,97 @@ test('a row whose scan fails is withheld, its tool_use_id kept', async ($, on) =
   expect(row).not.toContain(v)
 })
 
+describe('cookies', () => {
+  const sid = part('Zx9', 'Qw8Er7', 'Ty6Ui5', 'Op4As3Df')
+  test('hides credential values in Cookie and Set-Cookie headers, keeping names and attributes', () => {
+    expect(run(`Cookie: theme=dark; session=${sid}; _ga=GA1.2.${rnd(12)}`).out).toBe(
+      'Cookie: theme=dark; session=[REDACTED:cookie]; _ga=[REDACTED:cookie]',
+    )
+    const set = run(`set-cookie: id=${sid}; Path=/; Expires=Wed, 21 Oct 2026 07:28:00 GMT; HttpOnly; SameSite=Lax`)
+    expect(set.out).toBe('set-cookie: id=[REDACTED:cookie]; Path=/; Expires=Wed, 21 Oct 2026 07:28:00 GMT; HttpOnly; SameSite=Lax')
+    expect(set.counts['cookie']).toBe(1)
+    // a curl header, a JSON header and one with escaped quotes
+    expect(run(`curl -H 'Cookie: a=${sid}' https://x.test`).out).toBe("curl -H 'Cookie: a=[REDACTED:cookie]' https://x.test")
+    expect(run(`{"cookie": "a=${sid}"}`).out).toBe('{"cookie": "a=[REDACTED:cookie]"}')
+    expect(run(`{\\"Set-Cookie\\":\\"a=${sid}\\"}`).out).toContain('a=[REDACTED:cookie]')
+  })
+
+  test('hides session cookie values written outside a header', () => {
+    for (const name of ['PHPSESSID', 'JSESSIONID', 'connect.sid', 'sessionid', 'session_id', 'laravel_session', '__Secure-next-auth.session-token']) {
+      const { out, counts } = run(`-b '${name}=${sid}'`)
+      expect(out).toBe(`-b '${name}=[REDACTED:cookie]'`)
+      expect(counts['cookie']).toBe(1)
+    }
+  })
+
+  test('leaves demo values, code, placeholders and unrelated names alone', () => {
+    const same = [
+      'Cookie: theme=dark; lang=en-GB',
+      'Cookie: session=changeme',
+      'Cookie: session=${SESSION}',
+      'Cookie: session=config.sessionId',
+      'Set-Cookie: a=[REDACTED:cookie]; Path=/',
+      'Cookie: yes',
+      'PHPSESSID=short1',
+      'PHPSESSID=${PHPSESSID}',
+      `my_sessionid=${sid}`,
+      `subsessionid=${sid}`,
+    ]
+    for (const t of same) expect(run(t).out).toBe(t)
+  })
+
+  test('a long run of cookie-like text stays fast', () => {
+    const t0 = Date.now()
+    run(`Cookie: ${'a=;'.repeat(20000)}`)
+    run('Set-Cookie'.repeat(5000))
+    expect(Date.now() - t0).toBeLessThan(2000)
+  })
+})
+
+describe('redactDeep', () => {
+  test('redacts every string in a record, keeping its shape', () => {
+    const counts: Counts = {}
+    const out = redactDeep({ stdout: `GITHUB_TOKEN=${rnd(24)}`, code: 0, n: [null, `k ${awsKey}`], f: { content: 'ok' } }, counts)
+    expect(out).toEqual({ stdout: 'GITHUB_TOKEN=[REDACTED:credential]', code: 0, n: [null, 'k [REDACTED:aws-access-key]'], f: { content: 'ok' } })
+    expect(total(counts)).toBe(2)
+  })
+  test('throws on a too-deep record, so the caller can withhold', () => {
+    let v: unknown = 'x'
+    for (let i = 0; i < 60; i++) v = { v }
+    expect(() => redactDeep(v, {})).toThrow()
+  })
+})
+
+test('a tool.call result record (toolUseResult) is redacted, the command left as run', { options: { denyInlineSecrets: 'off' } }, async ($, on) => {
+  on('ui.toast', () => ({ value: undefined }) as never)
+  const v = rnd(24)
+  let ran = ''
+  on('tool.call', ($$, e) => {
+    ran = JSON.stringify(e)
+    return { result: { stdout: `GITHUB_TOKEN=${v}`, stderr: '', interrupted: false } } as never
+  })
+  const r = await $.tool.call({ tool: 'Bash', command: `echo GITHUB_TOKEN=${v}` } as never)
+  expect(JSON.stringify(r.result)).toContain('GITHUB_TOKEN=[REDACTED:credential]')
+  expect(JSON.stringify(r.result)).not.toContain(v)
+  // what executes is untouched
+  expect(ran).toContain(v)
+})
+
+test('a clean tool.call result passes through unchanged', async ($, on) => {
+  on('tool.call', () => ({ result: { stdout: 'hello', stderr: '', interrupted: false } }) as never)
+  const r = await $.tool.call({ tool: 'Bash', command: 'echo hello' } as never)
+  expect(r.result).toEqual({ stdout: 'hello', stderr: '', interrupted: false })
+})
+
+test('a tool.call result that cannot be scanned is withheld', async ($, on) => {
+  let deep: unknown = `GITHUB_TOKEN=${rnd(24)}`
+  for (let i = 0; i < 60; i++) deep = { deep }
+  on('tool.call', () => ({ result: deep }) as never)
+  const r = await $.tool.call({ tool: 'Bash', command: 'true' } as never)
+  expect(JSON.stringify(r)).not.toContain(rnd(24))
+  expect(r.text ?? JSON.stringify(r)).toContain('withheld')
+})
+
 describe('withhold', () => {
   test('keeps the shape: ids, error flags and media, text replaced', () => {
     const out = withhold([
@@ -355,5 +448,153 @@ describe('withhold', () => {
     ])
     expect(withhold('not blocks')).toEqual([{ type: 'text', text: WITHHELD }])
     expect(withhold([])).toEqual([{ type: 'text', text: WITHHELD }])
+  })
+})
+
+describe('deny guard: findInlineSecrets', () => {
+  const found = (e: Record<string, unknown>) => Object.keys(findInlineSecrets(e)).sort()
+  const gh = part('gh', 'p_') + 'a1B2c3D4'.repeat(5)
+  const aws = part('AK', 'IA', 'Q7ZK3M9X', 'WB4RT2HN')
+
+  test('real-shaped credentials in a Bash command, Write or Edit content, and nested fields are found', () => {
+    expect(found({ tool: 'Bash', command: `curl -H "Authorization: Bearer ${rnd(30)}" x` })).toEqual(['auth-header'])
+    expect(found({ tool: 'Bash', command: `export GITHUB_TOKEN=${gh}` })).toEqual(['github-token'])
+    expect(found({ tool: 'Write', file_path: 'a', content: `key=${aws}` })).toEqual(['aws-access-key'])
+    expect(found({ tool: 'Edit', old_string: 'x', new_string: `API_KEY="${rnd(24)}"` })).toEqual(['password'])
+    expect(found({ tool: 'NotebookEdit', new_source: `t = "${part('xo', 'xb-', '8401729563', '-Kq7ZmW3xRt')}"` })).toEqual(['slack-token'])
+    expect(found({ tool: 'mcp__x__y', args: { deep: [{ pem }] } })).toEqual(['private-key'])
+    expect(found({ tool: 'Bash', command: `psql postgres://app:${rnd(20)}@db.example.com/x` })).toEqual(['url-password'])
+  })
+
+  test('values built at run time never put the whole literal in the text', () => {
+    const cmds = [
+      `export GITHUB_TOKEN="$(printf '%s%s' ghp_ "$(head -c 27 /dev/urandom | base64)")"`,
+      `TOKEN="gh""p_$(openssl rand -hex 18)"; curl -H "Authorization: Bearer $TOKEN" x`,
+      'export API_KEY=$(cat ~/.secrets/key)',
+      'curl -H "Authorization: Bearer ${MY_TOKEN}" https://x',
+      `node -e 'const t = "gh" + "p_" + "a".repeat(36); run(t)'`,
+      'gh auth token && echo $GITHUB_TOKEN',
+    ]
+    for (const command of cmds) expect(found({ tool: 'Bash', command })).toEqual([])
+  })
+
+  test('obvious fakes, placeholders, demo and local values pass', () => {
+    const same = [
+      `token = ${part('gh', 'p_')}${'a'.repeat(36)}`,
+      `token = ${part('gh', 'p_')}${'x'.repeat(36)}`,
+      `key ${part('AK', 'IAIOSFODNN7', 'EXAMPLE')}`,
+      `GITHUB_TOKEN=${part('fake', '-token-', 'value-1234567890')}`,
+      'API_KEY=your-api-key-here-1234',
+      'PASSWORD=changeme-123456789012',
+      'API_KEY=YOUR_TOKEN_HERE',
+      'postgres://postgres:postgres@localhost/db',
+      `postgres://app:${rnd(20)}@localhost:5432/db`,
+      'const k = process.env.API_KEY2',
+      `PASSWORD=${rnd(12)}`,
+      `commit ${'0123abcd'.repeat(5)}`,
+      `Cookie: theme=dark; a=${rnd(10)}`,
+    ]
+    for (const command of same) expect(found({ tool: 'Bash', command })).toEqual([])
+  })
+
+  test('the marker must name the kind, and exempts only that kind', () => {
+    const cmd = `export GITHUB_TOKEN=${gh} AWS=${aws}`
+    expect(found({ tool: 'Bash', command: cmd })).toEqual(['aws-access-key', 'github-token'])
+    expect(found({ tool: 'Bash', command: `${cmd} # redact-allow: github-token` })).toEqual(['aws-access-key'])
+    expect(found({ tool: 'Bash', command: `${cmd} # redact-allow: github-token, aws-access-key` })).toEqual([])
+    // a bare or wrong-kind marker, or one in prose, does nothing
+    expect(found({ tool: 'Bash', command: `${cmd} # redact-allow` })).toHaveLength(2)
+    expect(found({ tool: 'Bash', command: `${cmd} # redact-allow: jwt` })).toHaveLength(2)
+    expect(found({ tool: 'Bash', command: `${cmd} # redact-allow: all` })).toHaveLength(2)
+    expect([...allowedKinds(['a redact-allow: jwt,  npm-token\nx'])].sort()).toEqual(['jwt', 'npm-token'])
+  })
+
+  test('the tool envelope is not scanned, and a call without strings is clean', () => {
+    expect(found({ tool: 'Bash', tool_use_id: gh, agentId: gh, requestMeta: { a: gh }, command: 'ls' })).toEqual([])
+    expect(found({ tool: 'TodoWrite', n: 3, flag: true, list: [null, 4] })).toEqual([])
+  })
+
+  test('the deny message names the kinds and never the value', () => {
+    const counts = findInlineSecrets({ tool: 'Bash', command: `export GITHUB_TOKEN=${gh}` })
+    const m = denyMessage('Bash', counts)
+    expect(m).toContain('github-token')
+    expect(m).toContain('redact-allow: github-token')
+    expect(m).not.toContain(gh)
+  })
+
+  test('a too-deep input throws (the hook turns that into pass-through); big input is capped and fast', () => {
+    let v: unknown = 'x'
+    for (let i = 0; i < 60; i++) v = { v }
+    expect(() => inputStrings({ tool: 'Bash', v })).toThrow()
+    const t0 = Date.now()
+    const big = 'a-'.repeat(2_000_000)
+    expect(inputStrings({ command: big }).join('').length).toBeLessThanOrEqual(512 * 1024)
+    findInlineSecrets({ tool: 'Bash', command: big })
+    findInlineSecrets({ tool: 'Bash', command: `x ${'password:'.repeat(20000)} ${gh}` })
+    expect(Date.now() - t0).toBeLessThan(4000)
+  })
+
+  test('modeOf defaults to deny', () => {
+    expect([modeOf(undefined), modeOf('warn'), modeOf('off'), modeOf('deny'), modeOf('nope')]).toEqual(['deny', 'warn', 'off', 'deny', 'deny'])
+  })
+})
+
+describe('deny guard: tool.call hook', () => {
+  const gh = part('gh', 'p_') + 'a1B2c3D4'.repeat(5)
+
+  test('denies a call that inlines a secret, before the tool runs', async ($, on) => {
+    on('ui.toast', () => ({ value: undefined }) as never)
+    let ran = false
+    on('tool.call', () => {
+      ran = true
+      return { result: { stdout: '', stderr: '', interrupted: false } } as never
+    })
+    const r = await $.tool.call({ tool: 'Bash', command: `export GITHUB_TOKEN=${gh}` } as never)
+    expect(ran).toBe(false)
+    expect(r.deny).toContain('github-token')
+    expect(r.deny).not.toContain(gh)
+  })
+
+  test('runs a call that builds the token at run time or carries the marker', async ($, on) => {
+    on('ui.toast', () => ({ value: undefined }) as never)
+    on('tool.call', () => ({ result: { stdout: 'ok', stderr: '', interrupted: false } }) as never)
+    const a = await $.tool.call({ tool: 'Bash', command: 'export GITHUB_TOKEN="gh""p_$(openssl rand -hex 18)"' } as never)
+    const b = await $.tool.call({ tool: 'Bash', command: `export GITHUB_TOKEN=${gh} # redact-allow: github-token` } as never)
+    expect(a.deny).toBeUndefined()
+    expect(b.deny).toBeUndefined()
+    expect(JSON.stringify(b.result)).toContain('ok')
+  })
+
+  test('a read-only search tool is not scanned', async ($, on) => {
+    on('tool.call', () => ({ result: { filenames: [], numFiles: 0 } }) as never)
+    const r = await $.tool.call({ tool: 'Grep', pattern: gh } as never)
+    expect(r.deny).toBeUndefined()
+  })
+
+  test('warn mode runs the call and says so', { options: { denyInlineSecrets: 'warn' } }, async ($, on) => {
+    const toasts: string[] = []
+    on('ui.toast', (_$, e) => {
+      toasts.push(JSON.stringify(e))
+      return { value: undefined } as never
+    })
+    on('tool.call', () => ({ result: { stdout: 'ok', stderr: '', interrupted: false } }) as never)
+    const r = await $.tool.call({ tool: 'Bash', command: `export GITHUB_TOKEN=${gh}` } as never)
+    expect(r.deny).toBeUndefined()
+    expect(toasts.join('')).toContain('github-token')
+    expect(toasts.join('')).not.toContain(gh)
+  })
+
+  test('off mode does nothing', { options: { denyInlineSecrets: 'off' } }, async ($, on) => {
+    on('tool.call', () => ({ result: { stdout: 'ok', stderr: '', interrupted: false } }) as never)
+    const r = await $.tool.call({ tool: 'Bash', command: `export GITHUB_TOKEN=${gh}` } as never)
+    expect(r.deny).toBeUndefined()
+  })
+
+  test('an input the scanner cannot walk passes through', async ($, on) => {
+    on('tool.call', () => ({ result: { stdout: 'ok', stderr: '', interrupted: false } }) as never)
+    let v: unknown = 'x'
+    for (let i = 0; i < 60; i++) v = { v }
+    const r = await $.tool.call({ tool: 'mcp__x__y', v } as never)
+    expect(r.deny).toBeUndefined()
   })
 })
