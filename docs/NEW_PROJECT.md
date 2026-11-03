@@ -17,8 +17,11 @@ stack after the spec is final, not before.
 | ------ | ------ | ------------ |
 | `mattpocock-skills` | [mattpocock/skills](https://github.com/mattpocock/skills) via its own marketplace (`mattpocock`) | 27 skills: grilling, domain modelling, spec and ticket flow, TDD, bug diagnosis, code review, PR bodies, handoff |
 | `frontend-design` | `claude-plugins-official` | Design guidance for building or reshaping UI |
+| `typescript-lsp` | `claude-plugins-official` | TypeScript and JavaScript code intelligence (diagnostics, go-to-definition, references). Needs `npm i -g typescript-language-server typescript` on the machine |
+| `gopls-lsp` | `claude-plugins-official` | Go code intelligence. Needs `gopls` on PATH (already installed for Neovim) |
+| `claude-md-management` | `claude-plugins-official` | `claude-md-improver` skill (audits CLAUDE.md files) and `/revise-claude-md` (adds session learnings). No hooks or MCP servers |
 
-Both are listed under `enabledPlugins` in `claude/.claude-personal/settings.json` and update
+All are listed under `enabledPlugins` in `claude/.claude-personal/settings.json` and update
 themselves. `mattpocock` is declared under `extraKnownMarketplaces` there, so a fresh machine picks it
 up. It is not the official marketplace on purpose: that one pins an older commit (1.2.3) that leaves
 `retro`, `pr` and `implement-spec` out. They are enabled for the personal account only. Skills marked manual-only
