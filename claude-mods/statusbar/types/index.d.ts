@@ -33,7 +33,6 @@ declare module 'claude-code' {
       last: Last | null
       isHidden: boolean
       isLegend: boolean
-      warned: string[]
       now: number
       /** Tokens at which auto-compaction runs, from Claude Code's breakdown; null when off or not yet read. */
       compactAt: number | null

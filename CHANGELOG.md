@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed the `statusbar` mod's `prompt.submit` and `tool.call` hooks so an error in them passes the event on instead of blocking the prompt or tool call
+- Changed the `statusbar` mod's `autocompactPercent` option description to name the `┃` compact marker it draws, and removed an unused width variable, a zero margin constant and a no-op expression in its test
+- Removed the `statusbar` mod's threshold toasts (context at 90%, compaction close, 5h/7d limits at 80% and 95%); the amber and red colors in the band show those thresholds, and the mod no longer keeps toast state
+
 ## [2.13.0] - 2026-11-02
 
 ### Security

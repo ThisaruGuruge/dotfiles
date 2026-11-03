@@ -9,7 +9,6 @@ const history = atom({ plugin: 'statusbar', key: 'history' } as const, [])
 const last = atom({ plugin: 'statusbar', key: 'last' } as const, null)
 const isHidden = atom({ plugin: 'statusbar', key: 'isHidden' } as const, false)
 const isLegend = atom({ plugin: 'statusbar', key: 'isLegend' } as const, true)
-const warned = atom({ plugin: 'statusbar', key: 'warned' } as const, [])
 const now = atom({ plugin: 'statusbar', key: 'now' } as const, 0)
 const compactAt = atom({ plugin: 'statusbar', key: 'compactAt' } as const, null)
 
@@ -256,12 +255,12 @@ export const register: Register = (on, options) => {
   on('prompt.submit', async ($, e, next) => {
     tools = 0
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   on('tool.call', async ($, e, next) => {
     tools += 1
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   on('turn.complete', async ($, e, next) => {
     if (e.agentId) return next(e)
@@ -289,22 +288,6 @@ export const register: Register = (on, options) => {
   })
 
   on('session.measure', async ($, e, next) => {
-    const active: Record<string, string> = {}
-    const pct = e.context.percent ?? 0
-    // Close: within 10% of Claude's own compaction point once the breakdown was read, else the fallback percent
-    const [at, known] = await Promise.all([read($, compactAt), read($, rows)])
-    const tokens = e.context.tokens
-    const isNear = known ? at !== null && tokens !== undefined && tokens >= at * 0.9 : pct >= autocompact
-    if (pct >= 90) active.ctx90 = `Context at ${Math.round(pct)}%`
-    else if (isNear) active.ctx75 = `Context at ${Math.round(pct)}%: compaction is close`
-    for (const l of e.rateLimits as Limit[]) {
-      const name = l.kind === 'five_hour' ? '5h' : l.kind === 'seven_day' ? '7d' : l.kind
-      if (l.percentUsed >= 95) active[`${name}95`] = `${name} limit ${Math.round(l.percentUsed)}% used`
-      else if (l.percentUsed >= 80) active[`${name}80`] = `${name} limit ${Math.round(l.percentUsed)}% used`
-    }
-    const before = await read($, warned)
-    for (const k of Object.keys(active).filter(k => !before.includes(k))) $.ui.toast(active[k])
-    await update($, warned, () => Object.keys(active))
     await update($, snap, s => ({
       tokens: e.context.tokens,
       window: e.context.window,
@@ -331,8 +314,7 @@ export const register: Register = (on, options) => {
     await read($, now)
     const wall = await $.clock.now()
     const cols = e.props.bodyColumns
-    const t = tier(cols)
-    const isNarrow = t === 'narrow'
+    const isNarrow = tier(cols) === 'narrow'
     const isTiny = cols < 120
     const pct = Math.round(s.percent ?? 0)
     const shown = (list ?? []).filter(r => r.kind !== 'deferred')
@@ -368,7 +350,6 @@ export const register: Register = (on, options) => {
     const limitCells = Math.max(6, Math.min(40, Math.floor((cols - 3 - 9 - 30) / 2)))
     const gap = isNarrow ? 2 : 3
     const rowGap = isNarrow ? 3 : 4
-    const blank = 0
 
     const limitNodes = s.limits.map(x => {
       const name = x.kind === 'five_hour' ? '5h' : x.kind === 'seven_day' ? '7d' : x.kind
@@ -440,7 +421,7 @@ export const register: Register = (on, options) => {
               </Box>
             </Box>
           )}
-          <Box flexDirection="row" marginTop={blank}>
+          <Box flexDirection="row">
             <Box width={3}><Text dimColor>⏱</Text></Box>
             <Box flexDirection="row" columnGap={rowGap}>
               {lane(
@@ -449,7 +430,7 @@ export const register: Register = (on, options) => {
             </Box>
           </Box>
           {l && (
-            <Box flexDirection="row" marginTop={blank}>
+            <Box flexDirection="row">
               <Box width={3}><Text dimColor>↻</Text></Box>
               <Box flexDirection="row" columnGap={rowGap}>
                 {lane(turnNodes)}

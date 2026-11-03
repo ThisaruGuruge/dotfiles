@@ -27,7 +27,7 @@ test('eta is compact', async () => {
 
 test('categories get distinct colors', async () => {
   const colors = rows.filter(r => r.kind === 'used').map(r => paint(r).color)
-  expect(new Set(colors).size).toBe(colors.length - 1 + 1)
+  expect(new Set(colors).size).toBe(colors.length)
   expect(paint(rows[4]).color).toBe('#45475a')
 })
 
