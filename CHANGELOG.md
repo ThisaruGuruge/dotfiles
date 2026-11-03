@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed the `statusbar` mod's `autocompactPercent` option description to name the `┃` compact marker it draws, and removed an unused width variable, a zero margin constant and a no-op expression in its test
 - Removed the `statusbar` mod's threshold toasts (context at 90%, compaction close, 5h/7d limits at 80% and 95%); the amber and red colors in the band show those thresholds, and the mod no longer keeps toast state
 
+### Removed
+
+- Removed the `session-wrapped` mod (`/wrapped`) and its entry in both `settings.json` plugin lists: it had no recorded use, `/usage` covers cost, and the `statusbar` mod shows context
+
 ## [2.13.0] - 2026-11-02
 
 ### Security
