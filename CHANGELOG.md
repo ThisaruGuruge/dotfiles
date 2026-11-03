@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `redact` mod: hides `Cookie` and `Set-Cookie` header values (attributes such as `Path` and `Expires` stay) and session cookie values (`PHPSESSID`, `JSESSIONID`, `connect.sid`, `sessionid`, `next-auth.session-token` and similar), and scans a tool's structured result record (`toolUseResult`: Bash `stdout` and `stderr`, Read content, Edit patches) before it is stored, withholding a record it cannot scan
+- `redact` mod 0.2.0: refuses a tool call whose input holds a secret literal (Bash `command`, Write and Edit content, NotebookEdit source, MCP and Agent arguments, in subagents too), telling the model the kind (never the value) and to read the secret from an environment variable or file at run time. Values built at run time, anything the masking rules ignore, obviously fake values (`fake`, `example`, `dummy`, few distinct characters) and credential-named values under 16 characters run as before; a call can inline a test token on purpose with `redact-allow: <kind>`. The `denyInlineSecrets` option (`deny` default, `warn` toasts and runs, `off`) sets it, and a scan that throws lets the call through
+
 ### Fixed
 
 - Fixed the `statusbar` mod's `prompt.submit` and `tool.call` hooks so an error in them passes the event on instead of blocking the prompt or tool call
