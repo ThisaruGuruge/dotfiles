@@ -19,7 +19,8 @@ Steps (each asks before it acts):
    2. Install the core Brewfile (includes Go)
    3. Install bestow and bootstrap its config
    4. Touch ID for sudo (optional)
-   5. Optional development tools and terminal apps (packages/*.brewfile)
+   5. Optional development tools (including the TypeScript language server
+      when npm is available) and terminal apps (packages/*.brewfile)
    6. Nerd Font and zinit
    7. Secret management (sops + age, encrypted ~/.env)
    8. Back up existing dotfiles to ~/.dotfiles_backup_<timestamp>
@@ -436,6 +437,9 @@ install_dev_tools() {
 
     # Install Ballerina
     install_ballerina
+
+    # Install the TypeScript language server (needs node, so after nvm)
+    install_typescript_lsp
 }
 
 # Install SDKMAN
@@ -466,6 +470,47 @@ install_sdkman() {
         fi
     else
         log_warning "Skipped SDKMAN installation"
+    fi
+}
+
+# Install the TypeScript language server binaries the typescript-lsp Claude Code
+# plugin and Neovim call. Node comes from nvm, which this script never loads (the
+# interactive shell lazy-loads it), so look for npm on PATH and then in nvm's
+# installed versions, the way zsh/.zshenv finds node. Never fails the script.
+install_typescript_lsp() {
+    log_step "Installing TypeScript language server"
+
+    local nvm_bin="" npm_cmd=""
+    if [ -d "$HOME/.nvm/versions/node" ]; then
+        # shellcheck disable=SC2012 # nvm version dirs are plain vX.Y.Z names
+        nvm_bin="$(ls -d "$HOME"/.nvm/versions/node/v*/bin 2>/dev/null | sort -V | tail -n 1)"
+    fi
+
+    if command_exists typescript-language-server || { [ -n "$nvm_bin" ] && [ -x "$nvm_bin/typescript-language-server" ]; }; then
+        log_success "typescript-language-server already installed"
+        return 0
+    fi
+
+    if command_exists npm; then
+        npm_cmd="npm"
+    elif [ -n "$nvm_bin" ] && [ -x "$nvm_bin/npm" ]; then
+        npm_cmd="$nvm_bin/npm"
+        export PATH="$nvm_bin:$PATH" # npm's #! line needs node on PATH
+    else
+        log_warning "npm not found - skipping typescript-language-server"
+        log_info "After installing Node (nvm install --lts), run: npm i -g typescript-language-server typescript"
+        return 0
+    fi
+
+    if confirm "Install typescript-language-server and typescript with npm?"; then
+        log_info "Installing typescript-language-server and typescript..."
+        if "$npm_cmd" i -g typescript-language-server typescript; then
+            log_success "typescript-language-server installed"
+        else
+            log_warning "Failed to install typescript-language-server (run: npm i -g typescript-language-server typescript)"
+        fi
+    else
+        log_info "Skipped typescript-language-server"
     fi
 }
 
