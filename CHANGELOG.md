@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Claude Code plugins `typescript-lsp` (TypeScript and JavaScript language server) and `claude-md-management` (`claude-md-improver` skill and `/revise-claude-md`) enabled for the personal account in `claude/.claude-personal/settings.json`; `docs/NEW_PROJECT.md` lists them with `gopls-lsp`. `typescript-lsp` needs `npm i -g typescript-language-server typescript`
 - Claude Code `keybindings.json` for both accounts (`claude/.claude-personal/` and `claude/.claude-enterprise/`, same content, linked by bestow): `Ctrl+X a` focuses the agents pane and `Ctrl+X v` toggles it (`/agents-pane`) from the prompt; in the pane `j` / `k` move between rows and `h` or `Ctrl+X a` return to the prompt. No clash with Claude Code defaults, the tmux prefix or vim-tmux-navigator; `tests/claude/check.sh` checks both files
 - `agents` mod 0.2.1: open a subagent's transcript in the main view from the pane (focus it with Ctrl+X then Tab, then `1` to `9`, or Tab and Enter on a row; a `◀ viewing` mark and a back row, `0`, show while one is open; two dim hint lines in the pane list the keys) or with `/agents-pane view <n|id>` and `/agents-pane back`; `$.ui.view` is the first call in the press handler, which returns it, because Claude Code denies it as "not person-initiated" once the press has ended; a finished agent the engine no longer tracks, or a refused switch, shows a message instead of failing. Added a standalone `agents/README.md` and `author` / `license` placeholders in `plugin.json` marked TODO for publishing
 - `redact` mod: hides `Cookie` and `Set-Cookie` header values (attributes such as `Path` and `Expires` stay) and session cookie values (`PHPSESSID`, `JSESSIONID`, `connect.sid`, `sessionid`, `next-auth.session-token` and similar), and scans a tool's structured result record (`toolUseResult`: Bash `stdout` and `stderr`, Read content, Edit patches) before it is stored, withholding a record it cannot scan
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Stray project-scope plugin installs for `/Users/thisaru` (`gopls-lsp`, `frontend-design`, `mattpocock-skills` on the personal account, `gopls-lsp` on the enterprise account) dropped from each account's `installed_plugins.json`; the personal user-scope installs stay, and the enterprise account no longer has `gopls-lsp`
 - Removed the vendored `rabe` mod (`/rabe`, the background-task band and pane) and its entry in both `settings.json` plugin lists: it gave no value in daily use
 - Removed the `session-wrapped` mod (`/wrapped`) and its entry in both `settings.json` plugin lists: it had no recorded use, `/usage` covers cost, and the `statusbar` mod shows context
 
