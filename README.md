@@ -184,6 +184,8 @@ lzd                                               # lazydocker also works unchan
 
 The `colima` Package holds `colima.yaml.example` only, not a linked config: `colima start` rewrites `~/.config/colima/default/colima.yaml` as a regular file, which would replace a link. To apply the tracked settings, copy the example over it (`cp colima/.config/colima/default/colima.yaml.example ~/.config/colima/default/colima.yaml`) or paste it in with `colima start --edit`.
 
+Freeing host disk: `docker system prune` frees space inside the VM only. The host gets it back when the guest trims the data disk, which Colima does at `colima start`. The example's `provision` script adds a weekly trim of every filesystem; for an immediate one run `colima ssh -- sudo fstrim -av`, and measure with `du -k ~/.config/colima/_lima/_disks/colima/datadisk` (`ls -l` always shows the full size).
+
 Colima lifecycle aliases (`zsh/.aliases.sh`, only defined if `colima` is installed):
 
 | Alias            | Command          |

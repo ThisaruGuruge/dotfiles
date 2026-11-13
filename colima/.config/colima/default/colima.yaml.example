@@ -230,8 +230,18 @@ cpuType: ""
 #   - mode: ready
 #     script: echo "everything is ready"
 #
+# Active: make the guest's weekly fstrim.service trim every mounted filesystem.
+# The stock unit trims only the filesystems listed in /etc/fstab, so it never
+# reaches the Docker data disk and the host disk file keeps its freed blocks
+# until the next `colima start`. Idempotent: it rewrites the same drop-in.
+#
 # Default: []
-provision: null
+provision:
+  - mode: system
+    script: |
+      mkdir -p /etc/systemd/system/fstrim.service.d
+      printf '[Service]\nExecStart=\nExecStart=/sbin/fstrim -av --quiet-unsupported\n' > /etc/systemd/system/fstrim.service.d/override.conf
+      systemctl daemon-reload
 
 # Modify ~/.ssh/config automatically to include a SSH config for the virtual machine.
 # SSH config will still be generated in $COLIMA_HOME/ssh_config regardless.
