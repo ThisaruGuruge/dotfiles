@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.14.2] - 2026-11-13
+
 ### Fixed
 
 - The Colima VM now trims its Docker data disk every week: `colima.yaml.example` has a `provision` script that makes the guest's `fstrim.service` run `fstrim -av` over every mounted filesystem. The stock unit trims only the filesystems listed in `/etc/fstab`, so it never reached the data disk and freed space stayed allocated on the host until the next `colima start`. After a big prune, run `colima ssh -- sudo fstrim -av` to reclaim it at once; measure with `du -k ~/.config/colima/_lima/_disks/colima/datadisk`, not `ls -l`
