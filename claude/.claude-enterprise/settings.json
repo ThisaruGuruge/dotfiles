@@ -131,6 +131,13 @@
     }
   },
   "effortLevel": "xhigh",
+  "pluginConfigs": {
+    "agents@redpierrot": {
+      "options": {
+        "rows": "auto"
+      }
+    }
+  },
   "autoUpdatesChannel": "stable",
   "theme": "dark",
   "editorMode": "vim",
@@ -161,12 +168,5 @@
       "**Org-specific CLIs**: None configured"
     ]
   },
-  "hideVimModeIndicator": true,
-  "pluginConfigs": {
-    "agents@redpierrot": {
-      "options": {
-        "rows": "auto"
-      }
-    }
-  }
+  "hideVimModeIndicator": true
 }

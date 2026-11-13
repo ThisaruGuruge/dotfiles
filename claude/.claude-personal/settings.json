@@ -123,7 +123,7 @@
     "frontend-design@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
-    "agents@redpierrot": true
+    "agent-crabs@redpierrot": true
   },
   "extraKnownMarketplaces": {
     "mattpocock": {
@@ -174,5 +174,12 @@
       "**Org-specific CLIs**: None configured"
     ]
   },
-  "hideVimModeIndicator": false
+  "hideVimModeIndicator": false,
+  "pluginConfigs": {
+    "agent-crabs@redpierrot": {
+      "options": {
+        "rows": "auto"
+      }
+    }
+  }
 }
