@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - GitHub is reached over `ssh.github.com:443` (`ssh/.ssh/config`: `HostName ssh.github.com`, `Port 443`, `HostKeyAlias github.com`) because some networks block outbound port 22; it serves the same host keys, so the existing `github.com` entry in `known_hosts` still applies and the `gh:`, `me:`, `bal:` ... remote aliases work unchanged
 
+- The tracked `bestow/.config/bestow/config.yaml` is path-free (`source` and `destination` empty): `zsh/.zshenv` exports `BESTOW_SOURCE=$DOTFILES` and an empty destination means `$HOME`, so the config no longer holds a machine path and `bestow init` no longer dirties the repo. A relative `--source` (for example `.`) makes bestow create relative, broken links; always pass an absolute path
+
 ### Removed
 
 - `prefix + S` and `tmux-session-creator`: `prefix + f` does everything they did. `~/dotfiles` is no longer a special entry in the picker

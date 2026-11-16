@@ -19,6 +19,8 @@ export VISUAL="$EDITOR"
 _dotfiles_root=${${(%):-%x}:A:h:h}
 if [[ -f $_dotfiles_root/init.sh && -d $_dotfiles_root/claude-mods ]]; then
   export DOTFILES=$_dotfiles_root
+  # bestow reads its source from here (bestow/.config/bestow/config.yaml leaves it empty)
+  export BESTOW_SOURCE=$DOTFILES
   # Claude Code mods load straight from the repo. settings.json env values are not expanded
   # (no $VAR), so the list is built here, where the shell can, and exported before launch.
   _dotfiles_mods=($DOTFILES/claude-mods/*/.claude-plugin/plugin.json(N:h:h))

@@ -80,7 +80,10 @@ brew bundle --file=Brewfile
 # Install bestow (requires Go)
 go install github.com/redpierrot/bestow@latest
 
-# Bootstrap bestow's own config (source: this repo, destination: $HOME)
+# Bootstrap bestow's own config (source: this repo, destination: $HOME). Use an absolute
+# source: a relative one such as `.` makes every link relative, and so broken. The repo's own
+# bestow/.config/bestow/config.yaml is path-free (zsh/.zshenv exports BESTOW_SOURCE), so stowing
+# the `bestow` package later replaces this file with a link to it
 bestow init --source ~/projects/personal/dotfiles --destination ~/
 
 # Symlink the packages you need (add/remove as desired)

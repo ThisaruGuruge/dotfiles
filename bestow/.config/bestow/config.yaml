@@ -6,10 +6,9 @@ version: 0.1.0
 # Bestow Profiles. Different profiles can have different source and destinations
 profiles:
   default:
-    # Source Directory (e.g. dotfiles repo)
-    source: /Users/thisaru/dotfiles
-    # Destination Directory (your $HOME directory)
-    destination: /Users/thisaru
-  sandbox:
-    source: /Users/thisaru/dotfiles/
-    destination: /Users/thisaru/Projects/bestow-test/dest/
+    # Source Directory (the dotfiles repo). Left empty on purpose: ~/.zshenv exports
+    # BESTOW_SOURCE from $DOTFILES, so this file holds no machine-specific path and the
+    # repo can live anywhere. `bestow init` writes an absolute path here; do not commit it.
+    source: ""
+    # Destination Directory. Empty means your $HOME directory.
+    destination: ""
