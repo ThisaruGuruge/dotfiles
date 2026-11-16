@@ -21,6 +21,14 @@ fi
 
 # XDG paths are exported from .zshenv.
 
+# Load SSH keys whose passphrase is stored in the macOS keychain into the agent at login
+# (store it once with: ssh-add --apple-use-keychain ~/.ssh/id_ed25519). ssh loads it by itself
+# through AddKeysToAgent/UseKeychain, but commit signing (gpg.format = ssh) only asks the
+# agent, so without this the first signed commit after a restart fails.
+if [[ -x /usr/bin/ssh-add ]]; then
+    /usr/bin/ssh-add --apple-load-keychain -q 2>/dev/null
+fi
+
 # Added by Toolbox App
 export PATH="$PATH:/usr/local/bin"
 
