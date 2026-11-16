@@ -122,7 +122,8 @@
     "frontend-design@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
-    "agent-crabs@redpierrot": true
+    "agent-crabs@redpierrot": true,
+    "typescript-native-lsp@anthropic-plugin-directory": true
   },
   "extraKnownMarketplaces": {
     "mattpocock": {
@@ -139,6 +140,13 @@
     }
   },
   "autoCompactWindow": 500000,
+  "pluginConfigs": {
+    "agent-crabs@redpierrot": {
+      "options": {
+        "rows": "auto"
+      }
+    }
+  },
   "autoUpdatesChannel": "stable",
   "tui": "fullscreen",
   "theme": "dark",
@@ -173,12 +181,5 @@
       "**Org-specific CLIs**: None configured"
     ]
   },
-  "hideVimModeIndicator": false,
-  "pluginConfigs": {
-    "agent-crabs@redpierrot": {
-      "options": {
-        "rows": "auto"
-      }
-    }
-  }
+  "hideVimModeIndicator": false
 }
