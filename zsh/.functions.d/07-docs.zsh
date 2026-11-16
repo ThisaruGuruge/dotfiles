@@ -302,7 +302,6 @@ alias_help() {
             echo "Floating Popups (prefix: Ctrl-a):"
             echo "  Ctrl-a t    Floating terminal (current dir)"
             echo "  Ctrl-a N    Floating scratchpad (notes)"
-            echo "  Ctrl-a S    New session creator"
             echo "  Ctrl-a G    Floating lazygit"
             echo "  Ctrl-a ?    Command palette (search & run any binding)"
             echo "  Ctrl-a f    Project sessionizer"
@@ -480,8 +479,8 @@ alias_categories() {
 profile_startup() {
     # Check if we have the profiler script
     local dotfiles_dir=""
-    if [ -d "${HOME}/dotfiles" ]; then
-        dotfiles_dir="${HOME}/dotfiles"
+    if [ -d "${DOTFILES:-${HOME}/projects/personal/dotfiles}" ]; then
+        dotfiles_dir="${DOTFILES:-${HOME}/projects/personal/dotfiles}"
     elif [ -d "${HOME}/.dotfiles" ]; then
         dotfiles_dir="${HOME}/.dotfiles"
     fi

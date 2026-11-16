@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# Shared project discovery for tmux-sessionizer.
+#
+#   tmux-project-list projects   one absolute path per project
+#   tmux-project-list groups     one absolute path per group (a folder that holds projects)
+#
+# A project is any directory under $PROJECTS_DIR (default ~/projects) that contains a
+# .git entry, directory or file (so linked worktrees count). Nothing below a project is
+# listed: its src/, docs/, submodules, nested repos and .claude/worktrees are all part of it.
+# A group is a folder that is neither a project nor inside one (work, work/ballerina, ...).
+# No folder names are hard-coded, so any new nesting is picked up as soon as it exists.
+#
+# PROJECT_SEARCH_DEPTH (default 6) caps how deep a .git is looked for; GROUP_DEPTH
+# (default 3) caps how deep groups are listed. bash 3.2 compatible (tmux popups can run
+# with a minimal PATH).
+
+root="${PROJECTS_DIR:-$HOME/projects}"
+root="${root%/}"
+
+projects() {
+    [[ -d "$root" ]] || return 0
+    find "$root" -maxdepth "${PROJECT_SEARCH_DEPTH:-6}" \
+        \( -name node_modules -o -name .cache -o -name Library -o -name .venv \) -prune -o \
+        -name .git -prune -print 2>/dev/null |
+        sed 's|/\.git$||' |
+        # Sort with "/" below every other character, so a repo is followed by what is inside it
+        # (a plain sort puts "a-b" between "a" and "a/sub") and the awk keeps the outermost one.
+        tr / '\001' | LC_ALL=C sort | tr '\001' / |
+        awk 'p != "" && index($0, p "/") == 1 { next } { print; p = $0 }'
+}
+
+groups() {
+    [[ -d "$root" ]] || return 0
+    awk '
+        NR == FNR { repo[$0] = 1; next }
+        {
+            n = split($0, a, "/"); p = ""
+            for (i = 2; i <= n; i++) { p = p "/" a[i]; if (p in repo) next }
+            print
+        }' <(projects) \
+        <(find "$root" -mindepth 1 -maxdepth "${GROUP_DEPTH:-3}" \
+            \( -name '.*' -o -name node_modules \) -prune -o -type d -print 2>/dev/null | LC_ALL=C sort)
+}
+
+case "${1:-projects}" in
+    projects) projects ;;
+    groups) groups ;;
+    *)
+        echo "usage: tmux-project-list [projects|groups]" >&2
+        exit 2
+        ;;
+esac

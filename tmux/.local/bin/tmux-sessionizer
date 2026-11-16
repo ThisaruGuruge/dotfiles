@@ -1,37 +1,98 @@
 #!/usr/bin/env bash
-# TMux Sessionizer - Fuzzy find projects and switch to named sessions
-# Inspired by ThePrimeagen's sessionizer
+# TMux Sessionizer (prefix + f) - pick a project or create one, then open a named session.
 #
-# New sessions are a single plain shell window in the project directory. Existing sessions
-# are never touched. Two projects with the same folder name get parent-qualified
-# session names (e.g. "work/api" and "personal/api").
+#   Enter   open the highlighted project (switches if it already has a session)
+#   Ctrl-n  new project: pick a group, then give a name (git init) or a git URL (clone)
+#   Esc     cancel
+#
+# "~" starts a session in $HOME for work that is not tied to a project. A project is any
+# directory under $PROJECTS_DIR with a .git entry (see tmux-project-list); nothing inside one
+# is listed. The session name is asked after the directory, defaulting to the shortest path
+# tail that is free (api, wso2/api, work/wso2/api, ...); Enter accepts it.
 
-# Configuration
-PROJECTS_DIR="$HOME/Projects"
-SEARCH_DEPTH=2 # Search 2 levels deep in Projects (for category/project structure)
-EXTRA_DIRS=(
-    "$HOME/dotfiles"
-)
+PROJECTS_DIR="${PROJECTS_DIR:-$HOME/projects}"
+LIST="$(dirname "$0")/tmux-project-list"
+NEW_PROJECT="+ New project…"
+NEW_GROUP="+ New group…"
+HOME_ENTRY="~"
 
-# Get selected directory
+# Pick a directory. Prints its absolute path, or nothing when cancelled.
 get_selected() {
-    # Build the list of directories
-    local dirs=""
+    local out key choice
+    out=$({
+        printf '%s\n' "$NEW_PROJECT" "$HOME_ENTRY"
+        "$LIST" projects | sed "s|^$PROJECTS_DIR/||"
+    } | fzf --height=40% --reverse --border --prompt="Project > " --expect=ctrl-n \
+        --header="Enter open · Ctrl-n new project · Esc cancel") || return 0
+    key=$(printf '%s\n' "$out" | sed -n 1p)
+    choice=$(printf '%s\n' "$out" | sed -n 2p)
+    if [[ "$key" == "ctrl-n" || "$choice" == "$NEW_PROJECT" ]]; then
+        new_project
+    elif [[ "$choice" == "$HOME_ENTRY" ]]; then
+        printf '%s' "$HOME"
+    elif [[ -n "$choice" ]]; then
+        printf '%s' "$PROJECTS_DIR/$choice"
+    fi
+}
 
-    # Add projects (2 levels deep to get past category folders)
-    if [[ -d "$PROJECTS_DIR" ]]; then
-        dirs=$(find "$PROJECTS_DIR" -mindepth "$SEARCH_DEPTH" -maxdepth "$SEARCH_DEPTH" -type d 2>/dev/null)
+# Create (or clone) a project and print its path. Pick the group it goes in, then give a name
+# (git init) or a git URL / alias such as wso2:repo (git clone). Prompts and git output go to
+# the popup's terminal, only the final path goes to stdout.
+new_project() {
+    local choice rel group input name target
+    choice=$({
+        printf '%s\n' "$NEW_GROUP"
+        "$LIST" groups | sed "s|^$PROJECTS_DIR/||"
+    } | fzf --height=40% --reverse --border --prompt="Group > " \
+        --header="Where should the new project live?") || return 0
+    [[ -z "$choice" ]] && return 0
+
+    if [[ "$choice" == "$NEW_GROUP" ]]; then
+        read -r -p "New group under ${PROJECTS_DIR/#$HOME/\~}/ (e.g. work/wso2): " rel </dev/tty >&2
+        rel="${rel#/}"
+        rel="${rel%/}"
+        case "$rel" in
+            '' | *..* | *[[:space:]]*) warn "Not a valid group: '$rel'" && return 0 ;;
+        esac
+        group="$PROJECTS_DIR/$rel"
+    else
+        group="$PROJECTS_DIR/$choice"
     fi
 
-    # Add extra directories
-    for dir in "${EXTRA_DIRS[@]}"; do
-        if [[ -d "$dir" ]]; then
-            dirs="$dirs"$'\n'"$dir"
-        fi
-    done
+    read -r -p "Project name or git URL: " input </dev/tty >&2
+    input="${input#"${input%%[![:space:]]*}"}"
+    input="${input%"${input##*[![:space:]]}"}"
+    [[ -z "$input" ]] && return 0
 
-    # Remove empty lines and pass to fzf
-    echo "$dirs" | grep -v '^$' | fzf --height=40% --reverse --border --prompt="Project > "
+    if [[ "$input" == */* || "$input" == *:* ]]; then
+        name="${input%/}"
+        name="${name%.git}"
+        name="${name##*[/:]}"
+    else
+        name="$input"
+    fi
+    if [[ -z "$name" || "$name" == .* || ! "$name" =~ ^[A-Za-z0-9._-]+$ ]]; then
+        warn "Not a valid project name: '$name'"
+        return 0
+    fi
+    target="$group/$name"
+
+    if [[ -e "$target" ]]; then
+        warn "$name already exists in ${group#"$PROJECTS_DIR"/}; opening it"
+    elif [[ "$name" != "$input" ]]; then
+        mkdir -p "$group"
+        if ! git clone "$input" "$target" >&2; then
+            warn "Clone failed"
+            return 0
+        fi
+    else
+        mkdir -p "$target"
+        if ! git init -q "$target" >&2; then
+            warn "Could not create $target"
+            return 0
+        fi
+    fi
+    printf '%s' "$target"
 }
 
 # Session names cannot contain "." or ":" (tmux replaces them), and a leading "$" would be
@@ -41,7 +102,7 @@ sanitize() {
 }
 
 # True when session $1 already holds directory $2: its recorded start directory is $2, or
-# one of its panes is in $2 or below it. Sessions made by prefix + S in $HOME or restored
+# one of its panes is in $2 or below it. Sessions started in $HOME or restored
 # by tmux-resurrect record a different start directory but are still "the" session for
 # the project they are working in, so judging by the recorded directory alone would
 # create a duplicate.
@@ -56,16 +117,29 @@ session_holds_dir() {
             END { exit !found }'
 }
 
-# Pick the session name for a directory: the folder name, or parent/folder when another
-# project already owns that name (numbered as a last resort). A session counts as owning
-# the name for another project only when it holds nothing in this directory.
+# Pick the session name for a directory: the shortest tail of its path under $PROJECTS_DIR
+# that no other project's session already uses (repo, then group/repo, then org/group/repo,
+# ...), numbered as a last resort. A session counts as owning a name for another project
+# only when it holds nothing in this directory.
 pick_session_name() {
     local dir="${1%/}"
-    local base parent candidate n
-    base=$(sanitize "$(basename "$dir")")
-    parent=$(sanitize "$(basename "$(dirname "$dir")")")
+    local rel parts k n i candidate
+    if [[ "$dir" == "$HOME" ]]; then
+        rel="home"
+    elif [[ "$dir" == "$PROJECTS_DIR"/* ]]; then
+        rel="${dir#"$PROJECTS_DIR"/}"
+    else
+        rel="$(basename "$dir")"
+    fi
+    IFS=/ read -r -a parts <<<"$rel"
+    n=${#parts[@]}
 
-    for candidate in "$base" "$parent/$base"; do
+    for ((k = 1; k <= n; k++)); do
+        candidate=""
+        for ((i = n - k; i < n; i++)); do
+            candidate="${candidate:+$candidate/}${parts[i]}"
+        done
+        candidate=$(sanitize "$candidate")
         if ! tmux has-session -t="$candidate" 2>/dev/null || session_holds_dir "$candidate" "$dir"; then
             printf '%s' "$candidate"
             return
@@ -74,7 +148,7 @@ pick_session_name() {
 
     n=2
     while :; do
-        candidate="$parent/$base-$n"
+        candidate="$(sanitize "$rel")-$n"
         if ! tmux has-session -t="$candidate" 2>/dev/null || session_holds_dir "$candidate" "$dir"; then
             printf '%s' "$candidate"
             return
@@ -91,29 +165,39 @@ warn() {
     sleep 1.5
 }
 
-# If argument provided, use it directly
+# The session that already holds directory $1 (a pane in it or below it, or started there), if
+# any. $HOME is matched exactly, because every session has a pane somewhere below it.
+session_for_dir() {
+    tmux list-panes -a -F $'#{session_name}\t#{session_path}\t#{pane_current_path}' 2>/dev/null |
+        awk -F'\t' -v d="$1" -v home="$HOME" '
+            {
+                sub(/\/$/, "", $2)
+                sub(/\/$/, "", $3)
+                if ($2 == d || $3 == d || (d != home && index($3, d "/") == 1)) { print $1; exit }
+            }'
+}
+
 if [[ $# -eq 1 ]]; then
     selected=$1
 else
     selected=$(get_selected)
 fi
+[[ -z "$selected" ]] && exit 0
 
-# Exit if nothing selected
-if [[ -z "$selected" ]]; then
-    exit 0
+# A session already works in this directory: just go there
+selected_name=""
+[[ "$selected" != "$HOME" ]] && selected_name=$(session_for_dir "${selected%/}")
+
+if [[ -z "$selected_name" ]]; then
+    default_name=$(pick_session_name "$selected")
+    read -r -e -p "Session name [$default_name]: " selected_name </dev/tty
+    selected_name="${selected_name:-$default_name}"
+    # Same rules as pick_session_name: "." and ":" are not allowed in names, "$" would be read
+    # as a session id, and spaces are awkward in targets. Slashes stay.
+    selected_name=$(printf '%s' "$selected_name" | tr '.:$ ' '____')
 fi
 
-# Check if tmux is running
-tmux_running=$(pgrep tmux)
-
-# With no server yet there are no sessions, so there is nothing to collide with
-if [[ -z "$tmux_running" ]]; then
-    selected_name=$(sanitize "$(basename "${selected%/}")")
-else
-    selected_name=$(pick_session_name "$selected")
-fi
-
-# If session doesn't exist, create it (detached)
+# If the session doesn't exist, create it (detached): one plain shell window in the directory
 if ! tmux has-session -t="$selected_name" 2>/dev/null; then
     tmux new-session -ds "$selected_name" -c "$selected" || {
         warn "Could not create session '$selected_name'"
@@ -121,7 +205,8 @@ if ! tmux has-session -t="$selected_name" 2>/dev/null; then
     }
 fi
 
-# Switch to the session
+# Switch must be the last command: the popup exits right after, and staying alive after
+# switch-client makes tmux snap the client back to the session that owned the popup.
 if [[ -z "$TMUX" ]]; then
     tmux attach-session -t="$selected_name"
 else

@@ -959,7 +959,7 @@ if [[ -f "$tmux_conf" ]]; then
     for tm_script in \
         "$tmux_repo/tmux/.local/bin/tmux-palette" \
         "$tmux_repo/tmux/.local/bin/tmux-sessionizer" \
-        "$tmux_repo/tmux/.local/bin/tmux-session-creator" \
+        "$tmux_repo/tmux/.local/bin/tmux-project-list" \
         "$tmux_repo/tmux/.local/bin/tmux-session-switcher" \
         "$tmux_repo/tmux/.local/bin/tmux-claude-next" \
         "$tmux_repo/bin/tmux-status-sysinfo" \

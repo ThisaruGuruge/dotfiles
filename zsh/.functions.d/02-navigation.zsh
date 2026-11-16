@@ -55,13 +55,13 @@ function takegit() {
     local category="$2"
     local repo_name
     local target_dir
-    local projects_dir="${PROJECTS_DIR:-$HOME/Projects}"
+    local projects_dir="${PROJECTS_DIR:-$HOME/projects}"
 
     # Validate input
     if [ -z "$repo_url" ]; then
         echo "Error: Repository URL is required"
         echo "Usage: take <git-url> [category]"
-        echo "  e.g., take https://github.com/user/repo Ballerina"
+        echo "  e.g., take https://github.com/user/repo work/ballerina"
         return 1
     fi
 

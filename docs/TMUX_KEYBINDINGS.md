@@ -8,8 +8,7 @@ Prefix key: `Ctrl+a`
 
 | Key | Action |
 |-----|--------|
-| `prefix + f` | Project sessionizer (fuzzy find a project, open its session) |
-| `prefix + S` | New session creator (prompts for name + directory) |
+| `prefix + f` | Project sessionizer (pick or create a project, name its session) |
 | `prefix + s` | Session switcher (fzf popup: `Enter` switch, `1-9` jump, `Ctrl+x` kill) |
 | `prefix + Tab` | Switch to the last session |
 | `prefix + $` | Rename session |
@@ -106,7 +105,6 @@ All popups float above the current pane (including NeoVim) and close back to exa
 |-----|--------|
 | `prefix + t` | Floating terminal (current directory) |
 | `prefix + N` | Floating scratchpad (`~/.scratch.md` in nvim) |
-| `prefix + S` | New session creator (prompts for name + directory) |
 | `prefix + G` | Floating lazygit (current directory) |
 | `prefix + f` | Project sessionizer (fuzzy find and switch projects) |
 
@@ -133,7 +131,7 @@ All popups float above the current pane (including NeoVim) and close back to exa
 | `prefix + F` | tmux-fzf | Menu for sessions, windows, panes and the clipboard |
 | `prefix + Ctrl+s` / `Ctrl+r` | tmux-resurrect | Save / restore sessions |
 
-`prefix + S` runs our new-session popup instead of tmux-sessionist's "last session" key; `prefix + Tab` does that job.
+`prefix + S` is left to tmux-sessionist (its "last session" key); `prefix + Tab` does the same job.
 
 ## Ghostty Shortcuts
 
@@ -169,18 +167,20 @@ TMux automatically starts when you open a terminal, except in:
 
 ## Project Sessionizer
 
-Press `prefix + f` anywhere in TMux to:
-1. Fuzzy search through your projects (`~/Projects/**/` and `~/dotfiles`)
-2. Create or switch to a named TMux session for that project
-3. Start in the project directory
+Press `prefix + f` anywhere in TMux to open the picker:
+
+- **Projects:** every directory under `~/projects` that contains a `.git` (at any depth, up to 6 levels), and nothing inside a project (no `src/`, `docs/`, submodules or nested repos). No folder names are hard-coded, so a new group such as `work/wso2/` appears as soon as it holds a repo.
+- **`~`:** a session in your home directory, for work that is not tied to a project.
+- `Enter` opens the highlighted entry; `Esc` cancels (nothing is created). If a session already works in that project you are switched to it. Otherwise you are asked for a session name, defaulting to the shortest free path tail (`api`, then `wso2/api`, then `work/wso2/api`); `Enter` accepts it.
+- `Ctrl-n` (or the **+ New project…** entry) creates a project that does not exist yet: pick a group (an existing folder such as `work/ballerina`, or **+ New group…** to type one like `work/wso2`), then type a name (the folder is created and `git init` run) or paste a git URL or alias such as `wso2:repo` (cloned into the group). The new project then goes through the session-name prompt.
 
 Each project gets its own persistent session that survives terminal restarts.
 
 ### New sessions
 
-A session created by `prefix + f` or `prefix + S` is a single shell window in the chosen directory. Existing sessions are never touched.
+A session created by `prefix + f` is a single shell window in the chosen directory. Existing sessions are never touched.
 
-- Two projects with the same folder name get parent-qualified session names: `api` for the first, `personal/api` for the second. A session counts as belonging to a project when any of its panes is in that directory, so a session you made with `prefix + S` and `cd`'d into the project is reused. A `$` in a folder name becomes `_`; `prefix + S` also keeps `/` in names, so `work/api` typed there matches the sessionizer's name.
+- Two projects with the same folder name get path-qualified session names: `api` for the first, `wso2/api` for the second, then `work/wso2/api` (more of the path under `~/projects` is added until the name is free). A session counts as belonging to a project when any of its panes is in that directory, so a session you made by hand and `cd`'d into the project is reused. In names, `.`, `:`, `$` and spaces become `_`; `/` is kept.
 - `tmux-claude-next` is bestow-linked into `~/.local/bin` like the other tmux scripts: after pulling, run `bestow stow tmux` if it is missing; until then `prefix + A` says the helper is missing.
 - `prefix + s` only switches between sessions; it does not create anything.
 
@@ -199,4 +199,4 @@ While the `awake` shell function is holding the Mac awake (its pidfile `${TMPDIR
 
 ---
 
-**Tip**: Use `prefix + t` for a quick terminal, `prefix + f` to fuzzy-find projects, `prefix + A` to jump to the Claude window that needs you, or `prefix + S` to create a new named session!
+**Tip**: Use `prefix + t` for a quick terminal, `prefix + f` to fuzzy-find projects, `prefix + A` to jump to the Claude window that needs you, or `Ctrl-n` inside `prefix + f` to start a new project!
