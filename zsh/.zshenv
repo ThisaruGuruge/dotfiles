@@ -12,10 +12,28 @@ typeset -U fpath
 export EDITOR="nvim"
 export VISUAL="$EDITOR"
 
+# The dotfiles checkout, found from this file's own resolved path (~/.zshenv is a bestow link into
+# <checkout>/zsh/.zshenv), so it needs no hard-coded location and follows the repo when it moves
+# (re-run bestow after a move). Always derived, never inherited, so a stale value from a shell
+# started before a move cannot win.
+_dotfiles_root=${${(%):-%x}:A:h:h}
+if [[ -f $_dotfiles_root/init.sh && -d $_dotfiles_root/claude-mods ]]; then
+  export DOTFILES=$_dotfiles_root
+  # Claude Code mods load straight from the repo. settings.json env values are not expanded
+  # (no $VAR), so the list is built here, where the shell can, and exported before launch.
+  _dotfiles_mods=($DOTFILES/claude-mods/*/.claude-plugin/plugin.json(N:h:h))
+  (( $#_dotfiles_mods )) && export CLAUDE_CODE_PLUGIN_DIRS="${(j.:.)_dotfiles_mods}"
+  unset _dotfiles_mods
+else
+  unset DOTFILES
+fi
+unset _dotfiles_root
+
 # XDG paths. Set here (not in .zprofile) so every zsh sees them, including
 # non-login and non-interactive shells. XDG_CACHE_HOME deliberately stays at
 # ~/Library/Caches (the macOS convention); the zsh caches in ~/.cache/zsh are
 # addressed by their literal path and do not depend on it.
+export PROJECTS_DIR="${PROJECTS_DIR:-$HOME/projects}"
 export XDG_CONFIG_HOME="$HOME/.config"
 export XDG_CACHE_HOME="$HOME/Library/Caches"
 export XDG_DATA_HOME="$HOME/.local/share"

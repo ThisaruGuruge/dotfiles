@@ -337,13 +337,13 @@ if (($+commands[atuin])); then
 fi
 
 # Dotfiles testing
-alias test-zsh='$HOME/dotfiles/bin/test-zsh-config'
+alias test-zsh='$HOME/bin/test-zsh-config'
 
 # Package Management
 # brew-sync is a read-only drift report (see bin/sync-brewfile): it never
 # rewrites a Brewfile. brew-check verifies the core Brewfile is satisfied.
-alias brew-sync='$HOME/dotfiles/bin/sync-brewfile'
-alias brew-check='brew bundle check --file=$HOME/dotfiles/Brewfile'
+alias brew-sync='$HOME/bin/sync-brewfile'
+alias brew-check='brew bundle check --file=$DOTFILES/Brewfile'
 
 # Claude Code account switching
 # ccp/ccpr/ccpc also load ~/.claude-personal/projects.d/<repo>.json through --settings when the

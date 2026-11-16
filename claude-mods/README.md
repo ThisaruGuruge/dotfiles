@@ -2,7 +2,7 @@
 
 Mods are small TypeScript plugins that hook into Claude Code itself. Each folder here is one mod
 (`.claude-plugin/plugin.json` + `hooks/`). They are **not** a stow package: both accounts load them
-straight from this repo through `CLAUDE_CODE_PLUGIN_DIRS` in `claude/.claude-*/settings.json`
+straight from this repo through `CLAUDE_CODE_PLUGIN_DIRS`, exported by `zsh/.zshenv` from `$DOTFILES/claude-mods/`
 (`~` is allowed, folders are separated by `:`), so there is nothing to symlink or install.
 
 | Mod | What it does |

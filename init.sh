@@ -7,11 +7,10 @@ usage() {
 Usage: ./init.sh [--dry-run | -h | --help]
 
 Interactive installer for this dotfiles repo (macOS). It can be run from any
-checkout location; the setup hard-codes ~/dotfiles, so a ~/dotfiles symlink
-to the checkout is created when the checkout lives elsewhere.
+checkout location. ~/.zshenv derives $DOTFILES from the checkout it is linked into.
 
 Options:
-  --dry-run     Preflight only: check the checkout and ~/dotfiles, change nothing
+  --dry-run     Preflight only: check the checkout, change nothing
   -h, --help    Show this help and exit
 
 Steps (each asks before it acts):
@@ -213,58 +212,6 @@ physical_path() {
     local dir
     dir=$(cd -P "$(dirname "$1")" 2>/dev/null && pwd -P) || return 1
     echo "$dir/$(basename "$1")"
-}
-
-# The hooks, CLAUDE_CODE_PLUGIN_DIRS, status line, aliases and tmux config all
-# hard-code ~/dotfiles, so that path must resolve to this checkout. Prints
-# "ok" (it already does), "missing" (nothing there yet) or "conflict:<why>"
-canonical_path_state() {
-    local canonical="$HOME/dotfiles" resolved
-    if [ -L "$canonical" ] && [ ! -e "$canonical" ]; then
-        echo "conflict:$canonical is a dangling symlink (points to $(readlink "$canonical"))"
-    elif [ -e "$canonical" ]; then
-        resolved=$(cd -P "$canonical" 2>/dev/null && pwd -P) || resolved=""
-        if [ "$resolved" = "$DOTFILES_DIR" ]; then
-            echo "ok"
-        else
-            echo "conflict:$canonical already exists and is not this checkout (${resolved:-not a directory})"
-        fi
-    else
-        echo "missing"
-    fi
-}
-
-# Make ~/dotfiles resolve to this checkout. With "check" it only reports (used
-# by --dry-run and before the confirmation); with "create" it adds the symlink.
-# Returns non-zero when ~/dotfiles is something else.
-ensure_canonical_path() {
-    local mode="$1" state
-    state=$(canonical_path_state)
-    case "$state" in
-        ok)
-            if [ "$HOME/dotfiles" = "$DOTFILES_DIR" ]; then
-                log_success "Checkout is at ~/dotfiles"
-            else
-                log_success "The path ~/dotfiles already resolves to this checkout ($DOTFILES_DIR)"
-            fi
-            ;;
-        missing)
-            if [ "$mode" = "create" ]; then
-                if ! ln -s "$DOTFILES_DIR" "$HOME/dotfiles"; then
-                    log_error "Could not create the symlink ~/dotfiles"
-                    return 1
-                fi
-                log_success "Created symlink ~/dotfiles -> $DOTFILES_DIR"
-            else
-                log_info "Would create symlink ~/dotfiles -> $DOTFILES_DIR (the setup hard-codes ~/dotfiles)"
-            fi
-            ;;
-        conflict:*)
-            log_error "${state#conflict:}"
-            log_info "The setup hard-codes ~/dotfiles. Move or remove that path, or run init.sh from the checkout at ~/dotfiles"
-            return 1
-            ;;
-    esac
 }
 
 # Check if running on macOS
@@ -1501,7 +1448,6 @@ main() {
     if [ "$dry_run" = true ]; then
         echo "Preflight only: nothing will be changed"
         echo "Checkout: $DOTFILES_DIR"
-        ensure_canonical_path check || exit 1
         echo "Dry run successful (preflight only: nothing changed)"
         exit 0
     fi
@@ -1515,9 +1461,6 @@ main() {
     echo ""
 
     log_info "Starting installation from: $DOTFILES_DIR"
-    # Refuse early if ~/dotfiles is something else; the symlink itself is
-    # only created after the confirmation below
-    ensure_canonical_path check || exit 1
     log_info "This script will set up your complete development environment"
     echo -e "${CYAN}${INFO} During installation, press 'y' for yes, 'n' for no, or 'q' to quit (no Enter needed)${NC}"
 
@@ -1527,7 +1470,6 @@ main() {
     fi
 
     # Run installation steps
-    ensure_canonical_path create || exit 1
     check_macos
     check_xcode_tools
     setup_homebrew

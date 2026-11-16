@@ -54,7 +54,7 @@ Inside the yazi.nvim floating window:
 | ---- | ------------------- |
 | `gd` | Go to `~/Downloads` |
 | `gc` | Go to `~/.config`   |
-| `gD` | Go to `~/dotfiles`  |
+| `gD` | Go to `~/projects/personal/dotfiles`  |
 
 ## Search, Find & Filter
 

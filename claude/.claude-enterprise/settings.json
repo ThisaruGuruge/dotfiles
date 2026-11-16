@@ -1,7 +1,6 @@
 {
   "env": {
-    "BASH_OUTPUT_MAX_LENGTH": "150000",
-    "CLAUDE_CODE_PLUGIN_DIRS": "~/dotfiles/claude-mods/statusbar:~/dotfiles/claude-mods/blast-radius:~/dotfiles/claude-mods/redact:~/dotfiles/claude-mods/conventions"
+    "BASH_OUTPUT_MAX_LENGTH": "150000"
   },
   "permissions": {
     "defaultMode": "auto"
@@ -13,7 +12,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" working >/dev/null 2>&1 || true",
+            "command": "\"$HOME/bin/claude-tmux-state\" working >/dev/null 2>&1 || true",
             "timeout": 5,
             "async": true
           }
@@ -25,12 +24,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" waiting >/dev/null 2>&1 || true",
+            "command": "\"$HOME/bin/claude-tmux-state\" waiting >/dev/null 2>&1 || true",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "\"$HOME/dotfiles/bin/claude-notify\" attention >/dev/null 2>&1 || true",
+            "command": "\"$HOME/bin/claude-notify\" attention >/dev/null 2>&1 || true",
             "timeout": 5,
             "async": true
           }
@@ -42,12 +41,12 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" done >/dev/null 2>&1 || true",
+            "command": "\"$HOME/bin/claude-tmux-state\" done >/dev/null 2>&1 || true",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "\"$HOME/dotfiles/bin/claude-notify\" done >/dev/null 2>&1 || true",
+            "command": "\"$HOME/bin/claude-notify\" done >/dev/null 2>&1 || true",
             "timeout": 5,
             "async": true
           }
@@ -59,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" done >/dev/null 2>&1 || true",
+            "command": "\"$HOME/bin/claude-tmux-state\" done >/dev/null 2>&1 || true",
             "timeout": 5
           }
         ]
@@ -70,7 +69,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/dotfiles/bin/claude-notify\" subagent >/dev/null 2>&1 || true",
+            "command": "\"$HOME/bin/claude-notify\" subagent >/dev/null 2>&1 || true",
             "timeout": 5,
             "async": true
           }
@@ -83,7 +82,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/dotfiles/bin/claude-notify\" attention >/dev/null 2>&1 || true",
+            "command": "\"$HOME/bin/claude-notify\" attention >/dev/null 2>&1 || true",
             "timeout": 5,
             "async": true
           }
@@ -95,7 +94,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" resume >/dev/null 2>&1 || true",
+            "command": "\"$HOME/bin/claude-tmux-state\" resume >/dev/null 2>&1 || true",
             "timeout": 5,
             "async": true
           }
@@ -107,7 +106,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/dotfiles/bin/claude-tmux-state\" clear >/dev/null 2>&1 || true",
+            "command": "\"$HOME/bin/claude-tmux-state\" clear >/dev/null 2>&1 || true",
             "timeout": 5
           }
         ]

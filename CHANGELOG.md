@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `takegit` defaults to `$PROJECTS_DIR` / `~/projects`, and the tmux status bar calls its helpers through `~/bin`
 
+- `$DOTFILES` is exported by `~/.zshenv`, derived from where that file links to (`<checkout>/zsh/.zshenv`), so the checkout can live anywhere and nothing hard-codes `~/dotfiles`. `init.sh` no longer creates a `~/dotfiles` symlink. After moving the checkout, re-run `bestow stow` from the new location (the links are absolute) and open a new shell
+
+- `CLAUDE_CODE_PLUGIN_DIRS` is exported by `~/.zshenv` from `$DOTFILES/claude-mods/*/` instead of being written into each `settings.json` (Claude Code does not expand `$VAR` there, and a literal path ties the repo to one location). `dotdoctor` checks the exported list and fails when `settings.json` sets it again; ADR 0003 is updated
+
+- The Claude hooks, the status line, the tmux status bar and the `test-zsh` / `brew-*` aliases call the repo's scripts through `~/bin`, and the shell functions use `$DOTFILES`, instead of `~/dotfiles/...`
+
+- `dotdoctor` and `test-shell-helpers` take the checkout to inspect from `DOTFILES_CHECK=<dir>` (was `DOTFILES=<dir>`), which is now the exported checkout path
+
 ### Removed
 
 - `prefix + S` and `tmux-session-creator`: `prefix + f` does everything they did. `~/dotfiles` is no longer a special entry in the picker

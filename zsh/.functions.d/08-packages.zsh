@@ -9,8 +9,8 @@
 list_dotfiles_tools() {
     local root="${DOTFILES_DIR:-}"
     if [[ -z "$root" || ! -f "$root/Brewfile" ]]; then
-        if [[ -f "${HOME}/dotfiles/Brewfile" ]]; then
-            root="${HOME}/dotfiles"
+        if [[ -f "${DOTFILES:-${HOME}/projects/personal/dotfiles}/Brewfile" ]]; then
+            root="${DOTFILES:-${HOME}/projects/personal/dotfiles}"
         elif [[ -f "${HOME}/.dotfiles/Brewfile" ]]; then
             root="${HOME}/.dotfiles"
         else

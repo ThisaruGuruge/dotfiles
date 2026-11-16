@@ -58,7 +58,7 @@ Migrate an existing config from `~/.config/<app>` into your dotfiles repo.
 **What it does:**
 1. Checks that the config exists and is not already managed: it refuses when `<app>/.config/<app>` already exists in the repo or when files under `~/.config/<app>` are symlinks into the repo (bestow links per file, never whole directories). It also refuses `sops` and any config holding an age private key (`age/keys.txt` or `*keys.txt` under an `age/` directory): that key decrypts `~/.env` and must never enter the repo
 2. Shows size and lists files that may hold sensitive data (names only)
-3. Moves config to `~/dotfiles/<app>/.config/<app>` (a new top-level bestow package)
+3. Moves config to `~/projects/personal/dotfiles/<app>/.config/<app>` (a new top-level bestow package)
 4. Creates `.bestowignore` for sensitive files
 5. Stows the package to create the symlink back
 6. Prompts you to review and commit
@@ -69,7 +69,7 @@ Migrate an existing config from `~/.config/<app>` into your dotfiles repo.
 ./bin/adopt-config fish
 
 # Review the ignore file
-vim ~/dotfiles/fish/.bestowignore
+vim ~/projects/personal/dotfiles/fish/.bestowignore
 
 # Commit
 git add fish/.config/fish fish/.bestowignore
@@ -105,20 +105,20 @@ dotdoctor --full    # also: brew bundle check (auto-update/analytics off) + clau
 
 **Checks:**
 - Every non-ignored file of every bestow package is linked (`bestow stow -n`, run once per package so one package bestow cannot plan does not hide the others; `.bestowignore` rules and bestow's per-file linking are honoured; `bin` is checked against `~/bin`). Missing links and destinations blocked by another file or link are `✘` (the config is not active either way); a package bestow cannot plan is `✘` by name
-- Dangling symlinks into the repo (in `~`, `~/bin`, `~/.config`, `~/.claude-*`, `~/.hammerspoon`, `~/.local/bin`). "Into the repo" means under the checked repo, its main checkout, or `~/dotfiles`/`~/.dotfiles`; links into other projects are ignored
+- Dangling symlinks into the repo (in `~`, `~/bin`, `~/.config`, `~/.claude-*`, `~/.hammerspoon`, `~/.local/bin`). "Into the repo" means under the checked repo, its main checkout, or `~/projects/personal/dotfiles`/`~/.dotfiles`; links into other projects are ignored
 - `~/.config/bestow/config.yaml` matches the repo copy
 - `~/.claude` is a symlink to `~/.claude-personal`, and `~/.claude-personal/settings.local.json` links to the repo's `.claude/settings.local.json`
-- `CLAUDE_CODE_PLUGIN_DIRS` in both account `settings.json` files lists every `claude-mods/*/` plugin, every listed directory exists and lives inside the repo (a same-named plugin from elsewhere does not count) (`✘` on mismatch)
+- `CLAUDE_CODE_PLUGIN_DIRS` (exported by `~/.zshenv`; `settings.json` must not set it) lists every `claude-mods/*/` plugin, every listed directory exists and lives inside the repo (a same-named plugin from elsewhere does not count) (`✘` on mismatch)
 - age key present, `~/.env` sops-encrypted, no plaintext `zsh/.env` in the repo (`✘` even when git-ignored: it still sits on disk next to the code; a sops-encrypted copy is only a `⚠`), no plaintext `~/.env.backup*`
 - `ControlEscape.spoon` cloned, tmux plugin manager and declared tmux plugins installed
 - Bare `gws` is blocked: `gws` on `PATH` must be the `bin/gws` guard, and the guard exits 64 without an account (the real binary is never run)
 
-It is a script in `bin/`, so it works from any shell. It checks the repo the script lives in (symlinks are followed, so the installed `~/bin/dotdoctor` checks the live repo) against the links in `$HOME`; `DOTFILES=<dir>` points it at a different checkout. Run from a linked git worktree it warns up front, because links that point at the main checkout then look unlinked.
+It is a script in `bin/`, so it works from any shell. It checks the repo the script lives in (symlinks are followed, so the installed `~/bin/dotdoctor` checks the live repo) against the links in `$HOME`; `DOTFILES_CHECK=<dir>` points it at a different checkout. Run from a linked git worktree it warns up front, because links that point at the main checkout then look unlinked.
 
 `bin/test-shell-helpers` exercises it (exit codes, hard errors, worktrees, `--full`) together with `envrc`, `prs`/`prw` and the direnv hook, using a scratch `HOME` and fake `gh`/`fzf`/`claude`/`brew`; `test-zsh` runs it.
 
 ### `claude-statusline` / `claude-tmux-state`
-Claude Code helpers, called from `claude/.claude-*/` by their repo path (`~/dotfiles/bin/...`). They are
+Claude Code helpers, called from `claude/.claude-*/` through `~/bin`. They are
 also linked into `~/bin` like every other script here (the root `.bestowignore` skips only `claude-mods`).
 
 - `claude-statusline --label NAME --color 'R;G;B' [--cost nonzero|always]` draws the status line both
@@ -197,11 +197,11 @@ Adopt a package by adding a line to `Brewfile` (core) or the right `packages/<ca
 brew install bat
 
 # 2. Configure it
-mkdir -p ~/dotfiles/bat/.config/bat
-echo "--theme=TwoDark" > ~/dotfiles/bat/.config/bat/config
+mkdir -p ~/projects/personal/dotfiles/bat/.config/bat
+echo "--theme=TwoDark" > ~/projects/personal/dotfiles/bat/.config/bat/config
 
 # 3. Stow it
-cd ~/dotfiles && bestow stow bat
+cd ~/projects/personal/dotfiles && bestow stow bat
 
 # 4. Add it to Brewfile by hand (./bin/sync-brewfile shows what is untracked)
 ./bin/sync-brewfile
@@ -231,13 +231,13 @@ git push
 
 On a new machine, everything just works:
 ```bash
-git clone https://github.com/ThisaruGuruge/dotfiles.git ~/dotfiles
-cd ~/dotfiles
+git clone https://github.com/ThisaruGuruge/dotfiles.git ~/projects/personal/dotfiles
+cd ~/projects/personal/dotfiles
 ./init.sh
 # All configs are symlinked automatically!
 ```
 
-The checkout can be anywhere: `init.sh` locates the repo from its own path and, when it is not at `~/dotfiles`, creates a `~/dotfiles` symlink to it (the hooks, status line, aliases and tmux config all use that path). `./init.sh --dry-run` is a preflight that changes nothing, and `./init.sh --help` lists the steps.
+The checkout can be anywhere: `~/.zshenv` derives `$DOTFILES` from the checkout it links into. Hooks, the status line and tmux reach the scripts through `~/bin`. `./init.sh --dry-run` is a preflight that changes nothing, and `./init.sh --help` lists the steps.
 
 ## Tips
 

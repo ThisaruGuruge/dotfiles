@@ -45,12 +45,12 @@ A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CL
 ### Option 1 – Automated (`init.sh`)
 
 ```bash
-git clone https://github.com/ThisaruGuruge/dotfiles.git ~/dotfiles
-cd ~/dotfiles
+git clone https://github.com/ThisaruGuruge/dotfiles.git ~/projects/personal/dotfiles
+cd ~/projects/personal/dotfiles
 ./init.sh
 ```
 
-The checkout can live anywhere (the script finds the repo from its own path). The rest of the setup hard-codes `~/dotfiles`, so when the checkout is elsewhere `init.sh` creates a `~/dotfiles` symlink pointing at it (and stops with a clear message if `~/dotfiles` is already something else). `./init.sh --dry-run` is a preflight only: it checks the checkout and `~/dotfiles` and changes nothing; `./init.sh --help` lists the steps.
+The checkout can live anywhere (`~/projects/personal/dotfiles` in the examples). `~/.zshenv` is a link into it, and derives `$DOTFILES` from where that link points, so nothing is hard-coded. It also exports `CLAUDE_CODE_PLUGIN_DIRS` from `$DOTFILES/claude-mods/`. Hooks, the status line and tmux reach the scripts through `~/bin`. After moving the checkout, re-run `bestow stow` from the new location (the links are absolute) and open a new shell. `./init.sh --dry-run` is a preflight only: it checks the checkout and changes nothing; `./init.sh --help` lists the steps.
 
 The script is interactive; it will:
 
@@ -71,8 +71,8 @@ The script is interactive; it will:
 ### Option 2 – Manual setup
 
 ```bash
-git clone https://github.com/ThisaruGuruge/dotfiles.git ~/dotfiles
-cd ~/dotfiles
+git clone https://github.com/ThisaruGuruge/dotfiles.git ~/projects/personal/dotfiles
+cd ~/projects/personal/dotfiles
 
 # Install everything that is currently enabled in Brewfile
 brew bundle --file=Brewfile
@@ -81,7 +81,7 @@ brew bundle --file=Brewfile
 go install github.com/redpierrot/bestow@latest
 
 # Bootstrap bestow's own config (source: this repo, destination: $HOME)
-bestow init --source ~/dotfiles --destination ~/
+bestow init --source ~/projects/personal/dotfiles --destination ~/
 
 # Symlink the packages you need (add/remove as desired)
 bestow stow zsh git tmux direnv bash
@@ -265,7 +265,7 @@ Two accounts, each with its own config directory (`claude/` is the stow package 
 
 - `~/.claude` must be a symlink to `~/.claude-personal` (`ln -s ~/.claude-personal ~/.claude`), so plain `claude` outside a pinned directory is the personal account. `dotdoctor` checks it.
 - `ccp`/`ccpr`/`ccpc` also load `~/.claude-personal/projects.d/<repo>.json` with `--settings` when the current git repo has one. That is where a project's own `autoMode` rules go, since Claude Code ignores `autoMode` in a project's `.claude/settings*.json` and they must not live in this public repo. `<repo>` is the main checkout's directory name, so linked worktrees share it.
-- Mods in `claude-mods/` (`statusbar`, `blast-radius`, `redact`, `agents`, `conventions`) load straight from the repo via `CLAUDE_CODE_PLUGIN_DIRS` in both `settings.json` files, with nothing to link. The band above the prompt (context bar, rate limits) is the `statusbar` mod, the line below it is `bin/claude-statusline`, and `conventions` runs `bin/lint --file` after each edit Claude makes in this repo. See [`claude-mods/README.md`](claude-mods/README.md).
+- Mods in `claude-mods/` (`statusbar`, `blast-radius`, `redact`, `agents`, `conventions`) load straight from the repo via `CLAUDE_CODE_PLUGIN_DIRS`, which `~/.zshenv` exports from `$DOTFILES/claude-mods/` (Claude Code does not expand variables in `settings.json`), with nothing to link. The band above the prompt (context bar, rate limits) is the `statusbar` mod, the line below it is `bin/claude-statusline`, and `conventions` runs `bin/lint --file` after each edit Claude makes in this repo. See [`claude-mods/README.md`](claude-mods/README.md).
 - Keybindings: `claude/.claude-*/keybindings.json` (identical in both accounts; Claude Code reloads it live, no restart). Home row for the `agents` mod's pane, all as a `Ctrl+X` chord so the tmux prefix (`Ctrl+a`), vim-tmux-navigator (`Ctrl+h/j/k/l`), `Meta+k` and Claude's `Ctrl+B` stay free:
 
   | Context | Key | Action |
@@ -282,7 +282,7 @@ Two accounts, each with its own config directory (`claude/` is the stow package 
 
 ### tmux project sessions
 
-`prefix + f` (sessionizer) and `prefix + S` (new session) create a session with one shell window in the chosen directory. Key reference: [`docs/TMUX_KEYBINDINGS.md`](docs/TMUX_KEYBINDINGS.md).
+`prefix + f` (sessionizer) creates a session with one shell window in the chosen directory. Key reference: [`docs/TMUX_KEYBINDINGS.md`](docs/TMUX_KEYBINDINGS.md).
 
 ### Per-project accounts (`envrc`)
 
@@ -356,7 +356,7 @@ The default editor is set to `nvim` via the `$EDITOR` environment variable in `.
 
   ```bash
   rm ~/.sops.yaml
-  sed "s/AGE_PUBLIC_KEY/$(age-keygen -y ~/.config/sops/age/keys.txt)/g" ~/dotfiles/bash/.sops.yaml.example > ~/.sops.yaml
+  sed "s/AGE_PUBLIC_KEY/$(age-keygen -y ~/.config/sops/age/keys.txt)/g" ~/projects/personal/dotfiles/bash/.sops.yaml.example > ~/.sops.yaml
   ```
 
 - Secrets live in `~/.env` (outside the repo). They stay encrypted on disk. On startup the shell decrypts them once into a private cache (`~/.cache/zsh/env_cache.v2`, mode 600 in a 700 directory). The cache records the `sops_mac` of the `~/.env` it came from, so any change to `~/.env` (an edit, a key rotation, a restored backup) makes the next shell decrypt again; a cache with the wrong mode or owner is ignored, and the old `env_cache` from earlier versions is deleted on sight.
@@ -410,7 +410,7 @@ EOF
 Sample prompt (top line + prompt character on line 2):
 
 ```text
- ~/dotfiles  main !+   Go 1.23.4
+ ~/projects/personal/dotfiles  main !+   Go 1.23.4
 ❯
 ```
 
@@ -428,7 +428,7 @@ What you see:
 Customize the prompt at `~/.p10k.zsh` (stowed from `zsh/.p10k.zsh`):
 
 ```bash
-nvim ~/dotfiles/zsh/.p10k.zsh     # Edit directly — hot-reloads automatically
+nvim ~/projects/personal/dotfiles/zsh/.p10k.zsh     # Edit directly — hot-reloads automatically
 p10k configure                    # Interactive wizard (overwrites the file)
 ```
 
@@ -460,7 +460,7 @@ Fonts missing? Re-open the terminal and ensure your profile uses a Nerd Font. Ic
 ## Keeping Dotfiles Updated
 
 ```bash
-cd ~/dotfiles
+cd ~/projects/personal/dotfiles
 git pull origin main
 brew bundle --file=Brewfile  # Install any new packages
 test-zsh                     # Sanity check after upgrades

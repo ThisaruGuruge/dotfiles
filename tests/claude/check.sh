@@ -407,13 +407,13 @@ done
 
 # Private project details belong in ~/.claude-personal/projects.d/<repo>.json, never in this public
 # repo. The repo only carries a generic check: tracked settings may name paths under a home
-# directory only inside dot-directories or ~/dotfiles (a project path like ~/<dir>/<project> is
+# directory only inside dot-directories or ~/bin (a project path like ~/<dir>/<project> is
 # private). Names to look for (one extended regex per line; blank and # lines skipped) go,
 # untracked, in ${XDG_CONFIG_HOME:-~/.config}/dotfiles/private-patterns.
 tracked=("$repo"/claude/.claude-*/settings.json)
 # shellcheck disable=SC2016 # $HOME is matched literally
 leaks=$(grep -ohE '(~|\$HOME|/Users/[^/"]+|/home/[^/"]+)/[^"[:space:]:]*' "${tracked[@]}" |
-    sed -E 's#^(~|\$HOME|/Users/[^/]+|/home/[^/]+)/##' | grep -vE '^(\.|dotfiles(/|$))' | sort -u | tr '\n' ' ')
+    sed -E 's#^(~|\$HOME|/Users/[^/]+|/home/[^/]+)/##' | grep -vE '^(\.|dotfiles(/|$)|bin(/|$))' | sort -u | tr '\n' ' ')
 extra="${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/private-patterns"
 bad_pattern=""
 if [ -f "$extra" ]; then

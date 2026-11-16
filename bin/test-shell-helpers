@@ -8,14 +8,14 @@
 # your real HOME, direnv allow database or accounts, and makes no network calls.
 #
 # Usage: test-shell-helpers          (exit 0 = all passed, 1 = a test failed)
-# Environment: DOTFILES=<repo> to test a different checkout (default: this one).
+# Environment: DOTFILES_CHECK=<repo> to test a different checkout (default: this one).
 # Groups are skipped (not failed) when their tools are missing (direnv, bestow).
 
 emulate -L zsh
 
 SELF=${${(%):-%x}:A}
-if [[ -n ${DOTFILES:-} ]]; then
-    REPO=${DOTFILES:A}
+if [[ -n ${DOTFILES_CHECK:-} ]]; then
+    REPO=${DOTFILES_CHECK:A}
 else
     REPO=${SELF:h:h}
 fi
@@ -463,7 +463,8 @@ group "dotdoctor"
 DD=$REPO/bin/dotdoctor
 run_dd() { # run_dd [args]: run dotdoctor against the fixture repo/home; output in $TMP/dd.out, status in $DD_RC
     (
-        export HOME=$DHOME XDG_CONFIG_HOME=$DHOME/.config PATH=$DHOME/bin:$FAKE:$PATH DOTFILES=$DREPO NO_COLOR=1
+        export DOTFILES=$DHOME/projects/personal/dotfiles CLAUDE_CODE_PLUGIN_DIRS=${DD_PLUGIN_DIRS:-$DREPO/claude-mods/m1}
+        export HOME=$DHOME XDG_CONFIG_HOME=$DHOME/.config PATH=$DHOME/bin:$FAKE:$PATH DOTFILES_CHECK=$DREPO NO_COLOR=1
         "$DD" "$@"
     ) >"$TMP/dd.out" 2>&1
     DD_RC=$?
@@ -486,12 +487,12 @@ else
     print 3 >"$DREPO/c/.zshrc"
     print '{}' >"$DREPO/claude-mods/m1/.claude-plugin/plugin.json"
     print '{}' >"$DREPO/.claude/settings.local.json"
-    print '{"env":{"CLAUDE_CODE_PLUGIN_DIRS":"~/dotfiles/claude-mods/m1"}}' | tee "$DREPO/claude/.claude-personal/settings.json" >"$DREPO/claude/.claude-enterprise/settings.json"
+    print '{"env":{}}' | tee "$DREPO/claude/.claude-personal/settings.json" >"$DREPO/claude/.claude-enterprise/settings.json"
     cp "$REPO/bin/gws" "$REPO/bin/dotdoctor" "$DREPO/bin/"
     git -C "$DREPO" init -q . >/dev/null 2>&1
-    ln -s "$DREPO" "$DHOME/dotfiles"
+    mkdir -p "$DHOME/projects/personal" && ln -s "$DREPO" "$DHOME/projects/personal/dotfiles"
     ln -s "$DHOME/.claude-personal" "$DHOME/.claude"
-    ln -s ../dotfiles/.claude/settings.local.json "$DHOME/.claude-personal/settings.local.json"
+    ln -s ../projects/personal/dotfiles/.claude/settings.local.json "$DHOME/.claude-personal/settings.local.json"
     print key >"$DHOME/.config/sops/age/keys.txt"
     chmod 600 "$DHOME/.config/sops/age/keys.txt"
     printf 'A=ENC[x]\nsops_mac=abc\n' >"$DHOME/.env"
@@ -539,10 +540,10 @@ else
     # dangling links: only links into this repo count
     ln -s /somewhere/else/dotfiles/gone "$DHOME/unrelated-link"
     ln -s "$DREPO/gone" "$DHOME/stale-link"
-    ln -s dotfiles/gone-rel "$DHOME/stale-rel"
+    ln -s projects/personal/dotfiles/gone-rel "$DHOME/stale-rel"
     run_dd
     check "dangling link into the repo is reported" has "stale-link" "$TMP/dd.out"
-    check "dangling relative link via ~/dotfiles is reported" has "stale-rel" "$TMP/dd.out"
+    check "dangling relative link via ~/projects/personal/dotfiles is reported" has "stale-rel" "$TMP/dd.out"
     check "dangling link into an unrelated */dotfiles/* path is ignored" lacks "unrelated-link" "$TMP/dd.out"
     check "dangling links are a warning: exit stays 0" rc_is $DD_RC 0
     rm -f "$DHOME/unrelated-link" "$DHOME/stale-link" "$DHOME/stale-rel"
@@ -560,11 +561,15 @@ else
     # plugin dirs: same name from another place is not accepted
     mkdir -p "$TMP/elsewhere/m1/.claude-plugin"
     print '{}' >"$TMP/elsewhere/m1/.claude-plugin/plugin.json"
-    print "{\"env\":{\"CLAUDE_CODE_PLUGIN_DIRS\":\"$TMP/elsewhere/m1\"}}" >"$DREPO/claude/.claude-personal/settings.json"
-    run_dd
+    DD_PLUGIN_DIRS="$TMP/elsewhere/m1" run_dd
     check "plugin dir with a matching name outside the repo: exit 1" rc_is $DD_RC 1
     check "plugin dir outside the repo is named" has "listed outside this repo" "$TMP/dd.out"
-    print '{"env":{"CLAUDE_CODE_PLUGIN_DIRS":"~/dotfiles/claude-mods/m1"}}' >"$DREPO/claude/.claude-personal/settings.json"
+    # a literal CLAUDE_CODE_PLUGIN_DIRS in settings.json is refused
+    print '{"env":{"CLAUDE_CODE_PLUGIN_DIRS":"/x"}}' >"$DREPO/claude/.claude-personal/settings.json"
+    run_dd
+    check "plugin dirs set in settings.json: exit 1" rc_is $DD_RC 1
+    check "plugin dirs set in settings.json are named" has "settings.json sets CLAUDE_CODE_PLUGIN_DIRS" "$TMP/dd.out"
+    print '{"env":{}}' >"$DREPO/claude/.claude-personal/settings.json"
 
     # warnings do not fail the run
     rm -rf "$DHOME/.hammerspoon/Spoons/ControlEscape.spoon"
@@ -603,8 +608,9 @@ EOF
     mkdir -p "$WT2/bin"
     cp "$DD" "$WT2/bin/dotdoctor"
     (
+        export DOTFILES=$DHOME/projects/personal/dotfiles CLAUDE_CODE_PLUGIN_DIRS=${DD_PLUGIN_DIRS:-$DREPO/claude-mods/m1}
         export HOME=$DHOME XDG_CONFIG_HOME=$DHOME/.config PATH=$DHOME/bin:$FAKE:$PATH NO_COLOR=1
-        unset DOTFILES
+        unset DOTFILES_CHECK
         "$WT2/bin/dotdoctor"
     ) >"$TMP/dd.out" 2>&1
     check "linked worktree without DOTFILES: warns about comparing against the worktree" has "linked git worktree" "$TMP/dd.out"

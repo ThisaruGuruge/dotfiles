@@ -499,7 +499,7 @@ Configurations offered by `<leader>dc`:
 
 **Debugging a CLI with arguments** — set a breakpoint anywhere, including deep
 in an `internal/` package, then `<leader>dc`, pick _Debug program (arguments)_
-and type the args (e.g. `stow zsh -s ~/dotfiles -d ~`). `<leader>dl` replays
+and type the args (e.g. `stow zsh -s ~/projects/personal/dotfiles -d ~`). `<leader>dl` replays
 the same run.
 
 The program launched is the module's `main` package, found by walking up to

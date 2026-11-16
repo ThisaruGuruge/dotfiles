@@ -21,14 +21,14 @@ Run this to see what's managed vs unmanaged:
 
 1. Create config in dotfiles (one top-level package per tool):
    ```bash
-   mkdir -p ~/dotfiles/myapp/.config/myapp
+   mkdir -p ~/projects/personal/dotfiles/myapp/.config/myapp
    # Create your config files
-   vim ~/dotfiles/myapp/.config/myapp/config.toml
+   vim ~/projects/personal/dotfiles/myapp/.config/myapp/config.toml
    ```
 
 2. Stow it:
    ```bash
-   cd ~/dotfiles
+   cd ~/projects/personal/dotfiles
    bestow stow myapp
    ```
 
@@ -47,7 +47,7 @@ If you already have a config at `~/.config/myapp`:
 ```
 
 This will:
-- Move `~/.config/myapp` to `~/dotfiles/myapp/.config/myapp`
+- Move `~/.config/myapp` to `~/projects/personal/dotfiles/myapp/.config/myapp`
 - Create `.bestowignore` to exclude sensitive files
 - Run `bestow stow myapp`, which links each file back into `~/.config/myapp/` (per-file symlinks, never a whole-directory link)
 - Prompt you to review and commit
@@ -111,8 +111,8 @@ into `~/.claude-personal/skills/<name>/` by `bestow stow claude`. Skills install
 ### Scenario 1: Setting up a fresh machine
 
 ```bash
-git clone https://github.com/ThisaruGuruge/dotfiles.git ~/dotfiles
-cd ~/dotfiles
+git clone https://github.com/ThisaruGuruge/dotfiles.git ~/projects/personal/dotfiles
+cd ~/projects/personal/dotfiles
 ./init.sh
 ```
 
@@ -124,11 +124,11 @@ You install `bat` and want to customize it:
 
 ```bash
 # Create config in dotfiles first
-mkdir -p ~/dotfiles/bat/.config/bat
-echo "--theme=TwoDark" > ~/dotfiles/bat/.config/bat/config
+mkdir -p ~/projects/personal/dotfiles/bat/.config/bat
+echo "--theme=TwoDark" > ~/projects/personal/dotfiles/bat/.config/bat/config
 
 # Stow it
-cd ~/dotfiles
+cd ~/projects/personal/dotfiles
 bestow stow bat
 
 # Verify
@@ -151,7 +151,7 @@ You've been using `fish` and have configs:
 
 # After: ~/.config/fish holds per-file symlinks into dotfiles
 # Review the .bestowignore
-vim ~/dotfiles/fish/.bestowignore
+vim ~/projects/personal/dotfiles/fish/.bestowignore
 
 # Commit
 git add fish/.config/fish fish/.bestowignore
@@ -162,7 +162,7 @@ git push
 ## Directory Structure
 
 ```
-~/dotfiles/
+~/projects/personal/dotfiles/
   myapp/                     ← Package name for bestow (one per tool)
     .bestowignore            ← Ignore sensitive files (package root, not nested)
     .config/                 ← Actual .config directory
@@ -172,7 +172,7 @@ git push
 
 When you run `bestow stow myapp`, it creates:
 ```
-~/.config/myapp -> ~/dotfiles/myapp/.config/myapp/...  (per-file symlinks)
+~/.config/myapp -> ~/projects/personal/dotfiles/myapp/.config/myapp/...  (per-file symlinks)
 ```
 
 ## Troubleshooting
@@ -184,7 +184,7 @@ When you run `bestow stow myapp`, it creates:
 ls -la ~/.config/myapp
 
 # If not, restow
-cd ~/dotfiles
+cd ~/projects/personal/dotfiles
 bestow stow myapp
 ```
 
@@ -195,8 +195,8 @@ bestow stow myapp
 ./bin/adopt-config myapp
 
 # Or manually move and restow
-mv ~/.config/myapp ~/dotfiles/myapp/.config/
-cd ~/dotfiles
+mv ~/.config/myapp ~/projects/personal/dotfiles/myapp/.config/
+cd ~/projects/personal/dotfiles
 bestow stow myapp
 # Or, to overwrite/back up existing files automatically:
 bestow stow myapp --backup
@@ -206,7 +206,7 @@ bestow stow myapp --backup
 
 ```bash
 # Add to .bestowignore (at the package root)
-echo "secrets.txt" >> ~/dotfiles/myapp/.bestowignore
+echo "secrets.txt" >> ~/projects/personal/dotfiles/myapp/.bestowignore
 
 # Remove from git history
 git filter-branch --force --index-filter \

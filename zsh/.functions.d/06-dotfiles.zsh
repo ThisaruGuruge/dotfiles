@@ -521,8 +521,8 @@ EOF
 edit_dotfiles() {
     # Try to detect dotfiles directory - prefer dotfiles over .dotfiles
     local dotfiles_dir=""
-    if [ -d "${HOME}/dotfiles" ]; then
-        dotfiles_dir="${HOME}/dotfiles"
+    if [ -d "${DOTFILES:-${HOME}/projects/personal/dotfiles}" ]; then
+        dotfiles_dir="${DOTFILES:-${HOME}/projects/personal/dotfiles}"
     elif [ -d "${HOME}/.dotfiles" ]; then
         dotfiles_dir="${HOME}/.dotfiles"
     fi
@@ -530,7 +530,7 @@ edit_dotfiles() {
     if [ -z "$dotfiles_dir" ]; then
         echo "❌ Dotfiles directory not found"
         echo "   Clone the repository first:"
-        echo "   • git clone <repo-url> ~/dotfiles"
+        echo "   • git clone <repo-url> ~/projects/personal/dotfiles"
         echo "   • OR: git clone <repo-url> ~/.dotfiles"
         return 1
     fi
@@ -762,8 +762,8 @@ _update_dotfiles_unstash() {
 update_dotfiles() {
     # Try to detect dotfiles directory - prefer dotfiles over .dotfiles
     local dotfiles_dir=""
-    if [ -d "${HOME}/dotfiles" ]; then
-        dotfiles_dir="${HOME}/dotfiles"
+    if [ -d "${DOTFILES:-${HOME}/projects/personal/dotfiles}" ]; then
+        dotfiles_dir="${DOTFILES:-${HOME}/projects/personal/dotfiles}"
     elif [ -d "${HOME}/.dotfiles" ]; then
         dotfiles_dir="${HOME}/.dotfiles"
     fi
@@ -771,7 +771,7 @@ update_dotfiles() {
     if [ -z "$dotfiles_dir" ]; then
         echo "❌ Dotfiles directory not found"
         echo "   Clone the repository first:"
-        echo "   • git clone <repo-url> ~/dotfiles"
+        echo "   • git clone <repo-url> ~/projects/personal/dotfiles"
         echo "   • OR: git clone <repo-url> ~/.dotfiles"
         return 1
     fi

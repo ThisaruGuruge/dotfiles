@@ -16,7 +16,7 @@
 # that fixes it.
 #
 # Environment:
-#   DOTFILES   repo to check (default: the repo this script lives in, following
+#   DOTFILES_CHECK   repo to check (default: the repo this script lives in, following
 #              symlinks, so the installed ~/bin/dotdoctor checks the live repo).
 #              Links in $HOME are compared against THIS repo: run from a linked
 #              git worktree and links that point at the main checkout look
@@ -37,14 +37,14 @@ Read-only health check for the dotfiles setup. Prints one line per check:
 Checks:
   - every non-ignored file of every bestow package is linked into $HOME
     (bin -> ~/bin), via `bestow stow -n` run once per package
-  - ~/dotfiles resolves to the repo being checked
+  - $DOTFILES (exported by ~/.zshenv) is the repo being checked
   - no dangling symlinks into the repo, and no stray ~/<package> link trees
   - ~/.config/bestow/config.yaml matches the repo copy
   - ~/.claude -> ~/.claude-personal and the settings.local.json link
   - age key present, ~/.env sops-encrypted, no plaintext secrets left around
   - ControlEscape.spoon cloned, tmux plugin manager installed
   - bare `gws` is blocked by the bin/gws guard
-  - CLAUDE_CODE_PLUGIN_DIRS in both settings.json match claude-mods/*
+  - CLAUDE_CODE_PLUGIN_DIRS (exported by ~/.zshenv) matches claude-mods/*, and settings.json does not set it
 
 Options:
   --full   also run `brew bundle check` and `claude plugin validate` on
@@ -74,8 +74,13 @@ done
 
 # --- locate the repo -------------------------------------------------------
 
+# $DOTFILES is exported by ~/.zshenv (derived from the checkout it links into); the repo to
+# check is the one this script lives in, or DOTFILES_CHECK=<dir> for another checkout.
+DOTFILES_EXPECTED="${DOTFILES:-}"
 DOTFILES_EXPLICIT=1
-if [[ -z "${DOTFILES:-}" ]]; then
+if [[ -n "${DOTFILES_CHECK:-}" ]]; then
+    DOTFILES="$DOTFILES_CHECK"
+else
     DOTFILES_EXPLICIT=0
     src="${BASH_SOURCE[0]}"
     while [[ -L "$src" ]]; do
@@ -86,12 +91,12 @@ if [[ -z "${DOTFILES:-}" ]]; then
     DOTFILES="$(cd -P "$(dirname "$src")/.." && pwd)"
 fi
 DOTFILES="${DOTFILES%/}"
-# Compare physical paths: bestow reports them, and ~/dotfiles may be a symlink.
+# Compare physical paths: bestow reports them, and the checkout may be reached through a symlink.
 DOTFILES="$(cd -P "$DOTFILES" 2>/dev/null && pwd || printf %s "$DOTFILES")"
 
 # Directories whose files count as "this repo" for link and plugin-path checks:
 # the checked repo itself, its main checkout (when DOTFILES is a linked
-# worktree) and the conventional ~/dotfiles and ~/.dotfiles locations. Nothing
+# worktree) and the conventional ~/projects/personal/dotfiles and ~/.dotfiles locations. Nothing
 # else matches, so links into some other project that happens to live in a
 # directory called "dotfiles" are left alone.
 REPO_ROOTS=("$DOTFILES")
@@ -99,7 +104,7 @@ if common_dir="$(git -C "$DOTFILES" rev-parse --path-format=absolute --git-commo
     main_root="${common_dir%/.git}"
     [[ "$main_root" != "$DOTFILES" ]] && REPO_ROOTS+=("$main_root")
 fi
-REPO_ROOTS+=("$HOME/dotfiles" "$HOME/.dotfiles")
+REPO_ROOTS+=("$HOME/projects/personal/dotfiles" "$HOME/.dotfiles")
 IN_WORKTREE=0
 if git_dir="$(git -C "$DOTFILES" rev-parse --path-format=absolute --git-dir 2>/dev/null)" && [[ -n "${common_dir:-}" && "$git_dir" != "$common_dir" ]]; then
     IN_WORKTREE=1
@@ -260,7 +265,7 @@ check_packages() {
     if [[ $IN_WORKTREE -eq 1 && $DOTFILES_EXPLICIT -eq 0 ]]; then
         warn "running from a linked git worktree; links in ~ are compared against THIS worktree"
         note "links that point at your main checkout will show up as blocked/unlinked below"
-        note "to check the live setup: run the installed dotdoctor, or DOTFILES=<main checkout> dotdoctor"
+        note "to check the live setup: run the installed dotdoctor, or DOTFILES_CHECK=<main checkout> dotdoctor"
     fi
 
     if ! command -v bestow >/dev/null 2>&1; then
@@ -370,24 +375,25 @@ check_stray_trees() {
     fi
 }
 
-# Other tooling and docs refer to the repo as ~/dotfiles, wherever the checkout
-# actually lives, so that path has to exist and lead to the repo being checked.
+# ~/.zshenv derives $DOTFILES from the checkout it links into, so it should name the repo being
+# checked. A different value means ~/.zshenv links into another checkout, or this shell was
+# started before the repo moved.
 check_repo_location() {
-    local canonical="$HOME/dotfiles" resolved
-    if [[ ! -e "$canonical" ]]; then
-        fail "~/dotfiles does not exist"
-        note "fix: ln -s $DOTFILES ~/dotfiles"
+    if [[ -z "$DOTFILES_EXPECTED" ]]; then
+        warn "DOTFILES is not set in this shell"
+        note "fix: open a new shell (~/.zshenv sets it), or run: bestow stow zsh"
         return
     fi
-    resolved="$(cd -P "$canonical" 2>/dev/null && pwd)"
+    local resolved
+    resolved="$(cd -P "$DOTFILES_EXPECTED" 2>/dev/null && pwd)"
     if [[ "$resolved" == "$DOTFILES" ]]; then
-        ok "~/dotfiles resolves to this repo"
+        ok "DOTFILES (${DOTFILES/#$HOME/~}) is this repo"
     elif [[ $IN_WORKTREE -eq 1 || $DOTFILES_EXPLICIT -eq 1 ]]; then
-        warn "~/dotfiles resolves to $resolved, not $DOTFILES"
-        note "expected when checking a worktree or another checkout; otherwise: ln -sfn $DOTFILES ~/dotfiles"
+        warn "DOTFILES is ${resolved:-$DOTFILES_EXPECTED}, not $DOTFILES"
+        note "expected when checking a worktree or another checkout"
     else
-        fail "~/dotfiles resolves to $resolved, not $DOTFILES"
-        note "fix: ln -sfn $DOTFILES ~/dotfiles (if ~/dotfiles is a real directory, move it aside first)"
+        fail "DOTFILES is ${resolved:-$DOTFILES_EXPECTED} (missing?), not $DOTFILES"
+        note "fix: bestow stow zsh from this checkout, then open a new shell"
     fi
 }
 
@@ -540,57 +546,56 @@ check_gws_guard() {
 }
 
 check_plugin_dirs() {
-    if ! command -v jq >/dev/null 2>&1; then
-        warn "jq not installed; skipping CLAUDE_CODE_PLUGIN_DIRS check"
-        return
-    fi
-
-    local mods="" m
+    local mods="" m settings account
     for m in "$DOTFILES"/claude-mods/*/; do
         m="${m%/}"
         [[ -f "$m/.claude-plugin/plugin.json" ]] && mods="${mods}${m##*/}"$'\n'
     done
 
-    local settings account dirs entry name path problems listed
-    for settings in "$DOTFILES"/claude/.claude-*/settings.json; do
-        [[ -f "$settings" ]] || continue
-        account="$(basename "$(dirname "$settings")")"
-        problems=""
-        listed=""
-        if ! dirs="$(jq -r '.env.CLAUDE_CODE_PLUGIN_DIRS // ""' "$settings" 2>/dev/null)"; then
-            fail "$account: settings.json is not valid JSON"
-            continue
-        fi
-
-        while IFS= read -r entry; do
-            [[ -z "$entry" ]] && continue
-            entry="${entry%/}"
-            name="${entry##*/}"
-            listed="${listed}${name}"$'\n'
-            # Claude expands a leading ~ itself; do the same to test the path.
-            path="${entry/#\~/$HOME}"
-            if [[ ! -f "$path/.claude-plugin/plugin.json" ]]; then
-                problems="${problems}listed but missing or not a plugin: ${entry}"$'\n'
-            elif ! in_repo "$path" && ! in_repo "$(cd -P "$path" 2>/dev/null && pwd)"; then
-                # Matching by name alone would accept a same-named plugin from anywhere.
-                problems="${problems}listed outside this repo: ${entry}"$'\n'
+    # settings.json cannot expand variables and a literal path would shadow the shell export
+    if command -v jq >/dev/null 2>&1; then
+        for settings in "$DOTFILES"/claude/.claude-*/settings.json; do
+            [[ -f "$settings" ]] || continue
+            account="$(basename "$(dirname "$settings")")"
+            if [[ -n "$(jq -r '.env.CLAUDE_CODE_PLUGIN_DIRS // empty' "$settings" 2>/dev/null)" ]]; then
+                fail "$account: settings.json sets CLAUDE_CODE_PLUGIN_DIRS; remove it (~/.zshenv exports it)"
             fi
-        done < <(printf '%s\n' "$dirs" | tr ':' '\n')
+        done
+    fi
 
-        while IFS= read -r name; do
-            [[ -z "$name" ]] && continue
-            if ! printf '%s' "$listed" | grep -qxF "$name"; then
-                problems="${problems}mod not loaded: claude-mods/${name}"$'\n'
-            fi
-        done <<<"$mods"
-
-        if [[ -n "$problems" ]]; then
-            fail "$account: CLAUDE_CODE_PLUGIN_DIRS out of sync with claude-mods/"
-            printf '%s' "$problems" | notes_capped 8
-        else
-            ok "$account: CLAUDE_CODE_PLUGIN_DIRS matches claude-mods/ ($(printf '%s' "$mods" | grep -c .) mods)"
+    local dirs="${CLAUDE_CODE_PLUGIN_DIRS:-}" entry name path problems="" listed=""
+    if [[ -z "$dirs" ]]; then
+        warn "CLAUDE_CODE_PLUGIN_DIRS is not set in this shell"
+        note "fix: open a new shell (~/.zshenv exports it from $DOTFILES/claude-mods/)"
+        return
+    fi
+    while IFS= read -r entry; do
+        [[ -z "$entry" ]] && continue
+        entry="${entry%/}"
+        name="${entry##*/}"
+        listed="${listed}${name}"$'\n'
+        path="${entry/#\~/$HOME}"
+        if [[ ! -f "$path/.claude-plugin/plugin.json" ]]; then
+            problems="${problems}listed but missing or not a plugin: ${entry}"$'\n'
+        elif ! in_repo "$path" && ! in_repo "$(cd -P "$path" 2>/dev/null && pwd)"; then
+            # Matching by name alone would accept a same-named plugin from anywhere.
+            problems="${problems}listed outside this repo: ${entry}"$'\n'
         fi
-    done
+    done < <(printf '%s\n' "$dirs" | tr ':' '\n')
+
+    while IFS= read -r name; do
+        [[ -z "$name" ]] && continue
+        if ! printf '%s' "$listed" | grep -qxF "$name"; then
+            problems="${problems}mod not loaded: claude-mods/${name}"$'\n'
+        fi
+    done <<<"$mods"
+
+    if [[ -n "$problems" ]]; then
+        fail "CLAUDE_CODE_PLUGIN_DIRS out of sync with claude-mods/"
+        printf '%s' "$problems" | notes_capped 8
+    else
+        ok "CLAUDE_CODE_PLUGIN_DIRS matches claude-mods/ ($(printf '%s' "$mods" | grep -c .) mods)"
+    fi
 }
 
 check_full() {

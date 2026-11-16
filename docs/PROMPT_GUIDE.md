@@ -5,12 +5,12 @@
 ### What You See
 
 ```
- ~/dotfiles  main !+   Go 1.23.4
+ ~/projects/personal/dotfiles  main !+   Go 1.23.4
 ❯
 ```
 
 **Breakdown:**
-- ` ~/dotfiles` – Current directory (truncated, lock icon for read-only dirs)
+- ` ~/projects/personal/dotfiles` – Current directory (truncated, lock icon for read-only dirs)
 - ` main` – Git branch (only shown inside git repos)
 - `!+` – Git status icons (see legend below)
 - `Go 1.23.4` – Language version (only shown inside matching projects)
@@ -120,7 +120,7 @@ Powerlevel10k uses gitstatus (a compiled daemon) for instant, non-blocking git s
 ### Edit Prompt Config
 
 ```bash
-nvim ~/dotfiles/zsh/.p10k.zsh     # Edit directly — hot-reloads automatically
+nvim ~/projects/personal/dotfiles/zsh/.p10k.zsh     # Edit directly — hot-reloads automatically
 p10k configure                    # Interactive wizard (overwrites the file)
 ```
 

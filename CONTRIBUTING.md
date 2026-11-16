@@ -45,8 +45,8 @@ Contributions are welcome in several forms:
 2. Clone your fork locally:
 
    ```bash
-   git clone https://github.com/YOUR_USERNAME/dotfiles.git ~/dotfiles
-   cd ~/dotfiles
+   git clone https://github.com/YOUR_USERNAME/dotfiles.git ~/projects/personal/dotfiles
+   cd ~/projects/personal/dotfiles
    ```
 
 3. Add upstream remote:
@@ -571,7 +571,7 @@ source ~/.zshrc
 
 # Or create a test function
 test_change() {
-    source ~/dotfiles/zsh/.aliases.sh
+    source ~/projects/personal/dotfiles/zsh/.aliases.sh
     # Test your changes
 }
 ```

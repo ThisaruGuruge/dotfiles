@@ -354,7 +354,7 @@ including deep in an `internal/` package, then `<Space>dc` → _Debug program
 (arguments)_ and type them:
 
 ```text
-Program arguments: stow zsh -s ~/dotfiles -d ~
+Program arguments: stow zsh -s ~/projects/personal/dotfiles -d ~
 ```
 
 The prompt is pre-filled with whatever you typed last time, and `<Space>dl`
