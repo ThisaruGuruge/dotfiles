@@ -1,6 +1,6 @@
 #compdef dotdoctor
 
-# Completion for bin/dotdoctor.
+# Completion for scripts/bin/dotdoctor.
 
 _arguments -S \
   '--full[also run brew bundle check and claude plugin validate]' \

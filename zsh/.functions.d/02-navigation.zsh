@@ -238,7 +238,7 @@ function takeurl() {
 #                                they start, so a pin never leaks the other
 #                                account's gws into it (bare gws stays blocked)
 #   gwsp/gwse                    set the gws account inline
-# Inside a pinned tree a bare `gws` is accepted by the bin/gws guard, because
+# Inside a pinned tree a bare `gws` is accepted by the scripts/bin/gws guard, because
 # the pin supplies the account context; outside one it stays blocked.
 _ENVRC_MARK="# Managed by envrc:"
 

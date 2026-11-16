@@ -74,15 +74,15 @@ async function findRoot($: $, file: string): Promise<string | undefined> {
 }
 
 /**
- * The dotfiles layout, in any checkout, worktree or copy: it has bin/lint and
+ * The dotfiles layout, in any checkout, worktree or copy: it has scripts/bin/lint and
  * this mod's manifest. It turns the checks on by default; it does not make the
- * repo's bin/lint safe to run (see isTrusted).
+ * repo's scripts/bin/lint safe to run (see isTrusted).
  */
 async function isDotfiles($: $, root: string): Promise<boolean> {
   const known = dotfiles.get(root)
   if (known !== undefined) return known
   const [lint, manifest] = await Promise.all([
-    stat($, `${root}/bin/lint`),
+    stat($, `${root}/scripts/bin/lint`),
     readText($, `${root}/claude-mods/conventions/.claude-plugin/plugin.json`),
   ])
   let name: unknown
@@ -132,7 +132,7 @@ async function ownerRepo($: $): Promise<string | undefined> {
 }
 
 /**
- * Whether the repo's own bin/lint may run: the root is the owner's checkout,
+ * Whether the repo's own scripts/bin/lint may run: the root is the owner's checkout,
  * or a linked worktree of it (`.git` a file whose `gitdir:` is under the
  * checkout's `.git/worktrees/`, and whose admin folder points back at this
  * `.git`, as git itself checks). A fork or a copy with the same layout is not.
@@ -186,11 +186,11 @@ async function run($: $, argv: string[], cwd: string, quietCodes: number[] = [])
 }
 
 /**
- * Whether the checkout's bin/lint is as committed: the blob id of its bytes
+ * Whether the checkout's scripts/bin/lint is as committed: the blob id of its bytes
  * equals HEAD's. An edit to it (by this session or anyone) is not reviewed by
  * the permission system, so a changed copy is never run. Not `git diff`: that
  * applies gitattributes filters (and may run a filter command), and an edited
- * attributes file can make a changed bin/lint look clean. `hash-object
+ * attributes file can make a changed scripts/bin/lint look clean. `hash-object
  * --no-filters` and `rev-parse` run no configured command. Any error counts as changed.
  */
 async function lintAtHead($: $, root: string): Promise<boolean> {
@@ -200,8 +200,8 @@ async function lintAtHead($: $, root: string): Promise<boolean> {
     return r.exitCode === 0 && /^[0-9a-f]{40,64}$/.test(id) ? id : undefined
   }
   try {
-    const work = await git('hash-object', '--no-filters', '--', `${root}/bin/lint`)
-    const head = await git('rev-parse', '--verify', '--quiet', 'HEAD:bin/lint')
+    const work = await git('hash-object', '--no-filters', '--', `${root}/scripts/bin/lint`)
+    const head = await git('rev-parse', '--verify', '--quiet', 'HEAD:scripts/bin/lint')
     return work !== undefined && work === head
   } catch {
     return false
@@ -218,7 +218,7 @@ export async function review($: $, edited: string): Promise<string | undefined> 
   const root = await findRoot($, file)
   if (root === undefined) return undefined
   const isDot = await isDotfiles($, root)
-  // Only the owner's checkout and its worktrees run their own bin/lint; a copy with
+  // Only the owner's checkout and its worktrees run their own scripts/bin/lint; a copy with
   // the same layout gets the generic checks instead
   const isOwn = isDot && (await isTrusted($, root))
   const cfg = `${root}/.claude/conventions.json`
@@ -245,15 +245,15 @@ export async function review($: $, edited: string): Promise<string | undefined> 
   }
 
   const tools: Promise<string | undefined>[] = []
-  // bin/lint knows which files are bash, zsh or nvim Lua; it says nothing about the rest,
+  // scripts/bin/lint knows which files are bash, zsh or nvim Lua; it says nothing about the rest,
   // so it is only spawned for a path it covers and a check the repo has on
   const covered = isOwn && lintChecks(rel).some(has)
-  // ...and only as committed: never right after an edit to bin/lint itself, nor while it
+  // ...and only as committed: never right after an edit to scripts/bin/lint itself, nor while it
   // differs from HEAD, or an unreviewed script would run. The generic checks stand in.
-  const ownLint = covered && rel !== 'bin/lint' && (await lintAtHead($, root))
+  const ownLint = covered && rel !== 'scripts/bin/lint' && (await lintAtHead($, root))
   if (ownLint) {
     tools.push(
-      run($, [`${root}/bin/lint`, '--file', file], root, [2]).then(o => o && toolProblem(`bin/lint --file ${rel}`, o)),
+      run($, [`${root}/scripts/bin/lint`, '--file', file], root, [2]).then(o => o && toolProblem(`scripts/bin/lint --file ${rel}`, o)),
     )
   } else if (!isOwn || covered) {
     if (lang === 'bash' && has('shfmt')) {
@@ -276,7 +276,7 @@ export async function review($: $, edited: string): Promise<string | undefined> 
   }
   const found = (await Promise.all(tools)).filter((p): p is string => p !== undefined)
   // shfmt and stylua already report tab indentation, with the same fix: one note, not two.
-  // Only when bin/lint ran one of them: a new bin/ script it does not list still gets the note.
+  // Only when scripts/bin/lint ran one of them: a new bin/ script it does not list still gets the note.
   const tabsInTool = ownLint && lang !== 'zsh' && found.some(o => /fix: (?:shfmt|stylua) /.test(o))
   if (tabNote !== undefined && !tabsInTool) problems.unshift(tabNote)
   problems.push(...found)

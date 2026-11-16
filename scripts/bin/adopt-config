@@ -4,8 +4,8 @@
 # .bestowignore if the package has none, and stows the package so the files are
 # symlinked back. It refuses an app that is already managed.
 #
-# Usage: ./bin/adopt-config <app-name>
-#        ./bin/adopt-config -h | --help
+# Usage: ./scripts/bin/adopt-config <app-name>
+#        ./scripts/bin/adopt-config -h | --help
 
 case "${1:-}" in
     -h | --help)
@@ -19,7 +19,7 @@ set -e
 APP_NAME="${1:-}"
 # Resolve a symlinked invocation (e.g. ~/bin/adopt-config) to the real repo
 SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
-DOTFILES_DIR="$(cd "$(dirname "$SELF")/.." && pwd)"
+DOTFILES_DIR="$(cd "$(dirname "$SELF")/../.." && pwd)"
 CONFIG_SOURCE="$HOME/.config/$APP_NAME"
 CONFIG_DEST="$DOTFILES_DIR/$APP_NAME/.config/$APP_NAME"
 

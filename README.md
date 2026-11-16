@@ -19,7 +19,7 @@ A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CL
 - **Project sessions in tmux** – `prefix + f` opens a project as its own named tmux session, creating it on first use
 - **Secrets handled correctly** – SOPS + age encryption, `edit_secrets` workflow, and automatic `.env` handling inside `init.sh`
 - **Brewfile-driven** – Curated `Brewfile` with optional category files in `packages/` for modular installation
-- **Validation + profiling** – `bin/lint` (shellcheck, shfmt, `zsh -n`, stylua, mod tests; the mod tests need `claude` installed, so CI skips them and they run locally only), `test-zsh` integration tests, `dotdoctor` health check, `profile_startup` quick timing, and `bin/profile-zsh-startup` for deep dives
+- **Validation + profiling** – `scripts/bin/lint` (shellcheck, shfmt, `zsh -n`, stylua, mod tests; the mod tests need `claude` installed, so CI skips them and they run locally only), `test-zsh` integration tests, `dotdoctor` health check, `profile_startup` quick timing, and `scripts/bin/profile-zsh-startup` for deep dives
 
 ## Prerequisites
 
@@ -85,7 +85,7 @@ bestow init --source ~/projects/personal/dotfiles --destination ~/
 
 # Symlink the packages you need (add/remove as desired)
 bestow stow zsh git tmux direnv bash
-bestow stow bin -d ~/bin   # bin links into ~/bin, not ~
+bestow stow scripts          # the helper scripts: links ~/bin/<script>
 
 # Secrets: an age key and this machine's own sops config (not tracked)
 mkdir -p ~/.config/sops/age && age-keygen -o ~/.config/sops/age/keys.txt
@@ -140,7 +140,7 @@ brew bundle --file=packages/editors.brewfile     # Add editors
 
 Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 
-`brew-sync` (or `./bin/sync-brewfile`) is a read-only drift report: it lists formulae and casks that are installed but in no Brewfile, and declared packages that are not installed. It never rewrites a Brewfile; add or remove lines by hand. `brew-check` verifies the core Brewfile is satisfied.
+`brew-sync` (or `./scripts/bin/sync-brewfile`) is a read-only drift report: it lists formulae and casks that are installed but in no Brewfile, and declared packages that are not installed. It never rewrites a Brewfile; add or remove lines by hand. `brew-check` verifies the core Brewfile is satisfied.
 
 ## Repository Layout & Symlink Packages
 
@@ -158,7 +158,7 @@ Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 | `tests/`                 | Golden-output and behaviour tests for the Claude Code helpers (`tests/claude/check.sh`, run by `test-zsh`) |
 | `direnv/`                | Project-specific environment automation                                                           |
 | `packages/`              | Optional category Brewfiles (cloud, containers, development, etc.)                                |
-| `bin/`                   | Helper scripts (`lint`, `dotdoctor`, `test-zsh-config`, `profile-zsh-startup`, `audit-configs`, `adopt-config`; see `bin/README.md`) |
+| `scripts/`               | Helper scripts in `scripts/bin/`, stowed to `~/bin` (`lint`, `dotdoctor`, `test-zsh-config`, `profile-zsh-startup`, `audit-configs`, `adopt-config`; see `scripts/README.md`) |
 | `docs/`                  | Additional documentation (prompt guide, tmux keybindings, config management)                      |
 
 ### Ghostty Configuration
@@ -223,14 +223,13 @@ bestow unstow zsh
 
 `init.sh` (the fresh-machine installer) installs bestow with `go install github.com/redpierrot/bestow@latest` and runs the same `bestow stow` commands per package. `@latest` resolves to bestow's newest tagged release once it publishes tags (until then, the newest commit on its default branch).
 
-> **`bin` is the exception**: it links into `~/bin`, so always stow it as `bestow stow bin -d ~/bin`. Don't run a bare `bestow stow` across every package — with the single `$HOME` destination in bestow's config it would link `bin/*` straight into `~`.
 
 ## Quick Start Commands
 
 ```bash
 test-zsh                                   # Full validation (tools, PATH, runtimes)
-./bin/lint                                 # Lint everything, as CI does (./bin/lint --file <path> for one file)
-./bin/profile-zsh-startup                  # Deep component timing (zinit plugins, SDKMAN, p10k, etc.)
+./scripts/bin/lint                                 # Lint everything, as CI does (./scripts/bin/lint --file <path> for one file)
+./scripts/bin/profile-zsh-startup                  # Deep component timing (zinit plugins, SDKMAN, p10k, etc.)
 help                                       # Alias documentation entry point
 docs                                       # Interactive alias browser (alias_docs)
 show_tools                                 # Overview of installed CLI upgrades
@@ -265,7 +264,7 @@ Two accounts, each with its own config directory (`claude/` is the stow package 
 
 - `~/.claude` must be a symlink to `~/.claude-personal` (`ln -s ~/.claude-personal ~/.claude`), so plain `claude` outside a pinned directory is the personal account. `dotdoctor` checks it.
 - `ccp`/`ccpr`/`ccpc` also load `~/.claude-personal/projects.d/<repo>.json` with `--settings` when the current git repo has one. That is where a project's own `autoMode` rules go, since Claude Code ignores `autoMode` in a project's `.claude/settings*.json` and they must not live in this public repo. `<repo>` is the main checkout's directory name, so linked worktrees share it.
-- Mods in `claude-mods/` (`statusbar`, `blast-radius`, `redact`, `agents`, `conventions`) load straight from the repo via `CLAUDE_CODE_PLUGIN_DIRS`, which `~/.zshenv` exports from `$DOTFILES/claude-mods/` (Claude Code does not expand variables in `settings.json`), with nothing to link. The band above the prompt (context bar, rate limits) is the `statusbar` mod, the line below it is `bin/claude-statusline`, and `conventions` runs `bin/lint --file` after each edit Claude makes in this repo. See [`claude-mods/README.md`](claude-mods/README.md).
+- Mods in `claude-mods/` (`statusbar`, `blast-radius`, `redact`, `agents`, `conventions`) load straight from the repo via `CLAUDE_CODE_PLUGIN_DIRS`, which `~/.zshenv` exports from `$DOTFILES/claude-mods/` (Claude Code does not expand variables in `settings.json`), with nothing to link. The band above the prompt (context bar, rate limits) is the `statusbar` mod, the line below it is `scripts/bin/claude-statusline`, and `conventions` runs `scripts/bin/lint --file` after each edit Claude makes in this repo. See [`claude-mods/README.md`](claude-mods/README.md).
 - Keybindings: `claude/.claude-*/keybindings.json` (identical in both accounts; Claude Code reloads it live, no restart). Home row for the `agents` mod's pane, all as a `Ctrl+X` chord so the tmux prefix (`Ctrl+a`), vim-tmux-navigator (`Ctrl+h/j/k/l`), `Meta+k` and Claude's `Ctrl+B` stay free:
 
   | Context | Key | Action |
@@ -276,8 +275,8 @@ Two accounts, each with its own config directory (`claude/` is the stow package 
   | `Pane` | `h` or `Ctrl+X a` | `abovePrompt:leave`: back to the prompt (same as `Esc`) |
 
   Clash audit (Claude Code 2.1.317 defaults, all contexts, and `tmux/.tmux.conf`): no clash. `Ctrl+X` chords already used are `Ctrl+K`, `Enter`, `Ctrl+S`, `Ctrl+E`, `Ctrl+A`, `Tab`, `B`, `Ctrl+B`, `1`-`3`, the arrows and `x`; `a` and `v` are free, and `j`/`k`/`h` have no `Pane` default (`Settings`, `Select`, `Transcript` and `DiffDialog` bind `j`/`k`, but only while those are open). The schemastore schema predates the `Pane` context and `abovePrompt:*`, so an editor flags them; Claude Code accepts them. `tests/claude/check.sh` checks both files are valid and identical.
-- Hooks call `bin/claude-tmux-state`, so tmux windows show when Claude is working, waiting or done (`prefix + A` jumps to the next waiting window).
-- Hooks also call `bin/claude-notify`, which shows a macOS notification when a session finishes (`Stop`), asks you something (`AskUserQuestion`) or needs you (permission prompt, idle: `Notification`). It stays quiet while the terminal and the tmux window are in view. `CLAUDE_NOTIFY=0` turns it off, `CLAUDE_NOTIFY_SUBAGENTS=1` adds subagent completions, `CLAUDE_NOTIFY_ALWAYS=1` disables the in-view suppression, `CLAUDE_NOTIFY_SOUND=<name>` changes the sound. One-time setup: allow banners and sounds for **Script Editor** under System Settings > Notifications (`osascript` notifications are attributed to it); Focus modes silence them. Details in [`bin/README.md`](bin/README.md).
+- Hooks call `scripts/bin/claude-tmux-state`, so tmux windows show when Claude is working, waiting or done (`prefix + A` jumps to the next waiting window).
+- Hooks also call `scripts/bin/claude-notify`, which shows a macOS notification when a session finishes (`Stop`), asks you something (`AskUserQuestion`) or needs you (permission prompt, idle: `Notification`). It stays quiet while the terminal and the tmux window are in view. `CLAUDE_NOTIFY=0` turns it off, `CLAUDE_NOTIFY_SUBAGENTS=1` adds subagent completions, `CLAUDE_NOTIFY_ALWAYS=1` disables the in-view suppression, `CLAUDE_NOTIFY_SOUND=<name>` changes the sound. One-time setup: allow banners and sounds for **Script Editor** under System Settings > Notifications (`osascript` notifications are attributed to it); Focus modes silence them. Details in [`bin/README.md`](bin/README.md).
 - Pin an account to a directory with `envrc` (below).
 
 ### tmux project sessions
@@ -299,7 +298,7 @@ Two accounts, each with its own config directory (`claude/` is the stow package 
 | plain `claude` in a pinned tree | pinned account | pinned account (inherited) |
 | `ccp`/`ccpr`/`ccpc`, `cce`/`ccer`/`ccec` | the account you typed | blanked for that `claude`, so a pin never leaks the other account's gws into it |
 | `gwsp`/`gwse` | unchanged | the account you typed |
-| bare `gws` in a pinned tree | unchanged | pinned account: **the `bin/gws` guard lets it through** because the pin supplies the account context |
+| bare `gws` in a pinned tree | unchanged | pinned account: **the `scripts/bin/gws` guard lets it through** because the pin supplies the account context |
 | bare `gws` anywhere else | unchanged | blocked (exit 64) |
 
 Inside a pinned tree a bare `gws` therefore acts on the pinned account instead of being refused; that is the point of the pin. Plain `claude` outside any pinned directory uses `~/.claude`, which should be a symlink to `~/.claude-personal` (`dotdoctor` checks this: `ln -s ~/.claude-personal ~/.claude`).
@@ -437,14 +436,14 @@ The Catppuccin Mocha palette used by the prompt matches the tmux status bar exac
 ## Validation, Performance & Troubleshooting
 
 - `test-zsh` – Runs syntax checks, ensures required tools exist, inspects PATH/env vars, and prints a summary with pass/warn/fail counts
-- `dotdoctor` (`bin/dotdoctor`) – Drift check that never stows, fixes or deletes anything (✔/⚠/✘, non-zero exit on ✘): files that are not symlinked, dangling links, bestow config, `~/.claude` link, age key and `~/.env` encryption, Claude mod directories, ControlEscape.spoon, tmux plugins, the `gws` guard. `dotdoctor --full` also runs `brew bundle check` (auto-update off) and `claude plugin validate` (throwaway config dir)
-- `bin/test-shell-helpers` – Behavioural tests for `dotdoctor`, `envrc`, `git_ignore_local`, `prs`/`prw` and the lazy direnv hook, run in a scratch `HOME` with fake `gh`/`fzf`/`claude`; `test-zsh` runs it
-- `./bin/profile-zsh-startup` – Detailed profiler that times individual components (Homebrew shellenv, zinit plugins, SDKMAN, pyenv, compinit, sourcing files)
+- `dotdoctor` (`scripts/bin/dotdoctor`) – Drift check that never stows, fixes or deletes anything (✔/⚠/✘, non-zero exit on ✘): files that are not symlinked, dangling links, bestow config, `~/.claude` link, age key and `~/.env` encryption, Claude mod directories, ControlEscape.spoon, tmux plugins, the `gws` guard. `dotdoctor --full` also runs `brew bundle check` (auto-update off) and `claude plugin validate` (throwaway config dir)
+- `scripts/bin/test-shell-helpers` – Behavioural tests for `dotdoctor`, `envrc`, `git_ignore_local`, `prs`/`prw` and the lazy direnv hook, run in a scratch `HOME` with fake `gh`/`fzf`/`claude`; `test-zsh` runs it
+- `./scripts/bin/profile-zsh-startup` – Detailed profiler that times individual components (Homebrew shellenv, zinit plugins, SDKMAN, pyenv, compinit, sourcing files)
 - `zsh -n ~/.zshrc` – Quick syntax validation if you edit the config
 - `zsh -n ~/.p10k.zsh` – Validate prompt config syntax without sourcing it
 - `brew bundle check` – Confirm Brew dependencies match Brewfile before running Bundle again
 
-- `rebuild-env` (`bin/rebuild-env`) – Recovers `~/.env` when `sops` reports `MAC mismatch` (the encrypted file was edited by hand, so `edit_secrets` refuses it). It keeps, replaces or removes each variable with hidden prompts, re-encrypts, verifies the result and keeps the broken file as `~/.env.broken-mac.<time>`; `edit_secrets` points to it when it sees that error
+- `rebuild-env` (`scripts/bin/rebuild-env`) – Recovers `~/.env` when `sops` reports `MAC mismatch` (the encrypted file was edited by hand, so `edit_secrets` refuses it). It keeps, replaces or removes each variable with hidden prompts, re-encrypts, verifies the result and keeps the broken file as `~/.env.broken-mac.<time>`; `edit_secrets` points to it when it sees that error
 
 Common fixes:
 
@@ -473,6 +472,6 @@ Development happens on the `dev` branch: PRs squash into `dev` (no release), and
 
 ## Contributing
 
-Bug reports and PRs are welcome (open them against `dev`)! Please run `./bin/lint`, `test-zsh` and any relevant profilers before opening a pull request. See `CONTRIBUTING.md` for commit conventions, scopes (including `prompt` for p10k changes), and validation expectations.
+Bug reports and PRs are welcome (open them against `dev`)! Please run `./scripts/bin/lint`, `test-zsh` and any relevant profilers before opening a pull request. See `CONTRIBUTING.md` for commit conventions, scopes (including `prompt` for p10k changes), and validation expectations.
 
 Happy hacking!

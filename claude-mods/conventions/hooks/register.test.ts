@@ -7,10 +7,10 @@ type Proc = (argv: readonly string[]) => { exitCode: number; stdout?: string; st
 const DOT = '/r/dot'
 const OTHER = '/r/other'
 
-// The dotfiles layout is bin/lint plus this mod's manifest; the other repo is any
+// The dotfiles layout is scripts/bin/lint plus this mod's manifest; the other repo is any
 // git repo; /r/none has no .git anywhere above it.
 const layout = (root: string) => ({
-  [`${root}/bin/lint`]: '#!/bin/bash\n',
+  [`${root}/scripts/bin/lint`]: '#!/bin/bash\n',
   [`${root}/claude-mods/conventions/.claude-plugin/plugin.json`]: '{"name":"conventions"}\n',
 })
 const REPOS: Record<string, string> = layout(DOT)
@@ -25,7 +25,7 @@ const ENV = {
 // Fixtures are assembled at runtime so no token-shaped literal sits in the source.
 const part = (...p: string[]) => p.join('')
 const ghToken = part('gh', 'p_') + 'a1B2'.repeat(9)
-// Blob ids for bin/lint: as committed, and edited
+// Blob ids for scripts/bin/lint: as committed, and edited
 const BLOB = 'ab12'.repeat(10)
 const EDITED = 'cd34'.repeat(10)
 
@@ -42,7 +42,7 @@ function engine(
     toolResult?: Record<string, unknown>
     env?: Record<string, string> | null
     /**
-     * The bin/lint-at-HEAD git calls: the blob ids of the working file and of
+     * The scripts/bin/lint-at-HEAD git calls: the blob ids of the working file and of
      * HEAD's (the same by default), an exit code for every git call, or 'missing' (no git).
      * `git diff` always exits 0 here, as it does when a clean filter hides an edit.
      */
@@ -54,7 +54,7 @@ function engine(
   const isDir = (path: string) =>
     DIRS.includes(path) || [...Object.keys(files), ...Object.keys(REPOS), ...DIRS].some(k => k.startsWith(`${path}/`))
   const ran: Ran[] = []
-  // The bin/lint-at-HEAD question, kept apart so `ran` lists the checks themselves
+  // The scripts/bin/lint-at-HEAD question, kept apart so `ran` lists the checks themselves
   const gits: Ran[] = []
   if (opts.env !== null) mock.env(on, opts.env ?? ENV)
   on('fs.stat', (_$, e) => {
@@ -101,12 +101,12 @@ const write = (file_path: string) => ({ tool: 'Write', file_path, content: '' })
 const notes = (r: { context?: readonly string[] }) => (r.context ?? []).join('\n')
 
 describe('in the dotfiles repo (on by default)', () => {
-  test('says nothing about a clean file, after asking bin/lint about it', async ($, on) => {
-    const file = `${DOT}/bin/clean-script`
+  test('says nothing about a clean file, after asking scripts/bin/lint about it', async ($, on) => {
+    const file = `${DOT}/scripts/bin/clean-script`
     const eng = engine(on, { [file]: '#!/bin/bash\nif true; then\n    echo ok\nfi\n' })
     const r = await $.tool.call(edit(file))
     expect(r.context).toBeUndefined()
-    expect(eng.ran).toEqual([{ argv: [`${DOT}/bin/lint`, '--file', file], cwd: DOT, timeoutMs: 3000 }])
+    expect(eng.ran).toEqual([{ argv: [`${DOT}/scripts/bin/lint`, '--file', file], cwd: DOT, timeoutMs: 3000 }])
   })
 
   test('flags tab indentation with the line and the fix', async ($, on) => {
@@ -126,7 +126,7 @@ describe('in the dotfiles repo (on by default)', () => {
     expect((await $.tool.call(edit(make))).context).toBeUndefined()
   })
 
-  test("relays bin/lint's findings, cut short but keeping the fix lines", async ($, on) => {
+  test("relays scripts/bin/lint's findings, cut short but keeping the fix lines", async ($, on) => {
     const file = `${DOT}/zsh/.zshrc.d/09-x.zsh`
     const noise = Array.from({ length: 30 }, (_, i) => `line ${i}`).join('\n')
     engine(on, { [file]: 'if true; then\n' }, () => ({
@@ -134,7 +134,7 @@ describe('in the dotfiles repo (on by default)', () => {
       stdout: `${noise}\nfix: fix the zsh syntax error in zsh/.zshrc.d/09-x.zsh`,
     }))
     const text = notes(await $.tool.call(edit(file)))
-    expect(text).toContain('- bin/lint --file zsh/.zshrc.d/09-x.zsh:')
+    expect(text).toContain('- scripts/bin/lint --file zsh/.zshrc.d/09-x.zsh:')
     expect(text).toContain('line 11')
     expect(text).not.toContain('line 12')
     expect(text).toContain('(18 more lines)')
@@ -173,7 +173,7 @@ describe('in the dotfiles repo (on by default)', () => {
       [file]: '\techo hi\n',
     })
     expect(notes(await $.tool.call(edit(file)))).toContain('conventions (advisory, the edit was applied): init.sh')
-    expect(eng.ran[0]?.argv).toEqual([`${wt}/bin/lint`, '--file', file])
+    expect(eng.ran[0]?.argv).toEqual([`${wt}/scripts/bin/lint`, '--file', file])
   })
 
   test('a worktree linked with relative paths counts too', async ($, on) => {
@@ -187,7 +187,7 @@ describe('in the dotfiles repo (on by default)', () => {
       [file]: 'echo hi\n',
     })
     await $.tool.call(edit(file))
-    expect(eng.ran[0]?.argv).toEqual([`${wt}/bin/lint`, '--file', file])
+    expect(eng.ran[0]?.argv).toEqual([`${wt}/scripts/bin/lint`, '--file', file])
   })
 
   test('can be switched off by the repo', async ($, on) => {
@@ -293,14 +293,14 @@ describe('more edges', () => {
   })
 
   test('an edit through a symlink is checked where it lands', async ($, on) => {
-    const link = '/home/u/bin/lint-me'
-    const file = `${DOT}/bin/lint-me`
+    const link = '/home/u/scripts/bin/lint-me'
+    const file = `${DOT}/scripts/bin/lint-me`
     const eng = engine(on, { [file]: '#!/bin/bash\necho ok\n' }, undefined, { links: { [link]: file } })
     await $.tool.call(edit(link))
-    expect(eng.ran[0]?.argv).toEqual([`${DOT}/bin/lint`, '--file', file])
+    expect(eng.ran[0]?.argv).toEqual([`${DOT}/scripts/bin/lint`, '--file', file])
   })
 
-  test('bin/lint is not spawned for files it does not cover', async ($, on) => {
+  test('scripts/bin/lint is not spawned for files it does not cover', async ($, on) => {
     const md = `${DOT}/docs/a.md`
     const ts = `${DOT}/claude-mods/x/hooks/a.ts`
     const lua = `${DOT}/nvim/.config/nvim/lua/a.lua`
@@ -312,7 +312,7 @@ describe('more edges', () => {
     expect(eng.ran.length).toBe(1)
   })
 
-  test('tab and bin/lint findings for one file are one note, not two', async ($, on) => {
+  test('tab and scripts/bin/lint findings for one file are one note, not two', async ($, on) => {
     const file = `${DOT}/init.sh`
     engine(on, { [file]: '#!/bin/bash\nif true; then\n\techo hi\nfi\n' }, () => ({
       exitCode: 1,
@@ -323,15 +323,15 @@ describe('more edges', () => {
     expect(text).not.toContain('tab indentation')
   })
 
-  test('a new bin/ script bin/lint does not list still gets the tab note', async ($, on) => {
-    const file = `${DOT}/bin/brand-new`
+  test('a new bin/ script scripts/bin/lint does not list still gets the tab note', async ($, on) => {
+    const file = `${DOT}/scripts/bin/brand-new`
     engine(on, { [file]: '#!/bin/bash\nif true; then\n\techo hi\nfi\n' }, () => ({
       exitCode: 1,
-      stdout: 'bin/brand-new is not in BASH_FILES or ZSH_FILES in bin/lint\nfix: add it to BASH_FILES (bash) or ZSH_FILES (zsh) in bin/lint',
+      stdout: 'scripts/bin/brand-new is not in BASH_FILES or ZSH_FILES in scripts/bin/lint\nfix: add it to BASH_FILES (bash) or ZSH_FILES (zsh) in scripts/bin/lint',
     }))
     const text = notes(await $.tool.call(edit(file)))
     expect(text).toContain('tab indentation on line 3')
-    expect(text).toContain('Fix: shfmt -i 4 -ci -w bin/brand-new')
+    expect(text).toContain('Fix: shfmt -i 4 -ci -w scripts/bin/brand-new')
     expect(text).toContain('fix: add it to BASH_FILES')
   })
 
@@ -341,7 +341,7 @@ describe('more edges', () => {
     expect((await $.tool.call(edit(file))).context).toBeUndefined()
   })
 
-  test('bin/lint exiting 2 (usage, no such file) is not reported', async ($, on) => {
+  test('scripts/bin/lint exiting 2 (usage, no such file) is not reported', async ($, on) => {
     const other = `${DOT}/bin/other`
     engine(on, { [other]: 'echo ok\n' }, () => ({ exitCode: 2, stderr: 'lint: no such file' }))
     expect((await $.tool.call(edit(other))).context).toBeUndefined()
@@ -351,25 +351,25 @@ describe('more edges', () => {
     const file = `${OTHER}/init.sh`
     const eng = engine(on, {
       [file]: '\techo hi\n',
-      [`${OTHER}/bin/lint`]: '#!/bin/bash\n',
+      [`${OTHER}/scripts/bin/lint`]: '#!/bin/bash\n',
       [`${OTHER}/claude-mods/conventions/.claude-plugin/plugin.json`]: '{"name":"other"}',
     })
     expect((await $.tool.call(edit(file))).context).toBeUndefined()
     expect(eng.ran).toEqual([])
   })
 
-  test("a fork or copy with the repo's layout never runs its own bin/lint", async ($, on) => {
+  test("a fork or copy with the repo's layout never runs its own scripts/bin/lint", async ($, on) => {
     const fork = '/r/fork'
     const sh = `${fork}/bin/new-script`
     const eng = engine(on, { ...layout(fork), [sh]: '#!/bin/bash\n\techo hi\n' }, argv => ({ exitCode: 1, stdout: `${argv[0]} says no` }))
     const text = notes(await $.tool.call(edit(sh)))
-    // Still on by default, with the generic checks in place of bin/lint
+    // Still on by default, with the generic checks in place of scripts/bin/lint
     expect(text).toContain('tab indentation on line 2')
     expect(eng.ran.map(r => r.argv)).toEqual([['shfmt', '-i', '4', '-ci', '-d', sh]])
   })
 
-  test('an edit to bin/lint itself never runs it; the generic checks stand in', async ($, on) => {
-    const lint = `${DOT}/bin/lint`
+  test('an edit to scripts/bin/lint itself never runs it; the generic checks stand in', async ($, on) => {
+    const lint = `${DOT}/scripts/bin/lint`
     const eng = engine(on, { [lint]: '#!/bin/bash\n\techo pwned\n' }, argv => ({ exitCode: 1, stdout: `${argv[0]} says no` }))
     const text = notes(await $.tool.call(edit(lint)))
     expect(text).toContain('tab indentation on line 2')
@@ -383,7 +383,7 @@ describe('more edges', () => {
     ['git fails', { exitCode: 128 }],
     ['git is missing', { exitCode: 'missing' }],
   ] as const) {
-    test(`bin/lint is not run when ${why}; the generic checks stand in`, async ($, on) => {
+    test(`scripts/bin/lint is not run when ${why}; the generic checks stand in`, async ($, on) => {
       const file = `${DOT}/init.sh`
       const eng = engine(on, { [file]: '#!/bin/bash\necho hi\n' }, undefined, { lintGit })
       await $.tool.call(edit(file))
@@ -392,15 +392,15 @@ describe('more edges', () => {
     })
   }
 
-  test('bin/lint is compared by its bytes, with no filter and no configured command', async ($, on) => {
+  test('scripts/bin/lint is compared by its bytes, with no filter and no configured command', async ($, on) => {
     const file = `${DOT}/init.sh`
     const eng = engine(on, { [file]: '#!/bin/bash\necho hi\n' })
     await $.tool.call(edit(file))
     expect(eng.gits.map(g => g.argv)).toEqual([
-      ['git', '-c', 'core.fsmonitor=false', 'hash-object', '--no-filters', '--', `${DOT}/bin/lint`],
-      ['git', '-c', 'core.fsmonitor=false', 'rev-parse', '--verify', '--quiet', 'HEAD:bin/lint'],
+      ['git', '-c', 'core.fsmonitor=false', 'hash-object', '--no-filters', '--', `${DOT}/scripts/bin/lint`],
+      ['git', '-c', 'core.fsmonitor=false', 'rev-parse', '--verify', '--quiet', 'HEAD:scripts/bin/lint'],
     ])
-    expect(eng.ran[0]?.argv).toEqual([`${DOT}/bin/lint`, '--file', file])
+    expect(eng.ran[0]?.argv).toEqual([`${DOT}/scripts/bin/lint`, '--file', file])
   })
 
   test('a .git file naming the repo is not enough: the worktree must be linked back', async ($, on) => {
@@ -413,7 +413,7 @@ describe('more edges', () => {
       [file]: 'echo hi\n',
     })
     await $.tool.call(edit(file))
-    expect(eng.ran.some(r => r.argv[0]?.endsWith('/bin/lint'))).toBe(false)
+    expect(eng.ran.some(r => r.argv[0]?.endsWith('/scripts/bin/lint'))).toBe(false)
   })
 
   test('a .git file pointing outside the repo, or into it by `..`, is not trusted', async ($, on) => {
@@ -432,10 +432,10 @@ describe('more edges', () => {
       { links: { [sneaky]: `${fake}/admin` } },
     )
     await $.tool.call(edit(file))
-    expect(eng.ran.some(r => r.argv[0]?.endsWith('/bin/lint'))).toBe(false)
+    expect(eng.ran.some(r => r.argv[0]?.endsWith('/scripts/bin/lint'))).toBe(false)
   })
 
-  test('without CLAUDE_CODE_PLUGIN_DIRS, bin/lint is not run but the generic checks are', async ($, on) => {
+  test('without CLAUDE_CODE_PLUGIN_DIRS, scripts/bin/lint is not run but the generic checks are', async ($, on) => {
     const file = `${DOT}/init.sh`
     const eng = engine(on, { [file]: '#!/bin/bash\n\techo hi\n' }, undefined, { env: null })
     expect(notes(await $.tool.call(edit(file)))).toContain('tab indentation on line 2')
@@ -448,7 +448,7 @@ describe('more edges', () => {
       env: { HOME: '/r', CLAUDE_CODE_PLUGIN_DIRS: '/r/fork/claude-mods/conventions' },
     })
     await $.tool.call(edit(file))
-    expect(eng.ran.some(r => r.argv[0]?.endsWith('/bin/lint'))).toBe(false)
+    expect(eng.ran.some(r => r.argv[0]?.endsWith('/scripts/bin/lint'))).toBe(false)
   })
 
   test('an unknown /conventions argument does not toggle', async ($, on) => {

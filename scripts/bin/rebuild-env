@@ -155,7 +155,7 @@ done
 [ -s "$tmp/plain" ] || die "nothing left to store; refusing to write an empty $ENV_FILE"
 
 # Same check edit_secrets makes: say which lines the shell loader would skip (names only).
-loader="$(dirname -- "$(readlink -f -- "$0")")/../zsh/.functions.d/06-dotfiles.zsh"
+loader="$(dirname -- "$(readlink -f -- "$0")")/../../zsh/.functions.d/06-dotfiles.zsh"
 if command -v zsh >/dev/null && [ -f "$loader" ]; then
     skipped="$(zsh -c 'source "$1" && (_dotfiles_env_parse <"$2") 2>&1 >/dev/null' _ "$loader" "$tmp/plain" || true)"
     if [ -n "$skipped" ]; then

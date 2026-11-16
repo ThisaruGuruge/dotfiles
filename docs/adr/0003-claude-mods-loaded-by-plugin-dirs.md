@@ -9,5 +9,5 @@ This was chosen by Claude during a session, not weighed by the owner against a m
 - Editing a mod in the repo is live after a session restart: no stow, no install step.
 - The exported list must match `claude-mods/*/`, and `settings.json` must not set it; `dotdoctor` checks both and flags entries pointing outside the repo.
 - The shell must have read `~/.zshenv` before Claude Code starts; a launch from the Dock or another GUI app has no `CLAUDE_CODE_PLUGIN_DIRS` and loads no mods. The checkout can be anywhere, because `$DOTFILES` is derived from where `~/.zshenv` links to.
-- The `conventions` mod runs the repo's `bin/lint` only from the checkout the mod was loaded from, so a copy cannot execute code outside the permission system.
+- The `conventions` mod runs the repo's `scripts/bin/lint` only from the checkout the mod was loaded from, so a copy cannot execute code outside the permission system.
 - Mods are validated with `claude plugin validate` / `claude plugin test`, not `test-zsh`.

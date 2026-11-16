@@ -340,7 +340,7 @@ fi
 alias test-zsh='$HOME/bin/test-zsh-config'
 
 # Package Management
-# brew-sync is a read-only drift report (see bin/sync-brewfile): it never
+# brew-sync is a read-only drift report (see scripts/bin/sync-brewfile): it never
 # rewrites a Brewfile. brew-check verifies the core Brewfile is satisfied.
 alias brew-sync='$HOME/bin/sync-brewfile'
 alias brew-check='brew bundle check --file=$DOTFILES/Brewfile'

@@ -138,14 +138,13 @@ export function compose(rel: string, problems: string[]): string {
 }
 
 /**
- * Which checks `bin/lint --file` could run for a path in the dotfiles repo,
+ * Which checks `scripts/bin/lint --file` could run for a path in the dotfiles repo,
  * from the same lists it uses; empty means it covers the file with none, so
  * it is not spawned.
  */
 export function lintChecks(rel: string): Check[] {
   if (/^nvim\/.*\.lua$/.test(rel)) return ['stylua']
-  if (rel === 'bin/README.md') return []
-  if (/^bin\/[^/.][^/]*$/.test(rel)) return ['shfmt', 'zsh']
+  if (/^scripts\/bin\/[^/.][^/]*$/.test(rel)) return ['shfmt', 'zsh']
   if (/\.zsh$/.test(rel) || /^zsh\/\.[^/]+$/.test(rel)) return ['zsh']
   if (/\.sh$/.test(rel)) return ['shfmt', 'zsh']
   return []

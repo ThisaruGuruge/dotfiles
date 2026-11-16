@@ -6,7 +6,7 @@
 # Numbers are assigned once when the popup opens and stay fixed even if
 # the fuzzy filter narrows the visible list.
 # Sessions with a window where Claude Code is waiting for you are marked 󰂞
-# (the per-window @claude_state option, set by bin/claude-tmux-state).
+# (the per-window @claude_state option, set by scripts/bin/claude-tmux-state).
 
 # Internal mode: print the numbered, tab-delimited session list and exit.
 # Used both for the initial fzf input and for fzf's --bind reload.

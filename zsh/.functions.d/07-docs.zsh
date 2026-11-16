@@ -485,8 +485,8 @@ profile_startup() {
         dotfiles_dir="${HOME}/.dotfiles"
     fi
 
-    if [ -n "$dotfiles_dir" ] && [ -f "$dotfiles_dir/bin/profile-startup" ]; then
-        "$dotfiles_dir/bin/profile-startup"
+    if [ -n "$dotfiles_dir" ] && [ -f "$dotfiles_dir/scripts/bin/profile-startup" ]; then
+        "$dotfiles_dir/scripts/bin/profile-startup"
     else
         echo "🚀 Quick Shell Startup Performance Test"
         echo "======================================"
@@ -514,6 +514,6 @@ profile_startup() {
         echo "> 1.5s: Slow (needs optimization)"
         echo ""
         echo "For detailed analysis, use the full profiler:"
-        echo "  $dotfiles_dir/bin/profile-startup"
+        echo "  $dotfiles_dir/scripts/bin/profile-startup"
     fi
 }

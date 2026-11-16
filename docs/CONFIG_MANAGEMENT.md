@@ -12,7 +12,7 @@ This guide explains how to manage application configs in your dotfiles repositor
 
 Run this to see what's managed vs unmanaged:
 ```bash
-./bin/audit-configs
+./scripts/bin/audit-configs
 ```
 
 ## Adding New Application Configs
@@ -43,7 +43,7 @@ Run this to see what's managed vs unmanaged:
 If you already have a config at `~/.config/myapp`:
 
 ```bash
-./bin/adopt-config myapp
+./scripts/bin/adopt-config myapp
 ```
 
 This will:
@@ -147,7 +147,7 @@ You've been using `fish` and have configs:
 
 ```bash
 # Before: ~/.config/fish is a real directory
-./bin/adopt-config fish
+./scripts/bin/adopt-config fish
 
 # After: ~/.config/fish holds per-file symlinks into dotfiles
 # Review the .bestowignore
@@ -192,7 +192,7 @@ bestow stow myapp
 
 ```bash
 # If you have an existing real directory that conflicts
-./bin/adopt-config myapp
+./scripts/bin/adopt-config myapp
 
 # Or manually move and restow
 mv ~/.config/myapp ~/projects/personal/dotfiles/myapp/.config/
@@ -219,14 +219,14 @@ git filter-repo --path myapp/.config/myapp/secrets.txt --invert-paths
 
 ## Checking the result
 
-`dotdoctor` (`bin/dotdoctor`) reports files of any package that are not linked and symlinks that dangle into the repo, and changes nothing. Run it after adding, removing or renaming package files.
+`dotdoctor` (`scripts/bin/dotdoctor`) reports files of any package that are not linked and symlinks that dangle into the repo, and changes nothing. Run it after adding, removing or renaming package files.
 
-`bin` is the one package that does not link into `$HOME`: stow it with `bestow stow bin -d ~/bin`, and never run a bare `bestow stow` across every package (it would link `bin/*` straight into `~`).
+Every package mirrors `$HOME`, so the helper scripts live in `scripts/bin/` and stow to `~/bin` like any other package (`bestow stow scripts`).
 
 ## Tools
 
-- `./bin/audit-configs` - Show managed vs unmanaged configs
-- `./bin/adopt-config <app>` - Migrate existing config to dotfiles
+- `./scripts/bin/audit-configs` - Show managed vs unmanaged configs
+- `./scripts/bin/adopt-config <app>` - Migrate existing config to dotfiles
 - `dotdoctor` - Read-only health check (unlinked files, dangling links, secrets, mods)
 - `bestow stow <pkg>` - Stow a package (idempotent; safe to re-run)
 - `bestow unstow <pkg>` - Remove a package's symlinks

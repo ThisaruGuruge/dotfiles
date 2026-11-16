@@ -2,7 +2,7 @@
 # tmux-status-claude — "󰂞 N waiting: sessA, sessB" for tmux's status-right.
 #
 # Counts windows whose @claude_state option is "waiting" (set per window by
-# bin/claude-tmux-state from Claude Code hooks) and lists the sessions (or session groups) they live in; a window shared by grouped
+# scripts/bin/claude-tmux-state from Claude Code hooks) and lists the sessions (or session groups) they live in; a window shared by grouped
 # sessions counts once.
 # Prints nothing when no window is waiting, so the status bar stays quiet.
 #

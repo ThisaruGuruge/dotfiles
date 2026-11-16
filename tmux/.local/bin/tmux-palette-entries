@@ -5,7 +5,7 @@
 # tmux command line, including quoted arguments and ";" to chain commands (write a plain ";",
 # not the "\;" that bind-key needs). Use "noop" for display-only rows. A literal "|" in the
 # key or description is written as {pipe}.
-# Every prefix binding in tmux.conf must have a row here (bin/test-zsh-config warns otherwise).
+# Every prefix binding in tmux.conf must have a row here (scripts/bin/test-zsh-config warns otherwise).
 
 # --- Sessions ---
 # Create, switch, rename, and manage tmux sessions

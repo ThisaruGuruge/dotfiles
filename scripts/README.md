@@ -4,7 +4,7 @@ Helper scripts to manage your dotfiles setup.
 
 ## Script index
 
-Every script in this directory is bash, POSIX sh or zsh (no Python). Convention: use bash (`#!/bin/bash`, linted by shellcheck + `shfmt -i 4 -ci`; the two Claude Code helpers that run on every hook or refresh use `#!/bin/sh` for startup speed) unless the script sources zsh-only features or runs inside the zsh config (`#!/usr/bin/env zsh`, checked with `zsh -n`). `bin/lint` runs all of these checks.
+Every script in this directory is bash, POSIX sh or zsh (no Python). Convention: use bash (`#!/bin/bash`, linted by shellcheck + `shfmt -i 4 -ci`; the two Claude Code helpers that run on every hook or refresh use `#!/bin/sh` for startup speed) unless the script sources zsh-only features or runs inside the zsh config (`#!/usr/bin/env zsh`, checked with `zsh -n`). `scripts/bin/lint` runs all of these checks.
 
 | Script | Language | Purpose |
 | ------ | -------- | ------- |
@@ -38,7 +38,7 @@ Audit your `~/.config` directory to see what's managed by dotfiles vs what's not
 
 **Usage:**
 ```bash
-./bin/audit-configs
+./scripts/bin/audit-configs
 ```
 
 **Output:**
@@ -52,7 +52,7 @@ Migrate an existing config from `~/.config/<app>` into your dotfiles repo.
 
 **Usage:**
 ```bash
-./bin/adopt-config fish
+./scripts/bin/adopt-config fish
 ```
 
 **What it does:**
@@ -66,7 +66,7 @@ Migrate an existing config from `~/.config/<app>` into your dotfiles repo.
 **Example:**
 ```bash
 # Adopt fish shell config
-./bin/adopt-config fish
+./scripts/bin/adopt-config fish
 
 # Review the ignore file
 vim ~/projects/personal/dotfiles/fish/.bestowignore
@@ -81,7 +81,7 @@ Run the Google Workspace CLI (`googleworkspace-cli`) against two isolated accoun
 
 - `gwsp ...` — personal account, config dir `~/.config/gws-personal`
 - `gwse ...` — enterprise account, config dir `~/.config/gws-enterprise`
-- `gws ...` — **blocked**: `bin/gws` shadows the real binary (`~/bin` precedes Homebrew on `PATH`) and refuses to run unless `GOOGLE_WORKSPACE_CLI_CONFIG_DIR` is set. It is a script, not an alias, so it also guards non-interactive shells such as agents.
+- `gws ...` — **blocked**: `scripts/bin/gws` shadows the real binary (`~/bin` precedes Homebrew on `PATH`) and refuses to run unless `GOOGLE_WORKSPACE_CLI_CONFIG_DIR` is set. It is a script, not an alias, so it also guards non-interactive shells such as agents.
 - `gws-account <name>` — shared helper: creates `~/.config/gws-<name>` (mode 700), sets `GOOGLE_WORKSPACE_CLI_CONFIG_DIR`, pins `GOOGLE_WORKSPACE_CLI_KEYRING_BACKEND=file` (each dir keeps its own encryption key; mixing backends makes gws silently drop `credentials.enc`), then runs the real binary. Add a third account with a two-line wrapper like `gwsp`.
 
 **Per-account setup (once per machine):**
@@ -111,11 +111,11 @@ dotdoctor --full    # also: brew bundle check (auto-update/analytics off) + clau
 - `CLAUDE_CODE_PLUGIN_DIRS` (exported by `~/.zshenv`; `settings.json` must not set it) lists every `claude-mods/*/` plugin, every listed directory exists and lives inside the repo (a same-named plugin from elsewhere does not count) (`✘` on mismatch)
 - age key present, `~/.env` sops-encrypted, no plaintext `zsh/.env` in the repo (`✘` even when git-ignored: it still sits on disk next to the code; a sops-encrypted copy is only a `⚠`), no plaintext `~/.env.backup*`
 - `ControlEscape.spoon` cloned, tmux plugin manager and declared tmux plugins installed
-- Bare `gws` is blocked: `gws` on `PATH` must be the `bin/gws` guard, and the guard exits 64 without an account (the real binary is never run)
+- Bare `gws` is blocked: `gws` on `PATH` must be the `scripts/bin/gws` guard, and the guard exits 64 without an account (the real binary is never run)
 
-It is a script in `bin/`, so it works from any shell. It checks the repo the script lives in (symlinks are followed, so the installed `~/bin/dotdoctor` checks the live repo) against the links in `$HOME`; `DOTFILES_CHECK=<dir>` points it at a different checkout. Run from a linked git worktree it warns up front, because links that point at the main checkout then look unlinked.
+It is a script in `scripts/bin/`, so it works from any shell. It checks the repo the script lives in (symlinks are followed, so the installed `~/bin/dotdoctor` checks the live repo) against the links in `$HOME`; `DOTFILES_CHECK=<dir>` points it at a different checkout. Run from a linked git worktree it warns up front, because links that point at the main checkout then look unlinked.
 
-`bin/test-shell-helpers` exercises it (exit codes, hard errors, worktrees, `--full`) together with `envrc`, `prs`/`prw` and the direnv hook, using a scratch `HOME` and fake `gh`/`fzf`/`claude`/`brew`; `test-zsh` runs it.
+`scripts/bin/test-shell-helpers` exercises it (exit codes, hard errors, worktrees, `--full`) together with `envrc`, `prs`/`prw` and the direnv hook, using a scratch `HOME` and fake `gh`/`fzf`/`claude`/`brew`; `test-zsh` runs it.
 
 ### `claude-statusline` / `claude-tmux-state`
 Claude Code helpers, called from `claude/.claude-*/` through `~/bin`. They are
@@ -174,7 +174,7 @@ Report drift between what Homebrew has installed and what the Brewfiles declare.
 
 **Usage:**
 ```bash
-./bin/sync-brewfile
+./scripts/bin/sync-brewfile
 ```
 
 **What it does (read-only):**
@@ -203,8 +203,8 @@ echo "--theme=TwoDark" > ~/projects/personal/dotfiles/bat/.config/bat/config
 # 3. Stow it
 cd ~/projects/personal/dotfiles && bestow stow bat
 
-# 4. Add it to Brewfile by hand (./bin/sync-brewfile shows what is untracked)
-./bin/sync-brewfile
+# 4. Add it to Brewfile by hand (./scripts/bin/sync-brewfile shows what is untracked)
+./scripts/bin/sync-brewfile
 
 # 5. Commit everything
 git add bat/.config/bat Brewfile
@@ -216,10 +216,10 @@ git push
 
 ```bash
 # 1. Audit what's not managed yet
-./bin/audit-configs
+./scripts/bin/audit-configs
 
 # 2. Adopt configs you want to manage
-./bin/adopt-config fish
+./scripts/bin/adopt-config fish
 
 # 3. Review and commit
 git add fish/.config/fish
@@ -242,7 +242,7 @@ The checkout can be anywhere: `~/.zshenv` derives `$DOTFILES` from the checkout 
 ## Tips
 
 - Run `dotdoctor` after pulling or adding files to catch unlinked configs and drift
-- Run `./bin/audit-configs` periodically to catch new configs
-- Use `./bin/sync-brewfile` after installing new tools to see what is not yet in a Brewfile
+- Run `./scripts/bin/audit-configs` periodically to catch new configs
+- Use `./scripts/bin/sync-brewfile` after installing new tools to see what is not yet in a Brewfile
 - Always review `.bestowignore` files before committing
 - Test your init.sh on a fresh VM/container periodically

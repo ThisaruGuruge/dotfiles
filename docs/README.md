@@ -27,7 +27,7 @@ This directory contains additional documentation for the dotfiles repository.
 ## Main Documentation
 
 Script and mod documentation lives next to the code:
-- [bin/README.md](../bin/README.md) - Helper scripts (`lint`, `dotdoctor`, `gwsp`/`gwse`, ...)
+- [scripts/README.md](../scripts/README.md) - Helper scripts (`lint`, `dotdoctor`, `gwsp`/`gwse`, ...)
 - [claude-mods/README.md](../claude-mods/README.md) - Claude Code mods
 - [nvim/.config/nvim/KEYBINDINGS.md](../nvim/.config/nvim/KEYBINDINGS.md) - Neovim keybindings with source files
 

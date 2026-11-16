@@ -28,7 +28,7 @@ WARNINGS=0
 
 # Repo holding this script. ${0:A:h:h} resolves symlinks, so this works from
 # ~/bin, a worktree or a clone, and a worktree tests its own files.
-DOTFILES_DIR="${0:A:h:h}"
+DOTFILES_DIR="${0:A:h:h:h}"
 
 # Print section header
 print_header() {
@@ -164,7 +164,7 @@ test_tool "gwse" "gwse" "gwse --version | head -1"
 
 # Bare gws must stay blocked so nothing touches a Google account without context
 if gws --version >/dev/null 2>&1; then
-    print_test "gws guard" "fail" "Bare gws ran; bin/gws should refuse it (is ~/bin before Homebrew on PATH?)"
+    print_test "gws guard" "fail" "Bare gws ran; scripts/bin/gws should refuse it (is ~/bin before Homebrew on PATH?)"
 else
     print_test "gws guard" "pass" "Bare gws is blocked (use gwsp/gwse)"
 fi
@@ -679,8 +679,8 @@ else
 fi
 
 # --- config details -----------------------------------------------------------
-sc_check "bin/sync-brewfile is read-only (no dump / --force)" "script rewrites a Brewfile" \
-    bash -c '! grep -v "^[[:space:]]*#" "$1" | grep -Eq "bundle dump|--force"' _ "$sc_repo/bin/sync-brewfile"
+sc_check "scripts/bin/sync-brewfile is read-only (no dump / --force)" "script rewrites a Brewfile" \
+    bash -c '! grep -v "^[[:space:]]*#" "$1" | grep -Eq "bundle dump|--force"' _ "$sc_repo/scripts/bin/sync-brewfile"
 sc_check "atuin: global filter, invert, full style, tabs; failed commands not suppressed" "unexpected atuin settings" \
     bash -c 'f="$1"; grep -q "^filter_mode = \"global\"" "$f" && grep -q "^invert = false" "$f" && grep -q "^style = \"full\"" "$f" && grep -q "^show_tabs = true" "$f" && grep -q "filters = \[ \"global\", \"workspace\"" "$f" && ! grep -Eq "^store_failed" "$f"' _ "$sc_repo/atuin/.config/atuin/config.toml"
 sc_check "fzf Ctrl-T / Alt-C previews configured" "FZF_CTRL_T_OPTS / FZF_ALT_C_OPTS missing" \
@@ -962,9 +962,9 @@ if [[ -f "$tmux_conf" ]]; then
         "$tmux_repo/tmux/.local/bin/tmux-project-list" \
         "$tmux_repo/tmux/.local/bin/tmux-session-switcher" \
         "$tmux_repo/tmux/.local/bin/tmux-claude-next" \
-        "$tmux_repo/bin/tmux-status-sysinfo" \
-        "$tmux_repo/bin/tmux-status-battery" \
-        "$tmux_repo/bin/tmux-status-claude"; do
+        "$tmux_repo/scripts/bin/tmux-status-sysinfo" \
+        "$tmux_repo/scripts/bin/tmux-status-battery" \
+        "$tmux_repo/scripts/bin/tmux-status-claude"; do
         [[ -x "$tm_script" ]] || tm_missing_exec+=("${tm_script#$tmux_repo/}")
     done
     if (( ${#tm_missing_exec[@]} == 0 )); then
@@ -1034,13 +1034,13 @@ fi
 # ============================================================================
 print_header "Dotdoctor, PR Helpers, envrc"
 
-dotdoctor_bin="$DOTFILES_DIR/bin/dotdoctor"
+dotdoctor_bin="$DOTFILES_DIR/scripts/bin/dotdoctor"
 if [[ ! -f "$dotdoctor_bin" ]]; then
-    print_test "dotdoctor" "fail" "bin/dotdoctor not found"
+    print_test "dotdoctor" "fail" "scripts/bin/dotdoctor not found"
 elif [[ ! -x "$dotdoctor_bin" ]]; then
-    print_test "dotdoctor" "fail" "bin/dotdoctor is not executable (chmod +x)"
+    print_test "dotdoctor" "fail" "scripts/bin/dotdoctor is not executable (chmod +x)"
 elif ! bash -n "$dotdoctor_bin" 2>/dev/null; then
-    print_test "dotdoctor" "fail" "bin/dotdoctor has a bash syntax error"
+    print_test "dotdoctor" "fail" "scripts/bin/dotdoctor has a bash syntax error"
 elif ! "$dotdoctor_bin" --help >/dev/null 2>&1; then
     print_test "dotdoctor" "fail" "dotdoctor --help did not exit 0"
 else
@@ -1058,29 +1058,29 @@ for fn_def in "prs:04-git.zsh" "prw:04-git.zsh" "envrc:02-navigation.zsh"; do
 done
 unset dotdoctor_bin fn_def fn_name fn_file
 
-# CLAUDE.md points agents at GLOSSARY.md, docs/adr/, CONTRIBUTING.md and bin/README.md; they must exist.
+# CLAUDE.md points agents at GLOSSARY.md, docs/adr/, CONTRIBUTING.md and scripts/README.md; they must exist.
 claude_md="$DOTFILES_DIR/CLAUDE.md"
 if [[ ! -f "$claude_md" ]]; then
     print_test "CLAUDE.md doc pointers resolve" "skip" "CLAUDE.md not present; skipped"
 else
     local -a pointer_missing=()
     local pointer
-    for pointer in GLOSSARY.md docs/adr CONTRIBUTING.md bin/README.md; do
+    for pointer in GLOSSARY.md docs/adr CONTRIBUTING.md scripts/README.md; do
         [[ -e "$DOTFILES_DIR/$pointer" ]] || pointer_missing+=("$pointer")
     done
     if (( ${#pointer_missing[@]} )); then
         print_test "CLAUDE.md doc pointers resolve" "fail" "missing: ${(j:, :)pointer_missing}"
     else
-        print_test "CLAUDE.md doc pointers resolve" "pass" "GLOSSARY.md, docs/adr, CONTRIBUTING.md, bin/README.md exist"
+        print_test "CLAUDE.md doc pointers resolve" "pass" "GLOSSARY.md, docs/adr, CONTRIBUTING.md, scripts/README.md exist"
     fi
     unset pointer_missing pointer
 fi
 unset claude_md
 
 # Behavioural tests (scratch HOME, fake gh/fzf/claude; never touches your setup)
-shell_helpers_test="$DOTFILES_DIR/bin/test-shell-helpers"
+shell_helpers_test="$DOTFILES_DIR/scripts/bin/test-shell-helpers"
 if [[ ! -x "$shell_helpers_test" ]]; then
-    print_test "shell helper behaviour tests" "fail" "bin/test-shell-helpers missing or not executable"
+    print_test "shell helper behaviour tests" "fail" "scripts/bin/test-shell-helpers missing or not executable"
 elif ! command -v zsh >/dev/null 2>&1; then
     print_test "shell helper behaviour tests" "warn" "zsh not found; skipped"
 elif shell_helpers_out="$("$shell_helpers_test" 2>&1)"; then

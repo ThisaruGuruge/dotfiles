@@ -34,10 +34,10 @@ jobs:
         go install mvdan.cc/sh/v3/cmd/shfmt@v3.7.0
         echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
-    - name: Lint (bin/lint)
+    - name: Lint (scripts/bin/lint)
       run: |
         npm install -g @johnnymorganz/stylua-bin@2.5.2
-        bin/lint
+        scripts/bin/lint
 
     - name: Validate JSON files
       run: |
@@ -138,7 +138,7 @@ jobs:
       run: brew install tmux
 
     - name: Run shell helper tests
-      run: zsh bin/test-shell-helpers
+      run: zsh scripts/bin/test-shell-helpers
 
     - name: Run Claude Code config tests
       run: bash tests/claude/check.sh

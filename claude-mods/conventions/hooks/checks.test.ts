@@ -25,10 +25,10 @@ describe('tabLines context', () => {
 })
 
 describe('lintChecks', () => {
-  test('the paths bin/lint --file covers', () => {
-    expect(lintChecks('bin/lint')).toEqual(['shfmt', 'zsh'])
-    expect(lintChecks('bin/README.md')).toEqual([])
-    expect(lintChecks('bin/sub/x')).toEqual([])
+  test('the paths scripts/bin/lint --file covers', () => {
+    expect(lintChecks('scripts/bin/lint')).toEqual(['shfmt', 'zsh'])
+    expect(lintChecks('scripts/README.md')).toEqual([])
+    expect(lintChecks('scripts/bin/sub/x')).toEqual([])
     expect(lintChecks('zsh/.zshrc')).toEqual(['zsh'])
     expect(lintChecks('zsh/.zshrc.d/01-plugins.zsh')).toEqual(['zsh'])
     expect(lintChecks('init.sh')).toEqual(['shfmt', 'zsh'])
@@ -64,7 +64,7 @@ describe('isFixture', () => {
     ]) {
       expect(isFixture(p)).toBe(true)
     }
-    for (const p of ['src/app.ts', 'latest/notes.md', 'contest.ts', 'bin/test-zsh-config', 'attest/x.ts']) {
+    for (const p of ['src/app.ts', 'latest/notes.md', 'contest.ts', 'scripts/bin/test-zsh-config', 'attest/x.ts']) {
       expect(isFixture(p)).toBe(false)
     }
   })
@@ -73,13 +73,13 @@ describe('isFixture', () => {
 describe('language', () => {
   test('by name, then by shebang', () => {
     expect(language('a/run.sh', '')).toBe('bash')
-    expect(language('bin/x', '#!/usr/bin/env bash\necho')).toBe('bash')
-    expect(language('bin/x', '#!/bin/sh\n')).toBe('bash')
-    expect(language('bin/x', '#!/usr/bin/env zsh\n')).toBe('zsh')
+    expect(language('scripts/bin/x', '#!/usr/bin/env bash\necho')).toBe('bash')
+    expect(language('scripts/bin/x', '#!/bin/sh\n')).toBe('bash')
+    expect(language('scripts/bin/x', '#!/usr/bin/env zsh\n')).toBe('zsh')
     expect(language('a/b.zsh', '')).toBe('zsh')
     expect(language('.zshrc', '')).toBe('zsh')
     expect(language('init.lua', '')).toBe('lua')
-    expect(language('bin/x', '#!/usr/bin/env python3\n')).toBeUndefined()
+    expect(language('scripts/bin/x', '#!/usr/bin/env python3\n')).toBeUndefined()
     expect(language('README.md', '# sh\n')).toBeUndefined()
   })
 })

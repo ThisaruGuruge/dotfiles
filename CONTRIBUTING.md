@@ -68,16 +68,16 @@ Before submitting a pull request, test your changes:
 
 ```bash
 # Lint everything (shellcheck, shfmt, zsh -n, stylua, mod tests) -- same checks as CI
-./bin/lint
+./scripts/bin/lint
 
 # Lint one file and print only problems, each with a `fix:` line
-./bin/lint --file path/to/file
+./scripts/bin/lint --file path/to/file
 
 # Run validation suite
-./bin/test-zsh-config
+./scripts/bin/test-zsh-config
 
 # Health check: unlinked files, dangling symlinks, secrets, mods (changes nothing)
-./bin/dotdoctor
+./scripts/bin/dotdoctor
 
 # Quick syntax check of the shell config
 zsh -n zsh/.zshrc
@@ -99,7 +99,7 @@ The repository includes a comprehensive validation suite:
 test-zsh
 
 # Or directly:
-./bin/test-zsh-config
+./scripts/bin/test-zsh-config
 ```
 
 This validates:
@@ -110,22 +110,22 @@ This validates:
 - Performance metrics (startup time)
 - PATH is configured correctly
 - The tmux command palette covers every prefix binding
-- Behavioural suites it runs for you: `bin/test-shell-helpers` (`dotdoctor`, `envrc`, `prs`/`prw`, the direnv hook) and `tests/claude/check.sh` (status line, `claude-tmux-state`, `ccp` project settings)
+- Behavioural suites it runs for you: `scripts/bin/test-shell-helpers` (`dotdoctor`, `envrc`, `prs`/`prw`, the direnv hook) and `tests/claude/check.sh` (status line, `claude-tmux-state`, `ccp` project settings)
 
 ### Linting
 
-`./bin/lint` is the single lint entry point (CI runs it too): `shellcheck` and `shfmt -i 4 -ci -d` on the bash scripts, `zsh -n` on the zsh files, `stylua --check nvim/.config/nvim` (stylua skips hidden directories, so `nvim/` alone checks nothing), and `claude plugin test` for each mod in `claude-mods/` that has hooks (local only: CI does not install `claude`, so the mod tests are skipped there). `bin/lint` also fails when a script in `bin/`, a script in `tmux/.local/bin/` (except the `tmux-palette-entries` data file) or a `tests/**/*.sh` file is not in its file lists. The zsh lists include `zsh/.p10k.zsh` and the `zsh/completions/_*` completions. Tools that are missing are reported as skipped locally and as failures with `CI=true`.
+`./scripts/bin/lint` is the single lint entry point (CI runs it too): `shellcheck` and `shfmt -i 4 -ci -d` on the bash scripts, `zsh -n` on the zsh files, `stylua --check nvim/.config/nvim` (stylua skips hidden directories, so `nvim/` alone checks nothing), and `claude plugin test` for each mod in `claude-mods/` that has hooks (local only: CI does not install `claude`, so the mod tests are skipped there). `scripts/bin/lint` also fails when a script in `bin/`, a script in `tmux/.local/bin/` (except the `tmux-palette-entries` data file) or a `tests/**/*.sh` file is not in its file lists. The zsh lists include `zsh/.p10k.zsh` and the `zsh/completions/_*` completions. Tools that are missing are reported as skipped locally and as failures with `CI=true`.
 
-`bin/lint --file <path>` checks a single file (shellcheck and `shfmt -i 4 -ci -d` for the bash scripts it lists, `zsh -n` for its zsh files, `stylua --check` for Neovim Lua) and prints only problems, each with a `fix:` line. The `conventions` mod runs it after every edit Claude Code makes in this repo.
+`scripts/bin/lint --file <path>` checks a single file (shellcheck and `shfmt -i 4 -ci -d` for the bash scripts it lists, `zsh -n` for its zsh files, `stylua --check` for Neovim Lua) and prints only problems, each with a `fix:` line. The `conventions` mod runs it after every edit Claude Code makes in this repo.
 
 ### CI/CD Validation
 
 All pull requests are automatically validated through GitHub Actions:
 
-- **Lint**: `bin/lint` (shellcheck, `shfmt -i 4 -ci -d`, `zsh -n`, `stylua --check`) is the only shell lint step; CI runs it with `CI=true`, so a missing tool is a failure
+- **Lint**: `scripts/bin/lint` (shellcheck, `shfmt -i 4 -ci -d`, `zsh -n`, `stylua --check`) is the only shell lint step; CI runs it with `CI=true`, so a missing tool is a failure
 - **JSON validation**: Validates JSON config files
 - **Security scanning**: `git grep` over the tracked shell files for hardcoded `/Users/` paths and secret-looking assignments (a non-empty quoted value)
-- **macOS testing** (pull requests only): `zsh -n`/`bash -n` syntax checks, the installer safety check, and the behavioural suites `bin/test-shell-helpers` and `tests/claude/check.sh` (tmux is installed on the runner; both suites use a scratch `HOME` and fake binaries)
+- **macOS testing** (pull requests only): `zsh -n`/`bash -n` syntax checks, the installer safety check, and the behavioural suites `scripts/bin/test-shell-helpers` and `tests/claude/check.sh` (tmux is installed on the runner; both suites use a scratch `HOME` and fake binaries)
 
 ---
 
@@ -141,7 +141,7 @@ All pull requests are automatically validated through GitHub Actions:
 
 **Best Practices**:
 
-- Use `#!/bin/zsh` (or `#!/usr/bin/env zsh`) for zsh scripts and `#!/bin/bash` for bash scripts; `bin/lint` picks its checks from the shebang
+- Use `#!/bin/zsh` (or `#!/usr/bin/env zsh`) for zsh scripts and `#!/bin/bash` for bash scripts; `scripts/bin/lint` picks its checks from the shebang
 - Quote variables: `"$variable"` not `$variable`
 - Use `[[ ]]` for conditionals in zsh/bash
 - Prefer `local` for function-scoped variables
@@ -180,7 +180,7 @@ shellcheck your-script.sh
 
 ### Script languages
 
-Everything in `bin/` is bash or zsh (see `bin/README.md` for the per-script language); there are no Python utilities.
+Everything in `scripts/bin/` is bash or zsh (see `scripts/README.md` for the per-script language); there are no Python utilities.
 
 ---
 
@@ -371,16 +371,16 @@ A merge to `main` skips the release only when everything changed since the last 
 2. **Run validation**:
 
    ```bash
-   ./bin/test-zsh-config
+   ./scripts/bin/test-zsh-config
    ```
 
 3. **Lint** (shellcheck, shfmt, `zsh -n`, stylua, mod tests; CI runs the same checks except the mod tests, which need `claude` and run only locally):
 
    ```bash
-   ./bin/lint
+   ./scripts/bin/lint
    ```
 
-4. **Format shell scripts** that `bin/lint` flags:
+4. **Format shell scripts** that `scripts/bin/lint` flags:
 
    ```bash
    shfmt -w -i 4 -ci path/to/script
@@ -411,7 +411,7 @@ A merge to `main` skips the release only when everything changed since the last 
 
    - [ ] Code follows shell script style guidelines
    - [ ] `test-zsh` validation passes
-   - [ ] `./bin/lint` passes
+   - [ ] `./scripts/bin/lint` passes
    - [ ] Documentation updated (README, comments, etc.) and a `CHANGELOG.md` entry added under `## [Unreleased]`
    - [ ] Commit messages follow conventional commits format
    - [ ] No hardcoded paths or secrets
@@ -456,7 +456,7 @@ If the package requires special installation or configuration, update `init.sh`.
 
 ### 4. Add to validation suite
 
-Update `bin/test-zsh-config` to validate the new package if it's critical.
+Update `scripts/bin/test-zsh-config` to validate the new package if it's critical.
 
 ### 5. Document in README
 
@@ -586,11 +586,11 @@ zsh -x
 zsh -n zsh/.zshrc
 
 # Lint one file (shellcheck cannot parse zsh)
-zsh -n zsh/.functions.sh   # or: ./bin/lint --file <path>
+zsh -n zsh/.functions.sh   # or: ./scripts/bin/lint --file <path>
 
 # Profile startup performance
-./bin/profile-startup        # quick timing
-./bin/profile-zsh-startup    # per-component timing
+./scripts/bin/profile-startup        # quick timing
+./scripts/bin/profile-zsh-startup    # per-component timing
 ```
 
 ### Useful Git Commands

@@ -79,7 +79,7 @@ keybind = super+delete=text:\x1bk
 # -----------------------------------------------------------------------------
 # Every text:\x01... binding below hard-codes tmux's prefix, Ctrl+a (\x01).
 # If you change `set -g prefix` in tmux/.tmux.conf these silently stop working
-# (bin/test-zsh-config fails when the prefix is no longer C-a). Outside tmux they
+# (scripts/bin/test-zsh-config fails when the prefix is no longer C-a). Outside tmux they
 # send Ctrl+a plus a letter to the shell (beginning-of-line then a stray
 # character), so they only make sense inside a tmux session. The same shortcuts
 # are listed in the tmux command palette (prefix + ?) under "Ghostty".

@@ -43,7 +43,7 @@ Checks:
   - ~/.claude -> ~/.claude-personal and the settings.local.json link
   - age key present, ~/.env sops-encrypted, no plaintext secrets left around
   - ControlEscape.spoon cloned, tmux plugin manager installed
-  - bare `gws` is blocked by the bin/gws guard
+  - bare `gws` is blocked by the scripts/bin/gws guard
   - CLAUDE_CODE_PLUGIN_DIRS (exported by ~/.zshenv) matches claude-mods/*, and settings.json does not set it
 
 Options:
@@ -88,7 +88,7 @@ else
         src="$(readlink "$src")"
         [[ "$src" != /* ]] && src="$link_dir/$src"
     done
-    DOTFILES="$(cd -P "$(dirname "$src")/.." && pwd)"
+    DOTFILES="$(cd -P "$(dirname "$src")/../.." && pwd)"
 fi
 DOTFILES="${DOTFILES%/}"
 # Compare physical paths: bestow reports them, and the checkout may be reached through a symlink.
@@ -243,11 +243,7 @@ check_links() {
         pkgs="$(printf '%s' "$missing" | cut -d/ -f1 | sort -u | tr '\n' ' ')"
         fail "$label: $count repo file(s) not linked"
         printf '%s' "$missing" | notes_capped 8
-        if [[ "$label" == "bin" ]]; then
-            note "fix: bestow stow bin --destination ~/bin"
-        else
-            note "fix: bestow stow ${pkgs% }"
-        fi
+        note "fix: bestow stow ${pkgs% }"
     fi
     if [[ -n "$conflicts" ]]; then
         fail "$label: $(printf '%s' "$conflicts" | grep -c .) destination(s) blocked by an existing file or other link (config not active)"
@@ -279,7 +275,7 @@ check_packages() {
         name="${name##*/}"
         case "$name" in
             # tests holds the repo's own test fixtures, not a config package.
-            bin | docs | packages | claude-* | tests) continue ;;
+            docs | packages | claude-* | tests) continue ;;
             # Bootstrapped by init.sh (bestow init), maybe linked later; see check_bestow_config.
             bestow) continue ;;
         esac
@@ -288,10 +284,6 @@ check_packages() {
 
     if [[ ${#pkgs[@]} -gt 0 ]]; then
         check_links "packages (${#pkgs[@]})" "$HOME" "${pkgs[@]}"
-    fi
-    # bin links into ~/bin, not ~/.
-    if [[ -d "$DOTFILES/bin" ]]; then
-        check_links "bin" "$HOME/bin" bin
     fi
 }
 
@@ -338,8 +330,7 @@ check_stray_trees() {
         name="${d%/}"
         name="${name##*/}"
         case "$name" in
-            # ~/bin is a real directory of links by design; these are not packages.
-            bin | docs | packages | claude-mods) continue ;;
+            docs | packages | claude-mods) continue ;;
         esac
         tree="$HOME/$name"
         [[ -d "$tree" && ! -L "$tree" ]] || continue
@@ -530,18 +521,18 @@ check_gws_guard() {
         return
     fi
     # Never execute an unknown gws: it could be the real binary.
-    if [[ "$p" -ef "$DOTFILES/bin/gws" ]]; then
+    if [[ "$p" -ef "$DOTFILES/scripts/bin/gws" ]]; then
         local rc
         env -u GOOGLE_WORKSPACE_CLI_CONFIG_DIR "$p" >/dev/null 2>&1 </dev/null
         rc=$?
         if [[ $rc -eq 64 ]]; then
             ok "bare gws is blocked (exit 64 without an account)"
         else
-            fail "bin/gws guard exited $rc without an account, expected 64"
+            fail "scripts/bin/gws guard exited $rc without an account, expected 64"
         fi
     else
-        fail "gws on PATH is $p, not the bin/gws guard; bare gws is not blocked"
-        note "fix: bestow stow bin --destination ~/bin, and keep ~/bin before Homebrew on PATH"
+        fail "gws on PATH is $p, not the scripts/bin/gws guard; bare gws is not blocked"
+        note "fix: bestow stow scripts, and keep ~/bin before Homebrew on PATH"
     fi
 }
 

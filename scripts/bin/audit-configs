@@ -10,7 +10,7 @@
 # Resolve a symlinked invocation (e.g. ~/bin/audit-configs) to the real repo;
 # physical path, because readlink -f below yields physical link targets
 SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
-DOTFILES_DIR="$(cd -P "$(dirname "$SELF")/.." && pwd -P)"
+DOTFILES_DIR="$(cd -P "$(dirname "$SELF")/../.." && pwd -P)"
 
 # Colors
 GREEN='\033[0;32m'
@@ -80,10 +80,10 @@ echo ""
 echo -e "${BLUE}=== Recommendations ===${NC}"
 echo ""
 echo "To adopt a config into dotfiles:"
-echo "  ./bin/adopt-config <app-name>"
+echo "  ./scripts/bin/adopt-config <app-name>"
 echo ""
 echo "Example:"
-echo "  ./bin/adopt-config fish"
+echo "  ./scripts/bin/adopt-config fish"
 echo ""
 echo "Configs that should probably be adopted:"
 echo "  - fish (if you use fish shell)"

@@ -1,7 +1,6 @@
 #!/bin/bash
 # Dotfiles Reset/Clean Script
-# Removes every bestow-managed symlink (the main package set into $HOME and the
-# bin package into ~/bin), then offers, one prompt each and defaulting to "no":
+# Removes every bestow-managed symlink (every package, into $HOME), then offers, one prompt each and defaulting to "no":
 #   - removing the ~/.dotfiles_backup* directories init.sh created
 #   - uninstalling the packages/*.brewfile packages (the core Brewfile stays)
 #   - uninstalling Homebrew entirely
@@ -101,7 +100,7 @@ brew_cask_installed() {
 
 # Get the dotfiles directory (resolve a symlinked invocation such as ~/bin/reset-dotfiles)
 SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
-DOTFILES_DIR="$(cd "$(dirname "$SELF")/.." && pwd)"
+DOTFILES_DIR="$(cd "$(dirname "$SELF")/../.." && pwd)"
 cd "$DOTFILES_DIR"
 
 echo ""
@@ -126,7 +125,7 @@ log_step "Checking current bestow setup"
 # instead of looking like an empty list.
 preview_links() {
     local out
-    if ! out=$(bestow unstow "$@" --dry-run -v 2>&1); then
+    if ! out=$(bestow unstow --dry-run -v 2>&1); then
         log_error "bestow could not preview the removal; nothing was changed. Its output:"
         echo "$out" >&2
         return 1
@@ -137,14 +136,6 @@ preview_links() {
 ALL_LINKS=""
 preview_links || exit 1
 ALL_LINKS="$LINKS"
-# bin/ symlinks into ~/bin, not $HOME, so it needs a separate destination
-if [ -d "$DOTFILES_DIR/bin" ]; then
-    preview_links bin -d "$HOME/bin" || exit 1
-    if [ -n "$LINKS" ]; then
-        ALL_LINKS="${ALL_LINKS:+$ALL_LINKS
-}$LINKS"
-    fi
-fi
 
 echo ""
 LINK_COUNT=0
@@ -172,14 +163,6 @@ if [ "$LINK_COUNT" -gt 0 ]; then
         log_success "Removed all bestow-managed symlinks"
     else
         log_error "Failed to remove some symlinks"
-    fi
-
-    if [ -d "$DOTFILES_DIR/bin" ]; then
-        if bestow unstow bin -d "$HOME/bin" 2>&1; then
-            log_success "Removed bin package symlinks from ~/bin"
-        else
-            log_error "Failed to remove bin package symlinks"
-        fi
     fi
 fi
 

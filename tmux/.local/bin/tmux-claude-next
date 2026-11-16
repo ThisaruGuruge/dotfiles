@@ -2,7 +2,7 @@
 # tmux-claude-next — jump to the next window (in any session) where Claude Code is
 # waiting for you. Bound to prefix + A. "Next" means the next waiting window after the
 # current one, in session then window order, wrapping around.
-# Windows are marked by the @claude_state option (set by bin/claude-tmux-state).
+# Windows are marked by the @claude_state option (set by scripts/bin/claude-tmux-state).
 
 current=$(tmux display-message -p $'#{session_name}\t#{window_index}') || exit 0
 

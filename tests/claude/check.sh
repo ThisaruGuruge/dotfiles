@@ -1,7 +1,7 @@
 #!/bin/bash
 # Checks for the Claude Code pieces outside the mods: the shared status line, the tmux state hook
 # and the tracked settings. Prints one line per check, `PASS|name|detail`, `FAIL|name|detail` or
-# `WARN|name|detail`, for bin/test-zsh-config to report; exits 1 when any check failed.
+# `WARN|name|detail`, for scripts/bin/test-zsh-config to report; exits 1 when any check failed.
 #
 # Usage: tests/claude/check.sh [repo-root]   (default: the repo this file is in)
 #
@@ -27,7 +27,7 @@ fail() {
 }
 warn() { printf 'WARN|%s|%s\n' "$1" "${2:-}"; }
 
-statusline="$repo/bin/claude-statusline"
+statusline="$repo/scripts/bin/claude-statusline"
 wrapper() { printf '%s\n' "$repo/claude/.claude-$1/statusline-command.sh"; }
 
 # Runs an account's wrapper on stdin with a fixed width and no Remote Control bridge
@@ -38,7 +38,7 @@ run_statusline() {
 }
 
 # ── Status line: golden output ──────────────────────────────────────────────
-# Each cases/*.expected was produced by the two account scripts as they were before bin/claude-statusline
+# Each cases/*.expected was produced by the two account scripts as they were before scripts/bin/claude-statusline
 # (one jq call per field, three git calls) with the RC segment spliced in after the account: the
 # shared script must print exactly the same.
 if ! command -v jq >/dev/null 2>&1 || ! command -v git >/dev/null 2>&1; then
@@ -110,14 +110,14 @@ fi
 for account in personal enterprise; do
     lines=$(grep -cv '^[[:space:]]*$' "$(wrapper "$account")")
     if [ "$lines" -le 3 ] && grep -q 'exec .*claude-statusline' "$(wrapper "$account")"; then
-        pass "statusline-command.sh ($account) execs bin/claude-statusline"
+        pass "statusline-command.sh ($account) execs scripts/bin/claude-statusline"
     else
-        fail "statusline-command.sh ($account) execs bin/claude-statusline" "$lines lines"
+        fail "statusline-command.sh ($account) execs scripts/bin/claude-statusline" "$lines lines"
     fi
 done
 
 # ── tmux state hook ─────────────────────────────────────────────────────────
-state="$repo/bin/claude-tmux-state"
+state="$repo/scripts/bin/claude-tmux-state"
 out=$(env -u TMUX -u TMUX_PANE "$state" working </dev/null 2>&1)
 rc=$?
 if [ -z "$out" ] && [ "$rc" -eq 0 ]; then
@@ -204,7 +204,7 @@ fi
 # ── Desktop notification hook ───────────────────────────────────────────────
 # claude-notify runs against fake osascript (records its argv), lsappinfo and tmux on PATH, so no
 # notification is ever shown
-notify="$repo/bin/claude-notify"
+notify="$repo/scripts/bin/claude-notify"
 if ! command -v jq >/dev/null 2>&1; then
     warn "claude-notify" "jq is needed"
 else

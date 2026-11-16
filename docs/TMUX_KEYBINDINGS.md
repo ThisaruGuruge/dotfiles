@@ -19,7 +19,7 @@ Prefix key: `Ctrl+a`
 
 ## Claude Code State
 
-Claude Code reports its state to tmux through hooks (`bin/claude-tmux-state`), stored per window in the `@claude_state` option. The hooks in both accounts' `settings.json` call `bin/claude-tmux-state` (it is a no-op outside tmux), and `bin/tmux-status-claude` draws the status-bar summary:
+Claude Code reports its state to tmux through hooks (`scripts/bin/claude-tmux-state`), stored per window in the `@claude_state` option. The hooks in both accounts' `settings.json` call `scripts/bin/claude-tmux-state` (it is a no-op outside tmux), and `scripts/bin/tmux-status-claude` draws the status-bar summary:
 
 | State | Window tab | Meaning |
 |-------|------------|---------|
@@ -135,7 +135,7 @@ All popups float above the current pane (including NeoVim) and close back to exa
 
 ## Ghostty Shortcuts
 
-Ghostty sends these Cmd shortcuts to tmux as `Ctrl+a` plus a key, so they only make sense inside tmux. The prefix is hard-coded in `ghostty/.config/ghostty/config` and `bin/test-zsh-config` fails if the tmux prefix stops being `Ctrl+a`. They are also listed in the command palette under "Ghostty".
+Ghostty sends these Cmd shortcuts to tmux as `Ctrl+a` plus a key, so they only make sense inside tmux. The prefix is hard-coded in `ghostty/.config/ghostty/config` and `scripts/bin/test-zsh-config` fails if the tmux prefix stops being `Ctrl+a`. They are also listed in the command palette under "Ghostty".
 
 | Key | Action |
 |-----|--------|
@@ -186,7 +186,7 @@ A session created by `prefix + f` is a single shell window in the chosen directo
 
 ## Awake indicator
 
-While the `awake` shell function is holding the Mac awake (its pidfile `${TMPDIR:-/tmp}/dotfiles-awake.pid` points at a live process), the status bar shows a `☕` in front of the load average. `bin/tmux-status-sysinfo` does the check.
+While the `awake` shell function is holding the Mac awake (its pidfile `${TMPDIR:-/tmp}/dotfiles-awake.pid` points at a live process), the status bar shows a `☕` in front of the load average. `scripts/bin/tmux-status-sysinfo` does the check.
 
 ## Plugins
 

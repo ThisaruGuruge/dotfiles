@@ -1,10 +1,10 @@
 #!/bin/bash
 # Single lint entry point for the dotfiles repo (also run by CI).
 #
-#   bin/lint            run every check; missing tools are skipped locally
-#   CI=true bin/lint    missing tools are failures (claude is always optional)
+#   scripts/bin/lint            run every check; missing tools are skipped locally
+#   CI=true scripts/bin/lint    missing tools are failures (claude is always optional)
 #                       (only the exact value "true" counts as CI)
-#   bin/lint --file F   lint one file with the checks below that apply to it
+#   scripts/bin/lint --file F   lint one file with the checks below that apply to it
 #                       (by the same lists); prints only problems, each with
 #                       a `fix:` line, exits 1 on any. Silent and 0 for a file
 #                       no check covers; missing tools are skipped silently.
@@ -18,7 +18,7 @@
 #   4. `claude plugin test` for each mod with hooks/ in claude-mods/ (local
 #      only: skipped without `claude`, which CI does not install).
 #
-# Every non-README file in bin/, every script in tmux/.local/bin/ (except the
+# Every script in scripts/bin/, every script in tmux/.local/bin/ (except the
 # tmux-palette-entries data file) and every tests/**/*.sh must be listed below
 # (by shebang), so a new script cannot silently escape linting.
 #
@@ -27,7 +27,7 @@
 set -u
 
 usage() {
-    printf 'usage: bin/lint [--file <path>]\n' >&2
+    printf 'usage: scripts/bin/lint [--file <path>]\n' >&2
     exit 2
 }
 
@@ -46,7 +46,7 @@ case $# in
     *) usage ;;
 esac
 
-# Resolve symlinks (bin/ is stowed per file into ~/bin) before locating the repo.
+# Resolve symlinks (scripts/bin/ is stowed per file into ~/bin) before locating the repo.
 SRC="${BASH_SOURCE[0]}"
 while [ -L "$SRC" ]; do
     LINK="$(readlink "$SRC")"
@@ -55,7 +55,7 @@ while [ -L "$SRC" ]; do
         *) SRC="$(dirname "$SRC")/$LINK" ;;
     esac
 done
-REPO="$(cd -P "$(dirname "$SRC")/.." && pwd)"
+REPO="$(cd -P "$(dirname "$SRC")/../.." && pwd)"
 cd "$REPO" || exit 1
 
 FAILED=0
@@ -82,26 +82,26 @@ need() {
     return 1
 }
 
-# Bash scripts (explicit list: bin/ also holds zsh scripts and README.md).
+# Bash scripts (explicit list: scripts/bin/ also holds zsh scripts).
 BASH_FILES=(
     init.sh
     zsh/.paths.sh
-    bin/adopt-config
-    bin/audit-configs
-    bin/gws
-    bin/gws-account
-    bin/gwse
-    bin/gwsp
-    bin/lint
-    bin/profile-startup
-    bin/rebuild-env
-    bin/reset-dotfiles
-    bin/sync-brewfile
-    bin/claude-notify
-    bin/claude-statusline
-    bin/claude-tmux-state
-    bin/tmux-status-claude
-    bin/dotdoctor
+    scripts/bin/adopt-config
+    scripts/bin/audit-configs
+    scripts/bin/gws
+    scripts/bin/gws-account
+    scripts/bin/gwse
+    scripts/bin/gwsp
+    scripts/bin/lint
+    scripts/bin/profile-startup
+    scripts/bin/rebuild-env
+    scripts/bin/reset-dotfiles
+    scripts/bin/sync-brewfile
+    scripts/bin/claude-notify
+    scripts/bin/claude-statusline
+    scripts/bin/claude-tmux-state
+    scripts/bin/tmux-status-claude
+    scripts/bin/dotdoctor
     claude/.claude-enterprise/statusline-command.sh
     claude/.claude-personal/statusline-command.sh
     tmux/.local/bin/tmux-claude-next
@@ -124,19 +124,19 @@ ZSH_FILES=(
     zsh/.functions.d/*.zsh
     zsh/.zshrc.d/*.zsh
     zsh/completions/_*
-    bin/profile-zsh-startup
-    bin/test-shell-helpers
-    bin/test-zsh-config
-    bin/tmux-status-battery
-    bin/tmux-status-sysinfo
+    scripts/bin/profile-zsh-startup
+    scripts/bin/test-shell-helpers
+    scripts/bin/test-zsh-config
+    scripts/bin/tmux-status-battery
+    scripts/bin/tmux-status-sysinfo
 )
 
 # Files that must appear in BASH_FILES or ZSH_FILES: one path per line.
 coverage_candidates() {
     local f
-    for f in bin/* tmux/.local/bin/[!.]*; do
+    for f in scripts/bin/* tmux/.local/bin/[!.]*; do
         case "$f" in
-            bin/README.md | tmux/.local/bin/tmux-palette-entries) continue ;;
+            tmux/.local/bin/tmux-palette-entries) continue ;;
         esac
         [ -f "$f" ] && printf '%s\n' "$f"
     done
@@ -164,7 +164,7 @@ file_check() {
     fi
 }
 
-# bin/lint --file: the checks the full run would apply to this one file.
+# scripts/bin/lint --file: the checks the full run would apply to this one file.
 lint_file() {
     local f=$1 status=0
     if in_list "$f" "${BASH_FILES[@]}"; then
@@ -178,12 +178,12 @@ lint_file() {
         nvim/.config/nvim/*.lua)
             file_check "stylua $f" stylua --check "$f" || status=1
             ;;
-        bin/README.md | tmux/.local/bin/tmux-palette-entries) ;;
-        bin/[!/.]*/*) ;;
-        bin/[!/.]* | tmux/.local/bin/[!.]* | tests/*.sh)
+        tmux/.local/bin/tmux-palette-entries) ;;
+        scripts/bin/[!/.]*/*) ;;
+        scripts/bin/[!/.]* | tmux/.local/bin/[!.]* | tests/*.sh)
             if ! in_list "$f" "${BASH_FILES[@]}" "${ZSH_FILES[@]}"; then
-                printf '%s is not in BASH_FILES or ZSH_FILES in bin/lint\n' "$f"
-                printf 'fix: add it to BASH_FILES (bash) or ZSH_FILES (zsh) in bin/lint\n'
+                printf '%s is not in BASH_FILES or ZSH_FILES in scripts/bin/lint\n' "$f"
+                printf 'fix: add it to BASH_FILES (bash) or ZSH_FILES (zsh) in scripts/bin/lint\n'
                 status=1
             fi
             ;;
@@ -199,11 +199,11 @@ if [ -n "$FILE" ]; then
     exit
 fi
 
-step "script coverage (bin/, tmux/.local/bin/, tests/**/*.sh are all listed)"
+step "script coverage (scripts/bin/, tmux/.local/bin/, tests/**/*.sh are all listed)"
 unlisted=0
 while IFS= read -r f; do
     if ! in_list "$f" "${BASH_FILES[@]}" "${ZSH_FILES[@]}"; then
-        fail "$f is not in BASH_FILES or ZSH_FILES in bin/lint"
+        fail "$f is not in BASH_FILES or ZSH_FILES in scripts/bin/lint"
         unlisted=1
     fi
 done < <(coverage_candidates)

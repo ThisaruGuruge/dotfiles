@@ -11,11 +11,11 @@ straight from this repo through `CLAUDE_CODE_PLUGIN_DIRS`, exported by `zsh/.zsh
 | `blast-radius` | Previews and asks before risky Bash commands (`rm -rf`, force push, `git reset --hard`, `--adopt`, ...). Fails closed. |
 | `redact` | Replaces API keys, tokens and private keys with `[REDACTED:<kind>]` in prompts and tool output, and refuses a tool call that inlines one. |
 | `agents` | Moved to its own repository, [`redpierrot/claude-mod-agents`](https://github.com/redpierrot/claude-mod-agents), and installed as a plugin: `/plugin install agents --marketplace redpierrot/claude-mod-agents`. Subagent pane (`/agents-pane`) with a fallback of rows above the prompt. |
-| `conventions` | Advisory checks after each Edit/Write: tab indentation, token-shaped literals in tests, and `bin/lint --file`. Tells Claude what is wrong and the fix command, never blocks. On in this repo, opt-in elsewhere; `/conventions` toggles it for the session. |
+| `conventions` | Advisory checks after each Edit/Write: tab indentation, token-shaped literals in tests, and `scripts/bin/lint --file`. Tells Claude what is wrong and the fix command, never blocks. On in this repo, opt-in elsewhere; `/conventions` toggles it for the session. |
 
 The status bar under the prompt keeps the always-on essentials: account, Remote Control, vim mode,
 directory, git, model, session cost and token count. Both accounts' `claude/.claude-*/statusline-command.sh`
-exec the shared `bin/claude-statusline` (see [Outside the mods](#outside-the-mods)).
+exec the shared `scripts/bin/claude-statusline` (see [Outside the mods](#outside-the-mods)).
 
 ## Developing
 
@@ -97,7 +97,7 @@ wrong, adds a short note Claude reads after the tool result (the channel a `Post
 
 - **Tab indentation** in any file but Makefiles, Go, `.tsv`, git config, `.gitmodules` and patches (a tab
   inside a line, as in `printf '%s\t'`, is data and left alone, and so are tabs in Markdown code fences
-  and shell here-document bodies). In this repo tabs `bin/lint --file` also reports (with its shfmt or
+  and shell here-document bodies). In this repo tabs `scripts/bin/lint --file` also reports (with its shfmt or
   stylua fix) are one note, not two. The fix names `shfmt -i 4 -ci -w` for shell and
   `stylua` for Lua.
 - **Token-shaped literals in test files** (`tests/`, `fixtures/`, `testdata/`, `*.test.*`, `*.spec.*`,
@@ -105,15 +105,15 @@ wrong, adds a short note Claude reads after the tool result (the channel a `Post
   private keys, ...). Secret scanners flag them even when fake, so build them at runtime from pieces.
   `hooks/tokens.ts` copies those rules from `redact/hooks/patterns.ts` (a mod cannot import from outside
   its folder): keep the two in step.
-- **`bin/lint --file <path>`** in this repo (spawned only for paths it covers and checks the repo has on;
+- **`scripts/bin/lint --file <path>`** in this repo (spawned only for paths it covers and checks the repo has on;
   edits through a symlink, such as a stowed `~/bin/lint`, are checked at the real path): shellcheck and `shfmt -i 4 -ci -d` for the bash scripts it
-  lists, `zsh -n` for its zsh files, `stylua --check` for Neovim Lua, and a new `bin/` script missing from
-  its lists. The lists stay in `bin/lint`; the mod relays its output (cut to 12 lines, `fix:` lines kept).
+  lists, `zsh -n` for its zsh files, `stylua --check` for Neovim Lua, and a new `scripts/bin/` script missing from
+  its lists. The lists stay in `scripts/bin/lint`; the mod relays its output (cut to 12 lines, `fix:` lines kept).
 
 It never blocks or fails an edit: each external check is killed after 3 s, a missing tool or a file over
 256 KiB is skipped without a word, and an unchanged note is not repeated for the same file. It is on by
-default in this repo (a git root holding `bin/lint` and this mod's manifest (`name` is `conventions`)).
-The repo's own `bin/lint` only runs in the checkout this mod is loaded from (its
+default in this repo (a git root holding `scripts/bin/lint` and this mod's manifest (`name` is `conventions`)).
+The repo's own `scripts/bin/lint` only runs in the checkout this mod is loaded from (its
 `CLAUDE_CODE_PLUGIN_DIRS` entry, `~` expanded and links resolved) and that checkout's linked worktrees
 (a `.git` file whose `gitdir:` is under its `.git/worktrees/` and links back): a fork or copy with the
 same layout gets the generic checks below instead, as does every checkout when that variable is unset.
@@ -129,14 +129,14 @@ and `/conventions on` (plain `/conventions` toggles) switch it for the current s
 
 ## Outside the mods
 
-- `bin/claude-statusline` draws the status line under the prompt for both accounts, with one `jq` and one
+- `scripts/bin/claude-statusline` draws the status line under the prompt for both accounts, with one `jq` and one
   `git status` per refresh. The RC segment shows `◉ RC` while the session has a Remote Control bridge and
   `○ RC off` otherwise. Claude Code does not report the bridge to status lines, so this reads
   `CLAUDE_CODE_BRIDGE_SESSION_ID` and then `bridgeSessionId` in `~/.claude-*/sessions/<pid>.json`:
   undocumented internals that may change in a later Claude Code. It means "a bridge handle exists" (it
   cannot tell waiting from attached from reconnecting, and an outbound-only mirror session shows `RC` too).
   The status line refreshes every 5 s (`statusLine.refreshInterval`) so a `/remote-control` toggle shows.
-- `bin/claude-tmux-state` is called by hooks in both accounts and sets the tmux window option
+- `scripts/bin/claude-tmux-state` is called by hooks in both accounts and sets the tmux window option
   `@claude_state` to `working` (prompt sent, or a tool ran after Claude Code waited for you), `waiting`
   (Claude Code wants attention), `done` (turn ended, also on an API error), or clears it (session ended).
   It is silent and a no-op outside tmux, and a `claude` started inside another session (`claude -p` from

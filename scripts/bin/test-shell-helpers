@@ -17,7 +17,7 @@ SELF=${${(%):-%x}:A}
 if [[ -n ${DOTFILES_CHECK:-} ]]; then
     REPO=${DOTFILES_CHECK:A}
 else
-    REPO=${SELF:h:h}
+    REPO=${SELF:h:h:h}
 fi
 
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/test-shell-helpers.XXXXXX") || exit 1
@@ -317,8 +317,8 @@ for name in ccp ccpr ccpc; do
     fi
 done
 GWS_RC=0
-env GOOGLE_WORKSPACE_CLI_CONFIG_DIR= "$REPO/bin/gws" >/dev/null 2>&1 || GWS_RC=$?
-check "bin/gws guard blocks when the gws dir is set but empty" rc_is $GWS_RC 64
+env GOOGLE_WORKSPACE_CLI_CONFIG_DIR= "$REPO/scripts/bin/gws" >/dev/null 2>&1 || GWS_RC=$?
+check "scripts/bin/gws guard blocks when the gws dir is set but empty" rc_is $GWS_RC 64
 
 # ---------------------------------------------------------------------------
 # alias_help, cd, remove_empty_dirs, gs
@@ -460,7 +460,7 @@ check "prs and prw fail with a hint when tools are missing" has "prs needs gh" "
 # dotdoctor
 # ---------------------------------------------------------------------------
 group "dotdoctor"
-DD=$REPO/bin/dotdoctor
+DD=$REPO/scripts/bin/dotdoctor
 run_dd() { # run_dd [args]: run dotdoctor against the fixture repo/home; output in $TMP/dd.out, status in $DD_RC
     (
         export DOTFILES=$DHOME/projects/personal/dotfiles CLAUDE_CODE_PLUGIN_DIRS=${DD_PLUGIN_DIRS:-$DREPO/claude-mods/m1}
@@ -477,7 +477,7 @@ if ! command -v bestow >/dev/null 2>&1; then
     skip "bestow not installed; skipping dotdoctor fixture tests"
 else
     DREPO=$TMP/drepo DHOME=$TMP/dhome
-    mkdir -p "$DREPO/a/.config/x" "$DREPO/b/.config/x" "$DREPO/c" "$DREPO/bin" "$DREPO/zsh" \
+    mkdir -p "$DREPO/a/.config/x" "$DREPO/b/.config/x" "$DREPO/c" "$DREPO/scripts/bin" "$DREPO/zsh" \
         "$DREPO/claude-mods/m1/.claude-plugin" "$DREPO/claude/.claude-personal" "$DREPO/claude/.claude-enterprise" "$DREPO/.claude" \
         "$DHOME/bin" "$DHOME/.config/sops/age" "$DHOME/.hammerspoon/Spoons/ControlEscape.spoon" "$DHOME/.tmux/plugins/tpm" \
         "$DHOME/.claude-personal" "$DHOME/.claude-enterprise"
@@ -488,7 +488,7 @@ else
     print '{}' >"$DREPO/claude-mods/m1/.claude-plugin/plugin.json"
     print '{}' >"$DREPO/.claude/settings.local.json"
     print '{"env":{}}' | tee "$DREPO/claude/.claude-personal/settings.json" >"$DREPO/claude/.claude-enterprise/settings.json"
-    cp "$REPO/bin/gws" "$REPO/bin/dotdoctor" "$DREPO/bin/"
+    cp "$REPO/scripts/bin/gws" "$REPO/scripts/bin/dotdoctor" "$DREPO/scripts/bin/"
     git -C "$DREPO" init -q . >/dev/null 2>&1
     mkdir -p "$DHOME/projects/personal" && ln -s "$DREPO" "$DHOME/projects/personal/dotfiles"
     ln -s "$DHOME/.claude-personal" "$DHOME/.claude"
@@ -500,8 +500,7 @@ else
     mkdir -p "$DHOME/.config/bestow"
     printf 'version: 0.1.0\nprofiles:\n  default:\n    source: %s\n    destination: %s\n' "$DREPO" "$DHOME" >"$DHOME/.config/bestow/config.yaml"
     stow_all() {
-        XDG_CONFIG_HOME=$DHOME/.config bestow stow a b c claude --source "$DREPO" --destination "$DHOME" >/dev/null 2>&1
-        XDG_CONFIG_HOME=$DHOME/.config bestow stow bin --source "$DREPO" --destination "$DHOME/bin" >/dev/null 2>&1
+        XDG_CONFIG_HOME=$DHOME/.config bestow stow a b c claude scripts --source "$DREPO" --destination "$DHOME" >/dev/null 2>&1
     }
     stow_all
 
@@ -605,13 +604,13 @@ EOF
     WT2=$TMP/ddwt
     git -C "$DREPO" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init >/dev/null 2>&1
     git -C "$DREPO" worktree add -q "$WT2" -b ddwt >/dev/null 2>&1
-    mkdir -p "$WT2/bin"
-    cp "$DD" "$WT2/bin/dotdoctor"
+    mkdir -p "$WT2/scripts/bin"
+    cp "$DD" "$WT2/scripts/bin/dotdoctor"
     (
         export DOTFILES=$DHOME/projects/personal/dotfiles CLAUDE_CODE_PLUGIN_DIRS=${DD_PLUGIN_DIRS:-$DREPO/claude-mods/m1}
         export HOME=$DHOME XDG_CONFIG_HOME=$DHOME/.config PATH=$DHOME/bin:$FAKE:$PATH NO_COLOR=1
         unset DOTFILES_CHECK
-        "$WT2/bin/dotdoctor"
+        "$WT2/scripts/bin/dotdoctor"
     ) >"$TMP/dd.out" 2>&1
     check "linked worktree without DOTFILES: warns about comparing against the worktree" has "linked git worktree" "$TMP/dd.out"
 fi
@@ -632,7 +631,7 @@ group "rebuild-env, edit_secrets MAC hint"
 if ! (( $+commands[sops] && $+commands[age-keygen] )); then
     skip "sops/age not installed"
 else
-    RE=$REPO/bin/rebuild-env
+    RE=$REPO/scripts/bin/rebuild-env
     REDIR=$TMP/rebuild
     mkdir -p "$REDIR"
     export SOPS_AGE_KEY_FILE=$REDIR/keys.txt

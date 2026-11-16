@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `dotdoctor` and `test-shell-helpers` take the checkout to inspect from `DOTFILES_CHECK=<dir>` (was `DOTFILES=<dir>`), which is now the exported checkout path
 
+- The helper scripts moved from the `bin` package to `scripts/bin/` (`scripts/README.md` for their docs), so the package mirrors `$HOME` like every other one: `bestow stow scripts` links `~/bin/<script>` and nothing special-cases a destination any more. `init.sh`, `reset-dotfiles`, `dotdoctor` and `lint` lost their `bin` exceptions, a bare `bestow stow` is safe to run, and every `bin/<script>` path in docs, tests, CI and the `conventions` mod became `scripts/bin/<script>`. After pulling, run `bestow stow scripts` (the old `~/bin` links point at the removed `bin/`; remove any dangling ones, including stray `~/<script>` links from a stow into `~`)
+
 ### Removed
 
 - `prefix + S` and `tmux-session-creator`: `prefix + f` does everything they did. `~/dotfiles` is no longer a special entry in the picker
