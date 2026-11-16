@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The helper scripts moved from the `bin` package to `scripts/bin/` (`scripts/README.md` for their docs), so the package mirrors `$HOME` like every other one: `bestow stow scripts` links `~/bin/<script>` and nothing special-cases a destination any more. `init.sh`, `reset-dotfiles`, `dotdoctor` and `lint` lost their `bin` exceptions, a bare `bestow stow` is safe to run, and every `bin/<script>` path in docs, tests, CI and the `conventions` mod became `scripts/bin/<script>`. After pulling, run `bestow stow scripts` (the old `~/bin` links point at the removed `bin/`; remove any dangling ones, including stray `~/<script>` links from a stow into `~`)
 
+- GitHub is reached over `ssh.github.com:443` (`ssh/.ssh/config`: `HostName ssh.github.com`, `Port 443`, `HostKeyAlias github.com`) because some networks block outbound port 22; it serves the same host keys, so the existing `github.com` entry in `known_hosts` still applies and the `gh:`, `me:`, `bal:` ... remote aliases work unchanged
+
 ### Removed
 
 - `prefix + S` and `tmux-session-creator`: `prefix + f` does everything they did. `~/dotfiles` is no longer a special entry in the picker
