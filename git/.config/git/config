@@ -4,18 +4,16 @@
 [include]
     path = ~/.gitconfig.local
 
-# Work email for Ballerina and WSO2 projects
-[includeIf "gitdir:~/Projects/Ballerina/"]
+# Identity by directory (gitdir: is case-sensitive, so keep these lowercase).
+# Work email for everything under ~/projects/work/
+[includeIf "gitdir:~/projects/work/"]
     path = ~/.config/git/work.gitconfig
 
-[includeIf "gitdir:~/Projects/WSO2/"]
-    path = ~/.config/git/work.gitconfig
+# Personal email for ~/projects/leisure/ and ~/projects/personal/
+[includeIf "gitdir:~/projects/leisure/"]
+    path = ~/.config/git/personal.gitconfig
 
-[includeIf "gitdir:~/Projects/BI/"]
-    path = ~/.config/git/work.gitconfig
-
-# Personal email for everything else
-[includeIf "gitdir:~/Projects/Leisure/"]
+[includeIf "gitdir:~/projects/personal/"]
     path = ~/.config/git/personal.gitconfig
 
 [init]

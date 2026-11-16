@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The git identity is chosen by the lowercase `~/projects/` layout: `gitdir:~/projects/work/` uses `~/.config/git/work.gitconfig`, `~/projects/leisure/` and `~/projects/personal/` use `personal.gitconfig`. The old `~/Projects/{Ballerina,WSO2,BI,Leisure}` rules never matched a `~/projects` checkout (`gitdir:` is case-sensitive). Put the default `user.name` / `user.email` in `~/.gitconfig.local`: `~/.gitconfig` is read after `~/.config/git/config`, so a `[user]` block there overrides every per-directory rule
+
 ## [2.14.2] - 2026-11-13
 
 ### Fixed
