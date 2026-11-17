@@ -1,5 +1,0 @@
-# Language version managers and development tools
-brew "pyenv"
-brew "rbenv"
-brew "nvm"
-cask "flutter"

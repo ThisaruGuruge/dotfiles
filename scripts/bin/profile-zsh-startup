@@ -82,7 +82,6 @@ time_command "FZF initialization" "fzf --zsh"
 time_command "Zoxide initialization" "zoxide init --cmd z zsh"
 time_command "Atuin initialization" "atuin init zsh --disable-ai"
 time_command "SDKMAN initialization" "source ~/.sdkman/bin/sdkman-init.sh"
-command -v rbenv >/dev/null 2>&1 && time_command "rbenv initialization" "rbenv init - zsh"
 command -v pyenv >/dev/null 2>&1 && time_command "pyenv initialization" "pyenv init -"
 # Dump to a throwaway file so the real ~/.zcompdump is never rewritten
 time_command "compinit (completion system)" "autoload -Uz compinit && compinit -i -d \"$compdump_dir/zcompdump\""

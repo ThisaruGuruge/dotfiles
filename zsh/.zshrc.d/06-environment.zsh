@@ -37,20 +37,6 @@ export LG_CONFIG_FILE="$HOME/.config/lazygit/config.yml"
 # Homebrew settings
 export HOMEBREW_AUTO_UPDATE_SECS=86400
 
-# Initialize rbenv (lightweight - skip rehash on startup)
-if (( $+commands[rbenv] )); then
-    export PATH="$HOME/.rbenv/shims:${PATH}"
-    export RBENV_SHELL=zsh
-    rbenv() {
-        local command="${1:-}"
-        [ "$#" -gt 0 ] && shift
-        case "$command" in
-        rehash|shell) eval "$(command rbenv "sh-$command" "$@")" ;;
-        *) command rbenv "$command" "$@" ;;
-        esac
-    }
-fi
-
 # Initialize pyenv (lightweight - skip rehash and bash subprocess on startup)
 export PYENV_ROOT="$HOME/.pyenv"
 [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"

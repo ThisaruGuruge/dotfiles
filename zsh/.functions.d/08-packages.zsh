@@ -51,7 +51,7 @@ list_dotfiles_tools() {
     done
 
     echo ""
-    echo "💡 Runtimes (not in Brewfile): NVM, SDKMAN (lazy-loaded); pyenv/rbenv optional"
+    echo "💡 Runtimes (not in Brewfile): NVM, SDKMAN (lazy-loaded); pyenv optional"
     echo "💡 Add a tool: edit Brewfile or packages/*.brewfile, then run 'brew bundle'"
 }
 

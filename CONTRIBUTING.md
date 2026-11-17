@@ -438,7 +438,7 @@ Add the package to the main `Brewfile` for core packages, or to the appropriate 
 # In Brewfile (core packages)
 brew "your-package"  # Description of your package
 
-# Or in packages/development.brewfile (optional category)
+# Or in packages/containers.brewfile (optional category)
 brew "your-dev-tool"
 ```
 

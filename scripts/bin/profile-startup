@@ -144,10 +144,6 @@ if [ -f ~/.zshrc ] && grep -q "eval.*pyenv" ~/.zshrc 2>/dev/null; then
     echo "• Pyenv: Detected (check if lazy loaded)"
 fi
 
-if [ -f ~/.zshrc ] && grep -q "eval.*rbenv" ~/.zshrc 2>/dev/null; then
-    echo "• Rbenv: Detected (check if lazy loaded)"
-fi
-
 echo ""
 echo "For detailed profiling, consider using:"
 echo "  zsh -i -c 'zprof'"

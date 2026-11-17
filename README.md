@@ -12,7 +12,7 @@ A macOS-focused developer workstation built around Zsh, Powerlevel10k, modern CL
 - **Sessions and branch review in Neovim** – persistence.nvim restores a project's buffers and layout on demand (`<leader>qs`, or `s` on the dashboard), and diffview.nvim reviews a branch against the default branch (`<leader>gv`) or walks a file's history (`<leader>gh`)
 - **Smart aliases** – Single-letter shortcuts for modern tools (`v` for nvim, `g` for ripgrep, `f` for fd, `z` for zoxide) while keeping original commands for scripts
 - **Suffix aliases** – Automatically open files with the right tool based on extension (`.md` → mdcat, `.json`/`.yaml` → jless, `.py`/`.bash`/`.zsh`/`.bal` → $EDITOR)
-- **Language runtimes** – pyenv, rbenv, nvm, SDKMAN, and Ballerina (plus uv for Python packages and projects) with lazy-loading shell glue so heavy managers don't slow startup
+- **Language runtimes** – pyenv, nvm, SDKMAN, and Ballerina (plus uv for Python packages and projects) with lazy-loading shell glue so heavy managers don't slow startup
 - **Touch ID for sudo** – Use your fingerprint instead of typing passwords in the terminal (works inside tmux too via `pam-reattach`)
 - **Caps Lock remap** – Hammerspoon + `ControlEscape.spoon`: tap Caps Lock for Escape, hold for Control — a Karabiner alternative that needs only Accessibility/Input Monitoring permissions, no blockable system extension
 - **Claude Code, two accounts** – `ccp` (personal) and `cce` (enterprise) run Claude Code against separate config dirs, with TypeScript mods for a status band, risk previews, secret redaction and a subagent pane (see [Claude Code](#claude-code)); tmux shows which windows are waiting on Claude
@@ -56,8 +56,8 @@ The script is interactive; it will:
 
 - Validate macOS + Xcode CLT, install Homebrew, jq, Go (needed to install `bestow`)
 - Install core packages from `Brewfile` with Brew
-- Offer opt-in categories (development, terminals, editors, etc.)
-- Install SDKMAN + Java 21 (optional) and brew-based Ballerina
+- Offer opt-in categories (containers)
+- Offer nvm, pyenv, SDKMAN + Java 21 and Ballerina (all optional)
 - Install `typescript-language-server` and `typescript` with `npm i -g` (optional; needs npm from nvm, skipped with a hint when Node is not installed yet)
 - Enable Touch ID for sudo (with tmux support via `pam-reattach`, loaded from a root-owned copy in `/opt/pam`)
 - Configure Atuin, direnv, tmux, git delta, lazygit, lazydocker, aliases, and helper functions
@@ -114,32 +114,21 @@ The main `Brewfile` contains core packages that are always installed. Optional p
 
 ```bash
 packages/
-├── cloud.brewfile       # aws-vault, gcloud CLI
-├── containers.brewfile  # colima, Docker CLI + Compose + credential helper
-├── development.brewfile # pyenv, rbenv, nvm, flutter
-├── editors.brewfile     # VS Code
-├── productivity.brewfile # Raycast, Rectangle, Alfred, Caffeine, etc.
-└── terminals.brewfile   # iTerm2
+└── containers.brewfile  # colima, Docker CLI + Compose + credential helper
 ```
 
 ### Installing optional categories
 
 ```bash
 brew bundle --file=Brewfile                      # Core packages
-brew bundle --file=packages/development.brewfile # Add dev tools
-brew bundle --file=packages/editors.brewfile     # Add editors
+brew bundle --file=packages/containers.brewfile  # Add the container runtime
 ```
 
 ### Categories available
 
 - `core` – powerlevel10k, zoxide, eza, bat, ripgrep, lazygit, lazydocker, tmux, direnv, atuin, gh, etc.
 - `security` – sops + age for encrypted secrets (always enabled)
-- `development` – pyenv, rbenv, nvm, flutter (optional)
-- `cloud` – aws-vault and the gcloud CLI
-- `editors` – VS Code
-- `terminals` – iTerm2 (casks)
 - `containers` – colima (container runtime), Docker CLI + Compose + credential helper
-- `productivity` – Raycast, Rectangle, TablePlus, Alfred, Postman, Caffeine
 
 Comment out what you do not need in the Brewfile, then rerun `brew bundle`.
 

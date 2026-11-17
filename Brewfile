@@ -3,7 +3,6 @@
 # Install with: brew bundle
 
 # Homebrew taps
-tap "jesseduffield/lazydocker" # Official lazydocker tap
 tap "gdubw/gng"                # GNG - Gradle run-anywhere tool
 
 # Essential tools required for dotfiles functionality
@@ -62,7 +61,6 @@ brew "markdownlint-cli2"            # Markdown structure/style linter (nvim-lint
 cask "claude-code@latest"           # Claude Code CLI (claude/ package configures it); @latest cask tracks releases much more tightly than plain claude-code
 
 # Language version managers and development tools
-brew "ballerina"                    # Cloud-native programming language
 brew "gdubw/gng/gng"                # Gradle run-anywhere wrapper (gw command)
 brew "uv"                           # Fast Python package and project manager (uv, uvx)
 
