@@ -328,11 +328,31 @@ install_bestow() {
     fi
 }
 
+# Homebrew 7 refuses to load formulae from non-official taps until they are
+# trusted, so `brew bundle` fails on e.g. gdubw/gng/gng. Trust only the exact
+# tap formulae this repo's Brewfile lists (not whole taps), after tapping them.
+trust_brewfile_tap_formulae() {
+    brew trust --help >/dev/null 2>&1 || return 0 # older Homebrew: nothing to do
+    local line formula tap
+    while IFS= read -r line; do
+        [[ "$line" =~ ^brew[[:space:]]+\"([^\"/]+/[^\"/]+/[^\"/]+)\" ]] || continue
+        formula="${BASH_REMATCH[1]}"
+        tap="${formula%/*}"
+        brew tap "$tap" >/dev/null 2>&1 || log_warning "Could not tap $tap"
+        if brew trust --formula "$formula" >/dev/null 2>&1; then
+            log_info "Trusted $formula (listed in Brewfile)"
+        else
+            log_warning "Could not trust $formula; run: brew trust --formula $formula"
+        fi
+    done <"$DOTFILES_DIR/Brewfile"
+}
+
 # Install core dependencies
 install_core_dependencies() {
     log_step "Installing Core Dependencies"
 
     if [ -f "$DOTFILES_DIR/Brewfile" ]; then
+        trust_brewfile_tap_formulae
         log_info "Installing dependencies from Brewfile..."
         if brew bundle --file="$DOTFILES_DIR/Brewfile"; then
             log_success "Core dependencies installed"
@@ -353,14 +373,13 @@ install_dev_tools() {
     get_tool_description() {
         case "$1" in
             pyenv) echo "Python version manager" ;;
-            rbenv) echo "Ruby version manager" ;;
             nvm) echo "Node.js version manager" ;;
             *) echo "$1" ;;
         esac
     }
 
     # Check and install each tool individually
-    for tool in pyenv rbenv nvm; do
+    for tool in pyenv nvm; do
         if brew_formula_installed "$tool"; then
             log_success "$tool already installed"
         else
@@ -649,8 +668,16 @@ install_zinit() {
 
     if confirm "Install Zinit plugin manager?"; then
         log_info "Installing Zinit..."
-        bash -c "$(curl --fail --show-error --silent --location https://raw.githubusercontent.com/zdharma-continuum/zinit/HEAD/scripts/install.sh)"
-        log_success "Zinit installed"
+        # Clone it directly instead of running zinit's install.sh: that script
+        # appends its loader to ~/.zshrc, which leaves a regular file there that
+        # bestow will not replace (zsh/.zshrc already loads zinit from this path)
+        mkdir -p "$(dirname "$zinit_dir")"
+        if git clone --depth 1 https://github.com/zdharma-continuum/zinit.git "$zinit_dir"; then
+            log_success "Zinit installed"
+        else
+            rm -rf -- "$zinit_dir"
+            log_error "Could not clone Zinit (re-run ./init.sh to retry)"
+        fi
     else
         log_warning "Skipped Zinit installation"
     fi
@@ -1048,6 +1075,8 @@ bestow_packages() {
 
     local stowed_packages=()
     local failed_packages=()
+    local unlinked_files=()
+    local stow_out=""
 
     for package in "${packages[@]}"; do
         if [ ! -d "$DOTFILES_DIR/$package" ]; then
@@ -1058,11 +1087,25 @@ bestow_packages() {
         local dest="$HOME"
 
         # shellcheck disable=SC2086 # conflict_flag is intentionally unquoted (empty or a single flag)
-        if bestow stow "$package" -s "$DOTFILES_DIR" -d "$dest" $conflict_flag >/dev/null 2>&1; then
-            log_success "Stowed $package package"
-            stowed_packages+=("$package")
+        if stow_out=$(bestow stow "$package" -s "$DOTFILES_DIR" -d "$dest" $conflict_flag 2>&1); then
+            # bestow can exit 0 and still leave an existing regular file in place,
+            # so check that every top-level file of the package is now a link
+            local unlinked
+            unlinked=$(unlinked_package_files "$package")
+            if [ -z "$unlinked" ]; then
+                log_success "Stowed $package package"
+                stowed_packages+=("$package")
+            else
+                log_error "Stowed $package, but these are not links into the repo:"
+                while IFS= read -r f; do
+                    echo -e "       ${RED}~/$f${NC}"
+                done <<<"$unlinked"
+                failed_packages+=("$package")
+                unlinked_files+=("$package")
+            fi
         else
             log_error "Failed to stow $package package"
+            [ -n "$stow_out" ] && printf '       %s\n' "${stow_out//$'\n'/$'\n'       }"
             failed_packages+=("$package")
         fi
     done
@@ -1076,7 +1119,26 @@ bestow_packages() {
 
     if [ ${#failed_packages[@]} -gt 0 ]; then
         log_warning "Some packages had issues: ${failed_packages[*]}"
+        if [ ${#unlinked_files[@]} -gt 0 ]; then
+            log_info "Existing files were kept. To replace them, run: bestow stow ${unlinked_files[*]} --backup"
+        fi
+        return 1
     fi
+}
+
+# Print the top-level files of a package (e.g. zsh/.zshrc) whose counterpart in
+# $HOME is not a symlink into this checkout, one "~/"-relative name per line
+unlinked_package_files() {
+    local package="$1" file name target
+    while IFS= read -r file; do
+        name="${file##*/}"
+        # Files the repo's .bestowignore leaves out are never linked
+        case "$name" in .bestowignore | README.md | LICENSE | *.example | *.bak | *.swp | *~) continue ;; esac
+        target="$HOME/$name"
+        if [ ! -L "$target" ] || [[ "$(resolve_symlink "$target" 2>/dev/null)" != "$DOTFILES_DIR"/* ]]; then
+            echo "$name"
+        fi
+    done < <(find "$DOTFILES_DIR/$package" -maxdepth 1 -type f 2>/dev/null | sort)
 }
 
 # Test installation
@@ -1084,6 +1146,15 @@ test_installation() {
     log_step "Testing Installation"
 
     local errors=0
+
+    # ~/.zshrc must be the link into this checkout; a regular file there (e.g. one
+    # an installer wrote) means a shell without the aliases, PATH and plugins
+    if [ -L "$HOME/.zshrc" ] && [[ "$(resolve_symlink "$HOME/.zshrc" 2>/dev/null)" == "$DOTFILES_DIR"/* ]]; then
+        log_success "$HOME/.zshrc links into the dotfiles repo"
+    else
+        log_error "$HOME/.zshrc is not a link into $DOTFILES_DIR/zsh (fix: mv ~/.zshrc ~/.zshrc.bak && bestow stow zsh)"
+        errors=$((errors + 1))
+    fi
 
     # Test zsh syntax
     if zsh -n "$HOME/.zshrc" >/dev/null 2>&1; then
@@ -1399,7 +1470,6 @@ print_final_instructions() {
 
     echo -e "\n${CYAN}Terminal font configuration:${NC}"
     echo -e "• ${YELLOW}Ghostty:${NC} Already configured in ~/.config/ghostty/config (FiraCode Nerd Font)"
-    echo -e "• ${YELLOW}iTerm2:${NC} Preferences → Profiles → Text → Font"
     echo -e "• ${YELLOW}Terminal.app:${NC} Preferences → Profiles → Text → Font"
 
     echo -e "\n${CYAN}Useful commands to try:${NC}"
@@ -1477,7 +1547,8 @@ main() {
     install_zinit
     setup_secret_management || log_warning "Secret management isn't finished - fix the issue above and re-run ./init.sh"
     backup_existing_files
-    bestow_packages # Must run after backup_existing_files
+    # A package left unlinked is reported (and fails the test below), not fatal
+    bestow_packages || log_warning "Some dotfiles are not linked - see above"
     install_tpm     # Needs ~/.tmux.conf from bestow_packages
     setup_git_config
     check_git_signing
