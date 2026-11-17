@@ -728,14 +728,35 @@ install_tpm() {
     fi
 }
 
-# Link Homebrew's docker-compose as a Docker CLI plugin so `docker compose`
-# works (the formula only installs the standalone `docker-compose` binary).
+# Point Docker at Homebrew's CLI plugin directory so `docker compose` works.
+# The docker-compose formula only installs a plugin under
+# $(brew --prefix)/lib/docker/cli-plugins; Docker finds it only if
+# ~/.docker/config.json lists that directory in cliPluginsExtraDirs (this is
+# what `brew info docker-compose` tells you to do). Merge it in with jq so
+# existing keys (credsStore, currentContext, auths) are preserved.
 setup_docker_compose_plugin() {
-    local bin
-    bin="$(command -v docker-compose 2>/dev/null)" || return 0
-    mkdir -p "$HOME/.docker/cli-plugins"
-    ln -sf "$bin" "$HOME/.docker/cli-plugins/docker-compose"
-    log_success "Linked docker-compose as a Docker CLI plugin"
+    command -v brew >/dev/null 2>&1 || return 0
+    local dir cfg="$HOME/.docker/config.json" tmp
+    dir="$(brew --prefix)/lib/docker/cli-plugins"
+    [ -d "$dir" ] || return 0
+    if ! command -v jq >/dev/null 2>&1; then
+        log_warning "jq not found; add \"cliPluginsExtraDirs\": [\"$dir\"] to $cfg by hand"
+        return 0
+    fi
+    mkdir -p "$HOME/.docker"
+    [ -s "$cfg" ] || echo '{}' > "$cfg"
+    if jq -e --arg d "$dir" '(.cliPluginsExtraDirs // []) | index($d)' "$cfg" >/dev/null 2>&1; then
+        log_success "Docker already finds Homebrew CLI plugins"
+        return 0
+    fi
+    tmp="$(mktemp)"
+    if jq --arg d "$dir" '.cliPluginsExtraDirs = ((.cliPluginsExtraDirs // []) + [$d])' "$cfg" > "$tmp"; then
+        mv "$tmp" "$cfg"
+        log_success "Added $dir to cliPluginsExtraDirs in $cfg"
+    else
+        rm -f "$tmp"
+        log_warning "Could not update $cfg; add cliPluginsExtraDirs by hand"
+    fi
 }
 
 # Setup Git personal configuration
