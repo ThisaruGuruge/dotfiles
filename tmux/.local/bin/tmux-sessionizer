@@ -8,7 +8,7 @@
 # "~" starts a session in $HOME for work that is not tied to a project. A project is any
 # directory under $PROJECTS_DIR with a .git entry (see tmux-project-list); nothing inside one
 # is listed. The session name is asked after the directory, defaulting to the shortest path
-# tail that is free (api, wso2/api, work/wso2/api, ...); Enter accepts it.
+# tail that is free (api, acme/api, work/acme/api, ...); Enter accepts it.
 
 PROJECTS_DIR="${PROJECTS_DIR:-$HOME/projects}"
 LIST="$(dirname "$0")/tmux-project-list"
@@ -36,7 +36,7 @@ get_selected() {
 }
 
 # Create (or clone) a project and print its path. Pick the group it goes in, then give a name
-# (git init) or a git URL / alias such as wso2:repo (git clone). Prompts and git output go to
+# (git init) or a git URL / alias such as myorg:repo (git clone). Prompts and git output go to
 # the popup's terminal, only the final path goes to stdout.
 new_project() {
     local choice rel group input name target
@@ -48,7 +48,7 @@ new_project() {
     [[ -z "$choice" ]] && return 0
 
     if [[ "$choice" == "$NEW_GROUP" ]]; then
-        read -r -p "New group under ${PROJECTS_DIR/#$HOME/\~}/ (e.g. work/wso2): " rel </dev/tty >&2
+        read -r -p "New group under ${PROJECTS_DIR/#$HOME/\~}/ (e.g. work/acme): " rel </dev/tty >&2
         rel="${rel#/}"
         rel="${rel%/}"
         case "$rel" in

@@ -169,10 +169,10 @@ TMux automatically starts when you open a terminal, except in:
 
 Press `prefix + f` anywhere in TMux to open the picker:
 
-- **Projects:** every directory under `~/projects` that contains a `.git` (at any depth, up to 6 levels), and nothing inside a project (no `src/`, `docs/`, submodules or nested repos). No folder names are hard-coded, so a new group such as `work/wso2/` appears as soon as it holds a repo.
+- **Projects:** every directory under `~/projects` that contains a `.git` (at any depth, up to 6 levels), and nothing inside a project (no `src/`, `docs/`, submodules or nested repos). No folder names are hard-coded, so a new group such as `work/acme/` appears as soon as it holds a repo.
 - **`~`:** a session in your home directory, for work that is not tied to a project.
-- `Enter` opens the highlighted entry; `Esc` cancels (nothing is created). If a session already works in that project you are switched to it. Otherwise you are asked for a session name, defaulting to the shortest free path tail (`api`, then `wso2/api`, then `work/wso2/api`); `Enter` accepts it.
-- `Ctrl-n` (or the **+ New project…** entry) creates a project that does not exist yet: pick a group (an existing folder such as `work/ballerina`, or **+ New group…** to type one like `work/wso2`), then type a name (the folder is created and `git init` run) or paste a git URL or alias such as `wso2:repo` (cloned into the group). The new project then goes through the session-name prompt.
+- `Enter` opens the highlighted entry; `Esc` cancels (nothing is created). If a session already works in that project you are switched to it. Otherwise you are asked for a session name, defaulting to the shortest free path tail (`api`, then `acme/api`, then `work/acme/api`); `Enter` accepts it.
+- `Ctrl-n` (or the **+ New project…** entry) creates a project that does not exist yet: pick a group (an existing folder such as `work/ballerina`, or **+ New group…** to type one like `work/acme`), then type a name (the folder is created and `git init` run) or paste a git URL or alias such as `myorg:repo` (cloned into the group). The new project then goes through the session-name prompt.
 
 Each project gets its own persistent session that survives terminal restarts.
 
@@ -180,7 +180,7 @@ Each project gets its own persistent session that survives terminal restarts.
 
 A session created by `prefix + f` is a single shell window in the chosen directory. Existing sessions are never touched.
 
-- Two projects with the same folder name get path-qualified session names: `api` for the first, `wso2/api` for the second, then `work/wso2/api` (more of the path under `~/projects` is added until the name is free). A session counts as belonging to a project when any of its panes is in that directory, so a session you made by hand and `cd`'d into the project is reused. In names, `.`, `:`, `$` and spaces become `_`; `/` is kept.
+- Two projects with the same folder name get path-qualified session names: `api` for the first, `acme/api` for the second, then `work/acme/api` (more of the path under `~/projects` is added until the name is free). A session counts as belonging to a project when any of its panes is in that directory, so a session you made by hand and `cd`'d into the project is reused. In names, `.`, `:`, `$` and spaces become `_`; `/` is kept.
 - `tmux-claude-next` is bestow-linked into `~/.local/bin` like the other tmux scripts: after pulling, run `bestow stow tmux` if it is missing; until then `prefix + A` says the helper is missing.
 - `prefix + s` only switches between sessions; it does not create anything.
 

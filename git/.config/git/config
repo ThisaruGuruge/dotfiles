@@ -111,18 +111,7 @@
     pushFastForward = false
     statusHints = false
 
-[url "git@github.com:ballerina-platform/"]
-    insteadOf = "bal:"
-
-[url "git@github.com:ThisaruGuruge/"]
-    insteadOf = "me:"
-
-[url "git@github.com:wso2/"]
-    insteadOf = "wso2:"
-
-[url "git@github.com:wso2-enterprise/"]
-    insteadOf = "wso2-e:"
-
+# Org shortcuts (e.g. `git clone me:repo`) are machine-local: define them in
+# ~/.gitconfig.local (see git/.gitconfig.local.example).
 [url "git@github.com:"]
     insteadOf = "gh:"
-

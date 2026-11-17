@@ -11,13 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `init.sh` adds Homebrew's `lib/docker/cli-plugins` to `cliPluginsExtraDirs` in `~/.docker/config.json` (merged with `jq`, as `brew info docker-compose` advises), so `docker compose` works alongside Colima
 
-- `tmux-project-list`, shared project discovery for the sessionizer: a project is any directory under `$PROJECTS_DIR` (default `~/projects`) that holds a `.git` entry (directory or worktree file), at any depth up to 6, outermost repo only. Nothing inside a project is listed (`src/`, `docs/`, submodules, nested repos, `.claude/worktrees`), and no folder names are hard-coded, so `work/ballerina/*`, `work/wso2/*` and any later nesting just appear. `tmux-project-list groups` lists the folders that hold projects
+- `tmux-project-list`, shared project discovery for the sessionizer: a project is any directory under `$PROJECTS_DIR` (default `~/projects`) that holds a `.git` entry (directory or worktree file), at any depth up to 6, outermost repo only. Nothing inside a project is listed (`src/`, `docs/`, submodules, nested repos, `.claude/worktrees`), and no folder names are hard-coded, so `work/ballerina/*`, `work/acme/*` and any later nesting just appear. `tmux-project-list groups` lists the folders that hold projects
 
-- `prefix + f` can create projects: `Ctrl-n` (or the **+ New project…** entry) picks a group (an existing folder, or **+ New group…**), then takes a name (creates the folder and runs `git init`) or a git URL / alias such as `wso2:repo` (clones into the group)
+- `prefix + f` can create projects: `Ctrl-n` (or the **+ New project…** entry) picks a group (an existing folder, or **+ New group…**), then takes a name (creates the folder and runs `git init`) or a git URL / alias such as `myorg:repo` (clones into the group)
 
 ### Changed
 
-- `prefix + f` asks for the session name after the directory, defaulting to the shortest free path tail (`api`, `wso2/api`, `work/wso2/api`, then `-2`); `Enter` accepts it, and a project that already has a session is switched to without asking. `~` starts a session in `$HOME`, and `Esc` cancels instead of falling back to `$HOME`
+- `prefix + f` asks for the session name after the directory, defaulting to the shortest free path tail (`api`, `acme/api`, `work/acme/api`, then `-2`); `Enter` accepts it, and a project that already has a session is switched to without asking. `~` starts a session in `$HOME`, and `Esc` cancels instead of falling back to `$HOME`
 
 - `takegit` defaults to `$PROJECTS_DIR` / `~/projects`, and the tmux status bar calls its helpers through `~/bin`
 
@@ -42,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- The git identity is chosen by the lowercase `~/projects/` layout: `gitdir:~/projects/work/` uses `~/.config/git/work.gitconfig`, `~/projects/leisure/` and `~/projects/personal/` use `personal.gitconfig`. The old `~/Projects/{Ballerina,WSO2,BI,Leisure}` rules never matched a `~/projects` checkout (`gitdir:` is case-sensitive). Put the default `user.name` / `user.email` in `~/.gitconfig.local`: `~/.gitconfig` is read after `~/.config/git/config`, so a `[user]` block there overrides every per-directory rule
+- The git identity is chosen by the lowercase `~/projects/` layout: `gitdir:~/projects/work/` uses `~/.config/git/work.gitconfig`, `~/projects/leisure/` and `~/projects/personal/` use `personal.gitconfig`. The old `~/Projects/{Work,Leisure}` rules never matched a `~/projects` checkout (`gitdir:` is case-sensitive). Put the default `user.name` / `user.email` in `~/.gitconfig.local`: `~/.gitconfig` is read after `~/.config/git/config`, so a `[user]` block there overrides every per-directory rule
 
 ## [2.14.2] - 2026-11-13
 

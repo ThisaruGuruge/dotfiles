@@ -17,4 +17,8 @@
 [gitlab]
     user = YOUR_GITLAB_USERNAME
 
+# Optional org shortcuts: `git clone myorg:repo` -> git@github.com:YOUR_ORG/repo
+# [url "git@github.com:YOUR_ORG/"]
+#     insteadOf = "myorg:"
+
 # Add any other personal Git configuration here
