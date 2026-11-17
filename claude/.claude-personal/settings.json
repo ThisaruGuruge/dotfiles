@@ -120,7 +120,7 @@
     "gopls-lsp@claude-plugins-official": true,
     "mattpocock-skills@mattpocock": true,
     "frontend-design@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": false,
     "claude-md-management@claude-plugins-official": true,
     "agent-crabs@redpierrot": true,
     "typescript-native-lsp@anthropic-plugin-directory": true
