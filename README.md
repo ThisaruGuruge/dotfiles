@@ -100,7 +100,9 @@ source ~/.zshrc
 edit_secrets
 ```
 
-Git signs every commit with SSH (`gpgSign = true`), so set `user.signingkey` in `~/.gitconfig.local` (see `git/.gitconfig.local.example`) and create the key it names (`ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_signing`) before your first commit.
+Git signs every commit with SSH (`gpgSign = true`), so set `user.signingkey` in `~/.gitconfig.local` (see `git/.gitconfig.local.example`) and create the key it names (`ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519`) before your first commit.
+
+Commit identity is chosen by directory: `init.sh` seeds `~/.config/git/personal.gitconfig` (used under `~/projects/personal/` and `~/projects/leisure/`) and `~/.config/git/work.gitconfig` (used under `~/projects/work/`) from the `*.gitconfig.example` templates in `git/.config/git/`. Edit both with the right name and email; they are untracked.
 
 Edit the `Brewfile` directly or use category Brewfiles in `packages/` before running `brew bundle` if you want to customize packages.
 

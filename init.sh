@@ -728,6 +728,26 @@ install_tpm() {
     fi
 }
 
+# Per-directory identities: git/.config/git/config includes personal.gitconfig
+# for ~/projects/{personal,leisure}/ and work.gitconfig for ~/projects/work/.
+# Both are untracked, so seed each from its .example if missing.
+setup_git_identity_files() {
+    local name src dest
+    mkdir -p "$HOME/.config/git"
+    for name in personal work; do
+        src="$DOTFILES_DIR/git/.config/git/$name.gitconfig.example"
+        dest="$HOME/.config/git/$name.gitconfig"
+        if [ -f "$dest" ]; then
+            log_success "Git $name identity already exists"
+        elif [ -f "$src" ]; then
+            cp "$src" "$dest"
+            log_warning "Created $dest from template - edit it with your $name name and email"
+        else
+            log_warning "Template $src not found, skipping $name identity"
+        fi
+    done
+}
+
 # Point Docker at Homebrew's CLI plugin directory so `docker compose` works.
 # The docker-compose formula only installs a plugin under
 # $(brew --prefix)/lib/docker/cli-plugins; Docker finds it only if
@@ -762,6 +782,8 @@ setup_docker_compose_plugin() {
 # Setup Git personal configuration
 setup_git_config() {
     log_step "Setting up Git Personal Configuration"
+
+    setup_git_identity_files
 
     if [ -f "$HOME/.gitconfig.local" ]; then
         log_success "Git personal config already exists"
@@ -798,14 +820,14 @@ setup_git_config() {
 check_git_signing() {
     log_step "Checking Git commit signing"
 
-    local signing_key_file="$HOME/.ssh/id_ed25519_signing"
+    local signing_key_file="$HOME/.ssh/id_ed25519"
     local signing_key key_path
     signing_key=$(cd "$HOME" && git config --get user.signingkey 2>/dev/null) || signing_key=""
 
     if [ -z "$signing_key" ]; then
         log_warning "Commit signing is on but user.signingkey isn't set - every git commit will fail"
         log_info "Set it in ~/.gitconfig.local (see git/.gitconfig.local.example), e.g."
-        log_info "  signingkey = ~/.ssh/id_ed25519_signing.pub"
+        log_info "  signingkey = ~/.ssh/id_ed25519.pub"
         return 0
     fi
 
