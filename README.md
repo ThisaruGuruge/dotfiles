@@ -198,7 +198,7 @@ Homebrew's `docker-compose` formula installs as a CLI plugin, and `docker-creden
 }
 ```
 
-`init.sh` does not currently write these keys automatically — add them by hand (or merge into an existing `~/.docker/config.json`) after installing `docker-compose` / `docker-credential-helper`.
+`init.sh` links `docker-compose` into `~/.docker/cli-plugins/` (so `docker compose` works without `cliPluginsExtraDirs`), but does not write `credsStore` — add it by hand (or merge into an existing `~/.docker/config.json`) after installing `docker-compose` / `docker-credential-helper`.
 
 ### Symlink Management (bestow)
 

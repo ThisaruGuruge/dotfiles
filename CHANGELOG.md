@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `init.sh` links Homebrew's `docker-compose` into `~/.docker/cli-plugins/`, so `docker compose` (the plugin form) works alongside Colima
+
 - `tmux-project-list`, shared project discovery for the sessionizer: a project is any directory under `$PROJECTS_DIR` (default `~/projects`) that holds a `.git` entry (directory or worktree file), at any depth up to 6, outermost repo only. Nothing inside a project is listed (`src/`, `docs/`, submodules, nested repos, `.claude/worktrees`), and no folder names are hard-coded, so `work/ballerina/*`, `work/wso2/*` and any later nesting just appear. `tmux-project-list groups` lists the folders that hold projects
 
 - `prefix + f` can create projects: `Ctrl-n` (or the **+ New project…** entry) picks a group (an existing folder, or **+ New group…**), then takes a name (creates the folder and runs `git init`) or a git URL / alias such as `wso2:repo` (clones into the group)

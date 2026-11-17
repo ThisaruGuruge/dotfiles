@@ -728,6 +728,16 @@ install_tpm() {
     fi
 }
 
+# Link Homebrew's docker-compose as a Docker CLI plugin so `docker compose`
+# works (the formula only installs the standalone `docker-compose` binary).
+setup_docker_compose_plugin() {
+    local bin
+    bin="$(command -v docker-compose 2>/dev/null)" || return 0
+    mkdir -p "$HOME/.docker/cli-plugins"
+    ln -sf "$bin" "$HOME/.docker/cli-plugins/docker-compose"
+    log_success "Linked docker-compose as a Docker CLI plugin"
+}
+
 # Setup Git personal configuration
 setup_git_config() {
     log_step "Setting up Git Personal Configuration"
@@ -1551,6 +1561,7 @@ main() {
     bestow_packages || log_warning "Some dotfiles are not linked - see above"
     install_tpm     # Needs ~/.tmux.conf from bestow_packages
     setup_git_config
+    setup_docker_compose_plugin
     check_git_signing
     # Problems are reported above; still print the next steps, but not the
     # celebratory banner
