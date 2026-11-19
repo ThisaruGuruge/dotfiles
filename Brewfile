@@ -8,6 +8,7 @@ tap "gdubw/gng"                # GNG - Gradle run-anywhere tool
 # Essential tools required for dotfiles functionality
 brew "go"                           # Go toolchain; required to `go install` bestow, the symlink manager used by init.sh (github.com/redpierrot/bestow)
 brew "git"                          # Version control
+brew "wget"                         # File downloader
 brew "neovim"                       # Text editor (nvim/ package configures it)
 brew "tree-sitter-cli"              # Compiles nvim-treesitter parsers (:TSInstall)
 brew "fzf"                          # Fuzzy finder
@@ -54,8 +55,8 @@ brew "mdcat"                        # Terminal markdown renderer (mdcat + mdless
 brew "shellcheck"                   # Shell script linter (required by CONTRIBUTING.md validation)
 brew "shfmt"                        # Shell script formatter (conform.nvim + CONTRIBUTING.md)
 brew "stylua"                       # Lua formatter (conform.nvim)
-brew "prettier"                     # JS/TS/JSON/YAML/Markdown formatter (conform.nvim)
-brew "markdownlint-cli2"            # Markdown structure/style linter (nvim-lint)
+# prettier and markdownlint-cli2 are npm globals installed by init.sh under nvm (the brew
+# formulae depend on brew node, which would shadow nvm-managed Node)
 
 # AI/Development Tools
 cask "claude-code@latest"           # Claude Code CLI (claude/ package configures it); @latest cask tracks releases much more tightly than plain claude-code

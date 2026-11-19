@@ -18,8 +18,8 @@ Steps (each asks before it acts):
    2. Install the core Brewfile (includes Go)
    3. Install bestow and bootstrap its config
    4. Touch ID for sudo (optional)
-   5. Optional development tools (including the TypeScript language server
-      when npm is available) and terminal apps (packages/*.brewfile)
+   5. Optional development tools (including nvm with Node 22 and 26, and the
+      TypeScript language server, prettier and markdownlint-cli2 via npm) and terminal apps (packages/*.brewfile)
    6. Nerd Font and zinit
    7. Secret management (sops + age, encrypted ~/.env)
    8. Back up existing dotfiles to ~/.dotfiles_backup_<timestamp>
@@ -373,13 +373,12 @@ install_dev_tools() {
     get_tool_description() {
         case "$1" in
             pyenv) echo "Python version manager" ;;
-            nvm) echo "Node.js version manager" ;;
             *) echo "$1" ;;
         esac
     }
 
     # Check and install each tool individually
-    for tool in pyenv nvm; do
+    for tool in pyenv; do
         if brew_formula_installed "$tool"; then
             log_success "$tool already installed"
         else
@@ -404,7 +403,10 @@ install_dev_tools() {
     # Install Ballerina
     install_ballerina
 
-    # Install the TypeScript language server (needs node, so after nvm)
+    # Install nvm and Node (nvm is not in Homebrew any more)
+    install_nvm
+
+    # Install the TypeScript language server and npm-based formatters (need node, so after nvm)
     install_typescript_lsp
 }
 
@@ -439,6 +441,46 @@ install_sdkman() {
     fi
 }
 
+# Install nvm with its official script (Homebrew no longer supports it), then
+# Node 22 (default) and 26. Never fails the script.
+NVM_VERSION="v0.41.0"
+install_nvm() {
+    log_step "Installing nvm and Node"
+
+    if [ ! -s "$HOME/.nvm/nvm.sh" ]; then
+        if confirm "Install nvm $NVM_VERSION to ~/.nvm?"; then
+            log_info "Installing nvm..."
+            # PROFILE=/dev/null: ~/.zshrc already lazy-loads nvm; don't let the installer append to it
+            if ! curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/$NVM_VERSION/install.sh" | PROFILE=/dev/null bash; then
+                log_warning "Failed to install nvm"
+                return 0
+            fi
+        else
+            log_info "Skipped nvm"
+            return 0
+        fi
+    else
+        log_success "nvm already installed"
+    fi
+
+    # nvm.sh is not safe under set -e/-u, so load and use it in a subshell
+    if ! (
+        set +e +u
+        export NVM_DIR="$HOME/.nvm"
+        # shellcheck disable=SC1091
+        . "$NVM_DIR/nvm.sh"
+        for v in 22 26; do
+            nvm ls "$v" >/dev/null 2>&1 && continue
+            nvm install "$v" || exit 1
+        done
+        nvm alias default 22 >/dev/null
+    ); then
+        log_warning "Failed to install Node via nvm (run: nvm install 22 && nvm install 26)"
+    else
+        log_success "Node 22 (default) and 26 installed via nvm"
+    fi
+}
+
 # Install the TypeScript language server binaries the typescript-lsp Claude Code
 # plugin and Neovim call. Node comes from nvm, which this script never loads (the
 # interactive shell lazy-loads it), so look for npm on PATH and then in nvm's
@@ -464,16 +506,16 @@ install_typescript_lsp() {
         export PATH="$nvm_bin:$PATH" # npm's #! line needs node on PATH
     else
         log_warning "npm not found - skipping typescript-language-server"
-        log_info "After installing Node (nvm install --lts), run: npm i -g typescript-language-server typescript"
+        log_info "After installing Node (nvm install --lts), run: npm i -g typescript-language-server typescript prettier markdownlint-cli2"
         return 0
     fi
 
-    if confirm "Install typescript-language-server and typescript with npm?"; then
-        log_info "Installing typescript-language-server and typescript..."
+    if confirm "Install typescript-language-server, typescript, prettier and markdownlint-cli2 with npm?"; then
+        log_info "Installing typescript-language-server, typescript, prettier and markdownlint-cli2..."
         if "$npm_cmd" i -g typescript-language-server typescript; then
             log_success "typescript-language-server installed"
         else
-            log_warning "Failed to install typescript-language-server (run: npm i -g typescript-language-server typescript)"
+            log_warning "Failed to install typescript-language-server (run: npm i -g typescript-language-server typescript prettier markdownlint-cli2)"
         fi
     else
         log_info "Skipped typescript-language-server"

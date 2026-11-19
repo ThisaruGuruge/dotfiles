@@ -106,3 +106,18 @@ done
 # Source .p10k.zsh after all plugins are loaded. This file is managed by stow
 # (zsh/.p10k.zsh -> ~/.p10k.zsh) and can be regenerated with `p10k configure`.
 [[ -f "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
+
+# ============================================================================
+# nvm (installed to ~/.nvm by init.sh, not Homebrew) - lazy-loaded
+# ============================================================================
+# Sourcing nvm.sh costs ~200ms per shell, so load it on first use of nvm. Node
+# itself is already on PATH via .zshenv/.zprofile (the nvm default version).
+export NVM_DIR="$HOME/.nvm"
+if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+    nvm() {
+        unset -f nvm
+        source "$NVM_DIR/nvm.sh"
+        [[ -s "$NVM_DIR/bash_completion" ]] && source "$NVM_DIR/bash_completion"
+        nvm "$@"
+    }
+fi
