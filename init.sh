@@ -369,33 +369,18 @@ install_core_dependencies() {
 install_dev_tools() {
     log_step "Installing Development Tools (Optional)"
 
-    # Helper function to get description
-    get_tool_description() {
-        case "$1" in
-            pyenv) echo "Python version manager" ;;
-            *) echo "$1" ;;
-        esac
-    }
-
-    # Check and install each tool individually
-    for tool in pyenv; do
-        if brew_formula_installed "$tool"; then
-            log_success "$tool already installed"
+    if brew_formula_installed pyenv; then
+        log_success "pyenv already installed"
+    elif confirm "Install pyenv? (Python version manager)"; then
+        log_info "Installing pyenv..."
+        if brew install pyenv; then
+            log_success "pyenv installed"
         else
-            local description
-            description=$(get_tool_description "$tool")
-            if confirm "Install $tool? ($description)"; then
-                log_info "Installing $tool..."
-                if brew install "$tool"; then
-                    log_success "$tool installed"
-                else
-                    log_warning "Failed to install $tool"
-                fi
-            else
-                log_info "Skipped $tool"
-            fi
+            log_warning "Failed to install pyenv"
         fi
-    done
+    else
+        log_info "Skipped pyenv"
+    fi
 
     # Install SDKMAN
     install_sdkman
